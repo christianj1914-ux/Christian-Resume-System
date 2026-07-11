@@ -1,0 +1,15 @@
+{
+  "snapshot_id": "20260623_222037_Guidehouse_Managing_Consultant_-_Life_Sciences_Advisory_-_Market_Access_5f85b1a1",
+  "created_at": "2026-06-23T22:20:37",
+  "company": "Guidehouse",
+  "role": "Managing Consultant - Life Sciences Advisory - Market Access",
+  "workflow_type": "commercial",
+  "source_command": "legacy_import",
+  "archive_reason": "legacy_named_job_file",
+  "lane": "corporate_strategy",
+  "questions_present": false,
+  "question_count": 0,
+  "relative_path": "20260623_222037_Guidehouse_Managing_Consultant_-_Life_Sciences_Advisory_-_Market_Access_5f85b1a1",
+  "job_description_sha256": "5353a2014787eb5decbe70ab65d164ffaf3469e7c430b9668df98d4baaebd9a7",
+  "application_questions_sha256": ""
+}

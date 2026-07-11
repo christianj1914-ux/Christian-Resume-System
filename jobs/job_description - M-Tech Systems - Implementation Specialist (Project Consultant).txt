@@ -1,0 +1,123 @@
+﻿Company: M-Tech Systems
+
+
+Job Title: Implementation Specialist (Project Consultant)
+
+Implementation Specialist (Project Consultant)
+Reports To: Project Team Lead Department: Projects
+
+Location: Atlanta, GA (Hybrid – 3 days onsite)
+At M-Tech Systems, our company mission is to increase yield in protein production to help
+feed the growing world population without compromising animal welfare or damaging the
+planet. We aim to create software that delivers real-time data to the entire supply chain that
+allows producers to get better insight into what is happening on their farms and what they
+can do to improve production.
+M-Tech Systems is the industry-leading provider for Live Animal Protein Production
+
+Performance Management Tools. For over 30 years, M-Tech Systems has provided cutting-
+edge enterprise data solutions for all aspects of the live poultry operations cycle. We provide
+
+our customers with solutions in Business Intelligence, Live Production Accounting, Production
+Planning, and Remote Data Management—all through an integrated system. Our
+applications can currently be found running businesses on six continents in over 50
+countries. M-Tech has built an international reputation for equipping our customers with the
+power to utilize comprehensive data to maximize profitability.
+With over 300 employees globally, M-Tech Systems currently has main offices in Mexico,
+United States, and Brazil, with additional resources in key markets around the world. M-Tech
+Systems USA’s headquarters is based in Atlanta, Georgia and has approximately 90 team
+members in a casual, collaborative environment. Our work culture here is based on a passion
+for helping our clients feed the world, resulting in a flexible and rewarding atmosphere. We
+pride ourselves for having a working atmosphere that encourages collaboration, exceptional
+development tooling, training, and ongoing opportunities to work with senior and executive
+management.
+Job Summary
+We are seeking an energetic, driven professional who thrives in dynamic, client-facing
+environments. The ideal candidate is a fast learner who can engage effectively with
+stakeholders ranging from executives to frontline users.
+As part of our central project team, the Implementation Specialist (Project Consultant) is
+responsible for contributing to and executing the implementation of SaaS solutions for new
+and existing clients.
+This role operates within a team-based delivery model, where consultants collaborate to own
+the end-to-end implementation while taking responsibility for specific components of project
+execution. The position combines client-facing discovery, functional solution design, and
+hands-on system configuration to support successful project outcomes.
+
+This is a hands-on functional implementation role, not a pure project management position.
+Success requires the ability to translate business requirements into system configurations,
+contribute to delivery execution, and drive results alongside a broader project team.
+
+Essential Functions & Responsibilities
+Client Discovery & Requirements Translation
+• Lead client discovery sessions to understand business processes, workflows, and
+operational requirements
+• Translate business needs into functional system configurations and solution designs
+• Act as a key bridge between client stakeholders and internal technical teams
+Implementation & Configuration
+• Contribute to the team-based configuration and implementation of system
+components, including:
+• Master data setup
+• User roles and permissions
+• Functional modules and workflows
+• Take a hands-on role in configuring and validating system setup as part of the project
+team
+• Own assigned portions of configuration and implementation workstreams, ensuring
+accuracy and quality
+Delivery Execution & Ownership
+• Take ownership of assigned project components within a broader team-led
+implementation
+• Collaborate with team members to collectively deliver successful implementations
+from initiation through go-live
+• Drive assigned workstreams to completion, ensuring deliverables are completed on
+time, within scope, and at a high standard
+• Maintain accountability for the quality, accuracy, and completeness of assigned
+deliverables
+Cross-Functional Collaboration
+• Collaborate closely with Product, Development, QA, and Professional Services teams
+• Translate functional requirements into actionable inputs for technical teams (e.g.,
+reporting, integrations)
+• Contribute to continuous improvement of implementation practices and product
+capabilities
+Testing, Training & Post-Go-Live Support
+
+• Support and participate in user acceptance testing (UAT) to validate system
+functionality
+• Lead or support client training sessions tailored to business processes and system
+usage
+
+• Participate in go-live activities, issue resolution, and user adoption post-
+implementation
+
+Documentation & Continuous Improvement
+• Create and maintain project documentation, configurations, and process flows
+• Develop and document business process models and technical specifications
+• Participate in internal knowledge sharing and training to enhance team capabilities
+Project Scoping & Planning
+• Contribute to scoping, estimation, and planning activities for new and existing client
+implementations
+• Help define milestones, timelines, and deliverables to support successful project
+execution
+Education & Experience
+• Bachelor’s degree in business, Computer Science, Agriculture, Engineering, or related
+field
+• 2–3 years of experience in full-cycle SaaS implementation
+• Experience working in client-facing, implementation or consulting roles
+• 2+ years of experience with application integrations, Excel, or other relevant data
+tools preferred
+Preferred Qualifications (Nice-to-Have)
+• Experience working with multi-module SaaS platforms or complex business systems
+(e.g., ERP, supply chain, financial or operational systems)
+• Experience with data tools such as Excel, SQL, or similar for validation, reporting, or
+analysis
+• Experience with application integrations or data workflows
+• Background in agriculture, animal protein, or supply chain industries
+Travel and Commute Requirements
+• Up to 40-50% of domestic and international travel required
+• May include travel time on weekends
+Growth & Development
+
+• Opportunity to gain expertise across multiple software modules and business
+domains
+• Clear path for progression into:
+o Senior Consultant
+o Principal Consultant (deep domain expertise)
+o Leadership roles within the projects organization

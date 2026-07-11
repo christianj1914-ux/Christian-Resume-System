@@ -1,0 +1,15 @@
+{
+  "snapshot_id": "20260624_190731_DailyPay_Implementation_Manager_9e42a1d9",
+  "created_at": "2026-06-24T19:07:31",
+  "company": "DailyPay",
+  "role": "Implementation Manager",
+  "workflow_type": "commercial",
+  "source_command": "resume",
+  "archive_reason": "command_auto_archive",
+  "lane": "implementation_delivery",
+  "questions_present": true,
+  "question_count": 15,
+  "relative_path": "20260624_190731_DailyPay_Implementation_Manager_9e42a1d9",
+  "job_description_sha256": "06bdd2ea2753f722e9064de016179c20a3a61be89db080d7991d36a2c9bbb5b7",
+  "application_questions_sha256": "428601e4ac23a08ea4a15e17f91a1ad9d0169a3787d902c4b653104b0bf9a328"
+}

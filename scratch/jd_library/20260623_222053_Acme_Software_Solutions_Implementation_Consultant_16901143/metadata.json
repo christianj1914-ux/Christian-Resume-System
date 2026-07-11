@@ -1,0 +1,15 @@
+{
+  "snapshot_id": "20260623_222053_Acme_Software_Solutions_Implementation_Consultant_16901143",
+  "created_at": "2026-06-23T22:20:53",
+  "company": "Acme Software",
+  "role": "Solutions Implementation Consultant",
+  "workflow_type": "commercial",
+  "source_command": "trace_backfill",
+  "archive_reason": "trace_backfill",
+  "lane": "implementation_delivery",
+  "questions_present": false,
+  "question_count": 0,
+  "relative_path": "20260623_222053_Acme_Software_Solutions_Implementation_Consultant_16901143",
+  "job_description_sha256": "b8eaf5cade327beaf0423dfc63badbd6fa6aa26e5d2ddfc084fa97fa58f55c77",
+  "application_questions_sha256": ""
+}

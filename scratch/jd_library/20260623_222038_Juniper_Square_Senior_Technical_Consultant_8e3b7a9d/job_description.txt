@@ -1,0 +1,70 @@
+Company: Juniper Square
+
+
+Job Title: Senior Technical Consultant
+
+
+
+About Juniper Square
+Private markets are one of the largest, most complex, and most underserved corners of global finance. Our mission at Juniper Square is to unlock their full potential. We’re the Operations Partner trusted by 2,300+ GPs, unifying technology, data, and fund administration services into a single platform that helps GPs move faster, make better decisions, and scale with precision. With $300B+ under administration and 700,000+ LPs on platform, we’ve built the scale to match our ambition. And with JunieAI, our purpose-built AI platform, we’re reimagining how private markets operate, embedding intelligence across every workflow. Founder-led since 2014, backed by $350M+ in funding, and now 1,000+ employees strong, we’re building a company designed to shape the future of private markets for decades to come.
+
+Our culture is built for people who want to do ambitious, meaningful work alongside exceptionally talented teammates. We think like owners, move with urgency, and take pride in solving hard problems that truly matter to our customers and the future of private markets. We believe the best ideas come from open debate, deep collaboration, and diverse perspectives, which is why we believe transparency is the default and feedback makes us stronger. If you’re energized by high standards, rapid growth, and the opportunity to help define a category at a pivotal moment, come join us!
+
+Juniper Square offers employees a variety of ways to work, ranging from a fully remote experience to working full-time in one of our physical offices. We invest heavily in digital-first operations, allowing our teams to collaborate effectively across 27 U.S. states, 2 Canadian Provinces, India, Luxembourg, and England. We also have physical offices in San Francisco, New York City, Mumbai and Bangalore for employees who prefer to work in an office some or all of the time.
+
+About your role
+As a Senior Technical Consultant at Juniper Square, you will be responsible for designing, developing and delivering solutions to our customers during implementation and throughout the customer lifecycle. Your role will be to provide consultation and guidance to customers and internal teams on software usage, process recommendations, and solution proposals.
+
+You'll engage with customers hands-on, partnering with teams across their organization to understand their current ways of working and helping them create more efficient practices. You'll use your product expertise and industry best practices to help customers provide an excellent experience to their investors and transform how they operate.
+
+What you’ll do
+Develop and implement standard operating procedures for how the Technical Consulting Team interacts with internal and external stakeholders.
+
+Strategize and consult with customers to understand their motivations, business drivers, strategic goals, and desired business outcomes
+
+Design an appropriate adoption plan and execute in a timely fashion
+
+Identify and overcome potential constraints, create positive outcomes and increase customer feature adoption and engagement
+
+Structure and lead specific training for customers involving many users with varying skill sets and responsibilities
+
+Break down complex and technical concepts for a wide audience of different stakeholders with a varying degree of technical expertise
+
+Serve as a technical expert and maintain a deep understanding of customer behaviors, product functionality, and industry best practices
+
+Partner with team members across Project Management, Customer Success, Service and Support to troubleshoot complex issues and drive successful outcomes for our customers
+
+Collaborate cross-functionally with product development teams to guide Juniper Square’s product roadmap that reflects the voice of our customers
+
+Work across the organization to create, document and maintain consistent messaging around product and procedural best practices.
+
+Use AI tools as part of your core delivery workflow to produce sharper, faster, more customer-ready output.
+
+Identify AI and integration opportunities from customer conversations, pain points, and workflow gaps, and give credible guidance on what's buildable and the best practices.
+
+Qualifications
+Bachelor degree or equivalent work experience required
+
+Minimum of 5 years relevant experience, including experience working with large, strategic enterprise customers in the investment management industry
+
+Analytical mindset with in-depth excel skills
+
+Effective analysis, interpersonal, written and oral communication skills.
+
+Must be able to communicate with others in a concise, prescriptive, persuasive and professional manner
+
+Led client-facing meetings and presentations with multiple attendees of various levels, including executives
+
+Creative problem solver who collaborates effectively across teams to drive decision making
+
+Ability to identify areas for improvement and propose solutions to generate efficiencies
+
+Ability to travel nationally up to 10% of the time to meet with customers or team members as needed
+
+Previous consulting-like experience helping customers achieve outcomes in a technical manner
+
+Hands on experience establishing repeatable, context-rich use of AI across deliverables.
+
+Preferred:
+
+Experience producing AI-powered work others reuse (prompt libraries, templates, process guides, onboarding frameworks), running AI-enabled improvements with measurable outcomes.

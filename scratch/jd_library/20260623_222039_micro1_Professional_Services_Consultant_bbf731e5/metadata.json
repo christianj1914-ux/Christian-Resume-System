@@ -1,0 +1,15 @@
+{
+  "snapshot_id": "20260623_222039_micro1_Professional_Services_Consultant_bbf731e5",
+  "created_at": "2026-06-23T22:20:39",
+  "company": "micro1",
+  "role": "Professional Services Consultant",
+  "workflow_type": "commercial",
+  "source_command": "trace_backfill",
+  "archive_reason": "trace_backfill",
+  "lane": "corporate_strategy",
+  "questions_present": false,
+  "question_count": 0,
+  "relative_path": "20260623_222039_micro1_Professional_Services_Consultant_bbf731e5",
+  "job_description_sha256": "6f20b48d749d0e7f82dbf7de3b06190acf18e10ebab4f1c153b7c64729701e23",
+  "application_questions_sha256": ""
+}

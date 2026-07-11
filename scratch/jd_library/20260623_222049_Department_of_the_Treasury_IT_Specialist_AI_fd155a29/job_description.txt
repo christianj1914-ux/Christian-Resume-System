@@ -1,0 +1,10 @@
+Agency: Department of the Treasury
+Role: IT Specialist (AI)
+Selective Factor: Demonstrated experience implementing AI solutions in production or test environments.
+GS-15: Directing collaborative projects, leading enterprise cloud-native modernization efforts,
+and developing production-grade AI-enabled systems.
+GS-14: Collaborating with Senior Executives to align emerging technology adoption with Administration priorities
+and conducting cybersecurity risk assessments for AI-enabled systems.
+GS-13: Applying cybersecurity practices in AI or cloud environments and participating in Agile development teams
+during sprint planning or execution.
+GS-12: Assisting in designing, developing, testing, or deploying AI models and prototypes.

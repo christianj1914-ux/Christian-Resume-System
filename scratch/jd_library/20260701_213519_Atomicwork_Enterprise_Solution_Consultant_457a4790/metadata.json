@@ -1,0 +1,15 @@
+{
+  "snapshot_id": "20260701_213519_Atomicwork_Enterprise_Solution_Consultant_457a4790",
+  "created_at": "2026-07-01T21:35:19",
+  "company": "Atomicwork",
+  "role": "Enterprise Solution Consultant",
+  "workflow_type": "commercial",
+  "source_command": "resume",
+  "archive_reason": "command_auto_archive",
+  "lane": "presales_solution",
+  "questions_present": true,
+  "question_count": 18,
+  "relative_path": "20260701_213519_Atomicwork_Enterprise_Solution_Consultant_457a4790",
+  "job_description_sha256": "a7a7c180a4d0cc5bef6967c454590d2a9e0f3ba1453698ccc460acfa1f9e1eb1",
+  "application_questions_sha256": "f27116e0aee426f163a3ecb9f11c240cb32eb6804faeac9a6186877ffd69a475"
+}

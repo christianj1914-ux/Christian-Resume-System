@@ -1,0 +1,4 @@
+Role: Implementation Project Manager
+The role owns implementation, go-live, configuration, data migration, integration,
+hypercare, project management, scope, deliverables, timeline, requirements, UAT,
+customer onboarding, and launch readiness.

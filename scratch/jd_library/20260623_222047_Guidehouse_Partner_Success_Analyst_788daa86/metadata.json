@@ -1,0 +1,15 @@
+{
+  "snapshot_id": "20260623_222047_Guidehouse_Partner_Success_Analyst_788daa86",
+  "created_at": "2026-06-23T22:20:47",
+  "company": "Guidehouse",
+  "role": "Partner Success Analyst",
+  "workflow_type": "commercial",
+  "source_command": "trace_backfill",
+  "archive_reason": "trace_backfill",
+  "lane": "implementation_delivery",
+  "questions_present": false,
+  "question_count": 0,
+  "relative_path": "20260623_222047_Guidehouse_Partner_Success_Analyst_788daa86",
+  "job_description_sha256": "69ca8a02dd85a9eec4e6535387d61212b01ece8560b1ff8427e302497b48efeb",
+  "application_questions_sha256": ""
+}

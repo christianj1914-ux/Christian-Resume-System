@@ -1,0 +1,15 @@
+{
+  "snapshot_id": "20260623_222036_BioTouch_Solutions_Implementation_Consultant_62772b05",
+  "created_at": "2026-06-23T22:20:36",
+  "company": "BioTouch",
+  "role": "Solutions Implementation Consultant",
+  "workflow_type": "commercial",
+  "source_command": "legacy_import",
+  "archive_reason": "legacy_jd_library",
+  "lane": "implementation_delivery",
+  "questions_present": false,
+  "question_count": 0,
+  "relative_path": "20260623_222036_BioTouch_Solutions_Implementation_Consultant_62772b05",
+  "job_description_sha256": "859edf836fa134a0245c0419947b6370559dd4ef6d5ea979699897f5b606b2a5",
+  "application_questions_sha256": ""
+}

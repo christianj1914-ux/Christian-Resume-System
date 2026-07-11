@@ -1,0 +1,15 @@
+{
+  "snapshot_id": "20260624_201906_Delta_Air_Lines_Project_Manager_Crew_Mod_Implementation_543d1c79",
+  "created_at": "2026-06-24T20:19:06",
+  "company": "Delta Air Lines",
+  "role": "Project Manager, Crew Mod Implementation",
+  "workflow_type": "commercial",
+  "source_command": "resume",
+  "archive_reason": "command_auto_archive",
+  "lane": "implementation_delivery",
+  "questions_present": true,
+  "question_count": 15,
+  "relative_path": "20260624_201906_Delta_Air_Lines_Project_Manager_Crew_Mod_Implementation_543d1c79",
+  "job_description_sha256": "acecd4603253e1218a5ef6c4128945853db1d48de76457e02ef7346aae9d536a",
+  "application_questions_sha256": "428601e4ac23a08ea4a15e17f91a1ad9d0169a3787d902c4b653104b0bf9a328"
+}

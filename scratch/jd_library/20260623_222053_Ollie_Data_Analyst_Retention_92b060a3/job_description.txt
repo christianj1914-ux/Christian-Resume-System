@@ -1,0 +1,3 @@
+Company: Ollie
+Role: Data Analyst, Retention
+This role focuses on retention analytics, curated reporting, data-driven decision support, customer behavior trends, workflow quality, KPI analysis, and measurable process improvement. The analyst helps leaders understand customer patterns and improve retention decisions.

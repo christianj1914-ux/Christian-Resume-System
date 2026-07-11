@@ -1,0 +1,15 @@
+{
+  "snapshot_id": "20260624_200626_Delta_Air_Lines_Specialist_Business_Solutions_-_Resource_Planning_5eb5ed4f",
+  "created_at": "2026-06-24T20:06:26",
+  "company": "Delta Air Lines",
+  "role": "Specialist, Business Solutions - Resource Planning",
+  "workflow_type": "commercial",
+  "source_command": "trace_backfill",
+  "archive_reason": "trace_backfill",
+  "lane": "analytics_operations",
+  "questions_present": false,
+  "question_count": 0,
+  "relative_path": "20260624_200626_Delta_Air_Lines_Specialist_Business_Solutions_-_Resource_Planning_5eb5ed4f",
+  "job_description_sha256": "53e2e7763fa95252167ec6e191fd4591aea5ec866e742834771dde1af41f4fc9",
+  "application_questions_sha256": ""
+}

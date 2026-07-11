@@ -1,0 +1,55 @@
+Company: micro1 
+
+
+
+Job Title: Talent Operations Manager
+
+
+
+The Role
+
+Scale the human data engine behind frontier AI systems. Own onboarding, talent activation, and client success across high-velocity AI training deployments. Operate at the intersection of data, operators, and enterprise delivery.
+
+
+
+What You’ll Own
+
+Run large-cohort onboarding at scale (fast, clean, zero chaos).
+Activate and manage distributed talent pools powering AI training + data ops.
+Build and maintain high-trust enterprise client relationships.
+Anticipate blockers before they surface — solve with speed and clarity.
+Drive customer success outcomes across ongoing AI deployments.
+Publish weekly performance + milestone reports (no noise, high signal).
+Host community syncs / engagement rituals to keep operators sharp.
+Partner with product + engineering to align talent ops with shifting model and client needs.
+Continuously refine onboarding, QA, and retention systems using data.
+
+
+What We're Looking For
+
+Elite written communicator. Clear. Structured. Direct.
+Proven operator in remote, distributed environments.
+Deep ownership mindset — you don’t “manage,” you
+own
+.
+Comfortable leading 100+ contributors without losing signal.
+Thrives in ambiguity, velocity, and constant iteration.
+Data-fluent — dashboards, KPIs, performance diagnostics.
+
+
+Preferred
+
+Experience in Human Data, RLHF, AI training pipelines.
+Background working with enterprise AI or technical clients.
+Built or scaled data ops / talent ops systems before.
+Familiar with modern tooling (ATS, analytics, project ops, automation).
+
+
+Required Skills
+Large Scale Onboarding
+Stakeholder Management
+Cross-functional Collaboration
+Leadership Skills
+About micro1
+micro1 is the leading AI data lab for training frontier models and evaluating AI agents. Experts contribute their diverse subject matter knowledge across domains such as finance, healthcare, STEM engineering, and more. micro1 transforms that real-world expertise into high-quality training data, evaluations, and feedback loops that improve how AI systems learn, reason, and perform.
+Our platform identifies and vets top talent through an AI recruiter, enabling high-quality expert contributions at scale. We aim to enable 1 billion people to do meaningful work by applying their expertise to AI. As our global expert network grows, micro1 is building the human intelligence layer for frontier AI.

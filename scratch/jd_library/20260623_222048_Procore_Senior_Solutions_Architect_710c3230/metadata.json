@@ -1,0 +1,15 @@
+{
+  "snapshot_id": "20260623_222048_Procore_Senior_Solutions_Architect_710c3230",
+  "created_at": "2026-06-23T22:20:48",
+  "company": "Procore",
+  "role": "Senior Solutions Architect",
+  "workflow_type": "commercial",
+  "source_command": "trace_backfill",
+  "archive_reason": "trace_backfill",
+  "lane": "implementation_delivery",
+  "questions_present": false,
+  "question_count": 0,
+  "relative_path": "20260623_222048_Procore_Senior_Solutions_Architect_710c3230",
+  "job_description_sha256": "365747b19e7d8e2baca7952adff28665fed698f0c10d75e9267d3a9ed8d772ce",
+  "application_questions_sha256": ""
+}

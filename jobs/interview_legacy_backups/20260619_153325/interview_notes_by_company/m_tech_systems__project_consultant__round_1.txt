@@ -1,0 +1,112 @@
+Company: M-Tech Systems
+Role: Project Consultant
+Round: 1
+Interview date: 6/19/2026
+Outcome:
+
+Paste raw interview notes below this line.
+Keep notes factual. Include interviewer language, questions, objections, feedback, and next-step clues.
+
+
+### MTech Systems and Amino
+
+- B2B SaaS, headquartered in Dunwoody, GA; operating since 1992; 300 employees globally, 65 countries
+- 92% US market share in poultry production; major clients include Tyson, Purdue, Sanderson’s
+- Core business: software for live animal production, primarily poultry
+- Amino (flagship, launched 2017): fully cloud-based, web platform
+  - Business value: replaces fragmented per-segment systems with a single source of truth
+    - Each stage of production (feed mills, grow-out, processing, distribution) historically ran separate systems
+    - Amino consolidates all data and operations into one platform instead of managing five
+  - Three core modules:
+    - Supply chain: collects lifecycle data from egg to distribution (weight, feed consumption, mortality over ~24 weeks)
+    - Financial and accounting: budgeting, forecasting, cost variance analysis, per-unit and per-flock cost tracking
+    - Dashboards and reporting: turns operational and financial data into executive-level decision tools
+  - All reporting built internally via SQL scripts; dedicated integration team owns custom report generation
+  - Closest analogy is an ERP, though Jonathan noted Amino is more specialized and complex
+
+### Project Consultant Role and Expectations
+
+- Title is “Implementation Specialist” in industry standard; MTech calls it “Project Consultant”
+- Implementation scale: 9 months to 2 years per project, team of 3-5 consultants per engagement
+- Tier 1 ramp (first 3-4 months): support function across 2-3 active projects
+  - Tasks: UAT testing, data validation, documentation
+  - Goal: absorb the industry, the system, and the client culture before owning modules
+  - Clients range from large enterprise (Tyson-scale) to individual farmers depending on module
+- After ramp: own 2-3 modules independently (e.g., feed module, mobile)
+  - Each module functions as a mini-implementation within the broader project
+- Biggest challenge: industry and business knowledge, not technical skills
+  - Poultry production has its own language, culture, and operational logic
+  - Jonathan described it as “people speak a different language”
+  - Technical complexity of Amino compounds the learning curve on top of industry knowledge
+
+### Interview Process and Fit
+
+- Three rounds:
+  1. Prescreen with Jonathan Ho (this call)
+  2. Hiring manager interview
+  3. On-site, in-person final round
+- Jonathan’s feedback on fit:
+  - ERP background is the closest analog to Amino; experience aligns well
+  - Noted depth of experience across both sides of implementation (vendor and client)
+  - Highlighted communication and relevant experience as positives
+  - “I feel good about the resume, I feel better with your experience”
+
+### Next Steps
+
+- **Await hiring team feedback from Jonathan**
+  - Jonathan submitting notes and resume today; decision expected by Monday, Jun 22, with second-round scheduling if approved.
+
+Company: M-Tech Systems
+Role: Project Consultant
+Round: 1
+Interview date: 6/19/2026
+Outcome: pending
+
+Raw notes:
+### MTech Systems and Amino
+
+Stories that generated follow-up questions:
+  - B2B SaaS, headquartered in Dunwoody, GA; operating since 1992; 300 employees globally, 65 countries
+  - 92% US market share in poultry production; major clients include Tyson, Purdue, Sanderson’s
+  - Core business: software for live animal production, primarily poultry
+  - Amino (flagship, launched 2017): fully cloud-based, web platform
+    - Business value: replaces fragmented per-segment systems with a single source of truth
+      - Each stage of production (feed mills, grow-out, processing, distribution) historically ran separate systems
+      - Amino consolidates all data and operations into one platform instead of managing five
+    - Three core modules:
+      - Supply chain: collects lifecycle data from egg to distribution (weight, feed consumption, mortality over ~24 weeks)
+      - Financial and accounting: budgeting, forecasting, cost variance analysis, per-unit and per-flock cost tracking
+      - Dashboards and reporting: turns operational and financial data into executive-level decision tools
+    - All reporting built internally via SQL scripts; dedicated integration team owns custom report generation
+    - Closest analogy is an ERP, though Jonathan noted Amino is more specialized and complex
+
+Unexpected questions:
+### Project Consultant Role and Expectations
+
+Specific interviewer language about the role:
+  - Title is “Implementation Specialist” in industry standard; MTech calls it “Project Consultant”
+  - Implementation scale: 9 months to 2 years per project, team of 3-5 consultants per engagement
+  - Tier 1 ramp (first 3-4 months): support function across 2-3 active projects
+    - Tasks: UAT testing, data validation, documentation
+    - Goal: absorb the industry, the system, and the client culture before owning modules
+    - Clients range from large enterprise (Tyson-scale) to individual farmers depending on module
+  - After ramp: own 2-3 modules independently (e.g., feed module, mobile)
+    - Each module functions as a mini-implementation within the broader project
+  - Biggest challenge: industry and business knowledge, not technical skills
+    - Poultry production has its own language, culture, and operational logic
+    - Jonathan described it as “people speak a different language”
+    - Technical complexity of Amino compounds the learning curve on top of industry knowledge
+
+Feedback received:
+### Interview Process and Fit
+
+Insider company intelligence learned:
+  - Three rounds:
+    1. Prescreen with Jonathan Ho (this call)
+    2. Hiring manager interview
+    3. On-site, in-person final round
+  - Jonathan’s feedback on fit:
+    - ERP background is the closest analog to Amino; experience aligns well
+    - Noted depth of experience across both sides of implementation (vendor and client)
+    - Highlighted communication and relevant experience as positives
+    - “I feel good about the resume, I feel better with your experience”

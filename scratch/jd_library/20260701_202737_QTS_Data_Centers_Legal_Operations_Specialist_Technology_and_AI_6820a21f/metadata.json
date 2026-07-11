@@ -1,0 +1,15 @@
+{
+  "snapshot_id": "20260701_202737_QTS_Data_Centers_Legal_Operations_Specialist_Technology_and_AI_6820a21f",
+  "created_at": "2026-07-01T20:27:37",
+  "company": "QTS Data Centers",
+  "role": "Legal Operations Specialist, Technology and AI",
+  "workflow_type": "commercial",
+  "source_command": "resume",
+  "archive_reason": "command_auto_archive",
+  "lane": "implementation_delivery",
+  "questions_present": true,
+  "question_count": 18,
+  "relative_path": "20260701_202737_QTS_Data_Centers_Legal_Operations_Specialist_Technology_and_AI_6820a21f",
+  "job_description_sha256": "961f772c94f273bfa7df169cd4975fdabae36bf6637ec8671f7a16eaea1da12d",
+  "application_questions_sha256": "f27116e0aee426f163a3ecb9f11c240cb32eb6804faeac9a6186877ffd69a475"
+}

@@ -1,0 +1,23 @@
+output/
+render_check*/
+review_updated_sources*/
+backup/
+backups/
+.tmp/
+tmp/
+__pycache__/
+*.py[cod]
+/err.txt
+/err_c
+/err_tmp
+/debug-*.log
+Claude Review/TEMP_*
+Claude Review/BUNDLE_MANIFEST.json
+Claude Review/history/
+scratch/*
+!scratch/
+!scratch/applications.csv
+!scratch/jd_library/
+!scratch/jd_library/**
+!scratch/target_jds/
+!scratch/target_jds/**

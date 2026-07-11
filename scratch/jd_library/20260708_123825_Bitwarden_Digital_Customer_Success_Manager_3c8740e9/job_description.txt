@@ -1,0 +1,69 @@
+Company: Bitwarden
+
+
+
+
+Job Title: Digital Customer Success Manager
+
+
+
+
+About the job
+Bitwarden is the trusted identity security leader for millions of users worldwide, empowering enterprises, developers, and individuals to securely manage and share sensitive information anywhere. Bitwarden makes it easy for all users to extend robust security across their devices with password management, secrets management, and passwordless and passkey innovations. The company is headquartered in Santa Barbara, California. Learn more at bitwarden.com.
+
+Bitwarden truly cares about users and wants them to have the best experience while accessing their sensitive information online. The Bitwarden Customer Engagement team is responsible for ensuring customer satisfaction and success with Bitwarden products and services. As a representative of Bitwarden values, your primary goal is to promote adoption, improve user outcomes, retain and grow the customer base, and advocate for customer needs across the business.
+
+This role will support Bitwarden’s growing base of business customers through a scaled, digital Customer Success model. Unlike a traditional Customer Success Manager role, this position does not own a fixed book of business. Instead, the Digital Customer Success Manager will operate a pooled coverage motion, using product usage data, customer health scores, lifecycle signals, and renewal timing to identify where proactive outreach and human intervention can have the greatest impact.
+
+This is a new role designed to help Bitwarden serve customers who may not have a dedicated Customer Success Manager today. The person in this role will help customers adopt Bitwarden, address stalled rollouts, reduce preventable churn, surface expansion opportunities, and build repeatable one-to-many programs that can scale across the customer base.
+
+This is an all-remote team. We do not offer visa sponsorship at this time.
+
+RESPONSIBILITIES
+
+Operate a pooled Digital Customer Success model for business customers, using health scores, product usage data, renewal timing, and account signals to prioritize outreach and intervention.
+Review and manage a health-score-based customer queue, identifying accounts with stalled adoption, low usage, upcoming renewals, potential churn risk, or expansion potential.
+Proactively engage priority customers through email, calls, webinars, office hours, and other scaled channels to help them adopt Bitwarden and realize value.
+Support customers through key adoption milestones, including onboarding, user activation, admin setup, rollout completion, security configuration, and continued product engagement.
+Run targeted recovery plays for at-risk customers, diagnosing adoption blockers and creating clear next steps to improve product usage and renewal outcomes.
+Partner with Lifecycle Marketing to improve automated email sequences, customer journeys, renewal nudges, onboarding communications, and one-to-many adoption programs.
+Collaborate with Product and Engineering teams to share customer insights, identify recurring friction points, and influence improvements that support adoption, retention, and customer experience.
+Work closely with Sales and Account Executives to identify expansion-ready accounts, surface seat growth opportunities, and support renewal or growth conversations where appropriate.
+Track customer health, adoption movement, queue coverage, renewal risk, and program impact, sharing concise and actionable updates with leadership.
+Document repeatable plays, customer patterns, and operational processes that help define and scale Bitwarden’s digital Customer Success motion.
+Maintain deep expertise in Bitwarden offerings, customer use cases, and core security concepts, delivering practical guidance to customers at scale.
+Champion a customer-centric, product-led mindset by using data, customer feedback, and repeatable processes to improve outcomes across a large customer segment.
+
+NICE TO HAVE
+
+Experience with Customer Success platforms, CRM tools, lifecycle marketing tools, or product analytics tools.
+Experience working with SMB, long-tail, or lower-ARR customer segments.
+A background in security, IT, identity, infrastructure, or developer-focused software.
+Familiarity with identity and access concepts such as SSO, SCIM, directory sync, admin controls, user provisioning, and account recovery.
+Experience creating customer-facing enablement content, playbooks, webinars, office hours, or one-to-many adoption programs.
+
+WHAT YOU BRING TO BITWARDEN
+
+A passion for user success, ensuring Bitwarden customers excel at every stage of their journey.
+Genuine empathy that fosters authentic connections, turning stakeholder needs into actionable plans.
+Interpersonal skills for building trust, forging meaningful alliances, and maintaining a consultative, sales-forward perspective.
+An analytical, data-driven approach that leverages usage metrics, feedback, and adoption trends to inform key decisions.
+Flexibility in responding to evolving customer demands, collaborating seamlessly with Sales, Product, and other teams.
+Direct, transparent communication and compelling presentation skills that instill confidence and clarity.
+A commitment to a user-focused, product-led culture, harmonizing solutions with organizational objectives and emerging industry innovations.
+
+WHAT TO EXPECT IN THE INTERVIEW PROCESS
+
+Selected candidates will be invited to schedule an introduction call and potentially progress through the following stages:
+
+Interview(s) with Head of Global Accounts
+Case Study
+Interview with Chief Sales Officer
+Reference calls
+
+A FEW REASONS TO WORK AT BITWARDEN
+
+The Bitwarden user community loves staying secure and the feeling is mutual. Come to work each day with a sense of purpose and bring a more secure internet experience to everyone from friends and family to the world’s largest organizations.
+Become an expert. You’ll get immersed in the prominent technology markets of security and open source software.
+Bitwarden remains dedicated to building a diverse and talented team. Work remotely with motivated and supportive team members across the world.
+Learn and grow. Take on new challenges with the support of your team, and join the Bitwarden #growth-club to continue personal and professional development.

@@ -1,0 +1,15 @@
+{
+  "snapshot_id": "20260623_222042_Dematic_Solution_Consultant_775ceee9",
+  "created_at": "2026-06-23T22:20:42",
+  "company": "Dematic",
+  "role": "Solution Consultant",
+  "workflow_type": "commercial",
+  "source_command": "trace_backfill",
+  "archive_reason": "trace_backfill",
+  "lane": "implementation_delivery",
+  "questions_present": false,
+  "question_count": 0,
+  "relative_path": "20260623_222042_Dematic_Solution_Consultant_775ceee9",
+  "job_description_sha256": "fb087f86517f42d8f7b7d408557c034b8588736879d7cc07dc8508f12f7b86b7",
+  "application_questions_sha256": ""
+}

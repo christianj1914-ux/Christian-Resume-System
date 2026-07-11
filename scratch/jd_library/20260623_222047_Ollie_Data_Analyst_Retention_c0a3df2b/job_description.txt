@@ -1,0 +1,18 @@
+Company: Ollie
+Job Title: Data Analyst, Retention
+
+Ollie makes human-grade pet food tailored to each dog's nutritional needs and delivers it directly to customers' doors.
+
+Ollie is looking for a Data Analyst to join the cross functional team responsible for building subscription retention and member loyalty.
+This role is ideal for someone who is highly analytical, comfortable working with imperfect business questions,
+and excited to translate data into decisions.
+
+What You'll Do:
+Drive a data-driven approach to optimizing the Ollie member experience alongside peers from product, marketing, CX, and research.
+Lead analysis across Ollie's lifecycle comms, mobile apps, and new member services.
+Support the team through ad hoc analysis, hypothesis valuation, test design and measurement, and metric definition.
+
+Who You Are:
+You have experience in data analytics, growth analytics, lifecycle analytics, or retention analytics in a subscription business.
+You balance SQL, Excel, test design and measurement, and subscription-based metrics including retention, churn, LTV, reactivation, and cohort analysis.
+You are comfortable sourcing and joining information from curated reporting tools, production databases, Segment, MixPanel, Looker, and Snowflake.

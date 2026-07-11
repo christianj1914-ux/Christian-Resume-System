@@ -1,0 +1,15 @@
+{
+  "snapshot_id": "20260625_133523_QTS_Data_Centers_Implementation_Consultant_2dcf9f93",
+  "created_at": "2026-06-25T13:35:23",
+  "company": "QTS Data Centers",
+  "role": "Implementation Consultant",
+  "workflow_type": "commercial",
+  "source_command": "trace_backfill",
+  "archive_reason": "trace_backfill",
+  "lane": "",
+  "questions_present": false,
+  "question_count": 0,
+  "relative_path": "20260625_133523_QTS_Data_Centers_Implementation_Consultant_2dcf9f93",
+  "job_description_sha256": "fa8f1402505756d52d1c0285892dd489bf41efeb1b4702c436183d1930297f55",
+  "application_questions_sha256": ""
+}

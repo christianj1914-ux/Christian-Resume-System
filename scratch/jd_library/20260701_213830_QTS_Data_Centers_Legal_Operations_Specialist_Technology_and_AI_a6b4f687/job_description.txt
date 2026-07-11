@@ -1,0 +1,71 @@
+Company: QTS Data Centers
+
+
+
+
+Job Title: Legal Operations Specialist, Technology and AI
+
+
+
+
+It’s exhilarating to find yourself at a pivotal moment in history— and even more so to be leading the way. At QTS Data Centers, we are proud to stand at the forefront of today’s dynamic digital transformation. Our world-class data centers empower our customers’ most strategic growth initiatives, positioning us as a global leader in digital infrastructure.
+
+
+As AI and cloud technologies fuel the demand for increased speed, capacity, and innovation, QTS has emerged as the global digital infrastructure leader. We are committed to connecting the globe for good. Driven by purpose and a spirit of innovation, we design, build, and operate some of the most advanced data centers worldwide. In addition to our cutting-edge technology, we are dedicated to sustainability, incorporating renewable energy solutions to minimize our environmental footprint and drive meaningful impact. As a proud portfolio company of Blackstone, QTS is uniquely positioned to achieve ambitious growth and innovation goals.
+
+
+At QTS, we are Powered by People. Our team members are the cornerstone of our culture, innovation, and growth. They are mission-driven, resourceful, and committed to making a positive impact in the communities where we live and work. Together, we’re achieving remarkable things and shaping the future of digital infrastructure.
+
+
+Who We Are:
+
+It's pretty exciting, to find yourself standing in a pivotal moment in time. It’s even more exciting to be out front leading it. At QTS, our world-class data centers are supporting our customers most strategic growth initiatives, positioning us at the forefront of today’s dynamic digital transformation.
+
+As AI and cloud drive the demand for increased speed, capacity and capability, QTS has emerged as the global digital infrastructure leader, committed to connecting the world for good. Driven by purpose and fueled by a spirit of innovation, QTS designs, builds and operates some of the world’s most advanced, forward-thinking data centers. QTS is a portfolio company of Blackstone. 
+
+QTS is Powered by People. People who play a vital role in our company’s culture, innovation and growth. People who are committed to contributing to the communities where we operate and work. People who are knowledgeable, resourceful and mission driven. Together, we do great things.
+
+Who You Are:
+
+The Legal Technology and AI Specialist will support the development, implementation and optimization of legal technology and AI-enabled solutions across the Legal team. This role partners with each Legal division, IT, and business stakeholders to improve workflows, increase efficiency, and scale legal service delivery.
+
+This position operates as an individual contributor within a defined career band and contributes to business outcomes through process improvement, solution delivery, technology enablement, and successful AI adoption and implementation. Success will be measured by increased adoption of legal technology and AI solutions, effective implementation of AI-enabled capabilities, improved cycle times, and quantifiable gains in operational efficiency and overall effectiveness.
+
+The Legal Technology and Data Specialist will support the development, implementation and optimization of legal technology and AI-enabled solutions across the Legal team. This role partners with each Legal division, IT, and business stakeholders to improve workflows, increase efficiency, and scale legal service delivery.
+
+What You Will Do:
+
+Support implementation, configuration, and ongoing optimization of legal technology platforms and AI tools, including Microsoft 365 Copilot and Copilot Studio.
+
+Develop and maintain AI-enabled workflows and Copilot agents in alignment with governance and security standards
+
+Translate business needs into requirements, process flows, and scalable solutions
+
+Identify and execute process improvements to enhance efficiency, quality, and consistency across legal operations
+
+Partner with cross-functional teams (Legal, IT, vendors) to support design, testing (UAT), deployment, and stabilization of solutions
+
+Support responsible AI practices, including data handling, access controls, and risk mitigation
+
+Develop and deliver training, playbooks, and enablement resources to support adoption and effective use of tools
+
+Track and report on adoption, usage, and performance metrics; recommend continuous improvements
+
+Evaluate emerging technologies and contribute to tool selection and implementation decisions
+
+What You Will Need to be Successful:
+
+Bachelor’s degree in information systems, computer science, business, or related field, or equivalent experience
+Experience supporting or implementing business applications in a professional, legal, or regulated environment
+Ability to translate business processes into workflows, requirements, and technical documentation
+Technical understanding of generative AI architectures, prompt engineering, and enterprise use cases.
+Working knowledge of generative AI concepts and practical applications
+Experience supporting solutions across the full project management lifecycle (planning, testing, implementation, rollout, support)
+Experience with Microsoft 365 Copilot and/or Copilot Studio
+Experience with Microsoft Power Platform (e.g., Power Automate, Power Apps)
+Experience with Claude
+Experience applying AI to automate workflows and drive process improvements
+Nice to Have:
+
+Exposure to legal technology tools and supporting legal teams
+Basic understanding of automation, scripting, or system integrations

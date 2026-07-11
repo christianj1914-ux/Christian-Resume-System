@@ -1,0 +1,15 @@
+{
+  "snapshot_id": "20260624_224818_Liberty_Mutual_Technical_Consultant_Risk_Control_Consulting_Center_6a40fa1d",
+  "created_at": "2026-06-24T22:48:18",
+  "company": "Liberty Mutual",
+  "role": "Technical Consultant, Risk Control Consulting Center",
+  "workflow_type": "commercial",
+  "source_command": "trace_backfill",
+  "archive_reason": "trace_backfill",
+  "lane": "implementation_delivery",
+  "questions_present": false,
+  "question_count": 0,
+  "relative_path": "20260624_224818_Liberty_Mutual_Technical_Consultant_Risk_Control_Consulting_Center_6a40fa1d",
+  "job_description_sha256": "e49f77b10b6e3a3ddacc3c72c41aae211cfb7bece3e356ca96eda0b79a121466",
+  "application_questions_sha256": ""
+}

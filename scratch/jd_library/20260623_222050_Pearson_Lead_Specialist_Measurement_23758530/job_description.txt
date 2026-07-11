@@ -1,0 +1,20 @@
+Company: Pearson
+Job Title: Lead Specialist, Measurement
+
+This role aligns to industry level title of Lead Specialist, Applied AI Measurement & Learning Systems
+
+Measurement & Learning | School Assessment
+
+Role Overview
+We are seeking a Lead Specialist, Measurement to support the design, validation, and continuous improvement of intelligent measurement systems and AI-assisted assessment and learning workflows.
+
+This role sits within the Measurement & Learning team and operates at the intersection of Measurement, Content Development, Learning Science, Technology, and AI Science.
+
+Validation, Monitoring & Quality Frameworks
+Design and oversee validation studies evaluating the quality, appropriateness, effectiveness, interpretability, and educational defensibility of AI-assisted systems, outputs, and workflows.
+Develop frameworks for ongoing monitoring, drift detection, and continuous improvement of AI-assisted systems over time.
+Ensure AI-assisted outputs meet expectations for validity, accuracy, fairness, accessibility, and instructional appropriateness.
+
+Cross-Functional Collaboration
+Partner with Technology teams implementing AI infrastructure and intelligent systems.
+Partner with content teams authoring assessment and learning content.

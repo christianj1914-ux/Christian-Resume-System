@@ -1,0 +1,15 @@
+{
+  "snapshot_id": "20260630_231720_ECI_Software_Solutions_Implementation_Consultant_64c8649a",
+  "created_at": "2026-06-30T23:17:20",
+  "company": "ECI Software Solutions",
+  "role": "Implementation Consultant",
+  "workflow_type": "commercial",
+  "source_command": "trace_backfill",
+  "archive_reason": "trace_backfill",
+  "lane": "",
+  "questions_present": false,
+  "question_count": 0,
+  "relative_path": "20260630_231720_ECI_Software_Solutions_Implementation_Consultant_64c8649a",
+  "job_description_sha256": "5607adc9b7700331fe65d6bcfe01b0910fb0e45ac0dc37db42cae4b61290610a",
+  "application_questions_sha256": ""
+}

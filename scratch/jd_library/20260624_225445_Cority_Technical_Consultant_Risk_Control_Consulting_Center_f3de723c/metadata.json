@@ -1,0 +1,15 @@
+{
+  "snapshot_id": "20260624_225445_Cority_Technical_Consultant_Risk_Control_Consulting_Center_f3de723c",
+  "created_at": "2026-06-24T22:54:45",
+  "company": "Cority",
+  "role": "Technical Consultant, Risk Control Consulting Center",
+  "workflow_type": "commercial",
+  "source_command": "trace_backfill",
+  "archive_reason": "trace_backfill",
+  "lane": "implementation_delivery",
+  "questions_present": false,
+  "question_count": 0,
+  "relative_path": "20260624_225445_Cority_Technical_Consultant_Risk_Control_Consulting_Center_f3de723c",
+  "job_description_sha256": "8e76c0c03ad3acb2bcbdb6ff08355bfab70a9ba696f11ca110c5b286cb30b7ec",
+  "application_questions_sha256": ""
+}

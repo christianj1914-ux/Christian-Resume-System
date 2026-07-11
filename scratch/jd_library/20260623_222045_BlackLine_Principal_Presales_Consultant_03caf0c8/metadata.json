@@ -1,0 +1,15 @@
+{
+  "snapshot_id": "20260623_222045_BlackLine_Principal_Presales_Consultant_03caf0c8",
+  "created_at": "2026-06-23T22:20:45",
+  "company": "BlackLine",
+  "role": "Principal Presales Consultant",
+  "workflow_type": "commercial",
+  "source_command": "trace_backfill",
+  "archive_reason": "trace_backfill",
+  "lane": "presales_solution",
+  "questions_present": false,
+  "question_count": 0,
+  "relative_path": "20260623_222045_BlackLine_Principal_Presales_Consultant_03caf0c8",
+  "job_description_sha256": "27c1911793db571b223a75cc1f684d6352235d4dbd51e632676358619028c193",
+  "application_questions_sha256": ""
+}

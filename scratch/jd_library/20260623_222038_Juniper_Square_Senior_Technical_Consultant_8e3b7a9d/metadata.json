@@ -1,0 +1,15 @@
+{
+  "snapshot_id": "20260623_222038_Juniper_Square_Senior_Technical_Consultant_8e3b7a9d",
+  "created_at": "2026-06-23T22:20:38",
+  "company": "Juniper Square",
+  "role": "Senior Technical Consultant",
+  "workflow_type": "commercial",
+  "source_command": "trace_backfill",
+  "archive_reason": "trace_backfill",
+  "lane": "implementation_delivery",
+  "questions_present": false,
+  "question_count": 0,
+  "relative_path": "20260623_222038_Juniper_Square_Senior_Technical_Consultant_8e3b7a9d",
+  "job_description_sha256": "f631b1f3c99df208fa63934b700770f97b0c363197d0a705c758893b862dde67",
+  "application_questions_sha256": ""
+}

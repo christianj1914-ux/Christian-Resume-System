@@ -1,0 +1,15 @@
+{
+  "snapshot_id": "20260623_222052_Attention_to_Detail_Qualifications_1a9f6e60",
+  "created_at": "2026-06-23T22:20:52",
+  "company": "Attention to Detail",
+  "role": "Qualifications",
+  "workflow_type": "commercial",
+  "source_command": "trace_backfill",
+  "archive_reason": "trace_backfill",
+  "lane": "implementation_delivery",
+  "questions_present": false,
+  "question_count": 0,
+  "relative_path": "20260623_222052_Attention_to_Detail_Qualifications_1a9f6e60",
+  "job_description_sha256": "55a0c6b913d4150c875f3ceeb837eca737e11a35bc0bc680d89e10ea8c851259",
+  "application_questions_sha256": ""
+}

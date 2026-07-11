@@ -1,0 +1,55 @@
+Company: Acrisure
+
+
+Job Title: Solutions Architect
+
+
+
+
+
+About Acrisure
+
+A global fintech leader, Acrisure empowers millions of ambitious businesses and individuals with the right solutions to grow boldly forward. Bringing cutting-edge technology and top-tier human support together, we connect clients with customized solutions across a range of insurance, reinsurance, payroll, benefits, cybersecurity, mortgage services, and more. 
+
+In the last twelve years, Acrisure has grown in revenue from $38 million to almost $5 billion and employs over 19,000 colleagues in more than 20 countries. Acrisure was built on entrepreneurial spirit. Prioritizing leadership, accountability, and collaboration, we equip our teams to work at the highest levels possible.
+
+Job Summary:
+
+The Solutions Architect is a hands-on, execution-focused role within the Transformation Office, designed to accelerate Acrisure’s shift toward a more AI-enabled, digitally mature enterprise. This role partners closely with business and technology teams to design, prototype, and implement scalable solutions that improve efficiency, enhance data visibility, and enable automation across the organization. 
+
+This position reflects a strategic evolution toward modern talent—prioritizing individuals who are deeply tech-savvy, AI-forward, and builder-oriented—capable of driving meaningful outcomes without reliance on heavy leadership overhead.
+
+The Solutions Architect will play a critical role in advancing enterprise transformation initiatives that support an evolution into a technology-enabled, AI-driven organization, focused on operational rigor, scalability, and long-term public company readiness. 
+
+Key Responsibilities:
+
+AI-Forward Solutioning & Innovation 
+Identify and implement opportunities for AI, automation, and workflow optimization across business functions 
+Apply structured analysis to define scalable, AI-enabled solution requirements, ensuring traceability from business objectives through technical delivery while aligning to enterprise architecture, data models, and integration standards 
+Leverage modern tools (AI-assisted development, low-code/no-code platforms, data tooling) to accelerate delivery 
+Rapidly prototype and iterate on solutions 
+Business & Technology Alignment 
+Lead the creation and documentation of current and future state end-to-end process flows, business workflows, and requirements, translating complex business needs into clear, actionable artifacts (e.g., user stories, functional specs, solution designs) that enable efficient build and implementation 
+Translate business needs into scalable technical solutions 
+Serve as a bridge between business, data, and technology stakeholders 
+Enterprise Transformation Delivery 
+Support enterprise initiatives including M&A integration and platform rationalization 
+Contribute to intake and prioritization processes 
+Data & Scalability Enablement 
+Promote data visibility and governance 
+Design solutions aligned with public company expectations 
+Cross-Functional Collaboration 
+Partner across Transformation, IT, and business units 
+Education and Experience:
+
+Bachelor’s degree (or higher) in Information Technology or related field 
+3–7 years of experience 
+Experience with transformation initiatives 
+AI/analytics exposure 
+Risk/compliance experience is a plus 
+Technical curiosity and builder mindset 
+Experience with AI-enabled tools and automation 
+Proven ability to create rapport with and influence all levels of stakeholders 
+Strong communication skills and personal credibility; can comfortably lead senior executives through difficult discussions and creatively drive consensus 
+Low-ego and high EQ, while being equally comfortable giving and receiving direction, leading and contributing, driving executive conversations or supporting as necessary, ability to 'read the room' and adjust approach, and foster trust at levels of the organization 
+Proven experience defining and documenting detailed business and technical requirements, along with workflows and process flows, ensuring business needs are translated into scalable, tech-enabled solutions with traceability from concept through delivery.

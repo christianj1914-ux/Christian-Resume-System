@@ -1,0 +1,15 @@
+{
+  "snapshot_id": "20260623_222059_Intuit_Senior_Pre-Sales_Engineer_Mid_Market_bc995f41",
+  "created_at": "2026-06-23T22:20:59",
+  "company": "Intuit",
+  "role": "Senior Pre-Sales Engineer, Mid Market",
+  "workflow_type": "commercial",
+  "source_command": "resume",
+  "archive_reason": "command_auto_archive",
+  "lane": "presales_solution",
+  "questions_present": true,
+  "question_count": 15,
+  "relative_path": "20260623_222059_Intuit_Senior_Pre-Sales_Engineer_Mid_Market_bc995f41",
+  "job_description_sha256": "e0c3c1f35893f983945fd0335426b2a5464959e10d66ae43386a8c55ce5bb459",
+  "application_questions_sha256": "428601e4ac23a08ea4a15e17f91a1ad9d0169a3787d902c4b653104b0bf9a328"
+}

@@ -1,0 +1,77 @@
+Company: SailPoint
+
+
+Job Title: Advisory Solution Consultant
+
+
+
+
+SailPoint is the leading, AI-driven security platform providing the autonomous governance that best solves the needs for the modern enterprise. By harnessing the power of AI and machine learning, SailPoint automates and streamlines the complexity of delivering the right access to the right identities and technology resources at the right time. Delivered at the scale our enterprise customer's demand.  
+
+
+
+The role: 
+
+SailPoint is seeking an Advisory Solution Consultant (pre-sales Solution Engineer) to support the US Southeast sales regions for Strategic accounts. You will partner with our sales teams by applying your technical abilities and business acumen in support of SailPoint’s growth objectives. 
+
+ 
+
+Responsibilities: 
+
+Actively participate in the sales process and work closely with the direct and channel sales teams 
+Discover and understand customer requirements and align our solutions to those requirements 
+Present SailPoint business functions, value, and competitive differences 
+Provide product demonstrations to prospective customers 
+Assist in developing RFP responses in coordination with our RFP response team 
+Participate in onsite and remote Proof of Value (POV) evaluations 
+Provide feedback to Product Management on product enhancements 
+ 
+
+Requirements: 
+
+5+ years professional experience as a pre-sales technical resource in an enterprise software company (B2B) 
+Excellent written and verbal communications skills 
+A working knowledge of technical infrastructure including web services, application servers, databases, virtualization, and directories is required 
+Conversant in modern SaaS architecture 
+Familiarity with Java, XML, LDAP, SQL, JSON, Azure/AWS/GCP is desirable 
+3+ years working with Identity, Governance and Access Management solutions is preferred 
+ 
+
+Our ideal candidate possesses:  
+
+1) Technical pre-sales experience in complex enterprise environments 
+
+2) Thorough understanding of Identity, Governance, User Administration, and Access Management.  
+
+ 
+
+Must-have attributes: 
+
+Exceptional communication skills 
+High EQ, expertise in discovering customer requirements 
+The ability to articulate and demonstrate enterprise solutions aligned to business outcomes. 
+ 
+
+Path to Success: 
+
+Within the first 4 months you will: 
+
+Learn the Identity Security and Identity Management space 
+Participate in demos best practices training, presentation skills training, negotiation,  
+Handle initial demos and discussions in IGA 
+Attend Revenue Onboarding for a deep dive into Challenger Sales training 
+Hone technical discovery skills through SE Scrum groups 
+Pitch to Account Executives (AEs) to master messaging and build relationships 
+Navigate internal relationships with Customer Success Managers, Product Management, Professional Services, and Partners 
+Coordinate with AEs before and after client calls, tying what is presented back to business value 
+ 
+
+Within 6 months to 1 year, you will: 
+
+Contribute to building new technical collateral for organization-wide use 
+Grow familiarity with IT audit functions, regulatory frameworks, SOX, HIPAA, NERC-CIP, GDPR, and CCPA 
+Speak at national or regional conferences and meet ups 
+Proactively network and build your own personal brand 
+Articulate the business value of SailPoint as a strategic sale 
+Communicate at the business level with clients outside of IT, such as HR, Finance, risk management, counsel, lines of business 
+Be fluent in the language of Identity Security

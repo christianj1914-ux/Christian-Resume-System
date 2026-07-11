@@ -1,0 +1,15 @@
+{
+  "snapshot_id": "20260626_152146_Clorox_Implementation_Consultant_0a4433b7",
+  "created_at": "2026-06-26T15:21:46",
+  "company": "Clorox",
+  "role": "Implementation Consultant",
+  "workflow_type": "commercial",
+  "source_command": "trace_backfill",
+  "archive_reason": "trace_backfill",
+  "lane": "",
+  "questions_present": false,
+  "question_count": 0,
+  "relative_path": "20260626_152146_Clorox_Implementation_Consultant_0a4433b7",
+  "job_description_sha256": "07200800cd038baf0616367f197ac96bac50208e1f9a76b49ca1b77c2cd98354",
+  "application_questions_sha256": ""
+}

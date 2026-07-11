@@ -1,0 +1,228 @@
+{
+  "contact": {
+    "name": "Christian Estrada",
+    "location": "Atlanta, GA",
+    "email": "ChristianJ1914@gmail.com",
+    "phone": "770-710-4216",
+    "citizenship": "U.S.",
+    "veterans_preference": "No",
+    "clearance": "N/A",
+    "availability": "Immediate"
+  },
+  "technical_skills": [
+    "Microsoft SQL Server",
+    "Power BI",
+    "SAP Crystal Reports",
+    "Excel Power Query",
+    "ServiceNow",
+    "Salesforce CRM",
+    "Salesforce Service Cloud",
+    "Salesforce Marketing Cloud",
+    "Salesforce AppExchange",
+    "Salesforce Development Tools",
+    "Azure DevOps / TFS",
+    "Atlassian Jira",
+    "Zendesk",
+    "Splunk",
+    "MS Project",
+    "MS Visio",
+    "ETL / Data Migration",
+    "Product Backlog Prioritization",
+    "UAT / Release Validation",
+    "Digital Workflow Optimization",
+    "Codex",
+    "Claude",
+    "AI-Assisted Analysis",
+    "AI-Assisted Documentation",
+    "Workflow Automation",
+    "Conversational AI",
+    "Generative AI / LLMs"
+  ],
+  "roles": [
+    {
+      "title": "Enterprise Systems Manager",
+      "start": "March 2023",
+      "end": "November 2025",
+      "hours_per_week": "40",
+      "salary": "$86,500",
+      "company": "East West Manufacturing",
+      "location": "Atlanta, GA USA",
+      "supervisor": "Lorrie Hendrickson",
+      "supervisor_phone": "770-262-3359",
+      "company_summary": "East West Manufacturing is a privately held global contract manufacturer operating five sites across North America and Asia, serving electronics, industrial, and consumer product OEMs.",
+      "job_summary": "Stabilized mission-critical enterprise systems during company reorganization and platform migration, keeping manufacturing, supply chain, finance, and engineering teams aligned across five sites and 150+ users while serving as de facto product owner for Aptean Intuitive and supporting final cutover to Epicor Kinetic. Position impacted by company reorganization.",
+      "bullets": [
+        "Served as de facto product owner for Aptean Intuitive, the company's primary ERP platform, owning the roadmap, prioritization, and stakeholder requirements gathering for 150+ users across five global manufacturing sites, while providing executive advisory to VP- and director-level stakeholders on technology investment decisions, system modernization priorities, vendor tradeoffs, and implementation risk prior to project funding or build approval.",
+        "Led full IT program management lifecycle for enterprise platform migration, overseeing requirements analysis, vendor evaluation, data extraction and transformation, ETL validation, user access reviews, internal control testing, go-live readiness planning, and cross-site cutover coordination across concurrent workstreams spanning operations, finance, and engineering.",
+        "Directed procurement and acquisition support activities including development of Statements of Work, Functional Requirements Documents, and vendor agreements for platform enhancements, system integrations, and technology acquisitions; documented scope baselines, milestone schedules, and risk assumptions prior to contract execution.",
+        "Established enterprise business intelligence infrastructure by designing and deploying 200+ SQL-based KPI dashboards, Crystal Reports, and Power BI tools that replaced manual exports with near real-time performance visibility for manufacturing, supply chain, finance, and engineering leadership.",
+        "Improved data quality and reduced spreadsheet-driven status chasing by using Salesforce and SQL-backed performance reporting to track requests, owners, and next steps during migration and post-go-live support.",
+        "Developed and enforced enterprise IT governance policies including least-privilege security models, role-based access controls, and dynamic permission frameworks for sensitive financial and inventory transactions, improving audit readiness, internal control documentation, and compliance posture.",
+        "Directed cross-functional program setup for a new warehouse operation and enterprise robotics program, driving scope definition, master data configuration, cross-site training, and production go-live across concurrent workstreams in operations, finance, and engineering.",
+        "Reduced manual inventory processing by 78% and discrepancy rate by 22% through root-cause analysis and deployment of an automated, auditable corrective workflow.",
+        "Accelerated documentation, reporting, SQL troubleshooting, and operational analysis through Codex, Claude, and AI-assisted tools that reduced manual effort across recurring systems and implementation processes.",
+        "Designed role-based training programs, onboarding materials, and change communications that improved change management readiness across three functional teams; coordinated vendors, business users, and technical stakeholders across concurrent workstreams without direct supervisory authority.",
+        "Supported occasional Epicor Kinetic administration, security and access validation, and targeted user training while preserving Aptean Intuitive as the primary owned operating platform through final cutover.",
+        "Led a five-month cross-functional initiative to replace a years-outdated EFT/ACH file integration, coordinating across internal IT, global finance, Aptean, and Truist Bank to design, validate, and deploy a compliant payment workflow that resolved a long-standing financial infrastructure gap and restored payment process integrity.",
+        "Scoped server and hardware infrastructure requirements as part of enterprise platform migration preparation, evaluating compatibility, capacity, and upgrade readiness with vendors and IT teams to prevent post-deployment performance failures."
+      ]
+    },
+    {
+      "title": "Customer Success Consultant",
+      "start": "November 2019",
+      "end": "December 2022",
+      "hours_per_week": "40",
+      "salary": "$50,444",
+      "company": "Aptean",
+      "location": "Alpharetta, GA USA",
+      "supervisor": "Douglas Wilson",
+      "supervisor_phone": "770-351-9600",
+      "company_summary": "Aptean is a global provider of mission-critical, industry-specific software solutions for manufacturers, distributors, and other specialized organizations. More than 10,000 organizations across 20-plus industries and 80 countries rely on Aptean's purpose-built ERP, supply chain, and compliance platforms to streamline daily operations.",
+      "job_summary": "Owned customer-facing implementation and success outcomes for 80+ international manufacturing clients using Aptean Encompix, partnering with Product Management and Product Ownership on an Agile development team while guiding accounts through discovery, onboarding, adoption, renewal risk, expansion discovery, and post-go-live optimization. Position impacted by company reorganization.",
+      "bullets": [
+        "Owned full-lifecycle IT program delivery and technical advisory for 80+ international manufacturing clients, directing discovery, requirements definition, data migration, system configuration, integration testing, user acceptance validation, training, and post-go-live optimization across complex enterprise software environments.",
+        "Partnered directly with Product Management and Product Ownership on an Agile development team, conducting discovery and feedback sessions with end users across 80+ international manufacturing clients and translating field input into backlog-ready requirements and user stories that shaped sprint priorities and release scope.",
+        "Developed Statements of Work and Functional Requirements Documents for complex enterprise implementations, data migrations, integrations, and customizations; established scope baselines, milestone schedules, and risk documentation that protected both parties from uncontrolled change throughout the program lifecycle.",
+        "Stabilized high-risk client accounts representing $1M+ in annual contract value by consolidating case ownership, leading structured recovery sessions, and coordinating cross-functional resolution across development, product, and implementation teams.",
+        "Facilitated 60+ executive workshops and quarterly business reviews with C-suite and director-level stakeholders, translating technical implementation status into business outcome language supporting investment decisions, adoption accountability, and renewal confidence.",
+        "Improved digital customer experience by supporting Salesforce Service Cloud, Marketing Cloud, AppExchange, and development tools, translating business needs into backlog-ready requirements and user stories that helped drive adoption across customer-facing teams.",
+        "Protected user adoption by coordinating UAT, defect triage, and release validation for Salesforce enhancements, then using CRM dashboards and case visibility instead of spreadsheet-based follow-up.",
+        "Served as pre-sales solution consultant for prospective enterprise clients, translating business requirements into implementation-grounded solution designs that contributed to competitive displacements and new contract wins.",
+        "Designed and delivered training programs, adoption guides, and client-facing enablement resources that reduced post-go-live support volume; coordinated with development and product teams to triage defects and validate resolutions prior to production deployment.",
+        "Developed customer-facing success communications including training documentation, adoption guides, product updates, and newsletters that kept stakeholders informed between business reviews and reduced reactive support volume.",
+        "Translated implementation lessons into repeatable customer enablement materials, helping account teams reduce ambiguity during go-live, hypercare, and post-launch adoption.",
+        "Improved delivery predictability by producing Statements of Work and Functional Requirements Documents for complex implementations, data migrations, integrations, and customizations, establishing validated scope, milestones, and cost baselines before build work began.",
+        "Scoped server and hardware infrastructure requirements for client ERP deployments, coordinating with client IT teams to assess compatibility, capacity needs, and upgrade timelines before go-live to prevent post-implementation failures."
+      ]
+    },
+    {
+      "title": "Support Operations Analyst",
+      "start": "November 2015",
+      "end": "November 2019",
+      "hours_per_week": "40",
+      "salary": "$40,560",
+      "company": "The Home Depot",
+      "location": "Marietta, GA USA",
+      "supervisor": "Timmy Johnson",
+      "supervisor_phone": "1-800-466-3337",
+      "company_summary": "The Home Depot is the world's largest home improvement retailer, with $150B+ in annual revenue, 500K+ employees, and one of the largest eCommerce operations in US retail.",
+      "job_summary": "Delivered analytics, process support, and customer engagement solutions for one of the largest eCommerce operations in home improvement retail, including online chat, text messaging, and LivePerson LiveEngage workflows.",
+      "bullets": [
+        "Helped build a zero-to-one internal SMS support channel as a founding pilot team member, configuring LivePerson LiveEngage chat/text workflows, automated greetings and closings, and AI-assisted chatbot logic for a customer communication channel that did not previously exist.",
+        "Built reporting frameworks and operational dashboards using Salesforce CRM and BI tools to surface customer interaction trends, service gaps, and efficiency opportunities, enabling data-driven service strategy decisions for senior eCommerce operations leadership.",
+        "Analyzed transactional and customer service data to forecast pipeline demand, identify operational risks, and develop recommendations informing B2B and direct customer account management strategy; documented channel workflow patterns to enable consistent replication and cross-team knowledge transfer.",
+        "Partnered with cross-functional stakeholders to translate CRM interaction data and shipping pipeline metrics into clear operational insights supporting B2B account management and direct customer service quality improvements.",
+        "Supported channel adoption for an internal SMS support pilot by monitoring chat and text patterns, surfacing customer friction themes, and helping leaders understand where the new workflow was gaining traction.",
+        "Documented customer-engagement workflow patterns across online chat, text messaging, automated greetings, and closing scripts so support teams could repeat the channel setup more consistently.",
+        "Connected customer interaction data, shipping pipeline trends, and service workflow signals to clearer decisions for leaders supporting large-scale B2B and direct customer relationships."
+      ]
+    },
+    {
+      "title": "Product Support Specialist",
+      "start": "October 2014",
+      "end": "March 2015",
+      "hours_per_week": "40",
+      "salary": "$36,000",
+      "company": "Aderant",
+      "location": "Atlanta, GA USA",
+      "supervisor": "Jeff Flowers",
+      "supervisor_phone": "404-975-4601",
+      "company_summary": "Aderant is a B2B legal technology company providing enterprise case management and practice management software to 3,000+ law firms and legal departments globally.",
+      "job_summary": "Provided technical product support and interim systems administration for enterprise legal case management software during an organizational transition.",
+      "bullets": [
+        "Provided technical product support for enterprise legal case management software across 600+ law firm offices, diagnosing and resolving issues spanning Active Directory, Microsoft SQL Server, third-party integrations, and Windows services; developed documentation and training that reduced escalation frequency and improved knowledge continuity.",
+        "Built and maintained Salesforce CRM pages supporting sales, support, and project management workflows; contributed to disaster recovery planning by documenting technical dependencies, failure patterns, and operational risks during an organizational transition.",
+        "Collaborated with development and product teams to identify recurring support patterns, document root causes, and surface product improvement opportunities that reduced escalation frequency across the customer base.",
+        "Translated recurring product-support issues into clearer troubleshooting notes for support, sales, and project-management stakeholders working across legal technology customers.",
+        "Helped protect customer-facing legal software operations by coordinating issue triage across application, database, integration, and Windows service layers.",
+        "Provided interim systems administration support while the organization stabilized ownership of enterprise application access, service issues, and customer-impacting technical workflows."
+      ]
+    },
+    {
+      "title": "Interim Systems Administrator",
+      "start": "December 2014",
+      "end": "February 2015",
+      "hours_per_week": "20",
+      "salary": "",
+      "company": "Aderant",
+      "location": "Atlanta, GA USA",
+      "supervisor": "Jim Reynolds",
+      "supervisor_phone": "850-224-2200",
+      "company_summary": "Aderant is a B2B legal technology company providing enterprise case management and practice management software to 3,000+ law firms and legal departments globally.",
+      "job_summary": "Provided interim internal IT support under the Corporate IT Manager during an organizational transition while core enterprise systems ownership stabilized.",
+      "bullets": [
+        "Supported corporate IT administration under the Corporate IT Manager, assisting with performance monitoring, hardware and software maintenance, network configuration, and disaster recovery architecture planning to strengthen organizational resilience and business continuity."
+      ]
+    }
+  ],
+  "education": [
+    {
+      "degree": "Master of Science, Information Systems",
+      "date": "May 2014",
+      "school": "Kennesaw State University, Kennesaw, GA",
+      "details": "Relevant Coursework: IT Leadership, Advanced IT Project Management, Information Security, Business Intelligence and Big Data Analysis, Risk Management and Compliance, Data Governance"
+    },
+    {
+      "degree": "Bachelor of Business Administration, Management Information Systems",
+      "date": "December 2011",
+      "school": "University of West Georgia, Carrollton, GA",
+      "details": "Relevant Coursework: Database Administration, Network Administration, Network Security, Business Analysis, Web Design and Development"
+    }
+  ],
+  "professional_development": [
+    "ITIL 4 Foundation",
+    "ServiceNow NextGen System Administrator",
+    "McKinsey Forward Program"
+  ],
+  "confirmed_evidence": [
+    {
+      "id": "east-west-sql-reporting-objects",
+      "confirmed_on": "2026-07-02",
+      "provenance": "christian-direct-confirmation",
+      "employer": "East West Manufacturing",
+      "role": "Enterprise Systems Manager",
+      "claim": "Personally created SQL views, stored procedures, functions, and reporting data models as part of the 200+ SQL-based reporting and business-intelligence portfolio.",
+      "rewrite_templates": ["Designed and deployed 200+ SQL-based reporting and business-intelligence tools, personally creating views, stored procedures, functions, and reporting data models that improved operational visibility for manufacturing, supply chain, finance, and engineering leaders."],
+      "ownership_ceiling": "created",
+      "allowed_terminology": ["views", "stored procedures", "functions", "data models", "reporting data models", "SQL queries", "business intelligence"],
+      "never_claim": ["SQL Server instance administration", "configured SQL Server instances", "monitored SQL Server instances", "tuned SQL Server instances", "clustering", "replication", "failover"]
+    },
+    {
+      "id": "aderant-backup-recovery",
+      "confirmed_on": "2026-07-02",
+      "provenance": "christian-direct-confirmation",
+      "employer": "Aderant",
+      "role": "Interim Systems Administrator",
+      "claim": "Supported backup and restore tasks and performed recovery testing alongside disaster-recovery planning; these activities were limited hands-on duties rather than infrastructure ownership.",
+      "rewrite_templates": ["Supported backup and restore tasks and performed recovery testing alongside disaster-recovery planning, documenting dependencies and operational risks without owning backup or high-availability infrastructure."],
+      "ownership_ceiling": "performed",
+      "allowed_terminology": ["backup", "restore", "recovery testing", "disaster recovery planning"],
+      "never_claim": ["owned backup infrastructure", "administered backup infrastructure", "led backup infrastructure", "HA/DR architecture ownership", "clustering", "replication", "failover"]
+    },
+    {
+      "id": "aptean-version-control",
+      "confirmed_on": "2026-07-02",
+      "provenance": "christian-direct-confirmation",
+      "employer": "Aptean",
+      "role": "Customer Success Consultant",
+      "claim": "Used Azure DevOps/TFS and Git/GitHub directly for work items, repositories, release tracking, and delivery change-management practices.",
+      "rewrite_templates": ["Used Azure DevOps/TFS and Git/GitHub directly for work items, repositories, release tracking, and delivery change-management practices across customer implementation work."],
+      "ownership_ceiling": "used",
+      "allowed_terminology": ["Azure DevOps", "TFS", "Git", "GitHub", "version control", "work items", "repositories", "release tracking", "change management"],
+      "never_claim": ["owned CI/CD pipelines", "administered CI/CD pipelines", "DevSecOps program ownership"]
+    },
+    {
+      "id": "home-depot-contact-center",
+      "confirmed_on": "2026-07-02",
+      "provenance": "christian-direct-confirmation",
+      "employer": "The Home Depot",
+      "role": "Support Operations Analyst",
+      "claim": "Analyzed LivePerson chat and SMS customer interaction data for contact center operations, including service-level, interaction-volume, trend, and forecasting reporting.",
+      "rewrite_templates": ["Analyzed LivePerson chat and SMS customer interaction data for contact center operations, producing service level reporting, interaction-volume trend analysis, and forecasting that supported workload and staffing decisions."],
+      "ownership_ceiling": "analyzed",
+      "allowed_terminology": ["contact center operations", "service level reporting", "customer interaction data", "interaction-volume trend analysis", "forecasting"],
+      "adjacent_terminology": ["workforce management", "staffing decisions", "workload decisions"],
+      "never_claim": ["owned workforce management", "administered workforce management"]
+    }
+  ]
+}

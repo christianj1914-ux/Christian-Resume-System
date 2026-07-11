@@ -1,0 +1,15 @@
+{
+  "snapshot_id": "20260701_205251_Google_Technical_Account_Manager_Google_Cloud_Consulting_ae409d96",
+  "created_at": "2026-07-01T20:52:51",
+  "company": "Google",
+  "role": "Technical Account Manager, Google Cloud Consulting",
+  "workflow_type": "commercial",
+  "source_command": "trace_backfill",
+  "archive_reason": "trace_backfill",
+  "lane": "implementation_delivery",
+  "questions_present": false,
+  "question_count": 0,
+  "relative_path": "20260701_205251_Google_Technical_Account_Manager_Google_Cloud_Consulting_ae409d96",
+  "job_description_sha256": "56b0e21a6b1f4716bc96c618491e2d58c3ee748e89416e0d3d6a123e11c68b87",
+  "application_questions_sha256": ""
+}

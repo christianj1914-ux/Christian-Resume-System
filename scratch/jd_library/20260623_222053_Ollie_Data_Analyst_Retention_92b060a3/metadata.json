@@ -1,0 +1,15 @@
+{
+  "snapshot_id": "20260623_222053_Ollie_Data_Analyst_Retention_92b060a3",
+  "created_at": "2026-06-23T22:20:53",
+  "company": "Ollie",
+  "role": "Data Analyst, Retention",
+  "workflow_type": "commercial",
+  "source_command": "trace_backfill",
+  "archive_reason": "trace_backfill",
+  "lane": "analytics_operations",
+  "questions_present": false,
+  "question_count": 0,
+  "relative_path": "20260623_222053_Ollie_Data_Analyst_Retention_92b060a3",
+  "job_description_sha256": "b5102d07f5f992d704c14c96bd714a6616e13a9d1b626d0dc64671cd702d4b43",
+  "application_questions_sha256": ""
+}

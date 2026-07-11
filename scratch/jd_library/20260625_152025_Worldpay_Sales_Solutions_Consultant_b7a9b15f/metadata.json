@@ -1,0 +1,15 @@
+{
+  "snapshot_id": "20260625_152025_Worldpay_Sales_Solutions_Consultant_b7a9b15f",
+  "created_at": "2026-06-25T15:20:25",
+  "company": "Worldpay",
+  "role": "Sales Solutions Consultant",
+  "workflow_type": "commercial",
+  "source_command": "trace_backfill",
+  "archive_reason": "trace_backfill",
+  "lane": "presales_solution",
+  "questions_present": false,
+  "question_count": 0,
+  "relative_path": "20260625_152025_Worldpay_Sales_Solutions_Consultant_b7a9b15f",
+  "job_description_sha256": "ea89e4043020ca55bd039e6bfc4bc9cefa2a728093ad151365564d9fc0a1734b",
+  "application_questions_sha256": ""
+}

@@ -1,0 +1,15 @@
+{
+  "snapshot_id": "20260623_222036_Guidehouse_Senior_Consultant_-_Organizational_Change_Management_-_Healthcar_d775911e",
+  "created_at": "2026-06-23T22:20:36",
+  "company": "Guidehouse",
+  "role": "Senior Consultant - Organizational Change Management - Healthcare Technology Con",
+  "workflow_type": "commercial",
+  "source_command": "legacy_import",
+  "archive_reason": "legacy_named_job_file",
+  "lane": "change_enablement",
+  "questions_present": false,
+  "question_count": 0,
+  "relative_path": "20260623_222036_Guidehouse_Senior_Consultant_-_Organizational_Change_Management_-_Healthcar_d775911e",
+  "job_description_sha256": "f4407b9fcbaab16b58b543f26df4250148cda60c02ff25e07fc76d0809b56a0e",
+  "application_questions_sha256": ""
+}

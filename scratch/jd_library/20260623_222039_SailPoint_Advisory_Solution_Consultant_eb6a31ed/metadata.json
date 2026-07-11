@@ -1,0 +1,15 @@
+{
+  "snapshot_id": "20260623_222039_SailPoint_Advisory_Solution_Consultant_eb6a31ed",
+  "created_at": "2026-06-23T22:20:39",
+  "company": "SailPoint",
+  "role": "Advisory Solution Consultant",
+  "workflow_type": "commercial",
+  "source_command": "trace_backfill",
+  "archive_reason": "trace_backfill",
+  "lane": "presales_solution",
+  "questions_present": false,
+  "question_count": 0,
+  "relative_path": "20260623_222039_SailPoint_Advisory_Solution_Consultant_eb6a31ed",
+  "job_description_sha256": "c64a55fdcc0a49ff35e0f510be65d27120f7039ebd4ee3263ba4d1f9440adefe",
+  "application_questions_sha256": ""
+}

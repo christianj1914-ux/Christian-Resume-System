@@ -1,0 +1,38 @@
+Company: State Farm
+
+
+Job Title: Digital Marketing Data Analyst - Digital Channel Performance
+
+
+
+
+Responsibilities
+
+State Farm is seeking a seasoned digital marketing data expert to serve as a Data Analyst for the Digital Channel Performance team. Our Digital Channel Performance team executes digital acquisition marketing strategies across paid, owned, earned, and content channels and looks to drive profitable digital growth while enabling seamless Human + Digital orchestration. 
+
+As a Data Analyst in Digital Channel Performance, you will:
+
+Support the coordination, prioritization, and delivery of digital initiatives, as well as reporting and measurement of results
+Collect inputs, measure outcomes, and report Key Performance Indicators
+Communicate and partner with business owners necessary for digital operations and business performance
+Set goals, provide estimates and track performance to goals
+Support Product managers, Project Managers and Initiative Owners in execution of duties by providing insights and developing recommendations through data
+Utilize analytical and quantitative skills by using data and metrics to test theories confirm assumptions, generate insights/recommendations, and measure success
+Drive and influence business decisions based on metrics and data
+Create reports and dashboards using Tableau or similar tools
+Identify and capture data for tracking with Enterprise Technology partners
+Utilize testing experience A/B testing, configuring testing tools (with Enterprise Technology), reading/interpreting statistical results, and conducting pre- and post-analysis
+Monitor Marketing tactic performance
+
+Qualifications
+
+Expertise in SQL with basic experience in another programming language such as Python or R.
+Experience creating reports and dashboards using visual tools such as Tableau or Power BI.
+Proven ability to thrive in a fast-paced, changing environment.
+Prior mentoring experience or desire to mentor experience.
+Strong critical thinking and analytical skills.
+Demonstrated learning agility to quickly learn both, new technical skills and business acumen with immediate application of skills.
+Strong problem-solving and resourcefulness competencies.
+Demonstrated teamwork and communication competencies.
+Experience in marketing is highly preferred.
+Bachelors in a quantitative field (marketing, business analytics, economics, computer science, finance, etc.) preferred.

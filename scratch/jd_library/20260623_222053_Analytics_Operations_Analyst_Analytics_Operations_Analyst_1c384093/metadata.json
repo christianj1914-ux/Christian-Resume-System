@@ -1,0 +1,15 @@
+{
+  "snapshot_id": "20260623_222053_Analytics_Operations_Analyst_Analytics_Operations_Analyst_1c384093",
+  "created_at": "2026-06-23T22:20:53",
+  "company": "Analytics Operations Analyst",
+  "role": "Analytics Operations Analyst",
+  "workflow_type": "commercial",
+  "source_command": "trace_backfill",
+  "archive_reason": "trace_backfill",
+  "lane": "analytics_operations",
+  "questions_present": false,
+  "question_count": 0,
+  "relative_path": "20260623_222053_Analytics_Operations_Analyst_Analytics_Operations_Analyst_1c384093",
+  "job_description_sha256": "965258ed1cb3e9b79e76dc9e0a399058a1f970b19c6bed572d31ebde41b4082d",
+  "application_questions_sha256": ""
+}

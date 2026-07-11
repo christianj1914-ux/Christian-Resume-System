@@ -1,0 +1,15 @@
+{
+  "snapshot_id": "20260623_222039_Stord_Solutions_Consultant_463abde4",
+  "created_at": "2026-06-23T22:20:39",
+  "company": "Stord",
+  "role": "Solutions Consultant",
+  "workflow_type": "commercial",
+  "source_command": "trace_backfill",
+  "archive_reason": "trace_backfill",
+  "lane": "presales_solution",
+  "questions_present": false,
+  "question_count": 0,
+  "relative_path": "20260623_222039_Stord_Solutions_Consultant_463abde4",
+  "job_description_sha256": "c7cb1d0008eb337086c554f166c54cdb07ae715b9690804d9950defee3a4d924",
+  "application_questions_sha256": ""
+}

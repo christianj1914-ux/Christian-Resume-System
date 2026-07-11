@@ -1,0 +1,15 @@
+{
+  "snapshot_id": "20260701_232320_Bonterra_Implementation_Consultant_838549e9",
+  "created_at": "2026-07-01T23:23:20",
+  "company": "Bonterra",
+  "role": "Implementation Consultant",
+  "workflow_type": "commercial",
+  "source_command": "trace_backfill",
+  "archive_reason": "trace_backfill",
+  "lane": "implementation_delivery",
+  "questions_present": false,
+  "question_count": 0,
+  "relative_path": "20260701_232320_Bonterra_Implementation_Consultant_838549e9",
+  "job_description_sha256": "09b86a81bb858371f8eeb308a73067361f23fd71c67e45937f29c0fc831f0852",
+  "application_questions_sha256": ""
+}

@@ -1,0 +1,4 @@
+  File "question_prep.py", line 1512
+    if "public speaking" in normalized or "group facilitation" in normalized or "presentation ex
+                                                                                ^
+SyntaxError: unterminated string literal (detected at line 1512)

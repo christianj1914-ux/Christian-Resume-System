@@ -1,0 +1,132 @@
+
+
+- Introductory recruiter screen with Katie Bradke for the State Farm Process Engineer role on the Claims Process Engineering (CPE) team
+
+## Katie Bradke — Recruiter (State Farm)
+
+### Role & Team
+
+- Process Engineer role on Claims Process Engineering (CPE) team
+- Two overarching claim segments: Auto (vehicle: injury, total loss, property complex) and Fire (homeowners: weather / non-weather)
+- Aligned primarily to one segment; may shift if another segment has higher workload
+- End-to-end process design using lean six sigma methodologies; goal is improvements for State Farm claims employees and positive outcomes for policyholders
+- Claims is State Farm’s largest workforce; team is hiring to help address backlog of work
+
+### Work Arrangement
+
+- Hybrid out of Dunwoody, GA office
+- Currently 5–10 days/month in office, primarily Wednesdays plus some Thursdays
+- Moving toward ~50% in-office (closer to 10 days/month) through the rest of this year into next
+- Remote days require reliable high-speed internet, dedicated quiet workspace, dependent care arrangements
+
+### First 60 Days / Success
+
+- Week 1: general State Farm onboarding
+- Then: deeper learning of the assigned business area through sit-alongs and ride-alongs with claims employees
+- Partnership with current process engineers to learn the craft
+- Success = diving in, learning the assigned business area, building property and casualty claims knowledge
+
+### Key Advice for the Role
+
+- Storytelling is a major part of the role
+- Engaging business partners and gaining their buy-in
+- Helping them see the value being driven
+- Development opportunities and certifications are supported
+
+### Compensation
+
+- Range: $80,600 – $142,000
+- Higher end reserved for applicants with significant relevant experience
+
+### Next Steps
+
+- Reviewing applications further
+- Selected candidates move to a live panel interview with hiring manager team leaders
+- Pre-interview: data analysis assignment — Excel spreadsheet with property and casualty claims data
+- Deliverable: 1–3 PowerPoint slides covering highlights, key trends, and analysis
+- Interview format: 10–15 minutes presenting findings; remainder is Q&A and additional interview questions
+- Decisions on who advances expected within ~1 week
+- Contact: Katie Bradke — phone and email in calendar invite
+
+## Christian — Candidate
+
+### Background
+
+- Master’s in Information Systems, Kennesaw State University
+- Previous role at East West Manufacturing — engineering firm
+- Supported branches in Mexico from the Atlanta-area headquarters
+
+### Why State Farm / Why This Role
+
+- Background rooted in improving workflows and getting to the root cause of process breakdowns
+- Drawn to State Farm’s scale and customer impact — helping “real” everyday people during their most vulnerable moments
+- Sees the role as a meaningful challenge: speeding up processes, improving accuracy, satisfying customer and company needs
+
+### Process Methodology Experience
+
+- Worked with many Lean-certified colleagues but does not hold formal Lean Six Sigma certification himself
+- Approach: minimize waste, formalize training, standardize processes
+- Featured project — inventory adjustment system:
+  - Original process took ~20 minutes per adjustment per screen; hard to pinpoint errors or accountability due to many hands in the process
+  - Worked with information security to lock down permissions for sensitive screens
+  - Took ownership of inventory adjustments end-to-end
+  - Processed Excel workbooks of transactions matched to GL accounts
+  - Automated parts of the workflow (referenced using “codec” / “co-work” — likely Copilot / low-code automation) to reduce ~4 hours/day of manual matching
+  - Emphasized training and adoption — “no use improving a process if only you use it”
+- Philosophy: align CEO/business-impact framing with the everyday user’s perspective; standardize across stakeholders
+
+### Certifications
+
+- ITIL v4
+- ServiceNow (started, not completed)
+
+### Questions Asked
+
+- How candidates are assigned across segments and whether they can rotate
+- Whether pursuing insurance or Lean certifications post-hire would be recommended
+- First 60 days expectations
+- Biggest challenge of the role (Katie flagged this as better answered by the business area; will pass along as an outstanding question)
+- Best advice for someone coming into the role
+
+### Compliance Confirmations
+
+- Legally authorized to work in the U.S.: Yes
+- Requires visa sponsorship now: No
+- Will require visa sponsorship in the future: No
+- Contractual restrictions / prior State Farm employment: No
+- Can perform essential functions with or without accommodation: Yes
+
+### Salary Expectations
+
+- Lower 100s, flexible
+
+## Insights & Prep for Next Round
+
+### What Landed Well
+
+- Motivation tied to helping people in vulnerable moments — strong alignment with claims work
+- Inventory adjustment example showed the full arc: problem → root cause → controls → automation → adoption
+- Asking smart, role-focused questions (assignment, growth, challenges, advice) instead of leading with compensation
+- Honest about not holding formal Lean Six Sigma certification — credibility move
+
+### Risks / Gaps to Tighten
+
+- Lean Six Sigma fluency: methodology is applied, not formal. Be ready to map your work to DMAIC (Define, Measure, Analyze, Improve, Control) language
+- Verbal delivery had some run-on answers — Christian self-flagged “not sure if I overtalked it.” Tighten stories to ~2 minutes using STAR or DMAIC structure
+- Insurance / property and casualty claims domain knowledge is limited — worth reading up on auto injury, total loss, property complex, and weather vs. non-weather homeowners claims before the panel
+
+### How to Prep for the Panel + Data Assignment
+
+- Re-frame the inventory adjustment story explicitly in DMAIC terms with quantified outcomes (time saved, error reduction, adoption rate)
+- Prepare 2–3 additional process improvement stories with measurable impact in case the panel asks for variety
+- For the Excel + PowerPoint exercise:
+  - Lead with the headline insight, not the methodology
+  - Use 1 slide for key trends, 1 slide for root-cause analysis, 1 slide for recommended improvements
+  - Tie findings back to claims employee experience and policyholder outcomes — mirror Katie’s framing
+  - Practice the 10–15 minute presentation out loud; leave room for Q&A
+- Prepare panel-specific questions: biggest current pain point in their segment, what a successful first project looks like, how process engineers partner with claims leadership
+
+### Open Items
+
+- Outstanding question Katie is passing to the business: biggest challenge of the role
+- Confirm whether pursuing a Lean Six Sigma Green/Black Belt would be valued before or after start date

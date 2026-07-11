@@ -1,0 +1,5 @@
+Agency: Department of Veterans Affairs
+Role: IT Program Manager
+This federal role leads enterprise implementation, data migration, acquisition support,
+program governance, executive stakeholder briefings, reporting, change management,
+and cross-functional delivery across a multi-site environment.

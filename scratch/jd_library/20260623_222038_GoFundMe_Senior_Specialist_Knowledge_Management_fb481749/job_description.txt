@@ -1,0 +1,55 @@
+Company: GoFundMe
+
+
+Job Title: Senior Specialist, Knowledge Management
+ 
+
+
+
+About the job
+Want to help us help others? We’re hiring! 
+
+GoFundMe is the world’s most powerful community for good, dedicated to helping people help each other. By uniting individuals and nonprofits in one place, GoFundMe makes it easy and safe for people to ask for help and support causes—for themselves and each other. Together, our community has raised more than $40 billion since 2010.
+
+Join us! GoFundMe is searching for a Senior Specialist, Knowledge Management on the Trust and Safety (T&S) team. T&S manages significant institutional knowledge across policy, compliance, operations, and review functions, but that knowledge needs to be centralized and systematically maintained. The Knowledge Management role will own that work: auditing what exists, closing critical gaps, and building the systems and culture that ensure T&S knowledge is captured, current, and usable at scale.
+
+This is a stewardship, intelligence and systems role, as well as a change management role. T&S handles genuinely consequential decisions at volume, and the quality of the knowledge infrastructure underneath those decisions directly affects consistency, accuracy, and the team's ability to scale. You will inherit accumulated complexity and be responsible for making sense of it. You will also be responsible for shifting how teams across T&S think about and contribute to that infrastructure, which requires influence, judgment, and persistence.
+
+The Job
+
+Audit and Triage: Conduct a structured assessment of the T&S knowledge landscape: what exists, where it lives, how current it is, and what is missing. Map the gaps between documented process and actual practice across policy, compliance, operations, and review functions. Identify contradictions between documents and prioritize remediation based on operational risk and usage frequency, not comprehensiveness.
+Design the Information Architecture: Build the structural foundation of the knowledge system and the logic that governs how content is organized and retrieved, to serve both findability and governance. This includes selecting and administering the tooling, setting permissions structures, and maintaining the integrity of the system as it scales.
+Own the Foundation: Design and implement the frameworks that make the knowledge base coherent across teams: documentation templates by content type, versioning protocols, review cadences, content lifecycle rules including deprecation and archiving, and the quality criteria that define what publishable guidance looks like.
+Oversee Downstream Propagation: Maintain a dependency map of T&S knowledge: which source documents feed which downstream artifacts, and what needs to be updated when a source changes so that stale or superseded content does not persist in active use.
+Capture Institutional Knowledge: Develop and run structured methods for extracting undocumented knowledge from experienced team members. This includes documentation sprints, structured interviews with subject matter experts, and shadow sessions with reviewers and operations staff.
+Close the Feedback Loop: Maintain active signals from the frontline back to documentation owners. in collaboration with QA and SMEs, synthesize escalation patterns, reviewer improvisation, and recurring QA errors that show the knowledge system may be failing or need revision. Act as an early warning system for knowledge gaps before they become operational errors at scale.
+Own Ongoing Health: Maintain the knowledge base as a living system through scheduled content reviews with document owners, proactive identification of drift between documentation and practice, and a clear process for submitting and resolving content gaps.
+Enable the Team: Serve as the connective layer between T&S functions when it comes to information flow. Each team produces and consumes knowledge differently. Your job is to design systems that serve all of them without requiring each team to manage its own silo. This includes partnering with training to translate policy and process changes into operational practice, ensuring that what gets decided at the strategy level lands correctly at the execution level across functions.
+Measure What Matters: Define and track metrics that surface whether the knowledge program is working: search success rates, content utilization, coverage against active policies, time-to-competency for new hires, and documentation currency.
+
+You 
+
+3-5 years experience working in knowledge management, content strategy, program management, or a closely related field, preferably within Trust and Safety.
+Experience in a T&S, content moderation, or platform integrity environment is a meaningful advantage. Familiarity with how policy documents, reviewer guidelines, and escalation frameworks function in practice shortens the ramp significantly.
+Demonstrated experience auditing and restructuring a messy knowledge environment, not just maintaining a clean one. 
+Comfort operating with limited precedent and incomplete information. You can assess a complex situation, identify the most important leverage points, and move without waiting for perfect clarity.
+Strong cross-functional communication skills. You will need to earn buy-in from senior T&S leaders who are not knowledge management practitioners and advise policy and process owners on how to structure guidance that holds up in a knowledge system.
+Ability to work with ambiguity, thrive in a dynamic environment with shifting priorities and quickly adapt to process and policy changes.
+Work well with a distributed global workforce and confidently maintain communication while working autonomously in a remote or hybrid environment.
+An ambitious self-starter with strong ownership and accountability.
+Strong attention to detail with the ability to identify inconsistencies and escalate potential risks appropriately.
+Fast learner who takes initiative and follows through on tasks without sacrificing quality.
+Excellent organizational skills, with the ability to manage competing priorities effectively.
+
+Why you’ll love it here
+
+Make an Impact: Be part of a mission-driven organization making a positive difference in millions of lives every year.
+Innovative Environment: Work with a diverse, passionate, and talented team in a fast-paced, forward-thinking atmosphere.
+Collaborative Team: Join a fun and collaborative team that works hard and celebrates success together.
+Competitive Benefits: Enjoy competitive pay and comprehensive healthcare benefits.
+Holistic Support: Enjoy financial assistance for things like hybrid work, family planning, along with generous parental leave, flexible time-off policies, and mental health and wellness resources to support your overall well-being.
+Growth Opportunities: Participate in learning, development, and recognition programs to help you thrive and grow.
+Commitment to DEI: Contribute to diversity, equity, and inclusion through ongoing initiatives and employee resource groups.
+Community Engagement: Make a difference through our volunteering program.
+
+We live by our core values: impatient to be great, find a way, earn trust every day, fueled by purpose. Be a part of something bigger with us!

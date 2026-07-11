@@ -1,0 +1,15 @@
+{
+  "snapshot_id": "20260623_222052_Clorox_Supply_Chain_Network_Optimization_Analyst_ec05f0d0",
+  "created_at": "2026-06-23T22:20:52",
+  "company": "Clorox",
+  "role": "Supply Chain Network Optimization Analyst",
+  "workflow_type": "commercial",
+  "source_command": "trace_backfill",
+  "archive_reason": "trace_backfill",
+  "lane": "analytics_operations",
+  "questions_present": false,
+  "question_count": 0,
+  "relative_path": "20260623_222052_Clorox_Supply_Chain_Network_Optimization_Analyst_ec05f0d0",
+  "job_description_sha256": "f1c18a0220629190e4f03663ed89b4a9660f4021c2106bd5d69bdc4146e34145",
+  "application_questions_sha256": ""
+}

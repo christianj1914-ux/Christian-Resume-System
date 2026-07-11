@@ -1,0 +1,217 @@
+{
+  "company_name": "M-Tech Systems",
+  "role_title": "Project Consultant",
+  "interview_date": "6/19/2026",
+  "interview_date_iso": "2026-06-19",
+  "round_number": "1",
+  "outcome": "pending",
+  "raw_notes": "### MTech Systems and Amino\n\n- B2B SaaS, headquartered in Dunwoody, GA; operating since 1992; 300 employees globally, 65 countries\n- 92% US market share in poultry production; major clients include Tyson, Purdue, Sanderson's\n- Core business: software for live animal production, primarily poultry\n- Amino (flagship, launched 2017): fully cloud-based, web platform\n - Business value: replaces fragmented per-segment systems with a single source of truth\n - Each stage of production (feed mills, grow-out, processing, distribution) historically ran separate systems\n - Amino consolidates all data and operations into one platform instead of managing five\n - Three core modules:\n - Supply chain: collects lifecycle data from egg to distribution (weight, feed consumption, mortality over ~24 weeks)\n - Financial and accounting: budgeting, forecasting, cost variance analysis, per-unit and per-flock cost tracking\n - Dashboards and reporting: turns operational and financial data into executive-level decision tools\n - All reporting built internally via SQL scripts; dedicated integration team owns custom report generation\n - Closest analogy is an ERP, though Jonathan noted Amino is more specialized and complex\n\n### Project Consultant Role and Expectations\n\n- Title is \"Implementation Specialist\" in industry standard; MTech calls it \"Project Consultant\"\n- Implementation scale: 9 months to 2 years per project, team of 3-5 consultants per engagement\n- Tier 1 ramp (first 3-4 months): support function across 2-3 active projects\n - Tasks: UAT testing, data validation, documentation\n - Goal: absorb the industry, the system, and the client culture before owning modules\n - Clients range from large enterprise (Tyson-scale) to individual farmers depending on module\n- After ramp: own 2-3 modules independently (e.g., feed module, mobile)\n - Each module functions as a mini-implementation within the broader project\n- Biggest challenge: industry and business knowledge, not technical skills\n - Poultry production has its own language, culture, and operational logic\n - Jonathan described it as \"people speak a different language\"\n - Technical complexity of Amino compounds the learning curve on top of industry knowledge\n\n### Interview Process and Fit\n\n- Three rounds:\n 1. Prescreen with Jonathan Ho (this call)\n 2. Hiring manager interview\n 3. On-site, in-person final round\n- Jonathan's feedback on fit:\n - ERP background is the closest analog to Amino; experience aligns well\n - Noted depth of experience across both sides of implementation (vendor and client)\n - Highlighted communication and relevant experience as positives\n - \"I feel good about the resume, I feel better with your experience\"\n\n### Next Steps\n\n- **Await hiring team feedback from Jonathan**\n - Jonathan submitting notes and resume today; decision expected by Monday, Jun 22, with second-round scheduling if approved.",
+  "story_followups": [],
+  "unexpected_questions": [],
+  "role_language": [
+    "Title is \"Implementation Specialist\" in industry standard; MTech calls it \"Project Consultant\"",
+    "Implementation scale: 9 months to 2 years per project, team of 3-5 consultants per engagement",
+    "Tier 1 ramp (first 3-4 months): support function across 2-3 active projects",
+    "Tasks: UAT testing, data validation, documentation",
+    "Goal: absorb the industry, the system, and the client culture before owning modules",
+    "Clients range from large enterprise (Tyson-scale) to individual farmers depending on module",
+    "After ramp: own 2-3 modules independently (e.g., feed module, mobile)",
+    "Each module functions as a mini-implementation within the broader project",
+    "Biggest challenge: industry and business knowledge, not technical skills",
+    "Poultry production has its own language, culture, and operational logic",
+    "Jonathan described it as \"people speak a different language\"",
+    "Technical complexity of Amino compounds the learning curve on top of industry knowledge"
+  ],
+  "feedback_received": [],
+  "company_intelligence": [
+    "Three rounds:",
+    "1. Prescreen with Jonathan Ho (this call)",
+    "2. Hiring manager interview",
+    "3. On-site, in-person final round",
+    "Jonathan's feedback on fit:",
+    "ERP background is the closest analog to Amino; experience aligns well",
+    "Noted depth of experience across both sides of implementation (vendor and client)",
+    "Highlighted communication and relevant experience as positives",
+    "\"I feel good about the resume, I feel better with your experience\""
+  ],
+  "performance_review": {
+    "summary": "you came across as qualified, relevant, and probably worth advancing, but your delivery was often too long, loose, and reactive rather than crisp and consultative.",
+    "strongest_answers": [
+      "Explaining ERP parallels to Amino",
+      "UAT / data validation",
+      "Vendor-side and client-side exposure",
+      "Describing customization and change risk"
+    ],
+    "weakest_answers": [
+      "Leading with the direct answer",
+      "Keeping answers short",
+      "Choosing the best example immediately",
+      "Asking high-impact questions",
+      "For every answer:",
+      "Direct answer first",
+      "One example",
+      "Your role",
+      "Outcome / value"
+    ],
+    "next_round_risks": [
+      "For every answer:",
+      "Direct answer first",
+      "One example",
+      "Your role",
+      "Outcome / value"
+    ],
+    "coaching_signals": [
+      {
+        "key": "rambling",
+        "label": "Rambling / answer length",
+        "detail": "Shorten answers by 30 to 40 percent and stop after the proof lands.",
+        "evidence": "Overall: you came across as qualified, relevant, and probably worth advancing, but your delivery was often too long, loose, and reactive rather than crisp and consultative."
+      },
+      {
+        "key": "delayed_answer",
+        "label": "Delayed answer / buried lead",
+        "detail": "Answer in the first sentence, then give one proof example.",
+        "evidence": "You didn't lead with the simplest answer."
+      },
+      {
+        "key": "wrong_example_first",
+        "label": "Wrong example first",
+        "detail": "Lead with the closest full-lifecycle example, then separate enhancement work clearly.",
+        "evidence": "Most clearly when he asked for an implementation example and had to steer you away from East West enhancement work back toward Aptian lifecycle work."
+      },
+      {
+        "key": "filler_restarts",
+        "label": "Filler / restart language",
+        "detail": "Cut filler phrases, repeated restarts, and throat-clearing setup.",
+        "evidence": "Filler / style habits"
+      },
+      {
+        "key": "consultative_questions",
+        "label": "Questions too tactical",
+        "detail": "Ask role-success, ramp, stakeholder, and client-trust questions before tactical tooling questions.",
+        "evidence": "It was tactical, not strategic."
+      },
+      {
+        "key": "executive_presence",
+        "label": "Executive presence / polish",
+        "detail": "Sound more declarative, controlled, and client-ready under pressure.",
+        "evidence": "Overall: you came across as qualified, relevant, and probably worth advancing, but your delivery was often too long, loose, and reactive rather than crisp and consultative."
+      }
+    ]
+  },
+  "review_analysis": {
+    "parser_version": "2026-06-25-compact-v1",
+    "decision_signal": {
+      "headline": "Relevant background came through, but the delivery did not yet sound ownership-forward, consultative, or client-ready enough for the role.",
+      "translation": [
+        "This reads as adjacent and credible rather than a clean mismatch.",
+        "The main gap is making personal ownership unmistakable in discovery, client leadership, implementation direction, and rollout decisions.",
+        "The role wanted a more advisor-like, structured, and executive-ready delivery style."
+      ]
+    },
+    "positioning_diagnosis": {
+      "headline": "Relevant background came through, but the delivery did not yet sound ownership-forward, consultative, or client-ready enough for the role.",
+      "reasons": [
+        "Answers often buried the point instead of opening with a direct claim.",
+        "Adjacent examples appeared before the closest direct implementation proof.",
+        "Delivery sounded more reactive and operator-oriented than crisp and consultant-ready.",
+        "End-of-interview questions sounded more tactical than outcome-oriented.",
+        "Filler phrases and restarts softened authority even when the substance was solid.",
+        "Leading with the direct answer"
+      ],
+      "good_news": [
+        "The review reads as fixable presentation risk, not as a hard-background mismatch.",
+        "Proof already landed in stronger areas such as Explaining ERP parallels to Amino; UAT / data validation; Vendor-side and client-side exposure; Describing customization and change risk."
+      ],
+      "hard_truth": "The likely loss was less about basic relevance and more about how ownership, structure, and consultative fit came across."
+    },
+    "language_rewrites": {
+      "ownership_ladder": [
+        "owned",
+        "led",
+        "was responsible for",
+        "coordinated",
+        "supported"
+      ],
+      "avoid": [
+        "We worked on",
+        "I helped with",
+        "I was involved in",
+        "sort of",
+        "pretty much",
+        "things of that nature"
+      ],
+      "prefer": [
+        "I owned",
+        "I led",
+        "I was responsible for",
+        "I coordinated",
+        "I guided users through rollout"
+      ],
+      "consultative_phrases": [
+        "I aligned stakeholders",
+        "I clarified requirements",
+        "I reduced scope ambiguity",
+        "I translated business needs into implementation steps",
+        "I managed expectations",
+        "I guided users through rollout"
+      ]
+    },
+    "answer_strategy": {
+      "default_structure": [
+        "Problem",
+        "Your role",
+        "Action",
+        "Result"
+      ],
+      "delivery_shifts": [
+        "Lead with the answer in sentence one.",
+        "Use one direct example before adding background.",
+        "Name your role explicitly instead of leaving ownership implied.",
+        "Close on business value, adoption, decision quality, or risk reduction.",
+        "Lead with the closest full-lifecycle implementation example before enhancement or support stories.",
+        "Ask about success profile, ramp risk, stakeholder trust, and delivery outcomes before tooling details."
+      ]
+    },
+    "answer_assets": {
+      "best_takeaway_statement": "Technically credible and relevant, but not yet packaged with strong enough ownership or consultative presence.",
+      "interviewer_questions": [
+        "Do you have any questions from our previous conversation?",
+        "Does that make sense?",
+        "Why did your most recent role end in November?",
+        "So your company was a confirmed implementation partner… am I following that correctly?",
+        "Are there specific product offerings you specialized in?",
+        "Who is the target audience and what is the business value?"
+      ],
+      "role_language_lines": [
+        "Title is \"Implementation Specialist\" in industry standard; MTech calls it \"Project Consultant\"",
+        "Implementation scale: 9 months to 2 years per project, team of 3-5 consultants per engagement",
+        "Tier 1 ramp (first 3-4 months): support function across 2-3 active projects",
+        "Tasks: UAT testing, data validation, documentation",
+        "Goal: absorb the industry, the system, and the client culture before owning modules"
+      ],
+      "company_signal_lines": [
+        "Three rounds:",
+        "1. Prescreen with Jonathan Ho (this call)",
+        "2. Hiring manager interview",
+        "3. On-site, in-person final round"
+      ]
+    },
+    "career_targeting": {
+      "fit_read": "For Project Consultant, the best positioning is implementation ownership plus consultative stakeholder guidance without overstating authority.",
+      "next_steps": [
+        "Rewrite core stories so sentence one states the answer and the ownership line.",
+        "Make consultative behavior explicit: stakeholder alignment, requirements clarification, scope control, expectation management, and rollout guidance.",
+        "Practice using the strongest truthful ownership verb the evidence supports."
+      ]
+    }
+  },
+  "imported_review_text": "",
+  "review_appendix_path": "C:\\Users\\chris\\OneDrive\\Desktop\\Christian Resume System\\jobs\\interview_debriefs\\m_tech_systems\\2026-06-19__round_1__review.txt",
+  "imported_artifacts": [
+    "C:\\Users\\chris\\Downloads\\M-Tech Systems Interview Performance.docx"
+  ],
+  "legacy_text": "",
+  "parser_version": "2026-06-25-compact-v1",
+  "captured_at": "2026-06-25 13:34:04"
+}

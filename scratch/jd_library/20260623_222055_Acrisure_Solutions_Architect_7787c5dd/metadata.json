@@ -1,0 +1,15 @@
+{
+  "snapshot_id": "20260623_222055_Acrisure_Solutions_Architect_7787c5dd",
+  "created_at": "2026-06-23T22:20:55",
+  "company": "Acrisure",
+  "role": "Solutions Architect",
+  "workflow_type": "commercial",
+  "source_command": "trace_backfill",
+  "archive_reason": "trace_backfill",
+  "lane": "implementation_delivery",
+  "questions_present": false,
+  "question_count": 0,
+  "relative_path": "20260623_222055_Acrisure_Solutions_Architect_7787c5dd",
+  "job_description_sha256": "0f2757fd684fcee67de9f20ab8c30b703fda349c801b528344e9c928b9da1744",
+  "application_questions_sha256": ""
+}

@@ -1,0 +1,30 @@
+Company: Google
+
+
+
+
+Job Title: Technical Account Manager, Google Cloud Consulting
+
+
+
+Minimum qualifications:
+Bachelor’s degree in Computer Science, Engineering, a related technical field, or equivalent practical experience.
+5 years of experience in a customer-facing role working with stakeholders, driving customer technical implementations or transformation programs.
+Experience supporting customers in cloud operations (e.g., launch or capacity planning, product release management), technical support, escalation management, or consulting.
+
+Preferred qualifications:
+MBA or Master’s degree in a Management, Technical, or Engineering field.
+Experience translating business requirements into technological solutions.
+Experience in application or workload migration to public cloud providers.
+Experience collaborating with teams, groups, business units, channel partners, systems integrators, and third-party developers to deliver high-impact solutions.
+Understanding of IT operations, database systems, networking, IT security, application development, service architecture, cloud-native application development, hosted services, storage systems, or content delivery networks.
+Excellent written and verbal communication, presentation, problem-solving, and client management skills.
+About the job
+As a Technical Account Manager (TAM), you will help customers successfully adopt Google Cloud products. You will lead the successful adoption of Google Cloud at organizations, guiding them through the strategic and technical facets of their Google Cloud transformation journey. You will manage the successful delivery of Cloud Consulting engagements to drive customer adoption of Google Cloud services. In this role, you will regularly engage with various stakeholder groups, including leadership of enterprises and a cross-functional and geographically dispersed team. Google Cloud accelerates every organization’s ability to digitally transform its business and industry. We deliver enterprise-grade solutions that leverage Google’s technology, and tools that help developers build more sustainably. Customers in more than 200 countries and territories turn to Google Cloud as their trusted partner to enable growth and solve their most critical business problems. Individual pay is determined by factors including job-related skills, experience, and relevant education or training.
+
+Responsibilities
+Accelerate customer adoption of Google Cloud by leading the implementation journey, providing technical guidance and manage timelines, milestones, migration goal and business transformation strategies.
+Advocate for customer needs in order to overcome adoption blockers and drive new feature development, leading across multiple work streams and teams to maintain customer momentum.
+Develop relationships with stakeholders to understand customer’s business, build strategic roadmaps, and lead quarterly business reviews and executive sessions to better understand business and technical needs.
+Plan for customer events and launches, partnering with Support, Engineers, and Site Reliability Engineers to ensure customer success, and work with customers and support to guide issues/escalations to resolution.
+Build best practices and assets based on learnings from customer engagements to support initiatives to scale through partners and accelerate Google Cloud adoption.

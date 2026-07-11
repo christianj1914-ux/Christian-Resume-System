@@ -1,0 +1,15 @@
+{
+  "snapshot_id": "20260623_222053_Customer_Success_Manager_Customer_Success_Manager_9cb2a846",
+  "created_at": "2026-06-23T22:20:53",
+  "company": "Customer Success Manager",
+  "role": "Customer Success Manager",
+  "workflow_type": "commercial",
+  "source_command": "trace_backfill",
+  "archive_reason": "trace_backfill",
+  "lane": "customer_success",
+  "questions_present": false,
+  "question_count": 0,
+  "relative_path": "20260623_222053_Customer_Success_Manager_Customer_Success_Manager_9cb2a846",
+  "job_description_sha256": "40cfdb62200201ca42da35b06330ac009ee07fa258f797bae26817b6df9dabaa",
+  "application_questions_sha256": ""
+}

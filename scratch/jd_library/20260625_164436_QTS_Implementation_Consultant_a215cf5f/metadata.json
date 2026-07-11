@@ -1,0 +1,15 @@
+{
+  "snapshot_id": "20260625_164436_QTS_Implementation_Consultant_a215cf5f",
+  "created_at": "2026-06-25T16:44:36",
+  "company": "QTS",
+  "role": "Implementation Consultant",
+  "workflow_type": "commercial",
+  "source_command": "trace_backfill",
+  "archive_reason": "trace_backfill",
+  "lane": "",
+  "questions_present": false,
+  "question_count": 0,
+  "relative_path": "20260625_164436_QTS_Implementation_Consultant_a215cf5f",
+  "job_description_sha256": "e25130dc4d29b4d2b35d5cc762e63b731dcc3cbc226f2de8b4f3b90079b4c706",
+  "application_questions_sha256": ""
+}

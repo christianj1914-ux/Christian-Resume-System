@@ -1,0 +1,3 @@
+Company: Clorox
+Job Title: Supply Chain Network Optimization Analyst
+This role supports network optimization, cost modeling, data management, project delivery, model quality, Power BI reporting, ETL workflows, and executive-level reporting across multi-site supply chain operations.

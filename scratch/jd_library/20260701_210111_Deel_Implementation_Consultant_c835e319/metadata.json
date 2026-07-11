@@ -1,0 +1,15 @@
+{
+  "snapshot_id": "20260701_210111_Deel_Implementation_Consultant_c835e319",
+  "created_at": "2026-07-01T21:01:11",
+  "company": "Deel",
+  "role": "Implementation Consultant",
+  "workflow_type": "commercial",
+  "source_command": "trace_backfill",
+  "archive_reason": "trace_backfill",
+  "lane": "",
+  "questions_present": false,
+  "question_count": 0,
+  "relative_path": "20260701_210111_Deel_Implementation_Consultant_c835e319",
+  "job_description_sha256": "9a0d8b0e6be150b5f6aa6a3dce73d82919e9cd69cb0ffc66f2f74a0e2ff3fdee",
+  "application_questions_sha256": ""
+}

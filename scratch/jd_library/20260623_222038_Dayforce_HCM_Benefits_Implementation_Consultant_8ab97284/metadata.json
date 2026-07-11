@@ -1,0 +1,15 @@
+{
+  "snapshot_id": "20260623_222038_Dayforce_HCM_Benefits_Implementation_Consultant_8ab97284",
+  "created_at": "2026-06-23T22:20:38",
+  "company": "Dayforce HCM",
+  "role": "Benefits Implementation Consultant",
+  "workflow_type": "commercial",
+  "source_command": "trace_backfill",
+  "archive_reason": "trace_backfill",
+  "lane": "implementation_delivery",
+  "questions_present": false,
+  "question_count": 0,
+  "relative_path": "20260623_222038_Dayforce_HCM_Benefits_Implementation_Consultant_8ab97284",
+  "job_description_sha256": "1eca5c3167077e0b12cb2856b836f727921ed0e5308a785ccd2a3e4c62ebe328",
+  "application_questions_sha256": ""
+}

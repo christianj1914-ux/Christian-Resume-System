@@ -1,0 +1,4 @@
+Role: Customer Success Manager
+The role manages customer success, renewal, retention, expansion, book of business,
+ARR, NRR, GRR, churn risk, QBRs, account health, value realization, adoption,
+executive relationships, and customer lifecycle outcomes.

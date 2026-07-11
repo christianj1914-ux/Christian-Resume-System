@@ -1,0 +1,105 @@
+Company: QTS
+
+
+Job Title:  Sales Operations Analyst
+
+
+
+
+WHO YOU ARE:
+
+The Sales Operations Analyst is a key member of the Sales Support Team, responsible for managing inbound requests through Salesforce case management and supporting issue resolution, CRM support, quote and data governance, SLA adherence, and contract support. This role serves as the primary Level 1 Salesforce support function and the first point of contact for Sales through structured case intake. The Analyst ensures timely resolution of requests while maintaining high standards of data accuracy, process compliance, and quality assurance across the quote-to-cash lifecycle. Acting as a critical control point, this role helps drive efficient deal progression while safeguarding the integrity of quotes, contracts, and system data.
+
+WHAT YOU WILL DO:
+
+Serve as the first line of support for Sales inquiries submitted through Salesforce cases, owning issue resolution from intake through closure.
+
+Troubleshoot and resolve quoting, data, and process-related issues impacting deal progression.
+
+Identify root causes of recurring issues and recommend process improvements to reduce friction and rework.
+
+CRM Support (Salesforce – Level 1)
+
+Provide Level 1 Salesforce support, assisting Sales with technical troubleshooting, system navigation, quote creation, and process adherence.
+
+Guide users on proper use of Salesforce tools, workflows, and required data inputs within the quote-to-cash process.
+
+Escalate complex system or configuration issues to appropriate teams while maintaining ownership and visibility.
+
+Partner with Technical Business Services team to test and implement system improvements.
+
+Quote & Data Governance
+
+Act as a quality assurance checkpoint by reviewing quotes, contracts, and related data for accuracy, completeness, and policy compliance.
+
+Enforce data governance standards within Salesforce, ensuring consistency of customer, pricing, and contract data.
+
+Identify and correct discrepancies, incomplete records, and non-compliant submissions prior to quote issuance or execution.
+
+Ensure data integrity to support accurate downstream billing, revenue recognition, pipeline management and reporting.
+
+SLA Management
+
+Manage and prioritize case queues to meet defined SLA expectations for response and resolution times.
+
+Monitor workload and case aging, ensuring timely follow-up and proactive communication with stakeholders.
+
+Maintain clear, professional documentation within cases, including status updates, required actions, and final resolution.
+
+Identify risks to SLA adherence and escalate appropriately.
+
+Contract Support
+
+Review contracts for accuracy, alignment with approved quotes, and completeness prior to execution.
+
+Coordinate with Sales, Legal, and Finance to support revisions, approvals, and finalization of agreements.
+
+Ensure all contract-related documentation is properly captured and stored within Salesforce and supporting systems.
+
+Support audit readiness by ensuring contracts and associated records meet internal control standards.
+
+Cross-Functional & Operational Support
+
+Serve as a central coordination point across Sales, Legal, Deal Desk, Finance, and other internal teams to facilitate deal progression.
+
+Monitor trends in case volume, issue types, and data quality, providing insights to management.
+
+Identify opportunities to improve workflows, enhance data quality, and increase efficiency within the Sales Support function.
+
+Keep management informed of operational risks, SLA performance, and process gaps.
+
+Contribute to department and company objectives through disciplined execution and continuous improvement.
+
+Adhere to established security safeguards, procedures, and company policies.
+
+Perform other duties as assigned.
+
+WHAT YOU NEED TO BE SUCCESSFUL
+
+Bachelor’s degree or relevant work experience
+
+Three or more years relevant work experience
+
+Knowledge of Microsoft Office Suite
+
+Salesforce.com CRM or equivalent CRM system experience is a plus
+
+Proven customer-facing administrative support, multitasking, and time management skills
+
+PREFERRED QUALIFICATIONS
+
+Prior experience in a data center and Sales Operations
+
+KNOWLEDGE, SKILLS, AND ABILITIES
+
+Positive, can-do attitude.
+
+Excellent interpersonal, written, and verbal communication skills.
+
+Strong analytical and problem-solving skills, well organized, with solid attention to detail.
+
+Results orientation and attention to timely and accurate completion of daily work requirements.
+
+Ability to multi-task, work under pressure and meet deadlines.
+
+Demonstrated ability to interact constructively with individuals at all levels within the organization and to work in a team environment.

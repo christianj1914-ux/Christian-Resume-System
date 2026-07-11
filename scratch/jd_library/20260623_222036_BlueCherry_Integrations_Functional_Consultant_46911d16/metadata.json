@@ -1,0 +1,15 @@
+{
+  "snapshot_id": "20260623_222036_BlueCherry_Integrations_Functional_Consultant_46911d16",
+  "created_at": "2026-06-23T22:20:36",
+  "company": "BlueCherry",
+  "role": "Integrations Functional Consultant",
+  "workflow_type": "commercial",
+  "source_command": "legacy_import",
+  "archive_reason": "legacy_named_job_file",
+  "lane": "implementation_delivery",
+  "questions_present": false,
+  "question_count": 0,
+  "relative_path": "20260623_222036_BlueCherry_Integrations_Functional_Consultant_46911d16",
+  "job_description_sha256": "df7deebc1263292579d8f3c6fd2e494cd073b96c74545188a69159e28ba55f73",
+  "application_questions_sha256": ""
+}

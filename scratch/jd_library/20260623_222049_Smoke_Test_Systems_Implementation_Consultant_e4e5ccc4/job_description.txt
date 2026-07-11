@@ -1,0 +1,5 @@
+Company: Smoke Test Systems
+Role: Implementation Consultant
+This role owns implementation, configuration, requirements, scope, data migration,
+integration, go-live readiness, hypercare, stakeholder communication, adoption,
+reporting, and customer onboarding for enterprise software customers.

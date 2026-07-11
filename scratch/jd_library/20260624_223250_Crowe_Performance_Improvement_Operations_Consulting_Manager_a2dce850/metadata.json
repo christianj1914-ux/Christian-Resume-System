@@ -1,0 +1,15 @@
+{
+  "snapshot_id": "20260624_223250_Crowe_Performance_Improvement_Operations_Consulting_Manager_a2dce850",
+  "created_at": "2026-06-24T22:32:50",
+  "company": "Crowe",
+  "role": "Performance Improvement Operations Consulting Manager",
+  "workflow_type": "commercial",
+  "source_command": "trace_backfill",
+  "archive_reason": "trace_backfill",
+  "lane": "corporate_strategy",
+  "questions_present": false,
+  "question_count": 0,
+  "relative_path": "20260624_223250_Crowe_Performance_Improvement_Operations_Consulting_Manager_a2dce850",
+  "job_description_sha256": "fcf7f3c2e413bba9754d97db903514f90eb66c3d0a9d7e9774a889ab87ef7dc8",
+  "application_questions_sha256": ""
+}

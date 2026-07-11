@@ -1,0 +1,87 @@
+Company: Plataine
+
+
+Job Title: Solution Engineer
+
+
+
+About Us: AI Agents, Shaping the Future of Smart Manufacturing
+
+At Plataine, we aren't just building software, we are building the brain of the modern smart factory.
+
+As an award-winning leader in Agentic AI and IoT-based optimization, we empower advanced manufacturers to move past simple data dashboards and transition into fully autonomous, decision-first operations. Our SaaS platform acts as an intelligent orchestrator, solving complex, real-time industrial bottlenecks where standard logic falls short.
+
+If you want to work on complex, deterministic optimization problems, high-scale IoT data, and cutting-edge AI agents that make a tangible physical impact, you’re in the right place.
+
+Why Plataine?
+
+Global Impact, Elite Customers: Our market-proven solutions are trusted by the absolute giants of aerospace and advanced manufacturing, including Airbus, Blue Origin, and ST Engineering. When they build the future, they rely on our code.
+World-Class Ecosystem: We don't build in isolation. We partner with technology leaders like Microsoft and SAP to deploy enterprise-grade AI at scale.
+Massive Technical Scale: We operate at the intersection of AI agents, complex operations research, and real-time IoT telemetry. Your work will directly optimize production floors, reduce resource waste, and push industrial efficiency to its absolute limit.
+The Opportunity
+
+We are looking for builders, problem-solvers, and innovators. At Plataine, you will have the autonomy to make high-impact decisions, own critical pieces of our architecture, and collaborate with a sharp, driven team that values technical excellence over bureaucracy.
+
+The Role: Architecting Smart Factories
+
+As a Solution Engineer at Plataine, you will be the bridge between cutting-edge Agentic AI and the physical world. This is a high-impact, customer-facing role where you will lead the deployment of our AI Agents for some of the world's most advanced manufacturing facilities.
+
+This isn't a passive implementation job. You will blend deep technical problem-solving, manufacturing process intelligence, and project leadership to transform how factories make critical decisions in real-time.
+
+Location: United States (Remote / Work from Home). Must reside near a major metropolitan airport.
+Travel: Up to 40% travel to customer sites across the U.S., with occasional international travel.
+Citizenship: U.S. Citizenship required.
+
+
+What You’ll Do (Main Responsibilities)
+
+Lead Solution Design & Discovery: Run high-impact discovery workshops with factory operations, engineering, IT, and executive teams. You will dissect complex production workflows, surface critical bottlenecks, and map them directly to our AI decision-making engines.
+Own Implementation End-to-End: Drive deployment workstreams from blueprint to go-live. You’ll own configuration, data validation, system integration testing, and user acceptance, ensuring a flawless stabilization phase on the shop floor.
+Drive Optimization Consulting: Partner closely with clients to fine-tune application functionality, constraint-aware optimization logic, and operational digital twin workflows to maximize factory throughput.
+Collaborate on Pre-Sales: Support the growth lifecycle by steering technical scoping, architecting tailored solution demonstrations, and collaborating on high-value proposals.
+Be the Product Bridge: Serve as the critical feedback loop. Translate real-world customer needs, operational nuances, and edge cases back to our internal Product and R&D teams to shape our core AI roadmap.
+What You Bring (Core Requirements)
+
+The Foundation: A Bachelor’s degree in Industrial, Mechanical, Manufacturing, or Systems Engineering (or a related technical discipline).
+The Experience: 4+ years in a customer-facing technical delivery or solution architecture role, successfully deploying complex enterprise SaaS applications.
+Domain Expertise: A strong grasp of industrial engineering, production scheduling heuristics, and operational data. You should be highly proficient in Excel for data analysis and comfortable untangling complex manufacturing workflows.
+Project Execution Grit: A proven track record of managing implementation timelines, mitigating project risks, and aligning both executive stakeholders and shop-floor operators.
+Bonus Points (Preferred Qualifications)
+
+Advanced Manufacturing: Experience working in aerospace, defense, or highly constrained, high-stakes manufacturing environments.
+Industry 4.0 & AI: Familiarity with AI-driven optimization, digital twins, digital thread concepts, or smart factory initiatives.
+Enterprise Ecosystems: Experience integrating software with major ERP, MES, or PLM systems (e.g., SAP, Oracle, Siemens, Dassault, PTC) via APIs and data pipelines.
+
+
+
+A Plataine Solution Engineer is a highly technical, customer-facing role. They act as the bridge between Agentic AI and the physical factory floor, deploying SaaS-based production optimization and scheduling software for advanced manufacturing. 
+Core Responsibilities
+End-to-End Implementation: Driving SaaS deployments from blueprint to go-live, covering system configuration, data validation, and testing. [1]
+Pre-Sales Support: Leading discovery workshops and providing tailored technical demonstrations to prospective clients. [1]
+Optimization Consulting: Partnering with clients to fine-tune AI decision-making engines, factory constraints, and digital twin workflows to maximize throughput. [1]
+Product Bridge: Translating real-world shop-floor edge cases back to internal R&D and Product teams. [1]
+Requirements & Qualifications
+Education: Bachelor’s degree in Engineering, Computer Science, or related field.
+Experience: 3+ years in customer-facing technical delivery/SaaS implementation.
+Domain Knowledge: Strong background in industrial engineering, production scheduling, and manufacturing workflows, with experience in ERP/MES systems (SAP, Oracle).  
+A screening call with a VP of Products & Customer Services means you need to demonstrate both high-level business value and deep technical empathy for the end user.
+Because this VP sits at the intersection of product development and client success, they want to ensure you can deploy software smoothly while feeding valuable insights back to the engineering team.
+Strategic Strategy: What the VP Cares About
+The "Bridge" Capability: Can you understand a customer's pain on the factory floor and translate it into actionable product feedback?
+Time-to-Value: How efficiently can you get a client live on the platform without burning excessive technical resources?
+Customer Retention: Do you have the communication skills to manage difficult clients and de-escalate deployment delays? [1, 2]
+Key Themes to Prepare
+1. The Feedback Loop (Product)
+Be ready to explain how you handle a client asking for a feature the software doesn't currently support. 
+The Answer: Explain that you look for a workaround using existing configuration first. If a code change is truly needed, you quantify the business impact (e.g., "3 other clients need this") before escalating it to product management.
+2. Change Management (Services)
+In manufacturing, the biggest hurdle isn't the software; it's getting floor workers to trust AI scheduling over their old Excel sheets.
+The Answer: Emphasize that you focus on user adoption. Share an example of how you won over skeptical operators by showing them a quick win that made their daily routine easier.
+3. Scope Creep vs. Customer Satisfaction
+VPs worry about deployment timelines slipping because a customer keeps changing the requirements. 
+The Answer: Demonstrate that you can hold a firm but polite line. You handle scope creep by documenting the requests, mapping out the impact on the timeline, and presenting it as a "Phase 2" initiative. 
+Questions to Ask the VP
+Asking sharp questions flips the interview and shows executive presence. Try these:
+"How do the Product and Customer Service teams currently collaborate to prioritize the roadmap when a major client makes a feature request?"
+"What is the biggest bottleneck your team currently faces during the onboarding and implementation phase?"
+"How does your team define a 'successful deployment' beyond just hitting the go-live date?"

@@ -1,0 +1,15 @@
+{
+  "snapshot_id": "20260623_222037_State_Farm_Digital_Marketing_Data_Analyst_-_Digital_Channel_Performance_12981cca",
+  "created_at": "2026-06-23T22:20:37",
+  "company": "State Farm",
+  "role": "Digital Marketing Data Analyst - Digital Channel Performance",
+  "workflow_type": "commercial",
+  "source_command": "legacy_import",
+  "archive_reason": "legacy_named_job_file",
+  "lane": "analytics_operations",
+  "questions_present": false,
+  "question_count": 0,
+  "relative_path": "20260623_222037_State_Farm_Digital_Marketing_Data_Analyst_-_Digital_Channel_Performance_12981cca",
+  "job_description_sha256": "c55b7b07096097326db1d02566be5ce357a9eecbdc5537f3086c9581d0cc905d",
+  "application_questions_sha256": ""
+}

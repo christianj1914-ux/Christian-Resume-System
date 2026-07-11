@@ -1,0 +1,9 @@
+# Christian Resume System Dependencies
+# Pinned versions to ensure API stability and compatibility
+
+# Core document processing
+python-docx>=0.8.11
+
+# Note: The system uses primarily Python standard library modules
+# (re, json, pathlib, xml.etree, subprocess, zipfile, etc.)
+# No other external dependencies are required for the core functionality.

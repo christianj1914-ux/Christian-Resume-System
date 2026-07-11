@@ -1,0 +1,15 @@
+{
+  "snapshot_id": "20260629_173936_Plataine_Solution_Engineer_49edc92b",
+  "created_at": "2026-06-29T17:39:36",
+  "company": "Plataine",
+  "role": "Solution Engineer",
+  "workflow_type": "commercial",
+  "source_command": "resume",
+  "archive_reason": "command_auto_archive",
+  "lane": "implementation_delivery",
+  "questions_present": true,
+  "question_count": 18,
+  "relative_path": "20260629_173936_Plataine_Solution_Engineer_49edc92b",
+  "job_description_sha256": "e534cb478687dd7582e6987bcac2210b8bb235852a94d1fa51a423bc3a332e17",
+  "application_questions_sha256": "f27116e0aee426f163a3ecb9f11c240cb32eb6804faeac9a6186877ffd69a475"
+}

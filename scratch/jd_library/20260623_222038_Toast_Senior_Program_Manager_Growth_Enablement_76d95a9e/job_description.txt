@@ -1,0 +1,37 @@
+Company: Toast
+
+
+Job Title: Senior Program Manager, Growth Enablement
+
+ 
+
+Toast creates technology to help restaurants and local businesses succeed in a digital world, helping business owners operate, increase sales, engage customers, and keep employees happy.
+
+As the Senior Program Manager of Growth Enablement, you own the operational levers, marketing mechanics, and infrastructure that drive customer program adoption across Toast’s entire educational ecosystem. You are the technical and strategic architect of our distribution playbook, turning our multi-modality educational strategy into a highly scalable, high-conversion customer demand engine.
+
+In this role, you leverage behavioral insights and digital adoption tools to seamlessly integrate educational touchpoints into natural customer workflows, making it effortless for restaurant operators to access the right learning format at the right time. You partner closely with Marketing, Product, Support, and GTM teams to optimize multi-channel reach, maximize resource engagement, and build the underlying technology stack that powers Toast’s customer training operation.
+
+A day in the life (Responsibilities)
+
+Own the distribution and demand creation strategy for the customer education ecosystem, engineering how customers discover and engage with our learning across all modalities. 
+Scale program access and operational readiness, analyzing customer consumption trends to ensure educational resources across all formats are optimized for reach and discoverability
+Optimize the customer engagement funnel, continuously refining the user journey from initial resource discovery to active consumption
+Architect and manage the underlying technology and systems stack supporting multi-modality learning, ensuring seamless data integrations and operational continuity across in-product platforms (e.g., Pendo), Learning Management Systems (LMS), scheduling tools, and automated notification engines.
+Lead measurement, attribution, and insights for the enablement program team, building frameworks to track which channels, formats, and customer cohorts drive the highest results. 
+Launch behavior-based engagement campaigns to intercept friction points and capture customers who have not yet engaged with critical educational resources.
+What you'll need to thrive (Requirements) 
+
+5+ years of experience in Enablement Operations, Growth Marketing, Product Operations, or Program Management within a fast-paced, high-output SaaS environment.
+Deep technical expertise with digital engagement and marketing automation tools, specifically including Digital Adoption Platforms (e.g., Pendo), marketing automation platforms, and advanced scheduling/LMS tech stacks.
+Strong data and analytical skills, with a proven history of using customer intent signals, web/product analytics, and attribution modeling to measure program ROI and optimize conversion funnels.
+Demonstrated experience building scalable operational infrastructure or "growth engines" that significantly expand an audience's reach and resource consumption.
+Strong change management and operational governance skills, with a proven ability to manage complex testing/experimentation cycles, meticulously track system and program modifications, and proactively communicate updates to cross-functional stakeholders.
+Excellent cross-functional collaboration and communication skills, with the ability to bridge the gap between technical operations, product teams, and customer-facing organizations.
+Nice to Haves
+
+Experience running demand generation or operations specifically for a customer education or customer success organization.
+Service design or customer journey mapping experience, with the ability to identify key moments in the customer lifecycle and sequence educational touchpoints at the right time, in the right format, to drive meaningful adoption.
+Restaurant industry experience or familiarity with the fast-paced, high-distraction environment of a restaurant operator.
+AI at Toast
+
+At Toast, one of our company values is that we're hungry to build and learn. We believe learning new AI tools empowers us to build for our customers faster, more independently, and with higher quality. We provide these tools across all disciplines, from Engineering and Product to Sales and Support, and are inspired by how our Toasters are already driving real value with them. The people who thrive here are those who embrace changes that let us build more for our customers; it’s a core part of our culture.

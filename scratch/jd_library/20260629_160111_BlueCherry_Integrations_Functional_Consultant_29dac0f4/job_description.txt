@@ -1,0 +1,69 @@
+Company: BlueCherry
+
+
+Job Title: Integrations Functional Consultant
+
+
+
+With end-to-end capabilities, BlueCherry software enables many of the world’s most recognized fashion and apparel companies to manage critical business transactions and concept-to-consumer processes to improve speed to market, gain greater process visibility and control, increase productivity and operational efficiency, reduce costs, and enhance competitiveness.
+
+Travel on-site to clients as needed
+
+Summary Overview:
+CGS’s Integrations Functional Consultants are responsible for leading and supporting client-facing integration initiatives as part of BlueCherry implementations. This role works closely with client’s business and technical stakeholders to design, configure, validate, and deploy integrations between BlueCherry and third-party platforms across eCommerce, wholesale, marketplaces, and custom systems.
+The consultant serves as the functional subject-matter expert for BlueCherry integrations, translating business requirements into integration designs, validating data flows, supporting testing and go-live activities, and ensuring successful adoption of connected systems.
+
+Primary Responsibilities:
+
+
+Client Engagement & Solution Design
+• Partner with clients to understand business processes, integration goals, and data requirements across eCommerce, wholesale, retail, and marketplace channels.
+• Lead functional discovery sessions focused on integration scope, workflows, and exception handling.
+• Translate business requirements into functional integration specifications and implementation approach.
+• Act as a trusted advisor to clients on best practices for omni-channel and marketplace integrations.
+
+
+Integration Implementation & Delivery
+• Configure and support implementations of the following BlueCherry integration modules:
+o BlueCherry Shopify B2B, B2C, and POS Connectors
+o BlueCherry NuOrder Connector
+o BlueCherry Amazon FBA and FBM Connectors
+o BlueCherry ChannelAdvisor Connector
+o BlueCherry JOOR Connector
+o BlueCherry API for custom integrations
+• Collaborate with technical teams to align functional requirements with technical integration design.
+• Support data mapping, field-level validation, and end-to-end data flow testing.
+• Lead and support integration testing cycles, including unit testing, system integration testing, and user acceptance testing.
+
+
+Project Execution & Collaboration
+• Work closely with Project Managers to manage scope, timelines, risks, and dependencies related to integrations.
+• Coordinate with internal product, development, and support teams to resolve integration issues and escalations.
+• Document integration designs, configuration decisions, and client-specific processes.
+• Support cutover planning and go-live activities related to integrations.
+
+
+Training & Post-Go-Live Support
+• Deliver client training on integration workflows, monitoring, and exception handling.
+• Support hypercare and post-go-live stabilization activities.
+• Provide knowledge transfer and documentation to clients and internal support teams.
+
+Skills Required:
+• Dedication to quality delivery
+• Strong verbal and written communication skills
+• Ability to teach & train clients for successful adoption of a new platform or tool
+• Excellent interpersonal skills & organizational skills
+• Demonstrated history of building relationships with a strong customer service focus
+• Discipline needed to achieve daily & weekly tasks while adhering to delivery deadlines
+• Keen attention to detail
+• Ability to work on multiple projects with deadlines and under pressure
+• Demonstrated high level of professionalism, critical thinking, and credibility
+
+Experience & Qualifications
+
+• 3–7+ years of experience in a functional consulting, implementation, or integration-focused role
+• Experience implementing ERP, PLM, WMS, OMS, or related enterprise systems
+• Hands-on experience with BlueCherry, eCommerce, wholesale, POS, or marketplace integrations (e.g., Shopify, Amazon, NuOrder, ChannelAdvisor, JOOR or similar platforms)
+• Experience working with APIs, data mapping, and integration testing concepts (functional perspective)
+• Prior experience in fashion, apparel, footwear, or consumer goods industries strongly preferred
+• Bachelor’s degree or equivalent professional experience

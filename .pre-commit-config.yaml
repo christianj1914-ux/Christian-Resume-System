@@ -1,0 +1,11 @@
+# pre-commit must be installed separately with `pip install pre-commit` and activated with `pre-commit install`.
+repos:
+  - repo: local
+    hooks:
+      - id: resume-system-smoke-test
+        name: Resume system smoke test
+        description: Verify resume system lane detection and language rules.
+        entry: python scripts/smoke_test.py
+        language: system
+        pass_filenames: false
+        types: [python]

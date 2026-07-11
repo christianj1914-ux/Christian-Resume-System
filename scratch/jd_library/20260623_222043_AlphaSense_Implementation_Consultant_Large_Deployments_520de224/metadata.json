@@ -1,0 +1,15 @@
+{
+  "snapshot_id": "20260623_222043_AlphaSense_Implementation_Consultant_Large_Deployments_520de224",
+  "created_at": "2026-06-23T22:20:43",
+  "company": "AlphaSense",
+  "role": "Implementation Consultant, Large Deployments",
+  "workflow_type": "commercial",
+  "source_command": "trace_backfill",
+  "archive_reason": "trace_backfill",
+  "lane": "implementation_delivery",
+  "questions_present": false,
+  "question_count": 0,
+  "relative_path": "20260623_222043_AlphaSense_Implementation_Consultant_Large_Deployments_520de224",
+  "job_description_sha256": "37488449f40f48d1f6990b0eae85e9b3c1a8475cee4e5f482e47d5f300897d30",
+  "application_questions_sha256": ""
+}

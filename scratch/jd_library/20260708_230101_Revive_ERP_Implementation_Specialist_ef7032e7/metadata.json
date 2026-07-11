@@ -1,0 +1,15 @@
+{
+  "snapshot_id": "20260708_230101_Revive_ERP_Implementation_Specialist_ef7032e7",
+  "created_at": "2026-07-08T23:01:01",
+  "company": "Revive ERP",
+  "role": "Implementation Specialist",
+  "workflow_type": "commercial",
+  "source_command": "resume",
+  "archive_reason": "command_auto_archive",
+  "lane": "implementation_delivery",
+  "questions_present": false,
+  "question_count": 0,
+  "relative_path": "20260708_230101_Revive_ERP_Implementation_Specialist_ef7032e7",
+  "job_description_sha256": "b49b79940a58db78f3054b6cfd5a79f0074155bf2fcf792c82e628e7a02ff5e0",
+  "application_questions_sha256": ""
+}

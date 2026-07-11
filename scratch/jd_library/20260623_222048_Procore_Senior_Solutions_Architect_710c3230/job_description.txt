@@ -1,0 +1,14 @@
+Company: Procore
+Job Title: Senior Solutions Architect
+
+We’re looking for a Senior Solutions Architect to join Procore’s Technical Services Team. In this role, you’ll lead technical scoping and requirements gathering to design solutions around integrations and data migrations to ultimately bring success to our customers through our cloud based software.
+
+As a Senior Solutions Architect, you’ll partner with clients, prospects, partners, and our engineering team to analyze requirements, design solutions, and lead technical integration and data-migration efforts. Use your technical consulting, project management, and customer engagement skills to deliver high value professional services and successful integrations.
+
+What you’ll do:
+Lead technical scoping and requirements gathering with clients, prospects, and partners.
+Design and implement custom integrations and data migrations leveraging Procore's APIs.
+Draft and manage Statements of Work (SOW), including requirements and pricing.
+Project manage technical development efforts including requirements, design, testing, and delivery.
+Collaborate with Sales, Customer Success, and technical teams to align solutions with business outcomes.
+Serve as a subject-matter expert for integrations with ERP/accounting systems.

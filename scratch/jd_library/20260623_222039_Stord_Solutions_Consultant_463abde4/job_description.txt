@@ -1,0 +1,63 @@
+Company: Stord
+
+
+Job Title: Solutions Consultant
+
+
+Stord is The Consumer Experience Company, powering seamless checkout through delivery for today's leading brands. Stord is rapidly growing and is on track to double our revenue in the next 18 months. To meet and exceed this target, Stord is strategically scaling teams across the entire company, and seeking energetic experts to help us achieve our mission.
+
+By combining comprehensive commerce-enablement technology with high-volume fulfillment services, Stord provides brands a platform to compete with retail giants. Stord manages over $10 billion of commerce annually through its fulfillment, warehousing, transportation, and operator-built software suite including OMS, Pre- and Post-Purchase, and WMS platforms. Stord is leveling the playing field for all brands to deliver the best consumer experience at scale.
+
+With Stord, brands can increase cart conversion, improve unit economics, and drive sustained customer loyalty. Stord’s end-to-end commerce solutions combine best-in-class omnichannel fulfillment and shipping with leading technology to ensure fast shipping, reliable delivery promises, easy access to more channels, and improved margins on every order.
+
+Hundreds of leading DTC and B2B companies like AG1, True Classic, Native, Seed Health, quip, goodr, Sundays for Dogs, and more trust Stord to deliver industry-leading consumer experiences on every order. Stord is headquartered in Atlanta with facilities across the United States, Canada, and Europe. Stord is backed by top-tier investors including Kleiner Perkins, Franklin Templeton, Founders Fund, Strike Capital, Baillie Gifford, and Salesforce Ventures.
+
+At Stord, we empower teams to solve complex problems in ways that delight our customers and drive our business forward. Our Solution Consultants partner with customers to design tailored solutions, articulate value propositions, and ensure our technology addresses their most critical challenges.
+
+We’re seeking a Solution Consultant to join our team. The Solutions team leverages deep technical and operational expertise to uncover customer requirements, translate them into impactful solutions, and gain stakeholder buy-in through compelling presentations and demonstrations.
+What You'll Do
+Engage with sales prospects and lead conversations around our technology platform, including demos, integrations, solution design, and RFP responses.
+
+Create compelling presentations and documents that clearly communicate the value proposition and ROI of our software, fulfillment, and parcel solutions.
+
+Build strong relationships with prospects and customers, serving as a trusted advisor who designs, recommends, and supports the implementation of tailored solutions.
+
+Develop deep expertise in Stord’s OMS and WMS, including understanding user needs (current and future), competitor offerings, market trends, and how these products fit within the broader Cloud Supply Chain.
+
+Partner with GTM teams to advance opportunities through the sales cycle—discovery, pricing, RFP responses, internal approvals, presentations, and close.
+
+Lead the discovery of customer requirements, document technical solutions and timelines, and ensure a smooth handoff to implementation teams for OMS/WMS deployments.
+
+Stay current on the product roadmap and vision, serving as the voice of the customer to provide actionable feedback to product and engineering teams.
+
+Establish and share best practices for documentation, process, and collaboration within the Software Solutions team.
+
+What You'll Need
+Passion for building high-quality solutions and delighting customers.
+
+Bachelor’s or Master’s degree in Supply Chain, Industrial Engineering, Operations Management, or a related technical field.
+
+2+ years of experience in Pre-Sales, Solutions Engineering, Sales Engineering, Implementation, Consulting, or a related role within a startup or high-growth environment.
+
+Proven ability to manage multiple proposals with varying requirements, priorities, and timelines; highly organized and detail-oriented.
+
+Strong communication skills with the ability to navigate both technical and functional discussions and clearly articulate value propositions to diverse audiences.
+
+Experience engaging cross-functional teams (sales, product development, operations) and translating complex business and technical details effectively.
+
+Background in launching technology solutions for enterprise or B2B customers.
+
+Solid understanding of supply chain challenges and how technology enables competitive advantage by solving them quickly and effectively.
+
+Familiarity with Ecommerce, Order Management, Inventory Management, Warehouse Management, ERP, and/or Distributed Order Management software.
+
+Bonus Points
+Prior startup experience.
+
+Logistics or broader supply chain experience.
+
+Familiarity with platforms like Shopify, NetSuite, or SPS Commerce.
+
+Hands-on experience with APIs, Postman, or similar tools to stage data for customized software demonstrations.
+
+Knowledge of API protocols (REST, GraphQL, SOAP) and/or EDI transactions (940, 943, 944, 945, 850, 856, etc.).

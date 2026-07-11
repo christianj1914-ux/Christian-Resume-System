@@ -1,0 +1,15 @@
+{
+  "snapshot_id": "20260625_154011_QTS_Sales_Operations_Analyst_a5a5605e",
+  "created_at": "2026-06-25T15:40:11",
+  "company": "QTS",
+  "role": "Sales Operations Analyst",
+  "workflow_type": "commercial",
+  "source_command": "trace_backfill",
+  "archive_reason": "trace_backfill",
+  "lane": "implementation_delivery",
+  "questions_present": false,
+  "question_count": 0,
+  "relative_path": "20260625_154011_QTS_Sales_Operations_Analyst_a5a5605e",
+  "job_description_sha256": "00a823fbaa9397f99e6afb89b714e3017ae3d467505fcfe4ff6536a2f1618f39",
+  "application_questions_sha256": ""
+}

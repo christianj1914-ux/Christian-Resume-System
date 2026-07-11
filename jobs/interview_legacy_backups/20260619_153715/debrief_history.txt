@@ -1,0 +1,172 @@
+POST-INTERVIEW DEBRIEF CAPTURED 2026-06-19 15:35:14
+
+Interview date: 05/26/2026
+Company name: BioTouch
+Role title: Solutions Implementation Consultant
+Round number: 2
+Outcome: pending
+
+Raw notes:
+BioTouch Round 2 included follow-up questions about Excel comfort, training others, and technical projects. Interviewer language emphasized consulting and curiosity to learn. Christian heard that the team is early in the interview process and may follow up in 1 to 2 weeks if he advances to the last round.
+
+Company intelligence:
+The role would support Spectra Path. Internal work uses Jira and Azure to track tickets and document issues.
+
+Preparation consequences:
+Prepare a concise Excel comfort answer tied to reporting, data validation, and 200+ dashboards.
+Prepare a training answer tied to 60+ workshops, QBRs, role-based enablement, and customer adoption.
+Prepare a technical projects answer tied to implementations, data migration, SQL validation, integrations, issue tracking, Jira-style ownership, and Azure/cloud-adjacent collaboration.
+Prepare one compliance-aware bridge answer for HIPAA/PHI signals: do not overclaim direct HIPAA ownership; emphasize documentation discipline, workflow clarity, validation, access awareness, and escalation when regulated data is involved.
+
+Stories that generated follow-up questions:
+How comfortable are you with Excel? Tell me about a time you dealt with training others? Tell me about your technical projects?
+
+Unexpected questions:
+None supplied.
+
+Specific interviewer language about the role:
+  - Consulting, curious to learn
+  - Consulting, curious
+
+Feedback received:
+  - Said that I may hear back in one to 2 weeks as it is early on in the interview process, so it seems that I did not do well
+  - Interviewer said they are early on in the process, and will follow-up in 1 to 2 weeks if I made it to last round. Did not seem promising.
+
+Insider company intelligence learned:
+  - We would be supporting Spectra Path, internally using Jira and Azure to track tickets and document issues
+  - We would support Spectra Path
+
+Performance summary:
+None supplied.
+
+Strongest answers:
+None supplied.
+
+Weakest answers:
+None supplied.
+
+Next-round risks:
+None supplied.
+
+Coaching signals:
+None supplied.
+
+POST-INTERVIEW DEBRIEF CAPTURED 2026-06-19 15:35:14
+
+Interview date: 6/19/2026
+Company name: M-Tech Systems
+Role title: Project Consultant
+Round number: 1
+Outcome: pending
+
+Raw notes:
+Include interviewer language, questions, objections, feedback, and next-step clues.
+
+### MTech Systems and Amino
+
+- B2B SaaS, headquartered in Dunwoody, GA; operating since 1992; 300 employees globally, 65 countries
+- 92% US market share in poultry production; major clients include Tyson, Purdue, Sanderson's
+- Core business: software for live animal production, primarily poultry
+- Amino (flagship, launched 2017): fully cloud-based, web platform
+ - Business value: replaces fragmented per-segment systems with a single source of truth
+ - Each stage of production (feed mills, grow-out, processing, distribution) historically ran separate systems
+ - Amino consolidates all data and operations into one platform instead of managing five
+ - Three core modules:
+ - Supply chain: collects lifecycle data from egg to distribution (weight, feed consumption, mortality over ~24 weeks)
+ - Financial and accounting: budgeting, forecasting, cost variance analysis, per-unit and per-flock cost tracking
+ - Dashboards and reporting: turns operational and financial data into executive-level decision tools
+ - All reporting built internally via SQL scripts; dedicated integration team owns custom report generation
+ - Closest analogy is an ERP, though Jonathan noted Amino is more specialized and complex
+
+### Project Consultant Role and Expectations
+
+- Title is "Implementation Specialist" in industry standard; MTech calls it "Project Consultant"
+- Implementation scale: 9 months to 2 years per project, team of 3-5 consultants per engagement
+- Tier 1 ramp (first 3-4 months): support function across 2-3 active projects
+ - Tasks: UAT testing, data validation, documentation
+ - Goal: absorb the industry, the system, and the client culture before owning modules
+ - Clients range from large enterprise (Tyson-scale) to individual farmers depending on module
+- After ramp: own 2-3 modules independently (e.g., feed module, mobile)
+ - Each module functions as a mini-implementation within the broader project
+- Biggest challenge: industry and business knowledge, not technical skills
+ - Poultry production has its own language, culture, and operational logic
+ - Jonathan described it as "people speak a different language"
+ - Technical complexity of Amino compounds the learning curve on top of industry knowledge
+
+### Interview Process and Fit
+
+- Three rounds:
+ 1. Prescreen with Jonathan Ho (this call)
+ 2. Hiring manager interview
+ 3. On-site, in-person final round
+- Jonathan's feedback on fit:
+ - ERP background is the closest analog to Amino; experience aligns well
+ - Noted depth of experience across both sides of implementation (vendor and client)
+ - Highlighted communication and relevant experience as positives
+ - "I feel good about the resume, I feel better with your experience"
+
+### Next Steps
+
+- **Await hiring team feedback from Jonathan**
+ - Jonathan submitting notes and resume today; decision expected by Monday, Jun 22, with second-round scheduling if approved.
+
+Stories that generated follow-up questions:
+  - B2B SaaS, headquartered in Dunwoody, GA; operating since 1992; 300 employees globally, 65 countries
+  - 92% US market share in poultry production; major clients include Tyson, Purdue, Sanderson's
+  - Core business: software for live animal production, primarily poultry
+  - Amino (flagship, launched 2017): fully cloud-based, web platform
+  - Business value: replaces fragmented per-segment systems with a single source of truth
+  - Each stage of production (feed mills, grow-out, processing, distribution) historically ran separate systems
+  - Amino consolidates all data and operations into one platform instead of managing five
+  - Three core modules:
+  - Supply chain: collects lifecycle data from egg to distribution (weight, feed consumption, mortality over ~24 weeks)
+  - Financial and accounting: budgeting, forecasting, cost variance analysis, per-unit and per-flock cost tracking
+  - Dashboards and reporting: turns operational and financial data into executive-level decision tools
+  - All reporting built internally via SQL scripts; dedicated integration team owns custom report generation
+  - Closest analogy is an ERP, though Jonathan noted Amino is more specialized and complex
+
+Unexpected questions:
+None supplied.
+
+Specific interviewer language about the role:
+  - Title is "Implementation Specialist" in industry standard; MTech calls it "Project Consultant"
+  - Implementation scale: 9 months to 2 years per project, team of 3-5 consultants per engagement
+  - Tier 1 ramp (first 3-4 months): support function across 2-3 active projects
+  - Tasks: UAT testing, data validation, documentation
+  - Goal: absorb the industry, the system, and the client culture before owning modules
+  - Clients range from large enterprise (Tyson-scale) to individual farmers depending on module
+  - After ramp: own 2-3 modules independently (e.g., feed module, mobile)
+  - Each module functions as a mini-implementation within the broader project
+  - Biggest challenge: industry and business knowledge, not technical skills
+  - Poultry production has its own language, culture, and operational logic
+  - Jonathan described it as "people speak a different language"
+  - Technical complexity of Amino compounds the learning curve on top of industry knowledge
+
+Feedback received:
+None supplied.
+
+Insider company intelligence learned:
+  - Three rounds:
+  - 1. Prescreen with Jonathan Ho (this call)
+  - 2. Hiring manager interview
+  - 3. On-site, in-person final round
+  - Jonathan's feedback on fit:
+  - ERP background is the closest analog to Amino; experience aligns well
+  - Noted depth of experience across both sides of implementation (vendor and client)
+  - Highlighted communication and relevant experience as positives
+  - "I feel good about the resume, I feel better with your experience"
+
+Performance summary:
+None supplied.
+
+Strongest answers:
+None supplied.
+
+Weakest answers:
+None supplied.
+
+Next-round risks:
+None supplied.
+
+Coaching signals:
+None supplied.

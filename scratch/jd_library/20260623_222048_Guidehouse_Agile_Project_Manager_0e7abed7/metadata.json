@@ -1,0 +1,15 @@
+{
+  "snapshot_id": "20260623_222048_Guidehouse_Agile_Project_Manager_0e7abed7",
+  "created_at": "2026-06-23T22:20:48",
+  "company": "Guidehouse",
+  "role": "Agile Project Manager",
+  "workflow_type": "commercial",
+  "source_command": "trace_backfill",
+  "archive_reason": "trace_backfill",
+  "lane": "implementation_delivery",
+  "questions_present": false,
+  "question_count": 0,
+  "relative_path": "20260623_222048_Guidehouse_Agile_Project_Manager_0e7abed7",
+  "job_description_sha256": "e82931f72357cf2e3147810c8dd490cd9c4b83f7c2ada40d1a2ccc2660889ffe",
+  "application_questions_sha256": ""
+}

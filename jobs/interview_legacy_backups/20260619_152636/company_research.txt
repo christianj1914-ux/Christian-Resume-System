@@ -1,0 +1,18 @@
+POST-INTERVIEW NOTE [05/26/2026]: BioTouch, round 2, outcome pending.
+We would be supporting Spectra Path, internally using Jira and Azure to track tickets and document issues
+
+
+POST-INTERVIEW NOTE [05/26/2026]: BioTouch - Solutions Implemenation Consultant, round 2, outcome pending.
+We would support Spectra Path
+
+
+POST-INTERVIEW NOTE [6/19/2026]: M-Tech Systems - Project Consultant, round 1, outcome pending.
+- Three rounds:
+  1. Prescreen with Jonathan Ho (this call)
+  2. Hiring manager interview
+  3. On-site, in-person final round
+- Jonathan’s feedback on fit:
+  - ERP background is the closest analog to Amino; experience aligns well
+  - Noted depth of experience across both sides of implementation (vendor and client)
+  - Highlighted communication and relevant experience as positives
+  - “I feel good about the resume, I feel better with your experience”

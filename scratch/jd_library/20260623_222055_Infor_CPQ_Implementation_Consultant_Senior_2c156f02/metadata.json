@@ -1,0 +1,15 @@
+{
+  "snapshot_id": "20260623_222055_Infor_CPQ_Implementation_Consultant_Senior_2c156f02",
+  "created_at": "2026-06-23T22:20:55",
+  "company": "Infor",
+  "role": "CPQ Implementation Consultant, Senior",
+  "workflow_type": "commercial",
+  "source_command": "trace_backfill",
+  "archive_reason": "trace_backfill",
+  "lane": "implementation_delivery",
+  "questions_present": false,
+  "question_count": 0,
+  "relative_path": "20260623_222055_Infor_CPQ_Implementation_Consultant_Senior_2c156f02",
+  "job_description_sha256": "f4e61a5a89198c0edd3822777f1fc3f6da700d822646385110c16020223f79b3",
+  "application_questions_sha256": ""
+}

@@ -1,0 +1,83 @@
+Company: Crowe
+
+
+Job Title:  AI Enablement Manager
+
+
+
+
+
+Your Journey at Crowe Starts Here:
+
+At Crowe, you can build a meaningful and rewarding career. With real flexibility to balance work with life moments, you’re trusted to deliver results and make an impact. We embrace you for who you are, care for your well-being, and nurture your career. Everyone has equitable access to opportunities for career growth and leadership. Over our 80-year history, delivering excellent service through innovation has been a core part of our DNA across our audit, tax, and consulting groups. That’s why we continuously invest in innovative ideas, such as AI-enabled insights and technology-powered solutions, to enhance our services. Join us at Crowe and embark on a career where you can help shape the future of our industry.
+
+More about Crowe:
+Crowe is one of the largest public accounting, consulting and technology firms in the United States. Crowe uses its deep industry expertise to provide audit services to public and private entities while also helping clients reach their goals with tax, advisory, risk and performance services. Crowe is recognized by many organizations as one of the country's best places to work. Crowe serves clients worldwide as an independent member of Crowe Global, one of the largest global accounting networks in the world. The network consists of more than 200 independent accounting and advisory services firms in more than 130 countries around the world.
+
+Job Description:
+
+Your Journey at Crowe Starts Here
+
+At Crowe, you can build a meaningful and rewarding career. With real flexibility to balance work with life moments, you’re trusted to deliver results and make an impact. We embrace you for who you are, care for your well-being, and nurture your career. Everyone has equitable access to opportunities for career growth and leadership. Over our 80-year history, delivering excellent service through innovation has been a core part of our DNA across our audit, tax, and consulting groups. That’s why we continuously invest in innovative ideas, such as AI-enabled insights and technology-powered solutions, to enhance our services. Join us at Crowe and embark on a career where you can help shape the future of our industry.
+
+About the Role
+
+The AI Enablement Manager owns the delivery of Crowe’s firmwide AI Enablement strategy within our Studio business unit. This role leads the programs, learning, content, and measurement that drive adoption and effective, responsible use of AI technologies across Crowe’s business units, international affiliates, and select client engagements. The Manager is the connective tissue between Crowe’s internal customers, Studio resources, and external technology partners — setting the enablement roadmap, building the curriculum and community that scale AI fluency, and reporting adoption and impact directly to senior firm leadership. The role carries end-to-end ownership: it sets direction, executes, and is accountable for outcomes rather than supporting another owner.
+
+What You Will Do
+
+Own the Enablement Strategy & Roadmap: Set and drive Crowe’s firmwide AI Enablement strategy across internal business units, international affiliates, and select client programs — translating leadership priorities into a concrete, sequenced roadmap and being accountable for its execution.
+
+Design & Deliver the Learning Curriculum: Own a multi-level AI training curriculum spanning foundational to advanced skills across the firm’s tool portfolio (e.g., ChatGPT Enterprise, Microsoft Copilot, Claude). Design, facilitate, and continuously refresh workshops, demos, intern programs, and community sessions.
+
+Lead the AI Champion Community: Run the firmwide AI Guild / champion network — office hours, recurring sessions, and resource sharing — building the peer ecosystem that sustains adoption beyond live facilitation.
+
+Own Enablement Content & Assets: Direct the creation and maintenance of enablement materials, guides, reference libraries, the AI Hub / “which tool when” resources, and a short-form video pipeline (scripting through production and hosting).
+
+Own Adoption Analytics & Executive Reporting: Produce recurring adoption and usage reporting across the AI tool portfolio for senior firm leadership, and build the impact measurement frameworks (baselines, value taxonomy) that translate usage into demonstrable business value.
+
+Lead AI Governance & Responsible Use: Maintain and evolve the firm’s AI governance framework — autonomy tiers, intake and evaluation, and responsible-use guidance — partnering with AI Governance, InfoSec, and IT on approvals and policy.
+
+Evaluate Tools & Manage Vendor Relationships: Lead early testing of new AI tools and features, gather and synthesize user feedback, and manage relationships with technology partners (e.g., Microsoft) and emerging-tool vendors, feeding requirements back to providers.
+
+Shape Enablement Platforms: Contribute to the design and content architecture of scalable enablement platforms (e.g., an AI fluency coaching platform) that extend reach beyond instructor-led delivery.
+
+Manage Stakeholders & Advocate: Serve as the senior point of contact for AI enablement across business units and represent Crowe’s AI programs in internal and external forums as an advocate for responsible AI innovation and adoption.
+
+Lead & Develop Talent: Serve as hiring manager and mentor for junior enablement staff and coordinate the work of contributors supporting enablement initiatives.
+
+Qualifications
+
+5–8+ years of experience in technology enablement, learning and development, digital or AI transformation, or change management — including demonstrated ownership of programs end-to-end.
+
+Proven ability to translate technical and analytical concepts for both non-technical and senior leadership audiences.
+
+Hands-on depth with enterprise AI platforms such as Microsoft Copilot, ChatGPT, and Claude, including practical understanding of effective and responsible use, including expertise building custom GPTs, Copilot Studio agents, or equivalent.
+
+Track record designing and delivering training, workshops, or change-management programs at scale.
+
+3+ years of experience owning metrics and reporting, and presenting adoption or impact results to leadership.
+
+Demonstrated stakeholder management across multiple business units and with external technology vendors.
+
+Strong organizational, documentation, and communication skills with a high attention to detail.
+
+Deep passion, curiosity and hunger for continuous learning and experimentation with emerging AI tools. Stays current with rapidly evolving generative AI capabilities and best practices, translating advances in areas such as prompt engineering, context engineering, AI agents, model evaluation, and orchestration into practical enterprise use cases.
+
+Bachelor’s degree
+
+Preferred Qualifications
+
+Experience building or architecting enablement platforms, instructional design, or adult-learning programs.
+
+Experience with developing and leveraging AI governance, risk, and responsible-use frameworks.
+
+Hands-on experience building and deploying production AI agents on enterprise platforms—not solely evaluating or managing AI initiatives—with demonstrated success integrating agents into real business workflows and systems
+
+Experience in the professional services industry, especially audit, accounting, tax, and consulting.
+
+2+ years of people leadership or mentoring experience, including hiring.
+
+Experience with internal communications, content creation, or video production.
+
+Proficiency with Microsoft Office 365 and collaboration tools (e.g., Teams, SharePoint).

@@ -1,0 +1,15 @@
+{
+  "snapshot_id": "20260623_222046_JFrog_Technical_Success_Manager_a475e5c0",
+  "created_at": "2026-06-23T22:20:46",
+  "company": "JFrog",
+  "role": "Technical Success Manager",
+  "workflow_type": "commercial",
+  "source_command": "trace_backfill",
+  "archive_reason": "trace_backfill",
+  "lane": "customer_success",
+  "questions_present": false,
+  "question_count": 0,
+  "relative_path": "20260623_222046_JFrog_Technical_Success_Manager_a475e5c0",
+  "job_description_sha256": "69d78657fb3eeceffdbc094802660021b08c785e1984f8f68841e7a77b1a4aed",
+  "application_questions_sha256": ""
+}

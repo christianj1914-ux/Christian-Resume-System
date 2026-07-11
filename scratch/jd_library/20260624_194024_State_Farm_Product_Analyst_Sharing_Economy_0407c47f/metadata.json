@@ -1,0 +1,15 @@
+{
+  "snapshot_id": "20260624_194024_State_Farm_Product_Analyst_Sharing_Economy_0407c47f",
+  "created_at": "2026-06-24T19:40:24",
+  "company": "State Farm",
+  "role": "Product Analyst, Sharing Economy",
+  "workflow_type": "commercial",
+  "source_command": "resume",
+  "archive_reason": "command_auto_archive",
+  "lane": "implementation_delivery",
+  "questions_present": true,
+  "question_count": 15,
+  "relative_path": "20260624_194024_State_Farm_Product_Analyst_Sharing_Economy_0407c47f",
+  "job_description_sha256": "f781c439da706c6b479ddc6233b85d9d664e503eca9bd2a81b81f4812dfc8ce4",
+  "application_questions_sha256": "428601e4ac23a08ea4a15e17f91a1ad9d0169a3787d902c4b653104b0bf9a328"
+}

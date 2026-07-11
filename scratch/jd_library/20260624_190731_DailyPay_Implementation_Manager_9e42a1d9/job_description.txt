@@ -1,0 +1,49 @@
+Company: DailyPay
+
+
+Job Title: Implementation Manager
+
+
+
+About Us:
+DailyPay is transforming the way people get paid. As a worktech company and the industry’s leading on demand pay solution, DailyPay uses an award-winning technology platform to help America’s top employers build stronger relationships with their employees. This voluntary employee benefit enables workers everywhere to feel more motivated to work harder and stay longer on the job while supporting their financial well-being outside of the workplace.
+DailyPay is headquartered in New York City, with operations throughout the United States as well as in Belfast. For more information, visit DailyPay's Press Center.
+
+The Role:
+DailyPay is seeking a forward-thinking, organized, and enthusiastic Implementation Manager to join our rapidly growing company in NYC. This individual will be a pivotal member of our Implementation team, leading the deployment of our SaaS solution for our Small to Enterprise sized accounts. This person will lead the technical integration between third party vendors and DailyPay. The Implementation Manager will be responsible for managing the entire implementation lifecycle from pre-sales to go-live. Success in this role will rely on a combination of strong discovery skills, technical proficiency, confidence, working with clients and C Suite stakeholders, and the ability to manage the details while seeing the bigger picture. If this opportunity excites you, we encourage you to apply even if you do not meet all of the qualifications.
+
+How You Will Make an Impact:
+Lead the technical aspects of the DailyPay integration for Small to Enterprise sized customers
+
+Perform comprehensive discovery and build robust documentation of the implementation requirements
+
+Perform technical research to provide unique solutions for complex customer integrations
+
+Become a specialist in our product, configuration, and internal processes
+
+Identify, manage, and mitigate project risks
+
+Work hand in hand with the sales team to assist with pre-sales and scoping discussions
+
+Suggest new product features and functionality based on implementation experience and feedback from DailyPay customers
+
+Work closely with the operations and support teams to discuss implementation details and nuances during the post-launch handoff
+
+What You Bring to The Team:
+Bachelor’s degree in Business, Engineering, or equivalent work experience
+
+3-5+ years of experience in Implementation of SaaS solutions
+
+Experience working with demanding, high-stakes accounts, managing operational and C-level stakeholders, and supporting day-to-day needs to manage these relationships
+
+Detail-oriented with the ability to set priorities and be flexible in a changing environment
+
+Excellent written communication and presentation skills
+
+Experience leading data validation, unit testing, and UAT
+
+Experience with sFTP automation and API builds (reviewing logs, troubleshooting, etc.)
+
+Working proficiency in Microsoft Excel and Google Suite
+
+Experience in early stage products, markets, and companies preferred

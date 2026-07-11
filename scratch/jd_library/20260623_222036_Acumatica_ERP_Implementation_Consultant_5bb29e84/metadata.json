@@ -1,0 +1,15 @@
+{
+  "snapshot_id": "20260623_222036_Acumatica_ERP_Implementation_Consultant_5bb29e84",
+  "created_at": "2026-06-23T22:20:36",
+  "company": "Acumatica",
+  "role": "ERP Implementation Consultant",
+  "workflow_type": "commercial",
+  "source_command": "legacy_import",
+  "archive_reason": "legacy_named_job_file",
+  "lane": "implementation_delivery",
+  "questions_present": false,
+  "question_count": 0,
+  "relative_path": "20260623_222036_Acumatica_ERP_Implementation_Consultant_5bb29e84",
+  "job_description_sha256": "107c5dbab0a88c1ff6f27dd97fbb935fbe097d0aa0b507f06a9d2452360dd3c1",
+  "application_questions_sha256": ""
+}

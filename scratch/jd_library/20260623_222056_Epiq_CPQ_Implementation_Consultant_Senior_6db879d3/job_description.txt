@@ -1,0 +1,35 @@
+Company: Epiq
+
+
+Job Title: CPQ Implementation Consultant, Senior
+
+As a Functional Consultant supporting Infor’s CPQ solutions, you will guide customers through end-to-end implementations of Configure, Price, and Quote capabilities, ensuring alignment with business processes. This role focuses on translating business requirements into functional solutions, applying leading practices, and delivering outcomes that meet customer needs. You will collaborate cross-functionally with delivery, product, and support teams to drive successful implementations.
+A Typical Day in the Life Includes:
+Participating in full-cycle implementations, including Kickoff, Requirements Gathering, Functional Design and Documentation, System Configuration, Testing, and Training, while ensuring adherence to Infor Deployment Methodology.
+Collaborating with customers to understand their business requirements and translating those requirements into systematic specifications for development.
+Developing a deep understanding of CPQ software features to effectively apply them to meet customer needs.
+Researching, documenting, configuring, and testing functional elements to align with customer policies, procedures, and applicable laws.
+Partnering with Product Management, Product Development, and Customer Support to communicate customer needs and design effective solutions.
+Building and maintaining strong customer relationships, delivering high-quality service to internal and external stakeholders, and establishing credibility as a trusted advisor.
+Basic Qualifications:
+Experience with configure, price, quote software.
+Consulting experience, including customer-facing presentations.
+Experience applying structured, logical approaches to problem-solving, including root cause analysis and solution design within CPQ or similar systems.
+Project experience with exposure to software development, including Analysis and Design, Implementation, Testing, and Deployment.
+Experience in analyzing and documenting business requirements and solution specifications.
+Ability to travel 50% or more.
+Legal authorization to work permanently in the United States for any employer without requiring a visa transfer or sponsorship now or in the future.
+Preferred Qualifications:
+Undergraduate degree or equivalent work experience.
+Industry-specific expertise in Manufacturing or Distribution.
+
+
+About Infor
+Infor is where ambition meets impact. Join a global community of bold thinkers and innovators, where your expertise doesn't just solve problems. it shapes industries, unlocks opportunities, and creates real-world impact for billions of people. At Infor, you're not just building a career. you're helping to build what's next.
+
+Infor is a global leader in business cloud software products for companies in industry specific markets. Infor builds complete industry suites in the cloud and efficiently deploys technology that puts the user experience first, leverages data science, and integrates easily into existing systems. Over 60,000 organizations worldwide rely on Infor to help overcome market disruptions and achieve business-wide digital transformation.
+
+For more information visit www.infor.com
+
+Our Values
+At Infor, we strive for an environment that is founded on a business philosophy called Principle Based Management™ (PBM™) and eight Guiding Principles: integrity, stewardship & compliance, transformation, principled entrepreneurship, knowledge, humility, respect, self-actualization.

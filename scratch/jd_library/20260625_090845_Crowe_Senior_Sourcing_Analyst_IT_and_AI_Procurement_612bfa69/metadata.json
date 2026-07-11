@@ -1,0 +1,15 @@
+{
+  "snapshot_id": "20260625_090845_Crowe_Senior_Sourcing_Analyst_IT_and_AI_Procurement_612bfa69",
+  "created_at": "2026-06-25T09:08:45",
+  "company": "Crowe",
+  "role": "Senior Sourcing Analyst, IT and AI Procurement",
+  "workflow_type": "commercial",
+  "source_command": "trace_backfill",
+  "archive_reason": "trace_backfill",
+  "lane": "corporate_strategy",
+  "questions_present": false,
+  "question_count": 0,
+  "relative_path": "20260625_090845_Crowe_Senior_Sourcing_Analyst_IT_and_AI_Procurement_612bfa69",
+  "job_description_sha256": "a8f957cc4d977a85c5ea34a2dd9b6f49f14ab4fe57095e4b46ec5c75c808ea84",
+  "application_questions_sha256": ""
+}

@@ -1,0 +1,58 @@
+Company: Dayforce HCM
+
+
+Job Title: Benefits Implementation Consultant
+
+
+
+
+Dayforce is a global human capital management (HCM) company headquartered in Toronto, Ontario, and Minneapolis, Minnesota, with operations across North America, Europe, Middle East, Africa (EMEA), and the Asia Pacific Japan (APJ) region. 
+
+ 
+
+Our award-winning Cloud HCM platform offers a unified solution database and continuous calculation engine, driving efficiency, productivity and compliance for the global workforce.
+
+ 
+
+Our brand promise - Makes Work Life Better™ - Reflects our commitment to employees, customers, partners and communities globally. 
+
+Location: Work is what you do, not where you go. For this role, we are open to remote work and can hire anywhere in the United States
+
+ 
+
+About the Opportunity 
+
+The Service Consultant participates in all stages of the implementation lifecycle (discovery, configuration, testing, deployment, post go-live support), under the direction of the Project Manager, and may lead one or more activities. Project responsibilities include gathering customer requirements, configuring the Dayforce  solution to meet documented customer requirements, setting and managing customer expectations, providing guidance to Associate Consultants, identifying risks and communicating issues to the Project Manager.
+
+ 
+
+What you’ll get to do
+
+Document and validate customer’s business requirements 
+Configure Dayforce  application to meet customer’s documented requirements 
+Conduct consulting sessions and document with meeting minutes 
+Attend project meetings and provide status on progress of activities and deliverables 
+Provide customers with consulting and general assistance in areas of expertise 
+Develop SQL database scripts and XML transformers for integrations and interfaces 
+Be a “go-to” resource for specific functional areas for internal and external users 
+Work with customers to implement Dayforce  Organizational Readiness best practices 
+ 
+
+Skills and experience we value
+
+Bachelor’s degree or equivalent experience
+Master’s degree or post graduate coursework
+3-5 years’ of end-to-end Benefits implementation consulting experience with an HCM software provider 
+Expertise in complex integration solutions
+Technical documentation skills
+Creation of UAT and Parallel test plans
+Experience in business process mapping and organization readiness
+HCM life cycle expertise, including operations and business practices and technology enablement
+Superior customer support experience
+ 
+
+What would make you really stand out
+
+Prior consultative experience with both Benefits and HCM software
+Knowledge of SQL scripts and XML transformers
+Prior consultative or functional experience with Dayforce HCM

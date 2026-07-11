@@ -1,0 +1,77 @@
+Company: Circana
+
+
+Job Title: Business Insights and Technology Consultant
+
+
+
+Circana is a leading provider of technology, AI, and data solutions for consumer packaged goods companies, manufacturers, and retailers. Our predictive analytics and Liquid Data® platform help clients measure market share, uncover consumer behavior, and drive growth—powered by six decades of expertise and an expansive, high-quality data set.
+
+At Circana, we are fueled by our passion for continuous learning and growth, we seek and share feedback freely, and we celebrate victories both big and small in an environment that is flexible and accommodating to our work and personal lives.  We’re a global company dedicated to fostering inclusivity and belonging. We value and celebrate the unique experiences, cultures, and viewpoints that each individual brings. By embracing a wide range of backgrounds, skills, expertise, and beyond, we create a stronger, more innovative environment for our employees, clients, and communities. With us, you can always bring your full self to work.  Join our inclusive, committed team to be a challenger, own outcomes, and stay curious together. Circana is proud to be Certified™ by Great Place To Work®. This prestigious award is based entirely on what current employees say about their experience working at Circana. Learn more at www.circana.com.
+
+Role Overview
+
+Join our Global Professional Services team as a Business Insights and Technology Senior Analyst/ Consultant, where you will be instrumental in bridging the gap between client needs, business objectives, and cutting-edge technology solutions, particularly supporting our new Private Cloud clients.
+
+This role is for more than just a service provider; we are seeking a consultant-minded go-getter who is client-obsessed, a liquid thinker who thrives at pace, and is bold and brave in challenging the status quo. We are a team that values being part of a successful business and building partnerships based on trust, deep knowledge, respect, and unwavering support.
+
+We are passionate about technology and AI and how it can be leveraged to solve our clients' most pressing business challenges. You will be a key player in understanding our clients' world, becoming their trusted partner, and proactively identifying opportunities for innovation and efficiency. Curiosity, accountability, and a positive, questioning mindset are at the core of our team's DNA – we don't just aim to meet expectations, we strive to exceed them.
+
+You will work collaboratively with global Circana teams, acting as the vital link to ensure seamless, unified support and strategic technological partnership for our clients.
+
+Job Responsibilities
+
+As a Business Insights and Technology Consultant, your days will be dynamic and focused on driving value through technology and insight:
+
+Take ownership of client technology deliverables, ensuring timely execution and immaculate quality that aligns with technical specifications derived from client needs.
+Act as the primary liaison, translating complex client requirements and business challenges into clear, concise technology specifications for both new development and the optimization of existing solutions.
+Proactively question everything to deeply understand the client's operational processes and how their Liquid Data solution, alongside other technologies (including exploring the potential of AI), can be leveraged for maximum efficiency and impact.
+Consult with clients to identify business needs and opportunities for technological advancement, building strong relationships and partnerships based on your ability to understand their world and propose innovative solutions.
+Collaborate closely with internal technology and product teams, acting as the client's advocate to ensure technical solutions directly address articulated and underlying needs.
+Support the implementation of technology solutions by building strong relationships with key client stakeholders, guiding them through technical capabilities and possibilities.
+Identify opportunities to increase technology adoption and enhance client satisfaction by ensuring solutions are intuitive, effective, and aligned with their evolving needs.
+Support clients in the design and development of reports, dashboards, and visualizations, translating their information requirements into technical design specifications.
+Stay current with advancements in technology and AI, identifying how these can be applied to address customer needs and improve our service delivery.
+Maintain diligent record-keeping, including detailed documentation of client requirements, technical specifications, and delivery trackers.
+Actively participate in client and internal meetings with a positive, inquisitive attitude, ready to ask the right questions and challenge assumptions to ensure the best outcomes.
+Know when to seek assistance and be comfortable asking clarifying questions – there are no "stupid" questions when it comes to ensuring client success and technical accuracy.
+Requirements
+
+Our goal is to drive the adoption of the Circana Liquid Data platform among the client users for their business insights and reporting needs. You will develop reports and dashboards on the platform that provide insights to support the client that enable them to make data-driven decisions. This team is constantly using new technologies and methodologies to provide the best analytics for our clients. Your skill and acumen in analytics/BI tools and APIs will make you a valued resource with our clients and your attention to detail and project management will make you a valued resource for the Technology organization. If you have strong communication skills, are comfortable dealing with ambiguity and a variety of data sets, are a team-player, self-motivated, and an innovative thinker, we would love to hear from you!
+We are seeking an individual who embodies the following characteristics:
+
+An authentic optimist with a genuine passion for solving problems and driving progress.
+Intensely curious – you love to understand the 'why' and 'how' behind things, especially when it comes to technology and client challenges.
+Highly accountable for your actions, your deliverables, and the success of your clients.
+Comfortable and adept at building strong, professional relationships with both external clients and internal technical and business teams.
+Deeply committed to giving your best for your team and ensuring our technology solutions exceed client expectations.
+Confident in making informed decisions, weighing options and considering the technical and business implications.
+Highly organized, with meticulous attention to detail in managing documentation, communication, and time.
+Passionate about technology, AI, and their application in solving real-world business problems.
+Previous experience translating client requirements into technical specifications (highly regarded).
+Previous experience building relationships with clients (beneficial).
+Experience with Unify and a strong working knowledge of Excel and Outlook are beneficial.
+Requirements
+
+Bachelors degree in Business, Economics, Data Analytics, Data Science or other quantitative disciplines.
+5+ years of experience in business analytics and reporting within CPG or General Merchandising.
+Data visualization experience with BI tools such as PowerBI, Tableau, or Domo is a plus.
+Strong experience with RESTful APIs, cloud data platforms (e.g., Snowflake, Azure), and BI tool integrations.
+Ability to glean business insights and make recommendations based on evaluation of complex data sets.
+Solid understanding of data modeling, ETL/ELT processes, and cloud data warehousing concepts.
+Demonstrated ability to successfully manage/support complex client deliverables. Knowledge of Jira is a plus.
+Executive presence and proven ability to consult with Senior level clients to influence thinking and drive Circana's business agenda.
+Strong problem-solving skills, comfort with shifting priorities and ability to manage projects with high attention to detail.
+Excellent organizational skills and written/verbal communication skills.
+Ability and willingness to recognize and respond to client needs from a service perspective.
+Circana Behaviors
+
+Beyond technical skills, experience, and role-specific attributes, these shared behaviors are fundamental to our culture and success. We seek individuals who consistently demonstrate and champion these behaviors in their daily work:
+
+Stay Curious: Being hungry to learn and grow, always asking the big questions.
+Seek Clarity: Embracing complexity to create clarity and inspire action.
+Own the Outcome: Being accountable for decisions and taking ownership of our choices.
+Center on the Client: Relentlessly adding value for our customers.
+Be a Challenger: Never complacent, always striving for continuous improvement.
+Champion Inclusivity: Fostering trust in relationships engaging with empathy, respect, and integrity.
+Commit to each other: Contributing to making Circana a great place to work for everyone.

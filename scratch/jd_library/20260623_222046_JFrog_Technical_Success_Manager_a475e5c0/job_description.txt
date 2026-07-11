@@ -1,0 +1,42 @@
+Company: JFrog
+
+
+Job Title: Technical Success Manager
+
+
+
+At JFrog, we’re reinventing DevOps to help the world’s greatest companies innovate -- and we want you along for the ride. This is a special place with a unique combination of brilliance, spirit and just all-around great people. Here, if you’re willing to do more, your career can take off. And since software plays a central role in everyone’s lives, you’ll be part of an important mission. Thousands of customers, including the majority of the Fortune 100, trust JFrog to manage, accelerate, and secure their software delivery from code to production -- a concept we call “liquid software.” Wouldn't it be amazing if you could join us in our journey?
+
+We are seeking a talented and experienced Technical Success Manager for the Americas Customer Success team onsite in our Atlanta office. In this role, you will oversee the activities which include helping our customers adopt our multiple products and being the customer voice for internal teams which will include Support teams globally, Product managers, R&D teams, Sales, and Marketing.
+
+As a Technical Success Manager in JFrog, you will...
+Own the customer journey driving customer happiness and helping the customer adopt and establish value in the JFrog products and platform
+Work with the internal teams like Sales, Product, Solution Engineering, Training, and external customer stakeholders to formulate/maintain a Success Plan outlining how JFrog addresses their immediate and future needs (with success metrics)
+Well-versed in using case management systems and CRMs (e.g., SFDC / JIRA) and strong analytical and organizational skills, with the ability to understand and review the financial return or ROI on the customer’s investment
+Maintain a deep understanding of our product and roadmap, so you can guide customers to success and help drive up the customer Adoption Score
+Establish and manage communication channels within and among departments. Act as the liaison to provide customer feedback to the Senior Management Team
+Schedule, prepare, and deliver Business Reviews for customers, with the top priority of proving ROI that leads to renewals, expansion, and adoption
+Own and drive customer adoption and usage for the JFrog customers and help Increase customer adoption of key platform features and best practices to maximize ROI, ensuring the basis for retention, satisfaction, and growth
+Understand the customer’s industry trends, business challenges with the JFrog platform, and current and potential use cases for JFrog customers and develop and nurture JFrog champions within your customer’s organization who advocate for the platform based on their positive experience
+Engage customers’ senior decision makers to understand their evolving strategy and shaping Success Planning informed by these goals, serve as the ‘voice of the customer’, and provide internal feedback on how we can better serve them to maximize customer value and retention
+Partner with the JFrog Account Team (Account Executives, Sales Engineers, Support Engineers, etc.) to ensure that customers renew and expand usage and monitor customer user trends and health to recommend to internal teams risk mitigation actions (Product, Support, Services, etc.)
+Act as a technical advisor for the customer and assist with architecture designing and best practices for strategic customers
+Train the open-source community and JFrog customers
+Keep current with the latest technology trends related to building engineering and the landscape of CI/CD Technology
+Create effective communication channels with key customers
+Be the single source of truth when it comes to customers you are managing
+To be a Technical Success Manager in JFrog you need...
+Customer-facing experience - including crisis management, priority management inbound, and outbound
+BS or equivalent in Computer Science or Computer Engineering plus 4+ years of experience as a Customer Success Manager or Technical Account Manager for an Enterprise software company
+Experience with supporting products with impact on business/productivity
+Experience with supporting international enterprise customers
+Excellent analytical and problem-solving skills
+Customer orientation and excellent interpersonal skills
+Excellent English verbal and written communication skills
+To work weekends and holidays (on occasion)
+2+ years of experience with Java or another programming language (RubyPython/ Groovy/ GO – a plus)
+Deep understanding of working with dockerized applications (K8s - a plus) 
+Experience with Continuous Deployment and Delivery tools: Chef, Puppet, Ansible -> a plus
+Experience with Software Architecture design and product development -> a plus
+Experience with Continuous Integration tools: CI Server, VCS, Artifactory, Jenkins, Ant, Hudson, Maven, Chef, Docker, Gradle, NPM -> a big plus
+An uncompromising desire to learn

@@ -1,0 +1,15 @@
+{
+  "snapshot_id": "20260625_220116_ArcherPoint_ERP_Project_Manager_bbf9090d",
+  "created_at": "2026-06-25T22:01:16",
+  "company": "ArcherPoint",
+  "role": "ERP Project Manager",
+  "workflow_type": "commercial",
+  "source_command": "resume",
+  "archive_reason": "command_auto_archive",
+  "lane": "implementation_delivery",
+  "questions_present": true,
+  "question_count": 18,
+  "relative_path": "20260625_220116_ArcherPoint_ERP_Project_Manager_bbf9090d",
+  "job_description_sha256": "fdfd47804759adaf92010c4cbd05a833237bb86481796cfe18f08c61b2c927d4",
+  "application_questions_sha256": "f27116e0aee426f163a3ecb9f11c240cb32eb6804faeac9a6186877ffd69a475"
+}

@@ -1,0 +1,15 @@
+{
+  "snapshot_id": "20260626_000806_Clorox_Senior_Analyst_Global_External_Manufacturing_f7d2b64b",
+  "created_at": "2026-06-26T00:08:06",
+  "company": "Clorox",
+  "role": "Senior Analyst, Global External Manufacturing",
+  "workflow_type": "commercial",
+  "source_command": "resume",
+  "archive_reason": "command_auto_archive",
+  "lane": "analytics_operations",
+  "questions_present": true,
+  "question_count": 18,
+  "relative_path": "20260626_000806_Clorox_Senior_Analyst_Global_External_Manufacturing_f7d2b64b",
+  "job_description_sha256": "07200800cd038baf0616367f197ac96bac50208e1f9a76b49ca1b77c2cd98354",
+  "application_questions_sha256": "f27116e0aee426f163a3ecb9f11c240cb32eb6804faeac9a6186877ffd69a475"
+}

@@ -1,0 +1,6 @@
+Company: Beacon Insights
+Job Title: Analytics Operations Analyst
+Beacon Insights supports operating teams with analytics, reporting, and workflow visibility.
+The role focuses on analytics, data analysis, dashboards, KPI reporting, forecast
+quality, operational efficiency, process improvement, business intelligence, workflow
+measurement, performance reporting, and decision support.

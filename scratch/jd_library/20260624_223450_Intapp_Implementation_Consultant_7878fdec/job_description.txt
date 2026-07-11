@@ -1,0 +1,69 @@
+Company: Intapp
+
+
+Job Title: Senior Technical Consultant
+
+
+
+
+
+UK or East Coast US
+
+The Senior Technical Consultant is responsible for implementing solutions using Intapp’s Collaboration software and developing and delivering technical training to customers. The role is a mix of client-facing consultative work and behind the scenes solution design, configuration, data analysis, and data manipulation. It involves a diverse set of responsibilities in an agile and deadline-driven environment. The individual in this role will leverage his/her analytical skills and relevant technical knowledge to engage with customers and Intappers to deliver an excellent and consistent level of client service. The role is based in Belfast and may involve limited travel. The Implementation Consultant should demonstrate passion in and a desire to become skilled in four broad areas: 
+
+Technology The Senior Technical Consultant will be working with Intapp’s Collaboration platform software within the customer’s M365 environment. Super-user or administrator level experience with MS SharePoint and MS Teams is a must as is a strong interest in using technology to create value for our clients. 
+
+Client facing skills A significant number of day-to-day responsibilities involve communicating with clients in writing and in face-to-face online meetings. Strong written and verbal communication skills are required for success. 
+
+Professional Services and Legal Software delivery experience in one of public sector, legal / professional/financial services.  
+
+System Integration Integration with our customers’ line of business systems and understanding the relationship between data and business requirements is an important element of delivery 
+
+What you will do:
+
+Working as part of a small team to implement and configure Intapp’s Collaboration platform software in the customer’s M365 environment. Projects typically include integrations with the customer’s line of business applications using existing integration tools 
+
+Conducting meetings to gather/refine and then document business requirements 
+
+Configuring software and confirming expected functionality 
+
+Demonstrating configured software to solicit customer’s feedback/refinement 
+
+Working with the customer’s IT team to coordinate M365 tasks (e.g., AD group creation, data integration activities, etc.) 
+
+Working with the customer’s project team to facilitate UAT and training activities 
+
+Working with the Intapp project manager to communicate and manage issues and ensure that the project is delivered on time and within the budget 
+
+What you will need:
+
+Ten years’ plus experience working in a technical capacity with five years’ experience in a software consultant or technical analyst role 
+
+Strong time management, prioritisation, and communication skills, particularly the ability to effectively prioritize and execute tasks for multiple, concurrent client projects  
+
+Experience administering SharePoint and implementing SharePoint based solutions, in a client facing capacity or working for a third party/consultancy  
+
+Experience implementing Microsoft 365 Teams and Outlook 
+
+Working knowledge of Azure and M365 admin center 
+
+Some automation coding experience in Microsoft technologies such as PowerShell or Power Automate. 
+
+Ability to work effectively as part of a team with shared objectives and on own initiative 
+
+Advanced administration skills, in particular using MS Word, Excel, and PowerPoint 
+
+Experience deploying client-side software desired 
+
+Experience in Power BI and Power Automate desired 
+
+What you will gain at Intapp:
+
+At Intapp, you’ll get the opportunity to bring your talents and intellectual curiosity to create better outcomes for our people and our clients. You’ll be part of a growing public company, with a modern work environment that’s connected yet flexible and where your professional growth and well-being are top priorities.  We’ll collaborate and grow together, supporting each other in a positive, open atmosphere that fosters creativity, innovation, and teamwork.
+
+Here, you will have the opportunity to:
+
+Expand Your Skills: Unlock your potential with professional development opportunities supported by a community of experienced professionals. We offer reimbursement for training and continuing education to help you stay ahead in your career.
+Enjoy Where You Work: Thrive in our modern, open offices designed to inspire creativity and collaboration. Our complimentary lunches and fully stocked kitchens ensure you have everything you need to stay energized throughout the day.
+Support What Matters Most: Our comprehensive wellness and flexible time off programs and our benefits are designed to care for you and your family.  Our family-formation benefits and support during your family-building journey ensure you have the resources you need when it matters most. We believe in giving back and supporting our communities with paid volunteer time off and a donation matching program for the causes you care about.
+Join us and be a part of a collaborative and welcoming culture where your contributions are valued, and your professional growth is a priority. Together, we are building a company of long-term value that we can all be proud of.

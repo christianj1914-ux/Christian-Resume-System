@@ -1,0 +1,15 @@
+{
+  "snapshot_id": "20260623_222057_Guidehouse_Requirements_Documentation_Analyst_cab82958",
+  "created_at": "2026-06-23T22:20:57",
+  "company": "Guidehouse",
+  "role": "Requirements Documentation Analyst",
+  "workflow_type": "commercial",
+  "source_command": "trace_backfill",
+  "archive_reason": "trace_backfill",
+  "lane": "implementation_delivery",
+  "questions_present": false,
+  "question_count": 0,
+  "relative_path": "20260623_222057_Guidehouse_Requirements_Documentation_Analyst_cab82958",
+  "job_description_sha256": "facb748a67bdba54648ceabd54042d77996af276f9c9861eefdaef6708218e13",
+  "application_questions_sha256": ""
+}

@@ -1,0 +1,15 @@
+{
+  "snapshot_id": "20260623_222044_Pearl_Customer_Success_Operations_cab42102",
+  "created_at": "2026-06-23T22:20:44",
+  "company": "Pearl",
+  "role": "Customer Success Operations",
+  "workflow_type": "commercial",
+  "source_command": "trace_backfill",
+  "archive_reason": "trace_backfill",
+  "lane": "customer_success",
+  "questions_present": false,
+  "question_count": 0,
+  "relative_path": "20260623_222044_Pearl_Customer_Success_Operations_cab42102",
+  "job_description_sha256": "4c7ed8279c02c392b49f4c0ca738a71332a5a6c9b16c9eab4bef6d771d1a9a80",
+  "application_questions_sha256": ""
+}

@@ -1,0 +1,15 @@
+{
+  "snapshot_id": "20260623_222050_Pearson_Lead_Specialist_Measurement_23758530",
+  "created_at": "2026-06-23T22:20:50",
+  "company": "Pearson",
+  "role": "Lead Specialist, Measurement",
+  "workflow_type": "commercial",
+  "source_command": "trace_backfill",
+  "archive_reason": "trace_backfill",
+  "lane": "implementation_delivery",
+  "questions_present": false,
+  "question_count": 0,
+  "relative_path": "20260623_222050_Pearson_Lead_Specialist_Measurement_23758530",
+  "job_description_sha256": "34b301da2311eccb9256ce53523ae3176e000f516f14f11551ec12d374f12c0d",
+  "application_questions_sha256": ""
+}

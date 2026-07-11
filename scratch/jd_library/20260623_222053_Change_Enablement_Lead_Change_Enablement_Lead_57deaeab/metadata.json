@@ -1,0 +1,15 @@
+{
+  "snapshot_id": "20260623_222053_Change_Enablement_Lead_Change_Enablement_Lead_57deaeab",
+  "created_at": "2026-06-23T22:20:53",
+  "company": "Change Enablement Lead",
+  "role": "Change Enablement Lead",
+  "workflow_type": "commercial",
+  "source_command": "trace_backfill",
+  "archive_reason": "trace_backfill",
+  "lane": "change_enablement",
+  "questions_present": false,
+  "question_count": 0,
+  "relative_path": "20260623_222053_Change_Enablement_Lead_Change_Enablement_Lead_57deaeab",
+  "job_description_sha256": "619c2b1ea769d049f547b9724057c873ab9b5ee1ad4e784808c502b94b6ee88d",
+  "application_questions_sha256": ""
+}

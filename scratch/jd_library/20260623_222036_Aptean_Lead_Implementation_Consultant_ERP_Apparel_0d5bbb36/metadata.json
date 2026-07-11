@@ -1,0 +1,15 @@
+{
+  "snapshot_id": "20260623_222036_Aptean_Lead_Implementation_Consultant_ERP_Apparel_0d5bbb36",
+  "created_at": "2026-06-23T22:20:36",
+  "company": "Aptean",
+  "role": "Lead Implementation Consultant, ERP (Apparel)",
+  "workflow_type": "commercial",
+  "source_command": "legacy_import",
+  "archive_reason": "legacy_named_job_file",
+  "lane": "implementation_delivery",
+  "questions_present": false,
+  "question_count": 0,
+  "relative_path": "20260623_222036_Aptean_Lead_Implementation_Consultant_ERP_Apparel_0d5bbb36",
+  "job_description_sha256": "5261d8ee88d013c7b43b4f47ff4be9e375d68664a9feeb483df7107fc5a7112c",
+  "application_questions_sha256": ""
+}

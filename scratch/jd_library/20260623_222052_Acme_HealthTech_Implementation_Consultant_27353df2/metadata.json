@@ -1,0 +1,15 @@
+{
+  "snapshot_id": "20260623_222052_Acme_HealthTech_Implementation_Consultant_27353df2",
+  "created_at": "2026-06-23T22:20:52",
+  "company": "Acme HealthTech",
+  "role": "Implementation Consultant",
+  "workflow_type": "commercial",
+  "source_command": "trace_backfill",
+  "archive_reason": "trace_backfill",
+  "lane": "implementation_delivery",
+  "questions_present": false,
+  "question_count": 0,
+  "relative_path": "20260623_222052_Acme_HealthTech_Implementation_Consultant_27353df2",
+  "job_description_sha256": "32372386166d809e04f0364425949c3a7d1ed4496ad45333f663967d65123264",
+  "application_questions_sha256": ""
+}

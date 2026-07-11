@@ -1,0 +1,3 @@
+Company: Acme HealthTech
+Role: Implementation Consultant
+Acme HealthTech is hiring an Implementation Consultant to lead customer onboarding, requirements gathering, workflow configuration, data migration validation, UAT, training, go-live readiness, stakeholder communication, and post-launch adoption. The role works with healthcare operations leaders, product teams, and customer success partners to reduce implementation risk and improve reporting quality.

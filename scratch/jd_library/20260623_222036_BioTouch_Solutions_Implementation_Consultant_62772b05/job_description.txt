@@ -1,0 +1,69 @@
+Company: BioTouch
+
+
+Job Title: Solutions Implementation Consultant
+
+
+
+
+Summary: 
+
+The Solutions Implementation Consultant serves as a strategic partner to clients, guiding them through the implementation, configuration, and adoption of BioTouch’s proprietary cloud-based platform. This role is ideal for technically minded, customer-focused professionals who combine software expertise with strong consultative project delivery skills.
+
+
+
+The Solutions Implementation Consultant manages multiple client implementations, supports key customer relationships, and collaborates cross-functionally to deliver successful outcomes while helping shape future product enhancements. This individual is expected to serve as a trusted advisor to clients throughout the implementation lifecycle while driving a high standard of customer experience, communication, and operational execution.
+
+
+
+Essential Duties and Responsibilities
+
+Client Implementation & Project Delivery
+
+Own day-to-day execution of 5–10 implementation projects under the guidance of the Technical Implementation Manager.
+Conduct discovery sessions to understand client needs and align solutions with operational and business objectives.
+Configure and implement software solutions, guiding clients through database setup, data migration, and system integration activities.
+Manage implementation timelines, documentation, issue tracking, testing coordination, and stakeholder communication throughout the project lifecycle.
+Perform validation and testing of new features and integrations, proactively communicating updates and changes to internal and external stakeholders.
+
+
+Customer Relationship Management
+
+Support and maintain relationships with 20–30 active customer accounts, helping clients optimize platform usage and adoption.
+Build lasting partnerships with clients through clear communication, responsiveness, trust, and a focus on long-term success.
+Provide technical product training, both remote and onsite, tailored to customer workflows and operational needs.
+Support customer issue resolution efforts in partnership with internal Engineering, QA, Product, and Support teams.
+
+
+Technical Configuration & System Support
+
+Support integrations with external systems through APIs, automated file transfers, and other connectivity methods.
+Assist with troubleshooting, technical analysis, and issue resolution in a client-facing environment.
+Utilize tools and platforms such as Jira, Azure DevOps, SQL Server, Microsoft Excel, and integration technologies to support implementation activities.
+Maintain accurate implementation documentation and contribute to process standardization and continuous improvement initiatives.
+
+
+Cross-Functional Collaboration & Product Support
+
+Collaborate closely with Product, Engineering, QA, and Customer Support teams to deliver successful customer outcomes.
+Share customer feedback, workflow insights, and usability recommendations to help influence future product enhancements and development priorities.
+Contribute to internal process improvement initiatives that enhance implementation quality, scalability, and customer experience.
+
+
+Requirements:
+
+Bachelor’s degree in Computer Science, Management Information Systems, or a related technical or business field; equivalent practical experience may also be considered.
+3–5 years of experience in software implementation, technical consulting, solutions delivery, or a similar customer-facing role within a SaaS or cloud-based environment.
+Demonstrated experience managing technical implementation projects from discovery through go-live, including planning, scheduling, documentation, issue tracking, and stakeholder communication.
+Strong verbal and written communication skills, with the ability to engage effectively with technical users, operational stakeholders, and leadership teams.
+Experience leading discovery sessions, gathering requirements, and translating business needs into configured software solutions.
+Working knowledge of integrations, data migration, and technical troubleshooting in a client-facing environment.
+Ability to manage multiple concurrent projects and balance short-term client needs with long-term implementation goals.
+
+
+Preferred Qualifications:
+
+Experience delivering software implementations in healthcare, logistics, or other compliance-driven industries.
+Familiarity with REST APIs, SQL, JSON, XML, EDI workflows, or middleware/integration platforms such as Boomi.
+Experience working with Microsoft Azure environments, Azure DevOps, Jira, or SQL Server.
+Relevant certifications such as PMP, Azure Fundamentals, Boomi, or similar project management or technical credentials preferred.

@@ -1,0 +1,15 @@
+{
+  "snapshot_id": "20260628_232818_State_Farm_Technical_Administrator_0320a88c",
+  "created_at": "2026-06-28T23:28:18",
+  "company": "State Farm",
+  "role": "Technical Administrator",
+  "workflow_type": "commercial",
+  "source_command": "resume",
+  "archive_reason": "command_auto_archive",
+  "lane": "implementation_delivery",
+  "questions_present": true,
+  "question_count": 18,
+  "relative_path": "20260628_232818_State_Farm_Technical_Administrator_0320a88c",
+  "job_description_sha256": "709cb3bb93978b7884ba577d1457e725f269fde0c2003438e58ea51a1cca58bc",
+  "application_questions_sha256": "f27116e0aee426f163a3ecb9f11c240cb32eb6804faeac9a6186877ffd69a475"
+}

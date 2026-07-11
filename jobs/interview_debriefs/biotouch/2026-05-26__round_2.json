@@ -1,0 +1,117 @@
+{
+  "company_name": "BioTouch",
+  "role_title": "Solutions Implementation Consultant",
+  "interview_date": "05/26/2026",
+  "interview_date_iso": "2026-05-26",
+  "round_number": "2",
+  "outcome": "pending",
+  "raw_notes": "BioTouch Round 2 included follow-up questions about Excel comfort, training others, and technical projects. Interviewer language emphasized consulting and curiosity to learn. Christian heard that the team is early in the interview process and may follow up in 1 to 2 weeks if he advances to the last round.\n\nCompany intelligence:\nThe role would support Spectra Path. Internal work uses Jira and Azure to track tickets and document issues.\n\nPreparation consequences:\nPrepare a concise Excel comfort answer tied to reporting, data validation, and 200+ dashboards.\nPrepare a training answer tied to 60+ workshops, QBRs, role-based enablement, and customer adoption.\nPrepare a technical projects answer tied to implementations, data migration, SQL validation, integrations, issue tracking, Jira-style ownership, and Azure/cloud-adjacent collaboration.\nPrepare one compliance-aware bridge answer for HIPAA/PHI signals: do not overclaim direct HIPAA ownership; emphasize documentation discipline, workflow clarity, validation, access awareness, and escalation when regulated data is involved.",
+  "story_followups": [
+    "How comfortable are you with Excel? Tell me about a time you dealt with training others? Tell me about your technical projects?"
+  ],
+  "unexpected_questions": [],
+  "role_language": [
+    "Consulting, curious to learn",
+    "Consulting, curious"
+  ],
+  "feedback_received": [
+    "Said that I may hear back in one to 2 weeks as it is early on in the interview process, so it seems that I did not do well",
+    "Interviewer said they are early on in the process, and will follow-up in 1 to 2 weeks if I made it to last round. Did not seem promising."
+  ],
+  "company_intelligence": [
+    "We would be supporting Spectra Path, internally using Jira and Azure to track tickets and document issues",
+    "We would support Spectra Path"
+  ],
+  "performance_review": {
+    "summary": "None supplied.",
+    "strongest_answers": [],
+    "weakest_answers": [],
+    "next_round_risks": [],
+    "coaching_signals": []
+  },
+  "review_analysis": {
+    "parser_version": "2026-06-25-compact-v1",
+    "decision_signal": {
+      "headline": "None supplied.",
+      "translation": []
+    },
+    "positioning_diagnosis": {
+      "headline": "None supplied.",
+      "reasons": [],
+      "good_news": [],
+      "hard_truth": "Sharper structure and cleaner proof would still improve the next round."
+    },
+    "language_rewrites": {
+      "ownership_ladder": [
+        "owned",
+        "led",
+        "was responsible for",
+        "coordinated",
+        "supported"
+      ],
+      "avoid": [
+        "We worked on",
+        "I helped with",
+        "I was involved in",
+        "sort of",
+        "pretty much",
+        "things of that nature"
+      ],
+      "prefer": [
+        "I owned",
+        "I led",
+        "I was responsible for",
+        "I coordinated",
+        "I guided users through rollout"
+      ],
+      "consultative_phrases": [
+        "I aligned stakeholders",
+        "I clarified requirements",
+        "I reduced scope ambiguity",
+        "I translated business needs into implementation steps",
+        "I managed expectations",
+        "I guided users through rollout"
+      ]
+    },
+    "answer_strategy": {
+      "default_structure": [
+        "Problem",
+        "Your role",
+        "Action",
+        "Result"
+      ],
+      "delivery_shifts": [
+        "Lead with the answer in sentence one.",
+        "Use one direct example before adding background.",
+        "Name your role explicitly instead of leaving ownership implied.",
+        "Close on business value, adoption, decision quality, or risk reduction."
+      ]
+    },
+    "answer_assets": {
+      "best_takeaway_statement": "None supplied.",
+      "interviewer_questions": [],
+      "role_language_lines": [
+        "Consulting, curious to learn",
+        "Consulting, curious"
+      ],
+      "company_signal_lines": [
+        "We would be supporting Spectra Path, internally using Jira and Azure to track tickets and document issues",
+        "We would support Spectra Path"
+      ]
+    },
+    "career_targeting": {
+      "fit_read": "For Solutions Implementation Consultant, the best positioning is implementation ownership plus consultative stakeholder guidance without overstating authority.",
+      "next_steps": [
+        "Rewrite core stories so sentence one states the answer and the ownership line.",
+        "Make consultative behavior explicit: stakeholder alignment, requirements clarification, scope control, expectation management, and rollout guidance.",
+        "Practice using the strongest truthful ownership verb the evidence supports."
+      ]
+    }
+  },
+  "imported_review_text": "",
+  "review_appendix_path": "",
+  "imported_artifacts": [],
+  "legacy_text": "",
+  "parser_version": "2026-06-25-compact-v1",
+  "captured_at": "2026-06-25 13:34:04"
+}

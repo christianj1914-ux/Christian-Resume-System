@@ -1,0 +1,15 @@
+{
+  "snapshot_id": "20260623_222042_Blackboard_Technical_Strategist_730f51ad",
+  "created_at": "2026-06-23T22:20:42",
+  "company": "Blackboard",
+  "role": "Technical Strategist",
+  "workflow_type": "commercial",
+  "source_command": "trace_backfill",
+  "archive_reason": "trace_backfill",
+  "lane": "corporate_strategy",
+  "questions_present": false,
+  "question_count": 0,
+  "relative_path": "20260623_222042_Blackboard_Technical_Strategist_730f51ad",
+  "job_description_sha256": "f9a3aac12f88de29024e349609ab0beb539cfa21bf2834a95f8892f53fb4a149",
+  "application_questions_sha256": ""
+}

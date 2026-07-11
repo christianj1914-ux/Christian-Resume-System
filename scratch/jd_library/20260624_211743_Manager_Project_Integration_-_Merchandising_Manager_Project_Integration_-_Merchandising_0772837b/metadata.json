@@ -1,0 +1,15 @@
+{
+  "snapshot_id": "20260624_211743_Manager_Project_Integration_-_Merchandising_Manager_Project_Integration_-_Merchandising_0772837b",
+  "created_at": "2026-06-24T21:17:43",
+  "company": "Manager Project Integration - Merchandising",
+  "role": "Manager Project Integration - Merchandising",
+  "workflow_type": "commercial",
+  "source_command": "resume",
+  "archive_reason": "command_auto_archive",
+  "lane": "implementation_delivery",
+  "questions_present": true,
+  "question_count": 15,
+  "relative_path": "20260624_211743_Manager_Project_Integration_-_Merchandising_Manager_Project_Integration_-_Merchandising_0772837b",
+  "job_description_sha256": "961b1cd14c2037cda09a6ad1f00438732cc9326b93b27afa30bba78f3a0c888c",
+  "application_questions_sha256": "428601e4ac23a08ea4a15e17f91a1ad9d0169a3787d902c4b653104b0bf9a328"
+}

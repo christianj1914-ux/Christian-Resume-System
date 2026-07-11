@@ -1,0 +1,15 @@
+{
+  "snapshot_id": "20260626_230909_Braven_Associate_Director_Project_Management_249b1871",
+  "created_at": "2026-06-26T23:09:09",
+  "company": "Braven",
+  "role": "Associate Director, Project Management",
+  "workflow_type": "commercial",
+  "source_command": "resume",
+  "archive_reason": "command_auto_archive",
+  "lane": "implementation_delivery",
+  "questions_present": true,
+  "question_count": 18,
+  "relative_path": "20260626_230909_Braven_Associate_Director_Project_Management_249b1871",
+  "job_description_sha256": "597d9170037cd03aebc41345e7fd2ac591faca9a308e39679bb4893745c503ca",
+  "application_questions_sha256": "f27116e0aee426f163a3ecb9f11c240cb32eb6804faeac9a6186877ffd69a475"
+}

@@ -1,0 +1,75 @@
+Company: CSC Corptax
+
+
+Job Title: Senior Software Product Consultant
+
+
+ CSC Corptax is looking for a rising tax technology professional to join our Professional Services Consulting team. We are looking for people that can think and operate like engineers, that will thrive in the transition from traditional implementation consulting into an environment of automation and evolving technology. In this role, you will develop measurable client outcomes today while adopting new technology of the future. A tax technologist with a builder mindset, someone who uses data, automation, and AI to redesign workflows not just execute tasks. 
+
+You’ll partner with sophisticated tax organizations (including international tax environments) to implement Corptax solutions, improve data foundations, and drive repeatable, scalable ways of working. You will also surface patterns and product insights from the field to help shape how our solutions and delivery model evolve. 
+
+ 
+
+What success looks like:
+
+Clients don’t just go live with our implementations, they achieve measurable improvements (cycle time, reliability, standardization, and data quality). 
+Solutions are designed to be repeatable and scalable, avoiding one-off custom approaches where possible. 
+You consistently bring a technologist/product lens: systems thinking, root-cause analysis, and thoughtful tradeoffs. 
+You use automation and AI as core tools, responsibly and with appropriate controls, to accelerate analysis and reduce manual work. 
+You capture recurring patterns and feed them back into product and delivery playbooks to improve the platform and the model. 
+ 
+
+What you will be doing: 
+
+ 
+
+Deliver client outcomes (implementation + value realization) 
+
+Lead implementations of Corptax US Compliance and Provision solutions, including federal, state, and international scope. 
+Translate tax business processes into scalable configurations, data models, and workflow designs. 
+Own execution against project plans: scope, dependencies, risks, milestones, and client communications. 
+ 
+
+Data, automation, and AI-driven workflow improvement 
+
+Work deeply with data (mapping, transformations, validation, controls) to improve quality and reliability. 
+Continuously look for opportunities to standardize, automate, and remove manual effort across the workflow. 
+Apply emerging AI capabilities to accelerate analysis, documentation, and decision support—while maintaining governance and auditability expectations. 
+ 
+
+Product/technologist mindset and feedback loop 
+
+Identify recurring client patterns, friction points, and gaps; convert them into clear product and delivery insights. 
+Contribute to scalable delivery assets: templates, standard configurations, and implementation accelerators. 
+Partner cross-functionally (Product, Engineering, Services leadership) to improve outcomes and reduce variability. 
+ 
+
+Client partnership and communication 
+
+Lead working sessions, publish meeting notes, maintain action tracking, and manage stakeholder expectations. 
+Communicate proactively about time, scope, tradeoffs, and progress to ensure on-time/on-budget delivery. 
+Support clients during critical reporting cycles with calm, structured execution. 
+ 
+
+What technical skills, experience, and qualifications are necessary?  
+
+Bachelor’s degree in accounting, business, computer science, or related field (Master’s in Tax is a plus). 
+2–3 years of experience in tax, accounting, tax technology, or adjacent consulting roles. 
+Client-facing experience with strong written and verbal communication. 
+Experience with Corptax or similar tax software platforms. 
+Project execution skills (planning, tracking, documentation, and stakeholder management). 
+ 
+
+The capability signals we care about (non-negotiables) 
+
+International tax exposure or strong interest, with the ability to learn quickly. 
+Data fluency: comfortable discussing data structures, mappings, transformations, and quality controls. 
+Automation-first mindset: you default to simplifying and standardizing before adding complexity. 
+AI openness with practical judgment: you’re eager to use AI where it adds leverage, and you understand why controls, traceability, and governance matter. 
+Builder mentality: you enjoy turning ambiguity into a clear plan and a working solution. 
+ 
+
+Additional information:
+
+Flexible for domestic and potential international travel. 
+Remote role within the United States with access to major airport hub.

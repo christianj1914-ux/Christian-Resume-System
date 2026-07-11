@@ -1,0 +1,4 @@
+Role: Analytics Operations Analyst
+The role focuses on analytics, data analysis, dashboards, KPI reporting, forecast
+quality, operational efficiency, process improvement, business intelligence, workflow
+measurement, performance reporting, and decision support.

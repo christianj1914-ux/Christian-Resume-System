@@ -1,0 +1,15 @@
+{
+  "snapshot_id": "20260623_222037_Shopify_Solutions_Engineer_8b0f0c23",
+  "created_at": "2026-06-23T22:20:37",
+  "company": "Shopify",
+  "role": "Solutions Engineer",
+  "workflow_type": "commercial",
+  "source_command": "trace_backfill",
+  "archive_reason": "trace_backfill",
+  "lane": "presales_solution",
+  "questions_present": false,
+  "question_count": 0,
+  "relative_path": "20260623_222037_Shopify_Solutions_Engineer_8b0f0c23",
+  "job_description_sha256": "bfcf2f310d564b8c0f17725b23e9d8e00b60b02fd95f048b35d3e8cb105d47b0",
+  "application_questions_sha256": ""
+}

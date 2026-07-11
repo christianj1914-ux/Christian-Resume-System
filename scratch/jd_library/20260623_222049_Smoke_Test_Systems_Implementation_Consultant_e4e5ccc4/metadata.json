@@ -1,0 +1,15 @@
+{
+  "snapshot_id": "20260623_222049_Smoke_Test_Systems_Implementation_Consultant_e4e5ccc4",
+  "created_at": "2026-06-23T22:20:49",
+  "company": "Smoke Test Systems",
+  "role": "Implementation Consultant",
+  "workflow_type": "commercial",
+  "source_command": "trace_backfill",
+  "archive_reason": "trace_backfill",
+  "lane": "implementation_delivery",
+  "questions_present": false,
+  "question_count": 0,
+  "relative_path": "20260623_222049_Smoke_Test_Systems_Implementation_Consultant_e4e5ccc4",
+  "job_description_sha256": "d1a6e497f95415d58f1eba3b59acb2c934a4c21974f2ea68f84cb131f84d5801",
+  "application_questions_sha256": ""
+}

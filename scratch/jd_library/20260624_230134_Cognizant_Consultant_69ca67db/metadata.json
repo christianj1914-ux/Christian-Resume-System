@@ -1,0 +1,15 @@
+{
+  "snapshot_id": "20260624_230134_Cognizant_Consultant_69ca67db",
+  "created_at": "2026-06-24T23:01:34",
+  "company": "Cognizant",
+  "role": "Consultant",
+  "workflow_type": "commercial",
+  "source_command": "trace_backfill",
+  "archive_reason": "trace_backfill",
+  "lane": "implementation_delivery",
+  "questions_present": false,
+  "question_count": 0,
+  "relative_path": "20260624_230134_Cognizant_Consultant_69ca67db",
+  "job_description_sha256": "0fcf0d4cdd1410ab4664584f59b51bcf5a26d95b863749e638679804e1f938c7",
+  "application_questions_sha256": ""
+}

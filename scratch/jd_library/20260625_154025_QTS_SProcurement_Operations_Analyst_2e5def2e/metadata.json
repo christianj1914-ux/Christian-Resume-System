@@ -1,0 +1,15 @@
+{
+  "snapshot_id": "20260625_154025_QTS_SProcurement_Operations_Analyst_2e5def2e",
+  "created_at": "2026-06-25T15:40:25",
+  "company": "QTS",
+  "role": "SProcurement Operations Analyst",
+  "workflow_type": "commercial",
+  "source_command": "resume",
+  "archive_reason": "command_auto_archive",
+  "lane": "change_enablement",
+  "questions_present": true,
+  "question_count": 18,
+  "relative_path": "20260625_154025_QTS_SProcurement_Operations_Analyst_2e5def2e",
+  "job_description_sha256": "e631dc508933528a13b73bc1860082fae884385768ae4d4a65a179327f8cf396",
+  "application_questions_sha256": "f27116e0aee426f163a3ecb9f11c240cb32eb6804faeac9a6186877ffd69a475"
+}

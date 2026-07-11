@@ -1,0 +1,3 @@
+Company: Quality Systems
+Role: Senior Implementation Consultant
+This role leads implementation, workflow best practices, process improvement initiatives, quality control, setup accuracy, and go-live readiness across enterprise software clients. The consultant partners with customers, internal delivery teams, and leadership to improve adoption, reporting clarity, and service quality.

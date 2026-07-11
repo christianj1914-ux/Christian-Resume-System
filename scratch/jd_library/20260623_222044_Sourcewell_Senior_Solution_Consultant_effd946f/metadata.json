@@ -1,0 +1,15 @@
+{
+  "snapshot_id": "20260623_222044_Sourcewell_Senior_Solution_Consultant_effd946f",
+  "created_at": "2026-06-23T22:20:44",
+  "company": "Sourcewell",
+  "role": "Senior Solution Consultant",
+  "workflow_type": "commercial",
+  "source_command": "trace_backfill",
+  "archive_reason": "trace_backfill",
+  "lane": "change_enablement",
+  "questions_present": false,
+  "question_count": 0,
+  "relative_path": "20260623_222044_Sourcewell_Senior_Solution_Consultant_effd946f",
+  "job_description_sha256": "29e2db7279585a4c3c6732dbe32b37e7e9cf604ae5fbb0f575714c787617685d",
+  "application_questions_sha256": ""
+}

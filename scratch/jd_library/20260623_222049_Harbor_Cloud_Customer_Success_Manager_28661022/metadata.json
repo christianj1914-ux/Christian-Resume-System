@@ -1,0 +1,15 @@
+{
+  "snapshot_id": "20260623_222049_Harbor_Cloud_Customer_Success_Manager_28661022",
+  "created_at": "2026-06-23T22:20:49",
+  "company": "Harbor Cloud",
+  "role": "Customer Success Manager",
+  "workflow_type": "commercial",
+  "source_command": "trace_backfill",
+  "archive_reason": "trace_backfill",
+  "lane": "customer_success",
+  "questions_present": false,
+  "question_count": 0,
+  "relative_path": "20260623_222049_Harbor_Cloud_Customer_Success_Manager_28661022",
+  "job_description_sha256": "81e8946295c35921edcb34cb66671b2c26ea4a3c51103461f2ef6da18a73c182",
+  "application_questions_sha256": ""
+}

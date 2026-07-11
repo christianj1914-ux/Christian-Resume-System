@@ -1,0 +1,50 @@
+Company: Delta Air Lines
+
+
+Job Title: Project Manager, Crew Mod Implementation
+
+How you'll help us Keep Climbing (overview & key responsibilities)
+As the Project Manager for Crew Modernization (Crew Mod) initiatives, you will lead the implementation of strategic transformation efforts across Crew Resources, supporting core Crew Mod products including profile, scheduling, rotation management, and training. You will partner with the Crew Mod strategy team to transition initiatives from long-term design into execution, owning delivery through implementation, adoption, and operational stabilization.
+This role is responsible for driving the successful deployment of complex, cross-functional initiatives that modernize crew systems and processes. You will ensure all aspects of implementation readiness are executed effectively, including testing, change management, communications, and training.
+You will operate as a business-focused implementation leader, working across product, operations, and technology teams to translate strategy into outcomes that improve efficiency, user experience, and operational reliability. The role requires coordination across multiple product areas and supporting systems, including legacy platforms, and partnership with a diverse set of teams such as BIPA and other initiative groups to ensure aligned and cohesive delivery.
+This position reports to the Manager of Crew Technology and PMO and plays a critical role in enabling the successful rollout and adoption of Crew Mod initiatives across the operation.
+________________________________________
+Responsibilities
+Lead end-to-end implementation of Crew Mod initiatives, from transition out of strategy through deployment and operational stabilization
+Partner with the Crew Mod strategy team to translate long-term initiative design into executable implementation plans
+Own implementation readiness across all workstreams, including testing, training, communications, and change management
+Manage multiple concurrent implementation efforts across a portfolio of Crew Mod products, ensuring alignment on timelines, dependencies, and deliverables
+Develop and maintain integrated implementation plans that align business readiness, technical delivery, and user adoption
+Drive coordination across business, operational, and technology teams to ensure successful rollout of initiatives across impacted areas
+Navigate and support implementation across both modernized and legacy systems, including platforms such as DBMS and other supporting tools
+Partner with a range of initiative teams, including BIPA and other project groups, to align priorities and ensure cohesive delivery across shared products
+Coordinate with other project managers to manage interdependencies and ensure consistent execution across overlapping initiatives
+Establish cross-team operating rhythms to drive alignment, transparency, and execution across concurrent implementation efforts
+Identify and proactively manage risks, dependencies, and cross-program impacts to maintain delivery confidence
+Communicate implementation progress, risks, and readiness to senior leadership through structured reporting and executive presentations
+Ensure successful deployment and adoption of new capabilities that improve crew processes and user experience
+Drive change management strategies that support successful adoption across impacted user groups
+Oversee development and execution of training and communication plans to support implementation
+Act as a leader within agile and hybrid delivery environments, ensuring alignment between development progress and business readiness
+Promote accountability, transparency, and continuous improvement across all phases of implementation
+Promote safety conscious behaviors in all operational processes and procedures
+
+
+What you need to succeed (minimum qualifications)
+
+Bachelor’s degree or equivalent work experience in Business, Technology, Operations, or a related field
+5+ years of relevant experience leading complex, cross-functional projects or programs
+Proven experience leading large-scale implementations, including change management, training, and stakeholder readiness
+Demonstrated ability to lead end-to-end project delivery from planning through execution and adoption
+Strong strategic thinking skills with the ability to translate long-term vision into executable plans
+Excellent communication skills with experience presenting to senior leadership
+Ability to manage and influence across organizational boundaries without direct authority
+Experience coordinating work across multiple product areas and stakeholder groups
+Experience working across both modern and legacy systems environments
+Experience working in agile or hybrid delivery models
+Proven ability to manage multiple initiatives simultaneously while maintaining alignment and delivery quality
+Strong problem-solving, conflict resolution, and decision-making skills
+Demonstrated experience building relationships across business, IT, and operational teams
+Must be performing satisfactorily in current position
+Consistently prioritizes safety and security of self, others, and personal data.
+Embraces diverse people, thinking, and styles.

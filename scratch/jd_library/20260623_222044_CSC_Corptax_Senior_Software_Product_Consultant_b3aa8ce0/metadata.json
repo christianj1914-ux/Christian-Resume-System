@@ -1,0 +1,15 @@
+{
+  "snapshot_id": "20260623_222044_CSC_Corptax_Senior_Software_Product_Consultant_b3aa8ce0",
+  "created_at": "2026-06-23T22:20:44",
+  "company": "CSC Corptax",
+  "role": "Senior Software Product Consultant",
+  "workflow_type": "commercial",
+  "source_command": "trace_backfill",
+  "archive_reason": "trace_backfill",
+  "lane": "implementation_delivery",
+  "questions_present": false,
+  "question_count": 0,
+  "relative_path": "20260623_222044_CSC_Corptax_Senior_Software_Product_Consultant_b3aa8ce0",
+  "job_description_sha256": "1f9d634ba485a993e7f08cd1557523cd1c6d43babc0c5f3b3ebb395dc21349e7",
+  "application_questions_sha256": ""
+}

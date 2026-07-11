@@ -1,0 +1,15 @@
+{
+  "snapshot_id": "20260624_211734_Delta_Air_Lines_Project_Manager_Crew_Resources_-_Product_Delivery_323eff1c",
+  "created_at": "2026-06-24T21:17:34",
+  "company": "Delta Air Lines",
+  "role": "Project Manager, Crew Resources - Product Delivery",
+  "workflow_type": "commercial",
+  "source_command": "trace_backfill",
+  "archive_reason": "trace_backfill",
+  "lane": "implementation_delivery",
+  "questions_present": false,
+  "question_count": 0,
+  "relative_path": "20260624_211734_Delta_Air_Lines_Project_Manager_Crew_Resources_-_Product_Delivery_323eff1c",
+  "job_description_sha256": "7333afd61f6609c78efd8ccaf981baca26c3119e36d5fbf77c73283276ea4bfa",
+  "application_questions_sha256": ""
+}

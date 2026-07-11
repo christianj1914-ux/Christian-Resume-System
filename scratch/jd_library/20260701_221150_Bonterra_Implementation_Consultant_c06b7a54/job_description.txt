@@ -1,0 +1,83 @@
+Company: Bonterra
+
+
+
+
+Job Title: Implementation  Consultant
+
+
+
+
+About Us
+Bonterra exists to propel every doer of good to their peak impact. We measure that impact against our vision to increase the giving rate as a percentage of GDP from 2% to 3% by 2033. We know that this goal is lofty, but we are confident that the right technology and expertise will strengthen trust in the sector, allowing the social good industry to accelerate growth and reach peak impact. Bonterra's differentiated, end-to-end solutions collectively support a unique network of over 20,000 customers, including over 16,000 nonprofit organizations and over 50 percent of Fortune 100 companies. Learn more at bonterratech.com.
+
+About the Role
+Are you driven to solve complex, creative problems with multiple possible answers? Are you a clear, confident communicator who enjoys teaching others and can address conflicts directly? Are you motivated to help nonprofits adopt technology that measures outcomes, drives donations, and communicates impact? If so, we want to meet you!
+
+What you'll do
+
+The Implementation Consultant leads complex, multifaceted client implementations across Bonterra's Case Management product suite and/or Fundraising Solutions. Working with cross-functional teams and nonprofit leadership, you'll design and configure tailored solutions that address sophisticated client requirements. Your primary responsibility is to architect solutions that meet customer needs—considering staffing, programs, data migration, and integrations—while also empowering clients with the skills and confidence to own their solution long-term. A successful implementation is one that meets customer requirements, is adopted quickly by staff, and delivers measurable outcomes. In this role, you'll lead the technical design and client enablement while balancing client satisfaction with project budgets and timelines, and contributing to broader PS team excellence.
+
+Acquire and maintain deep expertise across the full Case Management product suite and/or Fundraising Solutions. Apply your knowledge to design creative, custom solutions when standard templates don't fit.
+
+Conduct thorough discovery to understand client org structure, strategic goals, data needs, existing systems, and migration requirements.
+
+Design and configure sophisticated solutions within budget, documenting requirements clearly and estimating hours and timelines accurately.
+
+Lead technical demonstrations of solutions, translating complex features into language that resonates with specific client requirements and stakeholders.
+
+Partner with Project Managers, fellow Implementation Consultants, and Onboarding Consultants to coordinate delivery and ensure quality across multiple concurrent implementations.
+
+Lead collaborative working sessions with client subject matter experts, ensuring they're learning and building confidence as you build their solution.
+
+Develop and maintain trusted relationships with contacts at all levels of the customer organization, from program staff through VP/Director leadership.
+
+Proactively identify and communicate project risks. Escalate early, involve leadership and partners as needed, and prevent crises through direct client conversations about scope, budget, and priorities.
+
+Maintain accurate project records in Salesforce and Monday.com, capturing decisions, timelines, and status daily.
+
+Contribute to PS process improvement, documenting best practices, building reusable assets, and mentoring junior team members on implementation strategy and delivery.
+
+Requirements
+
+6+ years of professional experience
+
+3+ years of experience in software implementation, consulting, or solution architecture
+
+Active listening skills enabling you to quickly understand a company's org structure, goals, and data needs
+
+Demonstrated ability to document requirements, design solutions, and estimate timelines and effort
+
+Problem-solving skills with technical agility, creativity, and comfort working in ambiguous situations
+
+Strong relationship-building skills (you gain trust and influence quickly)
+
+Clear verbal and written communication, including the ability to break down complex concepts into simple, compelling language
+
+Strong individual accountability and ability to work independently while collaborating effectively across teams
+
+Preferred Additional Experience
+
+Administrator or power-user-level experience with Bonterra Case Management or Fundraising Solutions products
+
+Background in human services, social services, nonprofit operations, or nonprofit technology
+
+Knowledge of government databases, reporting requirements, and compliance frameworks
+
+Experience with data migration projects, including planning, mapping, validation, and QA
+
+Familiarity with SQL and the ability to create custom queries for data analysis
+
+Proficiency in Microsoft Excel, Salesforce, Monday.com, and Lucidchart
+
+Experience mentoring or leading junior team members
+
+At Bonterra, we’re building AI-powered tools to solve real human challenges—and we want teammates who share that enthusiasm. We value people who will champion AI and bring diverse perspectives from different industries, backgrounds, and cultures. Together, we create AI that breaks down barriers, empowers communities, and delivers better outcomes
+
+
+
+About Us
+For too long, the people behind the scenes of social good have used cumbersome paper and spreadsheets or outdated technology created for sales teams to report on outcomes for their organizations—methods and tools that reduce the amount of time they could spend doing good, fail to uncover valuable insights and details around outcomes of their good work, and even lead to disengagement and turnover.
+
+At Bonterra, we’re changing that. We work with nonprofit organizations, public agencies, corporations, philanthropic organizations, and foundations to help connect with donors and volunteers, distribute grants and funds, drive fundraising and grant acquisition, manage casework, and measure outcomes and impact. Today, Bonterra’s technology enables over 15,000 nonprofit organizations do more
+good and powers more than 50% of the Fortune 100’s philanthropic giving efforts. We exclusively cater to the unique needs of social good organizations with intuitive technology, powerful analytics, and easy-to- use reporting. Quite simply: We power those who power social impact.

@@ -1,0 +1,15 @@
+{
+  "snapshot_id": "20260627_160512_Pax8_Implementation_Consultant_dea10f2b",
+  "created_at": "2026-06-27T16:05:12",
+  "company": "Pax8",
+  "role": "Implementation Consultant",
+  "workflow_type": "commercial",
+  "source_command": "trace_backfill",
+  "archive_reason": "trace_backfill",
+  "lane": "",
+  "questions_present": false,
+  "question_count": 0,
+  "relative_path": "20260627_160512_Pax8_Implementation_Consultant_dea10f2b",
+  "job_description_sha256": "197395cbaa088b649f0c3f2b78889215cfa3fd38b01498ba3ca05c33d4c65e44",
+  "application_questions_sha256": ""
+}

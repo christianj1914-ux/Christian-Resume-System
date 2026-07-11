@@ -1,0 +1,15 @@
+{
+  "snapshot_id": "20260701_191533_RingCentral_AI_Forward_Deployed_Engineer_c40cff26",
+  "created_at": "2026-07-01T19:15:33",
+  "company": "RingCentral",
+  "role": "AI Forward Deployed Engineer",
+  "workflow_type": "commercial",
+  "source_command": "resume",
+  "archive_reason": "command_auto_archive",
+  "lane": "presales_solution",
+  "questions_present": true,
+  "question_count": 18,
+  "relative_path": "20260701_191533_RingCentral_AI_Forward_Deployed_Engineer_c40cff26",
+  "job_description_sha256": "a011a5d82aa2dd6922551f9fe679b83f58302c361d66b27860c9606545f32c30",
+  "application_questions_sha256": "f27116e0aee426f163a3ecb9f11c240cb32eb6804faeac9a6186877ffd69a475"
+}

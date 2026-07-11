@@ -1,0 +1,15 @@
+{
+  "snapshot_id": "20260623_222038_OMP_Supply_Chain_Implementation_Consultant_0e8d88bd",
+  "created_at": "2026-06-23T22:20:38",
+  "company": "OMP",
+  "role": "Supply Chain Implementation Consultant",
+  "workflow_type": "commercial",
+  "source_command": "trace_backfill",
+  "archive_reason": "trace_backfill",
+  "lane": "implementation_delivery",
+  "questions_present": false,
+  "question_count": 0,
+  "relative_path": "20260623_222038_OMP_Supply_Chain_Implementation_Consultant_0e8d88bd",
+  "job_description_sha256": "bc648dd8be2c62d687260d77572c539e55338fa4866fa6ba6c3f4c06ff3c992a",
+  "application_questions_sha256": ""
+}

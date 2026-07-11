@@ -1,0 +1,15 @@
+{
+  "snapshot_id": "20260701_205254_Deel_Implementation_Consultant_I_Enterprise_54824f05",
+  "created_at": "2026-07-01T20:52:54",
+  "company": "Deel",
+  "role": "Implementation Consultant I, Enterprise",
+  "workflow_type": "commercial",
+  "source_command": "resume",
+  "archive_reason": "command_auto_archive",
+  "lane": "implementation_delivery",
+  "questions_present": true,
+  "question_count": 18,
+  "relative_path": "20260701_205254_Deel_Implementation_Consultant_I_Enterprise_54824f05",
+  "job_description_sha256": "9a0d8b0e6be150b5f6aa6a3dce73d82919e9cd69cb0ffc66f2f74a0e2ff3fdee",
+  "application_questions_sha256": "f27116e0aee426f163a3ecb9f11c240cb32eb6804faeac9a6186877ffd69a475"
+}

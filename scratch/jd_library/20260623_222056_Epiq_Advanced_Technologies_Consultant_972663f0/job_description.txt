@@ -1,0 +1,108 @@
+Company: Epiq
+
+
+Job Title: Advanced Technologies Consultant
+
+
+At Epiq, your work contributes to complex, global legal outcomes. You’ll join a values‑driven community where integrity guides decisions, relentless service sets the bar, and we thrive on big challenges together. We invest in your growth with enterprise‑wide learning and mobility. We celebrate who you are, and we respect life beyond work with flexibility that’s recognized externally. Enabled by modern platforms and AI, you’ll do the most meaningful work of your career and see your impact at scale.
+
+Job Description:
+
+Position Summary
+
+Epiq’s Advanced Technologies Consultants support clients’ document review needs using advanced analytics, including machine learning and generative AI. Working closely with the Associate Director and the broader Advanced Technologies Core practice group, the Consultant advises clients on defensible workflows and serves as a subject matter expert in applying machine learning and/or generative AI to client data sets. The Consultant partners with Client Services and Document Review Services to ensure successful engagements and coordinates with internal teams including Sales, Managed Review, and Information Technology. This role requires the ability to manage multiple projects concurrently; evening and weekend work may occasionally be required to meet case needs and deadlines.
+
+Primary Responsibilities:
+
+Serve as a subject matter expert on predictive coding (TAR 1.0 and 2.0) and AI-enabled review workflows. 
+Consult with external stakeholders to identify appropriate analytics tools, workflows, and required deliverables. 
+Build and manage models in Epiq AI (EAI), Relativity aiR, and Relativity Active Learning; advise on model selection and use-case scenarios. 
+Develop and refine prompts and instructions for AI tools (chat and classification) to improve quality and consistency of outputs. 
+Implement EpiqAI for Privilege and Relativity aiR for Privilege workflows; advise on appropriate use cases and clearly articulate tool capabilities, limitations, and defensibility considerations to clients and internal teams. 
+Explain statistical measurements, validation concepts, and key considerations to audiences with varying technical backgrounds (written and oral communication). 
+Stay current on developments in eDiscovery, analytics, and AI/GenAI capabilities relevant to review. 
+Demonstrate end-to-end knowledge of the eDiscovery lifecycle, including identifying potential risks/headwinds for AI processes and defining the critical path for review and production. 
+Draft recommended protocols and respond to client specifications and technical requests. 
+Document project decisions and transfer knowledge to Managed Review and Client Services teams to enable efficient, repeatable TAR/AI workflows. 
+Maintain expertise through ongoing education and relevant certifications in the analytics platforms deployed by Epiq. 
+Mentor colleagues and serve as an internal subject matter expert to expand Epiq’s analytics knowledge. 
+Contribute to thought leadership through speaking opportunities and authorship. 
+Support business development as needed through demonstrations, training, client presentations, and pre-sales meeting participation. 
+
+Required Qualifications:
+
+Ability to support client needs aligned to Eastern Time (most clients prefer EST hours of availability). 
+Bachelor’s degree or higher (or equivalent experience). 
+Minimum 5 years of client-facing experience in an eDiscovery capacity. 
+Proficiency with Relativity (Server or RelativityOne), Epiq Discover, and administration of document review databases. 
+Experience with Technology-Assisted Review (TAR) using machine learning and/or GenAI tools in an eDiscovery context. 
+Strong understanding of large language models (LLMs). 
+Experience crafting prompts for LLMs (e.g., Copilot, Claude, Gemini, Harvey) and evaluating/refining outputs. 
+Proficiency with Microsoft 365 (O365). 
+Ability to synthesize complex solutions into clear, client-ready explanations. 
+Exceptional verbal and written communication skills. 
+Excellent issue-spotting and problem-solving skills. 
+Willingness to go above and beyond to meet client expectations. 
+
+Preferred Qualifications:
+
+Advanced degree preferred. Significant relevant industry experience may be considered in lieu of an advanced degree. 
+Relativity Certified Administrator certification. 
+Familiarity with Relativity Active Learning, Reveal AI, Brainspace, or similar TAR/AI tools used to reduce data volumes and organize data for review (certification preferred). 
+Experience managing privilege reviews and providing procedural guidance, including common-name normalization, drafting privilege log descriptions, and applying standard industry workflows for privilege identification. 
+Power BI, Python, and/or SQL experience. 
+
+
+
+
+
+
+
+
+Fosters Relationships & Collaboration 
+
+Builds trust and alignment through open communication, shared goals, and strong partnerships to drive collective success. 
+
+Build trust-based partnerships
+
+Nurture long-term relationships
+
+Remove collaboration barriers
+
+Celebrate cross-team success
+
+Engages & Influences
+
+Inspires action and alignment through clear communication, purposeful influence, and a compelling vision.
+
+Use storytelling to build buy-in
+
+Align communication with organizational goals
+
+Guild alignment through strong engagement
+
+Maximizes Performance
+
+Sets and reinforces performance standards that drive results, ensure accountability, and align with Epiq’s goals.
+
+Use data to identify improvement opportunities
+
+Make informed decisions
+
+Align team goals with boarder strategy
+
+Empower teams to manage their own goals
+
+Translate vision into clear priorities
+
+Prepare for disruptions with strong change management
+
+Achieves Operational Success
+
+Drives continuous improvement and operational excellence through smart processes, data insights, and quality execution.
+
+Improve workflows for team efficiency
+
+Use clear documentation and expectations
+
+Resolve issues quickly using data and feedback

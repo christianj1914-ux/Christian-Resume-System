@@ -1,0 +1,15 @@
+{
+  "snapshot_id": "20260623_222049_Department_of_Veterans_Affairs_IT_Program_Manager_0ea4ecd2",
+  "created_at": "2026-06-23T22:20:49",
+  "company": "Department of Veterans Affairs",
+  "role": "IT Program Manager",
+  "workflow_type": "commercial",
+  "source_command": "trace_backfill",
+  "archive_reason": "trace_backfill",
+  "lane": "implementation_delivery",
+  "questions_present": false,
+  "question_count": 0,
+  "relative_path": "20260623_222049_Department_of_Veterans_Affairs_IT_Program_Manager_0ea4ecd2",
+  "job_description_sha256": "2664ae8d980a0954bfebe1e99bb7326d9044b80c77079f22ea1120ef113646f8",
+  "application_questions_sha256": ""
+}

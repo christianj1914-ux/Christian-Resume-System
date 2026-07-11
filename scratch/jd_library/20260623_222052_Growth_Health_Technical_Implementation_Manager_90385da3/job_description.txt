@@ -1,0 +1,3 @@
+Company: Growth Health
+Role: Technical Implementation Manager
+High-growth healthcare AI startup seeking a technical implementation manager to own customer onboarding, workflow automation, implementation delivery, data migration, stakeholder coordination, and adoption readiness across new client launches.

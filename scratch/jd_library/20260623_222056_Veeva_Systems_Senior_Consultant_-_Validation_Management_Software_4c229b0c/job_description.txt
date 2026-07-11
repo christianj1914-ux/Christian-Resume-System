@@ -1,0 +1,43 @@
+Company: Veeva Systems
+
+
+Job Title: Senior Consultant - Validation Management Software
+
+
+
+Veeva Systems is a mission-driven organization and pioneer in industry cloud, helping life sciences companies bring therapies to patients faster. As one of the fastest-growing SaaS companies in history, we surpassed $3B in revenue in our last fiscal year with extensive growth potential ahead.
+ 
+At the heart of Veeva are our values: Do the Right Thing, Customer Success, Employee Success, and Speed. We're not just any public company – we made history in 2021 by becoming a public benefit corporation (PBC), legally bound to balancing the interests of customers, employees, society, and investors.
+ 
+As a Work Anywhere company, we support your flexibility to work from home or in the office, so you can thrive in your ideal environment.
+ 
+Join us in transforming the life sciences industry, committed to making a positive impact on its customers, employees, and communities.
+
+The Role
+Are you passionate about continuous innovation, building long-term customer relationships, and providing value through agile delivery? Do you enjoy tackling large-scale, complex problems?
+This is a role for implementing next-generation validation solutions for Life Sciences. While we want an expert in Validation, we are not looking for the execution of validation activities in this role.
+
+ Veeva Systems is looking for driven, self-motivated Professional Services Consultants with a passion for empowering enterprise companies with best-of-breed cloud-based technology. Veeva’s Vault Quality helps organizations eliminate silos and accelerates the development and manufacturing of high-quality products to a greater number of patients. It is a cloud platform that unifies applications, processes, and partners across content management, training, digital validation, Quality Management System (QMS) and QC lab solutions (LIMS).
+
+As a member of our Professional Services team, you will be responsible for understanding customer’s current business processes and shaping future state vision, identifying and incorporating global regulatory needs, translating requirements into solution design, and defining global strategies to deploy our cloud-based solution across the enterprise.
+
+This is a remote, full-time permanent role with Veeva. There is no work location requirement. It is customer-facing, with occasional travel requirements up to 50% of the time. Veeva Systems does not anticipate providing sponsorship for employment visa status (e.g., H-1B, OPT) for this employment position.
+
+What You'll Do
+Facilitate workshops to review and analyze existing Customer commissioning, qualification and validation processes, and identify key process steps, gaps, and requirements that would impact implementation approach
+Partner with customer SMEs and business leaders to translate requirements into solutions that solve business problems and support the needs of the Customer
+Provide consulting on Digital Validation best practices and overall solutions based on requirements and industry best practices
+Develop, leverage, and maintain expertise in our Vault platform and Validation Management product
+Develop a trusted advisor relationship with Veeva stakeholders and the customer
+Build, test, and deploy configuration changes to live environments
+Mentor project team and junior consultants in the Professional Services organization
+Requirements
+8+ years of experience in life sciences validation implementations supporting commissioning, qualification, and the validation of equipment and production processes
+Proven track record leading implementation and/or IT operations as a consultant, business analyst, or IT lead and/or business sponsor
+Experience implementing digital validation systems with the ability to comprehend and translate business requirements and create corresponding solutions designs
+Proven ability to work both independently and in teams in a dynamic, fast-moving environment
+Good understanding of SaaS and GxP principles
+Ability to quickly understand business requirements and design creative solutions
+Excellent verbal and written communication skills
+Experience in Life Sciences Quality, Manufacturing, or Healthcare spaces
+Experience with Data or Content Management applications

@@ -1,0 +1,31 @@
+Company: AlphaSense
+
+
+Job Title: Implementation Consultant, Large Deployments
+
+
+The world’s most sophisticated companies rely on AlphaSense to remove uncertainty from decision-making. With market intelligence and search built on proven AI, AlphaSense delivers insights that matter from content you can trust. Our universe of public and private content includes equity research, company filings, event transcripts, expert calls, news, trade journals, and clients’ own research content.
+
+
+We are seeking a highly organized, data-driven, and client-focused Implementation Consultant to join our growing Customer Success team at AlphaSense. This role will manage the onboarding and rollout of our solutions for both new and existing enterprise clients, serving as the bridge between the pre-sale discussions and the onboarding experience for accounts. This role is foundational to our clients’ success and will be focused on executing large deployments, building processes that have scale in mind, and translating client needs into actionable implementation plans.
+
+ 
+
+Who You Are:
+
+
+At least 4+ years of experience as a client-facing Implementation Consultant or Professional Services Consultant in a B2B SaaS environment 
+Experience with change management best practices, ensuring a successful transition for client organizations after deployment
+Strong sense of seeing a project through completion and managing tasks. Familiarity with project management tools (Linear, Jira, Asana, Rocketlane, etc.) and CRM software (Salesforce) for tracking deployments and client information is a must
+Understand how to slice through data, with the ability to look at deployment metrics, understand key trends, and develop both internal and external reports. Must be proficient in Microsoft Excel/Google Sheets (pivot tables, complex formulas, data validation)
+Interest in identifying operational inefficiencies and driving organizational change through the development of scalable processes and documentation.
+Excellent communication skills to persuade both senior client leadership and internal stakeholders to keep projects on track and mitigate risk
+ 
+
+What You’ll Do: 
+
+Own the entirety of the deployment phase, including the development of detailed project plans, defining critical milestones, and proactively mitigating risks to ensure a successful deployment
+Serve as the main point of contact for deployment activities, leading regular project status meetings, aligning resources (e.g., Sales, Marketing, Product, etc), and communicating progress, risks, and deployment status
+Act as a resource for analyzing implementation trends, potential bottlenecks, and translating data into clear, actionable insights for both internal teams and external stakeholders.
+Actively identify areas for improvement in our existing deployment methodologies, develop and document best practices and standardized playbooks, and implement scalable solutions to ensure a smoother, faster onboarding experience for all future clients
+Develop a strong understanding of the product, the persona of customers, the reason for investment, and how this maps back to the customer lifecycle

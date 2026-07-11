@@ -1,0 +1,15 @@
+{
+  "snapshot_id": "20260629_182515_Temp_Agency_Business_Process_Analyst_d62e442c",
+  "created_at": "2026-06-29T18:25:15",
+  "company": "Temp Agency",
+  "role": "Business Process Analyst",
+  "workflow_type": "commercial",
+  "source_command": "trace_backfill",
+  "archive_reason": "trace_backfill",
+  "lane": "implementation_delivery",
+  "questions_present": false,
+  "question_count": 0,
+  "relative_path": "20260629_182515_Temp_Agency_Business_Process_Analyst_d62e442c",
+  "job_description_sha256": "810583a40ab89343719f5edd2a3a991d057c2f51fb507ab0c11c6fc247621fbe",
+  "application_questions_sha256": ""
+}
