@@ -41,6 +41,8 @@ MAJOR_SCRIPTS = (
     "commercial_resume_model",
     "build_standard_qualifications_statement",
     "build_interview_cheat_sheet",
+    "build_interview_companions",
+    "build_first_90_days",
     "build_detailed_interview_guide",
     "build_interview_review",
     "build_debrief_analysis",
@@ -58,6 +60,7 @@ MAJOR_SCRIPTS = (
     "cleanup_render_checks",
     "extract_writing_examples",
     "federal_supporting_docs",
+    "interview_stage",
     "interview_context",
     "job_search_guidance",
     "job_context_archive",
@@ -936,6 +939,10 @@ def test_commercial_builder_entrypoints_delegate_to_input_helpers(
             guide_calls["output_docx"].name == f"Christian Estrada - {expected_output_target} Detailed Interview Guide.docx",
             f"build_detailed_interview_guide() should preserve the commercial detailed-guide naming pattern; got {guide_calls['output_docx']}",
         )
+        assert_true(
+            guide_calls.get("stage") == "all",
+            f"build_detailed_interview_guide() should default to the all-stages guide when no stage flag is supplied; got {guide_calls}",
+        )
 
 
 def test_standard_qualifications_default_question_when_file_empty(build_standard_qualifications_statement: object, question_prep: object) -> None:
@@ -1021,6 +1028,31 @@ def test_explicit_stale_questions_still_flagged(question_prep: object) -> None:
         )
 
 
+def test_qualifications_builder_uses_question_prep_response_engine() -> None:
+    source = Path("scripts/build_standard_qualifications_statement.py").read_text(encoding="utf-8")
+    assert_true(
+        "responses = question_prep.build_question_responses(" in source
+        and "question_prep.selected_resume_snapshot(job_description)" in source,
+        "The qualifications builder should call the shared question_prep response engine directly so answer changes propagate without a shadow-copy seam.",
+    )
+
+
+def test_qualifications_builder_removes_local_shadow_answer_helpers() -> None:
+    source = Path("scripts/build_standard_qualifications_statement.py").read_text(encoding="utf-8")
+    assert_true(
+        all(
+            marker not in source
+            for marker in (
+                "def software_inventory_answer(",
+                "def communication_answer(",
+                "def answer_prompt(",
+                "def default_responses(",
+            )
+        ),
+        "The qualifications builder should not keep a second local answer engine once the shared question_prep path is active.",
+    )
+
+
 def test_interview_outputs_inherit_bridge_resume_name(
     build_interview_cheat_sheet: object,
     build_detailed_interview_guide: object,
@@ -1093,6 +1125,120 @@ def test_interview_outputs_inherit_bridge_resume_name(
             " BRIDGE Detailed Interview Guide.docx" in guide_calls["output_docx"].name,
             f"build_detailed_interview_guide() should propagate BRIDGE naming from the matched resume; got {guide_calls['output_docx']}",
         )
+
+
+def test_interview_stage_resolution_and_context_parsing(
+    interview_stage: object,
+) -> None:
+    labeled = interview_stage.parse_interviewer_context(
+        "\n".join(
+            [
+                "Name: Jordan Lee",
+                "Title: Director of Technical Delivery",
+                "Stage: panel",
+                "Recruiter Feedback: Keep answers tighter; lead with outcomes",
+                "Emphasize: automation, ERP, stakeholder alignment",
+            ]
+        )
+    )
+    assert_true(
+        labeled.name == "Jordan Lee"
+        and labeled.title == "Director of Technical Delivery"
+        and labeled.stage_hint == "panel"
+        and labeled.recruiter_feedback == ("Keep answers tighter", "lead with outcomes")
+        and labeled.emphasized_terms == ("automation", "ERP", "stakeholder alignment"),
+        f"parse_interviewer_context() should parse labeled interviewer notes; got {labeled}",
+    )
+    bare = interview_stage.parse_interviewer_context("Sam Rivera, Hiring Manager")
+    assert_true(
+        bare.name == "Sam Rivera" and bare.title == "Hiring Manager",
+        f"parse_interviewer_context() should parse a bare 'Name, Title' line; got {bare}",
+    )
+    empty = interview_stage.parse_interviewer_context("")
+    assert_true(
+        not empty.name and not empty.title and not empty.stage_hint,
+        f"parse_interviewer_context() should return an empty context object for empty input; got {empty}",
+    )
+    resolved = interview_stage.resolve_stage("technical", labeled, None)
+    assert_true(
+        resolved.key == "technical",
+        f"resolve_stage() should prefer the explicit CLI stage over interviewer-context stage hints; got {resolved}",
+    )
+    resolved_from_context = interview_stage.resolve_stage("", labeled, None)
+    assert_true(
+        resolved_from_context.key == "panel",
+        f"resolve_stage() should use the interviewer-context Stage: hint when no CLI stage is supplied; got {resolved_from_context}",
+    )
+    try:
+        interview_stage.resolve_stage("mystery_round", empty, None)
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("resolve_stage() should fail on unknown stage keys")
+
+
+def test_stage_filename_suffix_composes_with_existing_detailed_guide_names(
+    interview_stage: object,
+    build_detailed_interview_guide: object,
+    question_prep: object,
+) -> None:
+    suffixes = {
+        key: interview_stage.stage_filename_suffix(profile)
+        for key, profile in interview_stage.STAGE_PROFILES.items()
+    }
+    non_empty = [value for key, value in suffixes.items() if key != "all"]
+    assert_true(
+        suffixes["all"] == "" and len(non_empty) == len(set(non_empty)),
+        f"stage_filename_suffix() should leave all unsuffixed and keep every other stage suffix unique; got {suffixes}",
+    )
+    base = Path("C:/tmp/Christian Estrada - Acme FAIL Detailed Interview Guide.docx")
+    staged = build_detailed_interview_guide.output_path_for_stage(base, interview_stage.STAGE_PROFILES["hr_screen"])
+    assert_true(
+        staged.name == "Christian Estrada - Acme FAIL Detailed Interview Guide (HR Screen).docx",
+        f"output_path_for_stage() should insert the stage suffix after the Detailed Interview Guide stem; got {staged.name}",
+    )
+    drafted = question_prep.application_question_draft_path(staged)
+    assert_true(
+        "(HR Screen)" in drafted.name,
+        f"application_question_draft_path() should preserve the stage suffix on staged guide names; got {drafted.name}",
+    )
+
+
+def test_federal_detailed_guide_wrapper_keeps_stage_params_optional(
+    build_federal_detailed_interview_guide: object,
+    build_detailed_interview_guide: object,
+    federal_supporting_docs: object,
+) -> None:
+    captured: dict[str, object] = {}
+    original_context = federal_supporting_docs.resolve_federal_context
+    original_output_path = federal_supporting_docs.supporting_output_path
+    original_helper = build_detailed_interview_guide.build_detailed_interview_guide_for_inputs
+    try:
+        federal_supporting_docs.resolve_federal_context = lambda: SimpleNamespace(
+            job_description="Agency: Example\nJob Title: Program Analyst\n",
+            resume_docx=Path("federal_resume.docx"),
+            output_target_name="Example Agency - Program Analyst",
+            company_name="Example Agency",
+            role_title="Program Analyst",
+        )
+        federal_supporting_docs.supporting_output_path = lambda target_name, label: Path(f"{target_name} {label}.docx")
+        build_detailed_interview_guide.build_detailed_interview_guide_for_inputs = (
+            lambda **kwargs: captured.update(kwargs) or SimpleNamespace(
+                company_name=kwargs["company_name"],
+                role_title=kwargs["role_title"],
+                resume_docx=kwargs["resume_docx"],
+                output_docx=kwargs["output_docx"],
+            )
+        )
+        build_federal_detailed_interview_guide.main()
+    finally:
+        federal_supporting_docs.resolve_federal_context = original_context
+        federal_supporting_docs.supporting_output_path = original_output_path
+        build_detailed_interview_guide.build_detailed_interview_guide_for_inputs = original_helper
+    assert_true(
+        "stage" not in captured and "interviewer_context" not in captured,
+        f"The federal detailed-guide wrapper should still call the helper without the new stage params because they remain optional; got {captured}",
+    )
 
 
 def test_summary_three_sentence_structure(build_resume: object) -> None:
@@ -4175,7 +4321,30 @@ def test_adjusted_profile_for_role_preserves_non_lane_fields(
     )
 
 
-def test_extended_tmay_sections(
+def test_story_answer_parts_preserve_spoken_alias(build_detailed_interview_guide: object) -> None:
+    answer = build_detailed_interview_guide.StoryAnswerParts(
+        full="I led the cleanup and stabilized the rollout.",
+        meat_first="I led the cleanup.",
+        stretch_modules=(("Proof", "I rebuilt the validation path."),),
+        alternate="The point is that I made the risk visible early.",
+        pushback_branches=(("What was yours?", "I owned the structure and validation path."),),
+        coaching_note="Coaching note: keep the close direct.",
+    )
+    assert_true(
+        answer.spoken == answer.full,
+        f"StoryAnswerParts.spoken should remain a read-only alias of full; got spoken={answer.spoken!r}, full={answer.full!r}",
+    )
+
+
+def test_story_answer_constructors_use_full_keyword() -> None:
+    source = Path("scripts/build_detailed_interview_guide.py").read_text(encoding="utf-8")
+    assert_true(
+        "StoryAnswerParts(spoken=" not in source,
+        "build_detailed_interview_guide.py should migrate every StoryAnswerParts constructor to full=",
+    )
+
+
+def test_extended_tmay_sections_build_time_ladder(
     build_resume: object,
     build_detailed_interview_guide: object,
 ) -> None:
@@ -4187,37 +4356,23 @@ def test_extended_tmay_sections(
         OLLIE_ANALYTICS_JOB_DESCRIPTION,
         OLLIE_RESUME_TEXT,
     )
-    labels = [label for label, _ in sections]
-    expected_labels = [
-        "Opening Hook",
-        "Career Arc",
-        "Why I Care",
-        "Proof Beat",
-        "Why This Role",
-        "Conversation Pivot",
-    ]
+    labels = [item.label for item in sections]
     assert_true(
-        labels == expected_labels,
-        f"build_extended_tmay_sections() should keep the expected structure; got {labels}",
-    )
-    content = {label: paragraph for label, paragraph in sections}
-    assert_true(
-        "What keeps me engaged" in content["Why I Care"] or "What matters to me" in content["Why I Care"],
-        f"The extended TMAY human section should sound personal and grounded; got {content['Why I Care']}",
+        labels == ["20 to 30 seconds", "60 to 90 seconds", "2 minutes", "4 minutes"],
+        f"build_extended_tmay_sections() should return the four-rung time ladder; got {labels}",
     )
     assert_true(
-        "same kind of problem solving" in content["Why This Role"] or "follow-through" in content["Why This Role"],
-        f"The extended TMAY role bridge should connect the arc to the role explicitly; got {content['Why This Role']}",
+        sections[0].script.startswith("My background is"),
+        f"The anchor TMAY script should start with the direct claim sentence; got {sections[0].script!r}",
     )
+    two_minute_modules = {label for label, _text in sections[2].modules}
     assert_true(
-        content["Opening Hook"].startswith("My background is")
-        and not content["Proof Beat"].startswith("At Ollie")
-        and content["Conversation Pivot"].startswith("What ties my experience together"),
-        f"Extended TMAY should use natural voice without attributing prior-employer proof to the target company; got {content}",
+        "Why this work" in two_minute_modules and "Why this role" in two_minute_modules,
+        f"The longer TMAY rungs should add human and role-bridge modules; got {sections[2].modules}",
     )
 
 
-def test_extended_tmay_sections_skip_empty_story_fragments(
+def test_extended_tmay_sections_use_module_level_superset(
     build_resume: object,
     build_interview_cheat_sheet: object,
     build_detailed_interview_guide: object,
@@ -4248,17 +4403,19 @@ def test_extended_tmay_sections_skip_empty_story_fragments(
     finally:
         build_detailed_interview_guide.cheat.hero_stories = original_hero_stories
 
-    proof = dict(sections)["Proof Beat"]
+    module_sets = [set(label for label, _text in section.modules) for section in sections]
     assert_true(
-        "What I noticed early was" not in proof and "The result was" not in proof,
-        f"build_extended_tmay_sections() should skip empty proof fragments; got {proof!r}",
+        module_sets[0] < module_sets[1] < module_sets[2] < module_sets[3],
+        f"Each longer TMAY rung should be a strict module-level superset of the shorter rung; got {module_sets}",
+    )
+    proof_text = next(text for label, text in sections[0].modules if label == "Proof")
+    assert_true(
+        "What I noticed early was" not in proof_text and "The result was" not in proof_text,
+        f"Sparse TMAY proof modules should skip empty fragments instead of inserting placeholders; got {proof_text!r}",
     )
     assert_true(
-        (
-            build_interview_cheat_sheet.lower_clause(sparse_story.hook) in proof
-            and "I built the checkpoint plan" in proof
-        ),
-        f"build_extended_tmay_sections() should keep populated proof fragments; got {proof!r}",
+        build_interview_cheat_sheet.lower_clause(sparse_story.hook) in proof_text and "I built the checkpoint plan" in proof_text,
+        f"TMAY proof should keep the populated story fragments; got {proof_text!r}",
     )
 
 
@@ -4307,6 +4464,118 @@ def test_story_sample_answer_separates_coaching_note(
         and "Human layer to weave in naturally:" in answer.coaching_note
         and "Role bridge:" in answer.coaching_note,
         f"story_sample_answer() should move coaching guidance into a separate note; got {answer.coaching_note!r}",
+    )
+
+
+def test_story_sample_answer_reuses_claim_sentence_in_full(
+    build_resume: object,
+    build_interview_cheat_sheet: object,
+    build_detailed_interview_guide: object,
+) -> None:
+    profile = build_resume.job_problem_profile(DUMMY_JOB_DESCRIPTION, OLLIE_RESUME_TEXT)
+    card = build_interview_cheat_sheet.StoryCard(
+        title="Delivery Recovery",
+        story_types=("Challenge and Failure", "Individual Achievement"),
+        hook="a launch path had unclear ownership and too many hidden dependencies",
+        takeaways=("clarify the owner", "surface the hidden dependency", "protect adoption"),
+        evidence="I rebuilt the validation path, reset owner checkpoints, and kept stakeholders aligned through release",
+        level3_trait="the first warning sign was that people could describe the issue but not the actual owner or checkpoint",
+        result="the launch stabilized and the team had a repeatable checkpoint structure",
+        outcome="stabilized delivery",
+        evidence_terms=("implementation", "stakeholder alignment"),
+        signals=("implementation", "alignment"),
+    )
+    answer = build_detailed_interview_guide.story_sample_answer(
+        card,
+        profile,
+        "Smoke Test Systems",
+        "Implementation Consultant",
+        DUMMY_JOB_DESCRIPTION,
+        "",
+        OLLIE_RESUME_TEXT,
+    )
+    assert_true(
+        build_detailed_interview_guide.first_sentence(answer.full) == build_detailed_interview_guide.first_sentence(answer.meat_first),
+        f"story_sample_answer().full should begin with the exact same claim sentence used in meat_first; got meat_first={answer.meat_first!r}, full={answer.full!r}",
+    )
+    assert_true(
+        answer.stretch_modules and answer.pushback_branches and answer.alternate,
+        f"story_sample_answer() should populate the layered script fields; got {answer}",
+    )
+
+
+def test_delivery_validator_only_scans_scripted_strings(build_detailed_interview_guide: object) -> None:
+    clean_answer = build_detailed_interview_guide.StoryAnswerParts(
+        full="I led the rollout cleanup and stabilized the launch.",
+        meat_first="I led the rollout cleanup.",
+        stretch_modules=(("Proof", "I rebuilt the validation path."),),
+        alternate="The key was making ownership visible early.",
+        pushback_branches=(("What was yours?", "I owned the structure and the checkpoint rhythm."),),
+    )
+    build_detailed_interview_guide.validate_delivery_principles(clean_answer, label="clean scripted answer")
+    hedged_answer = build_detailed_interview_guide.StoryAnswerParts(
+        full="I guess the closest example is a rollout cleanup.",
+        meat_first="I guess the closest example is a rollout cleanup.",
+    )
+    try:
+        build_detailed_interview_guide.validate_delivery_principles(hedged_answer, label="hedged scripted answer")
+    except SystemExit:
+        pass
+    else:
+        raise AssertionError("validate_delivery_principles() should fail on banned hedge language inside scripted answer text")
+
+
+def test_scripted_answer_validator_rejects_unsupported_metrics(build_detailed_interview_guide: object) -> None:
+    answer = build_detailed_interview_guide.StoryAnswerParts(
+        full="I rebuilt the workflow and reduced manual work by 99%.",
+        meat_first="I rebuilt the workflow.",
+    )
+    try:
+        build_detailed_interview_guide.validate_scripted_answer(
+            answer,
+            label="unsupported metric story",
+            allowed_text="I rebuilt the workflow and reduced manual work by 22%.",
+        )
+    except SystemExit:
+        pass
+    else:
+        raise AssertionError("validate_scripted_answer() should fail when a script introduces an unsupported metric token")
+
+
+def test_ai_customer_work_answer_uses_confirmed_qualitative_story(
+    build_resume: object,
+    build_interview_cheat_sheet: object,
+    build_detailed_interview_guide: object,
+) -> None:
+    answer = build_detailed_interview_guide.ai_customer_work_answer()
+    combined = " ".join(
+        [
+            answer.full,
+            answer.alternate,
+            *[f"{label} {text}" for label, text in answer.stretch_modules],
+            *[f"{concern} {text}" for concern, text in answer.pushback_branches],
+        ]
+    )
+    assert_true(
+        "ChatGPT Codex" in combined
+        and "Claude" in combined
+        and "Gemini" in combined
+        and "Copilot" in combined
+        and "Aptean Import Wizard" in combined
+        and "GL-account" in combined
+        and "sandbox" in combined
+        and "that sounds like scripting more than ai" in combined.lower(),
+        f"ai_customer_work_answer() should use the confirmed qualitative workflow story and pushback branch; got {combined!r}",
+    )
+    keyword_answers = build_interview_cheat_sheet.keyword_ready_answers(
+        build_resume.job_problem_profile(DUMMY_JOB_DESCRIPTION, OLLIE_RESUME_TEXT),
+        "AI workflow, automation, and customer enablement role.",
+        build_interview_cheat_sheet.supported_story_bank(OLLIE_RESUME_TEXT),
+    )
+    ai_answer = next((item.answer for item in keyword_answers if item.prompt.startswith("AI-Enabled Customer Work:")), "")
+    assert_true(
+        "ChatGPT Codex" in ai_answer and "Aptean Import Wizard" in ai_answer,
+        f"keyword_ready_answers() should reuse the confirmed AI workflow story; got {ai_answer!r}",
     )
 
 
@@ -4487,7 +4756,9 @@ def test_industry_depth_and_company_scoped_logistics(build_resume: object, build
         f"manufacturing answer should connect process, role, impact, and an honest boundary; got {manufacturing}",
     )
     assert_true(
-        "not my deepest area" in technical and "engineering and controls specialists" in technical,
+        "business analytics and ERP configuration" in technical
+        and "not PLC programming or code writing" in technical
+        and "barcode scanners tied into the software layer" in technical,
         f"technical-depth answer should state the boundary and partnership model; got {technical}",
     )
     supplied = (
@@ -4506,6 +4777,226 @@ def test_industry_depth_and_company_scoped_logistics(build_resume: object, build
         "$100K" not in generic and "approved range" in generic and "[" not in generic,
         f"missing notes should produce a complete nonnumeric answer without placeholders; got {generic}",
     )
+
+
+def test_first_90_day_plan_reuses_shared_stage_source(build_resume: object, build_interview_cheat_sheet: object) -> None:
+    profile = build_resume.job_problem_profile(DUMMY_JOB_DESCRIPTION, OLLIE_RESUME_TEXT)
+    plan = build_interview_cheat_sheet.first_90_day_plan(profile)
+    ladder = build_interview_cheat_sheet.first_90_day_approach(profile)
+    assert_true(
+        len(plan.stages) == 3 and len(ladder) == 3,
+        f"first_90_day_plan() should expose three stage blocks and first_90_day_approach() should render the same three; got plan={plan.stages} ladder={ladder}",
+    )
+    assert_true(
+        plan.answer.startswith("In the first 30 days") and plan.validation_question == "Does that match what the team expects at this level?",
+        f"first_90_day_plan() should build the spoken answer plus the answer-first validation question; got {plan}",
+    )
+    for (label, text), rendered in zip(plan.stages, ladder):
+        assert_true(
+            label in rendered and text in rendered,
+            f"first_90_day_approach() should render the same stage lines exposed by first_90_day_plan(); got stage={(label, text)} rendered={rendered!r}",
+        )
+
+
+def test_application_answers_use_written_confirmation_and_automation_boundary(question_prep: object) -> None:
+    jd = (
+        "Company: Acme Automation\n"
+        "Role: Solution Consultant\n"
+        "This warehouse automation role includes PLC, controls, conveyors, WCS, and stakeholder communication."
+    )
+    software = question_prep.software_inventory_answer_for_job(jd, OLLIE_RESUME_TEXT)
+    communication = question_prep.communication_answer(
+        "stakeholder communication",
+        job_description=jd,
+        resume_text=OLLIE_RESUME_TEXT,
+    )
+    assert_true(
+        "business analytics and ERP configuration" in software
+        and "not PLC programming or code writing" in software
+        and "least-privilege access controls" in software
+        and "barcode scanners tied into the software layer" in software
+        and "access-control layer" in software,
+        f"software_inventory_answer_for_job() should self-categorize technical depth for automation-heavy roles; got {software!r}",
+    )
+    assert_true(
+        "confirm it in writing" in communication and "functional requirements" in communication,
+        f"communication_answer() should lead with written-confirmation discipline for communication prompts; got {communication!r}",
+    )
+
+
+def test_detailed_guide_stage_patterns_and_debrief_overlay(
+    build_resume: object,
+    build_interview_cheat_sheet: object,
+    build_detailed_interview_guide: object,
+) -> None:
+    from docx import Document
+
+    jd = (
+        "Company: Acme Automation\n"
+        "Role: Solution Consultant\n"
+        "This warehouse automation role includes PLC, controls, conveyors, WCS, and stakeholder communication."
+    )
+    profile = build_resume.job_problem_profile(jd, OLLIE_RESUME_TEXT)
+    stories = build_interview_cheat_sheet.expanded_story_bank()
+
+    hr_document = Document()
+    build_detailed_interview_guide.add_hr_screen_prep_section(
+        hr_document,
+        profile,
+        "Acme Automation",
+        "Solution Consultant",
+        jd,
+        OLLIE_RESUME_TEXT,
+        "",
+        "",
+        stories,
+    )
+    hr_text = build_detailed_interview_guide.document_text(hr_document)
+    assert_true(
+        "Company snapshot" in hr_text
+        and "Recruiter checklist" in hr_text
+        and "What would you do in the first 90 days?" in hr_text,
+        f"HR screen prep should surface the reusable company snapshot, recruiter checklist, and staged recruiter answer pairs; got {hr_text!r}",
+    )
+
+    hiring_document = Document()
+    build_detailed_interview_guide.add_hiring_manager_prep_section(
+        hiring_document,
+        profile,
+        "Acme Automation",
+        "Solution Consultant",
+        jd,
+        stories,
+    )
+    hiring_text = build_detailed_interview_guide.document_text(hiring_document)
+    assert_true(
+        "First 90-day glance" in hiring_text
+        and "Software-boundary answer" in hiring_text
+        and "Hardware-gap bridge" in hiring_text
+        and "Four anchor stories for this round" in hiring_text,
+        f"Hiring-manager prep should surface the shared 90-day answer, the software and hardware boundary scripts, and the story anchor table; got {hiring_text!r}",
+    )
+
+    overlay_document = Document()
+    rendered = build_detailed_interview_guide.add_debrief_overlay_section(
+        overlay_document,
+        (
+            {
+                "unexpected_questions": ["What would you do in the first 90 days?"],
+                "feedback_received": ["Keep answers tighter."],
+                "review_analysis": {
+                    "positioning_diagnosis": {
+                        "headline": "Qualified but too long.",
+                        "reasons": ["Lead with the answer sooner."],
+                    },
+                    "answer_strategy": {
+                        "delivery_shifts": ["Lead with the answer in sentence one."],
+                    },
+                    "answer_assets": {
+                        "role_language_lines": ["Translate customer inputs into recommendations."],
+                        "company_signal_lines": ["Discovery quality matters early."],
+                    },
+                },
+            },
+        ),
+    )
+    overlay_text = build_detailed_interview_guide.document_text(overlay_document)
+    assert_true(rendered, "add_debrief_overlay_section() should render when a structured round record exists.")
+    overlay_lower = overlay_text.lower()
+    assert_true(
+        "debrief-to-prep overlay" in overlay_lower
+        and "interviewer language to reuse" in overlay_lower
+        and "unexpected questions to drill" in overlay_lower
+        and "safe repeatable company terms" in overlay_lower,
+        f"Debrief overlay should render the reusable prep surfaces from structured records; got {overlay_text!r}",
+    )
+
+
+def test_interview_companion_documents_reuse_shared_stage_sources(
+    build_resume: object,
+    build_interview_cheat_sheet: object,
+    build_detailed_interview_guide: object,
+) -> None:
+    jd = (
+        "Company: Acme Automation\n"
+        "Role: Solution Consultant\n"
+        "This warehouse automation role includes PLC, controls, conveyors, WCS, and stakeholder communication."
+    )
+    profile = build_interview_cheat_sheet.adjusted_profile_for_role(
+        build_resume.job_problem_profile(jd, OLLIE_RESUME_TEXT),
+        "Solution Consultant",
+        jd,
+    )
+    stories = build_interview_cheat_sheet.expanded_story_bank()
+
+    recruiter_document = build_detailed_interview_guide.build_recruiter_screen_companion_document(
+        profile,
+        "Acme Automation",
+        "Solution Consultant",
+        jd,
+        OLLIE_RESUME_TEXT,
+        "",
+        "",
+        stories,
+    )
+    recruiter_text = build_detailed_interview_guide.document_text(recruiter_document)
+    recruiter_upper = recruiter_text.upper()
+    assert_true(
+        "RECRUITER SCREEN PREP" in recruiter_upper
+        and "KNOW THE COMPANY" in recruiter_upper
+        and "RECRUITER CHECKLIST" in recruiter_upper
+        and "What would you do in the first 90 days?" in recruiter_text,
+        f"Recruiter-screen companion should stay tied to the shared recruiter bank and checklist content; got {recruiter_text!r}",
+    )
+
+    plan_document = build_detailed_interview_guide.build_first_90_day_one_pager_document(
+        profile,
+        "Acme Automation",
+        "Solution Consultant",
+        jd,
+    )
+    plan_text = build_detailed_interview_guide.document_text(plan_document)
+    plan = build_interview_cheat_sheet.first_90_day_plan(profile)
+    assert_true(
+        plan.validation_question in plan_text
+        and all(text in plan_text for _label, text in plan.stages),
+        f"90-day companion should reuse the shared stage plan and validation question; got {plan_text!r}",
+    )
+
+    addendum_document = build_detailed_interview_guide.build_debrief_addendum_document(
+        "Acme Automation",
+        "Solution Consultant",
+        (
+            {
+                "unexpected_questions": ["What would you do in the first 90 days?"],
+                "feedback_received": ["Keep answers tighter."],
+                "review_analysis": {
+                    "positioning_diagnosis": {
+                        "headline": "Qualified but too long.",
+                        "reasons": ["Lead with the answer sooner."],
+                    },
+                    "answer_strategy": {
+                        "delivery_shifts": ["Lead with the answer in sentence one."],
+                    },
+                    "answer_assets": {
+                        "role_language_lines": ["Translate customer inputs into recommendations."],
+                        "company_signal_lines": ["Discovery quality matters early."],
+                    },
+                },
+            },
+        ),
+    )
+    assert_true(addendum_document is not None, "Debrief companion should render when structured debrief signals exist.")
+    addendum_text = build_detailed_interview_guide.document_text(addendum_document)
+    addendum_upper = addendum_text.upper()
+    assert_true(
+        "DEBRIEF PREP ADDENDUM" in addendum_upper
+        and "DEBRIEF-TO-PREP OVERLAY" in addendum_upper
+        and "FIX CARDS" in addendum_upper,
+        f"Debrief companion should stay tied to the shared overlay sections; got {addendum_text!r}",
+    )
+
+
 def test_behavioral_answer_scripts_use_spoken_answers_for_core_prompts(
     build_resume: object,
     build_interview_cheat_sheet: object,
@@ -9383,6 +9874,7 @@ def test_workflow_tracks_after_required_steps_before_optional_failure() -> None:
     original_pairing_issue = run_resume_workflow.job_context_archive.application_question_pairing_issue
     try:
         run_resume_workflow.parse_args = lambda: SimpleNamespace(
+            resume_only=False,
             include_cheat_sheet=True,
             include_detailed_guide=False,
             dry_run=False,
@@ -9541,6 +10033,7 @@ def test_run_resume_workflow_dry_run_skips_upfront_job_validation() -> None:
     original_run_dry_run = run_resume_workflow.run_dry_run
     try:
         run_resume_workflow.parse_args = lambda: SimpleNamespace(
+            resume_only=False,
             include_cheat_sheet=False,
             include_detailed_guide=False,
             dry_run=True,
@@ -9832,6 +10325,28 @@ def test_tasks_register_interview_review_command() -> None:
     )
 
 
+def test_onedrive_run_guard_absent() -> None:
+    import tasks
+
+    with TemporaryDirectory(prefix="onedrive_guard_absent_") as temp_name:
+        assert_true(
+            tasks._onedrive_run_guard(Path(temp_name)) is None,
+            "_onedrive_run_guard() should allow normal runs when the retirement sentinel is absent.",
+        )
+
+
+def test_onedrive_run_guard_present() -> None:
+    import tasks
+
+    with TemporaryDirectory(prefix="onedrive_guard_present_") as temp_name:
+        root = Path(temp_name)
+        (root / "DO_NOT_RUN_FROM_ONEDRIVE.txt").write_text("retired", encoding="utf-8")
+        assert_true(
+            tasks._onedrive_run_guard(root) == 2,
+            "_onedrive_run_guard() should refuse runs when the retirement sentinel is present.",
+        )
+
+
 def test_build_interview_review_sections(build_interview_review: object, interview_context: object) -> None:
     record = interview_context.normalize_round_record(
         {
@@ -9888,8 +10403,11 @@ def test_claude_packet_modes(build_claude_review_packet: object) -> None:
         "Federal packets should include the federal mode label and the current system contract block",
     )
     assert_true(
-        "Packet mode: `claude-review`" in claude_review_packet and "proposal" in claude_review_packet.lower(),
-        "Claude-review packets should include the dedicated mode label and proposal-versus-live guidance",
+        "Packet mode: `claude-review`" in claude_review_packet
+        and "proposal" in claude_review_packet.lower()
+        and "Interview Feature Track" in claude_review_packet
+        and "Commit Train Track" in claude_review_packet,
+        "Claude-review packets should include the dedicated mode label, proposal-versus-live guidance, and dual-track progress-check contract",
     )
 
 
@@ -10143,6 +10661,107 @@ communications, adoption measurement, and measurable follow-through across syste
     assert_true(
         repair.converged,
         f"Summary anchor guard should still converge through prose_engine.repair_text(); got {repair.findings}",
+    )
+
+
+def test_summary_quantified_anchor_detects_multi_digit_proof() -> None:
+    import resume_content
+
+    assert_true(
+        resume_content.summary_has_quantified_anchor("Built 200+ dashboards and KPI tools for executive reporting."),
+        "summary_has_quantified_anchor() should recognize multi-digit plus-count proof.",
+    )
+    assert_true(
+        resume_content.summary_has_quantified_anchor("Cut manual inventory work by 78% through automated adjustments."),
+        "summary_has_quantified_anchor() should recognize percentage proof.",
+    )
+
+
+def test_summary_repair_preserves_three_sentences_for_high_signal_variants(build_resume: object) -> None:
+    import prose_engine
+    import resume_content
+
+    resume_text = build_resume.docx_visible_text_from_path(build_resume.IMPLEMENTATION_RESUME)
+    cases = (
+        (
+            "decision",
+            """
+Company: Dematic
+Role: Solution Consultant
+This role turns operations and engineering requirements into scoped recommendations, stakeholder-ready implementation plans,
+workflow clarity, training support, and adoption follow-through across complex enterprise rollouts.
+""",
+            "QBRs",
+        ),
+        (
+            "ai",
+            """
+Company: Dematic
+Role: Solution Consultant
+This role blends AI-assisted workflow automation, documentation, reporting, SQL troubleshooting, stakeholder communication,
+training, and implementation clarity across enterprise software delivery.
+""",
+            "Claude",
+        ),
+        (
+            "launch",
+            """
+Company: Dematic
+Role: Solution Consultant
+This role supports warehouse launch readiness, Amazon Robotics coordination, migration planning, testing, go-live execution,
+and cross-functional implementation follow-through for complex customer rollouts.
+""",
+            "Amazon Robotics",
+        ),
+    )
+    for proof_anchor, job_description, expected_term in cases:
+        profile = build_resume.job_problem_profile(job_description, resume_text)
+        emphasis = SimpleNamespace(proof_anchor=proof_anchor)
+        positioning = resume_content.summary_positioning_sentence(profile, job_description, emphasis)
+        proof = resume_content.summary_proof_sentence(profile, job_description, emphasis)
+        close = resume_content.summary_fit_close_sentence(profile, job_description, emphasis)
+        summary = resume_content.ensure_summary_minimum_words(positioning, proof, close, profile, job_description)
+        summary = resume_content.neutralize_conflicting_region_lists(summary)
+        findings = prose_engine.validate_text(summary, "summary")
+        hard_failures = [finding.rule_id for finding in findings if finding.severity == "fail"]
+        repair = prose_engine.repair_text(summary, "summary")
+        sentences = build_resume.summary_sentences(repair.text)
+
+        assert_true(
+            not hard_failures,
+            f"{proof_anchor} summary should avoid prose hard failures before repair; got {hard_failures} in {summary}",
+        )
+        assert_true(
+            repair.converged,
+            f"{proof_anchor} summary should still converge through prose repair; got {repair.findings}",
+        )
+        assert_true(
+            len(sentences) == 3,
+            f"{proof_anchor} summary should stay at three recruiter-friendly sentences after repair; got {sentences}",
+        )
+        assert_true(
+            expected_term in repair.text,
+            f"{proof_anchor} summary should preserve its core proof term after repair; got {repair.text}",
+        )
+
+
+def test_substitution_safety_respects_paragraph_boundaries() -> None:
+    import text_safety
+
+    safe_text = (
+        "Christian Estrada Solution Consultant | Enterprise Systems\n"
+        "Enterprise systems and change adoption consultant with 10+ years improving rollout clarity."
+    )
+    unsafe_text = (
+        "Owned the enterprise platform while documenting the enterprise platform migration for users."
+    )
+    assert_true(
+        "SUBSTITUTION_DUPLICATE_GENERIC_TERM" not in text_safety.substitution_safety_issues(safe_text),
+        "substitution_safety_issues() should not merge header lines and the next paragraph into one duplicate-term sentence.",
+    )
+    assert_true(
+        "SUBSTITUTION_DUPLICATE_GENERIC_TERM" in text_safety.substitution_safety_issues(unsafe_text),
+        "substitution_safety_issues() should still flag duplicate generic platform terms inside one sentence.",
     )
 
 
@@ -10430,20 +11049,41 @@ def test_bootstrap_writes_live_canonical_launchers() -> None:
         resume_text = (root / "run_resume.bat").read_text(encoding="utf-8")
         federal_text = (root / "run_federal_resume.bat").read_text(encoding="utf-8")
         refresh_text = (root / "run_claude_refresh.bat").read_text(encoding="utf-8")
+        guide_text = (root / "run_detailed_interview_guide.bat").read_text(encoding="utf-8")
         debrief_text = (root / "run_post_interview_debrief.bat").read_text(encoding="utf-8")
         bootstrap_text = (root / "run_canonical_bootstrap.bat").read_text(encoding="utf-8")
 
         assert_true(
-            "workspace_health.py" in resume_text and "call :run_task resume" in resume_text and "call :run_task dry-run" in resume_text,
-            "run_resume.bat should print workspace health and offer both resume and dry-run commands",
+            "workspace_health.py" in resume_text
+            and 'choice /c RFD' in resume_text
+            and 'call :run_task resume --resume-only' in resume_text
+            and 'call :run_task resume' in resume_text
+            and 'call :run_task dry-run' in resume_text
+            and 'Resume created, but the cover letter was saved as DRAFT.' in resume_text
+            and 'if not exist ".\\output" mkdir ".\\output"' in resume_text,
+            "run_resume.bat should offer resume-only, full, and dry-run modes while treating a DRAFT cover letter as a handled outcome",
         )
         assert_true(
-            "call :run_task federal-resume" in federal_text and "call :run_task federal-dry-run" in federal_text,
-            "run_federal_resume.bat should offer both federal resume and federal dry-run commands",
+            "call :run_task federal-resume" in federal_text
+            and "call :run_task federal-dry-run" in federal_text
+            and 'if not exist ".\\output" mkdir ".\\output"' in federal_text,
+            "run_federal_resume.bat should offer both federal resume and federal dry-run commands and pre-create output",
         )
         assert_true(
             "call :run_task claude-refresh --skip-checks" in refresh_text and "call :run_task claude-refresh" in refresh_text,
             "run_claude_refresh.bat should offer both checked and skip-checks refresh commands",
+        )
+        assert_true(
+            "call :run_task interview" in guide_text
+            and "call :run_task guide --stage %GUIDE_STAGE%" in guide_text
+            and "interview cheat sheet" in guide_text
+            and "Selection [1-7]" in guide_text
+            and "GUIDE_STAGE=hr_screen" in guide_text
+            and "build_interview_companions.py" in guide_text
+            and "Recruiter Screen Prep companion" in guide_text
+            and "90 Day One-Pager companion" in guide_text
+            and 'if not exist ".\\output" mkdir ".\\output"' in guide_text,
+            "run_detailed_interview_guide.bat should build the cheat sheet, prompt for seven guide stages, and optionally offer the shared companion outputs after pre-creating output",
         )
         assert_true(
             debrief_text.count("choice /c YN") >= 2 and "prepare-company-notes" in debrief_text and "call :run_task debrief" in debrief_text,
@@ -10453,6 +11093,17 @@ def test_bootstrap_writes_live_canonical_launchers() -> None:
             "already the canonical repo" in bootstrap_text,
             "run_canonical_bootstrap.bat should explain that bootstrap requires an explicit external source workspace",
         )
+
+
+def test_run_resume_workflow_parse_args_accepts_resume_only() -> None:
+    import run_resume_workflow
+
+    parsed = run_resume_workflow.parse_args(["--resume-only"])
+
+    assert_true(
+        parsed.resume_only and not parsed.include_cheat_sheet and not parsed.include_detailed_guide and not parsed.dry_run,
+        f"run_resume_workflow.parse_args() should accept --resume-only as a distinct mode; got {parsed}",
+    )
 
 
 def test_bootstrap_retire_source_launchers_skips_nested_canonical_root() -> None:
@@ -10693,8 +11344,15 @@ def test_claude_prompt_templates(build_claude_prompt: object) -> None:
         "Plan prompt should preserve explicit focus overrides",
     )
     assert_true(
-        "proposal" in claude_review_prompt.lower() and "live" in claude_review_prompt.lower(),
-        "Prompt templates should remind Claude to distinguish live behavior from proposals",
+        "1. Overall Status" in claude_review_prompt
+        and "7. Next Exact Action" in claude_review_prompt
+        and "Interview Feature Track" in claude_review_prompt
+        and "Commit Train Track" in claude_review_prompt,
+        "Claude-review prompts should use the dedicated dual-track progress-check output contract",
+    )
+    assert_true(
+        "ON TRACK" in claude_review_prompt and "NEEDS ATTENTION" in claude_review_prompt and "proposal" in claude_review_prompt.lower(),
+        "Claude-review prompts should preserve the top-level health language and live-versus-proposal guidance",
     )
 
 
@@ -10771,6 +11429,7 @@ def test_claude_review_bundle_refresh(claude_review_bundle: object) -> None:
                     "RESUME_SYSTEM_BRIEF.md",
                     "RULES_FOR_CLAUDE.md",
                     "COMMON_CHANGE_AREAS.md",
+                    "CLAUDE_PROGRESS_CHECK_TEMPLATE.md",
                     "UPLOAD_GUIDE.md",
                     "BUNDLE_MANIFEST.json",
                 },
@@ -10823,6 +11482,7 @@ def test_refresh_claude_review_bundle(refresh_claude_review_bundle: object, clau
     original_bundle_dir = claude_review_bundle.CLAUDE_REVIEW_DIR
     original_packet_dir = build_claude_review_packet.CLAUDE_REVIEW_DIR
     original_prompt_dir = build_claude_prompt.CLAUDE_REVIEW_DIR
+    claude_review_prompt = ""
     try:
         with TemporaryDirectory(prefix="claude_refresh_") as temp_name:
             temp_dir = Path(temp_name)
@@ -10830,6 +11490,7 @@ def test_refresh_claude_review_bundle(refresh_claude_review_bundle: object, clau
             build_claude_review_packet.CLAUDE_REVIEW_DIR = temp_dir
             build_claude_prompt.CLAUDE_REVIEW_DIR = temp_dir
             written = refresh_claude_review_bundle.refresh_bundle(("broad", "interview", "federal", "claude-review"), skip_checks=True)
+            claude_review_prompt = next(path for path in written if path.name == "TEMP_CLAUDE_REVIEW_PROMPT_CLAUDE_REVIEW.txt").read_text(encoding="utf-8")
     finally:
         claude_review_bundle.CLAUDE_REVIEW_DIR = original_bundle_dir
         build_claude_review_packet.CLAUDE_REVIEW_DIR = original_packet_dir
@@ -10851,6 +11512,10 @@ def test_refresh_claude_review_bundle(refresh_claude_review_bundle: object, clau
             "TEMP_CLAUDE_REVIEW_PROMPT_CLAUDE_REVIEW.txt",
         }.issubset(written_names),
         "refresh_bundle() should rebuild the common packet, manifest, and prompt files for the broad, interview, federal, and claude-review modes",
+    )
+    assert_true(
+        "Interview Feature Track" in claude_review_prompt and "Commit Train Track" in claude_review_prompt,
+        "refresh_bundle() should generate the dedicated dual-track Claude progress-check prompt for the claude-review mode",
     )
 
 
@@ -10941,17 +11606,30 @@ def main() -> None:
         ("industry depth and company-scoped logistics", None),
         ("human motivation lane coverage", None),
         ("adjusted profile preserves non-lane fields", None),
+        ("story answer parts preserve spoken alias", None),
+        ("story answer constructors use full keyword", None),
         ("extended TMAY sections", None),
-        ("extended TMAY skips empty fragments", None),
+        ("extended TMAY uses module-level supersets", None),
         ("behavioral answer scripts empty story guard", None),
         ("story sample answer separates coaching note", None),
+        ("story sample answer reuses claim sentence in full", None),
+        ("delivery validator only scans scripted strings", None),
+        ("scripted answer validator rejects unsupported metrics", None),
+        ("AI customer work answer uses confirmed qualitative story", None),
         ("story sample answer does not call dead STAR selection", None),
         ("behavioral answer scripts use spoken answers", None),
+        ("interview stage resolution and context parsing", None),
+        ("stage filename suffix composes with detailed guide names", None),
+        ("federal detailed guide wrapper keeps stage params optional", None),
         ("story adaptation and pre-interview routine helpers", None),
         ("spoken sentence split preserves leading characters", None),
         ("nonconverged spoken repairs are collected", None),
         ("interview filters filler and claim first answers", None),
         ("candidate facing outputs avoid raw core problem", None),
+        ("first 90 day plan reuses shared stage source", None),
+        ("application answers use written confirmation and automation boundary", None),
+        ("detailed guide stage patterns and debrief overlay", None),
+        ("interview companion documents reuse shared stage sources", None),
         ("federal version control scope gate is unconditional", None),
         ("Foundant summary uses human close", None),
         ("commercial resume model provenance and render", None),
@@ -10982,6 +11660,8 @@ def main() -> None:
             ("dry-run reports default question usage", None),
             ("default questions skip stale pairing check", None),
             ("explicit stale questions still flagged", None),
+            ("qualifications builder uses question prep response engine", None),
+            ("qualifications builder removes local shadow answer helpers", None),
             ("standard qualifications answers known questions", None),
             ("startup interview false-positive guard", None),
             ("application checklist debrief lookup", None),
@@ -11064,6 +11744,8 @@ def main() -> None:
         ("federal workflow dry-run labels unverified page counts", None),
         ("tasks register federal supporting doc commands", None),
         ("tasks register interview review command", None),
+        ("onedrive run guard absent", None),
+        ("onedrive run guard present", None),
         ("resume builder source passes alignment grade to final fit audit", None),
         ("application checklist fit classification passes alignment grade", None),
         ("final fit audit safe none alignment grade", None),
@@ -11135,12 +11817,14 @@ def main() -> None:
         business_context = modules["business_context"]
         build_general_advice = modules["build_general_advice"]
         federal_supporting_docs = modules["federal_supporting_docs"]
+        interview_stage = modules["interview_stage"]
         interview_context = modules["interview_context"]
         job_search_guidance = modules["job_search_guidance"]
         reset_jobs = modules["reset_jobs"]
         extract_writing_examples = modules["extract_writing_examples"]
         utils = modules["utils"]
         writing_eval = modules["writing_eval"]
+        question_prep = build_detailed_interview_guide.question_prep
         for label, check in (
             ("AGENTS word budget", test_agents_word_budget),
             ("validate dummy inputs", lambda: test_validate_inputs(build_resume)),
@@ -11184,6 +11868,8 @@ def main() -> None:
             ("federal workflow dry-run labels unverified page counts", test_run_federal_workflow_dry_run_labels_unverified_page_counts),
             ("tasks register federal supporting doc commands", test_tasks_register_federal_supporting_doc_commands),
             ("tasks register interview review command", test_tasks_register_interview_review_command),
+            ("onedrive run guard absent", test_onedrive_run_guard_absent),
+            ("onedrive run guard present", test_onedrive_run_guard_present),
             ("resume builder source passes alignment grade to final fit audit", lambda: test_resume_builder_source_passes_alignment_grade_to_final_fit_audit(build_resume)),
             ("application checklist fit classification passes alignment grade", lambda: test_application_checklist_fit_classification_passes_alignment_grade(build_application_checklist)),
             ("final fit audit safe none alignment grade", lambda: test_final_fit_audit_safe_none_alignment_grade(build_resume)),
@@ -11218,6 +11904,9 @@ def main() -> None:
             ("summary condense guard", lambda: test_summary_condense_guard(build_resume)),
             ("ERP summary rebalance", lambda: test_erp_summary_rebalance(build_resume)),
             ("summary anchor retention for change adoption", lambda: test_summary_anchor_retention_for_change_adoption(build_resume)),
+            ("summary quantified anchor detects multi-digit proof", test_summary_quantified_anchor_detects_multi_digit_proof),
+            ("summary repair preserves three sentences for high-signal variants", lambda: test_summary_repair_preserves_three_sentences_for_high_signal_variants(build_resume)),
+            ("substitution safety respects paragraph boundaries", test_substitution_safety_respects_paragraph_boundaries),
             ("Aptean customer success role summary passes prose check", lambda: test_aptean_customer_success_role_summary_passes_prose_check(build_resume)),
             ("proof first close uses discuss and has no first person switch", lambda: test_proof_first_close_uses_discuss_and_has_no_first_person_switch(build_cover_letter)),
             ("enterprise CS JD extracts CS terms not analytics fallback", lambda: test_cs_enterprise_jd_extracts_cs_terms_not_analytics_fallback(build_cover_letter)),
@@ -11297,17 +11986,30 @@ def main() -> None:
             ("industry depth and company-scoped logistics", lambda: test_industry_depth_and_company_scoped_logistics(build_resume, build_interview_cheat_sheet)),
             ("human motivation lane coverage", lambda: test_human_motivation_sentence_has_lane_coverage(build_resume, build_interview_cheat_sheet)),
             ("adjusted profile preserves non-lane fields", lambda: test_adjusted_profile_for_role_preserves_non_lane_fields(build_resume, build_interview_cheat_sheet)),
-            ("extended TMAY sections", lambda: test_extended_tmay_sections(build_resume, build_detailed_interview_guide)),
-            ("extended TMAY skips empty fragments", lambda: test_extended_tmay_sections_skip_empty_story_fragments(build_resume, build_interview_cheat_sheet, build_detailed_interview_guide)),
+            ("story answer parts preserve spoken alias", lambda: test_story_answer_parts_preserve_spoken_alias(build_detailed_interview_guide)),
+            ("story answer constructors use full keyword", test_story_answer_constructors_use_full_keyword),
+            ("extended TMAY sections", lambda: test_extended_tmay_sections_build_time_ladder(build_resume, build_detailed_interview_guide)),
+            ("extended TMAY uses module-level supersets", lambda: test_extended_tmay_sections_use_module_level_superset(build_resume, build_interview_cheat_sheet, build_detailed_interview_guide)),
             ("behavioral answer scripts empty story guard", lambda: test_behavioral_answer_scripts_empty_story_guard(build_resume, build_interview_cheat_sheet)),
             ("story sample answer separates coaching note", lambda: test_story_sample_answer_separates_coaching_note(build_resume, build_interview_cheat_sheet, build_detailed_interview_guide)),
+            ("story sample answer reuses claim sentence in full", lambda: test_story_sample_answer_reuses_claim_sentence_in_full(build_resume, build_interview_cheat_sheet, build_detailed_interview_guide)),
+            ("delivery validator only scans scripted strings", lambda: test_delivery_validator_only_scans_scripted_strings(build_detailed_interview_guide)),
+            ("scripted answer validator rejects unsupported metrics", lambda: test_scripted_answer_validator_rejects_unsupported_metrics(build_detailed_interview_guide)),
+            ("AI customer work answer uses confirmed qualitative story", lambda: test_ai_customer_work_answer_uses_confirmed_qualitative_story(build_resume, build_interview_cheat_sheet, build_detailed_interview_guide)),
             ("story sample answer does not call dead STAR selection", lambda: test_story_sample_answer_does_not_call_dead_star_selection(build_resume, build_interview_cheat_sheet, build_detailed_interview_guide)),
             ("behavioral answer scripts use spoken answers", lambda: test_behavioral_answer_scripts_use_spoken_answers_for_core_prompts(build_resume, build_interview_cheat_sheet)),
+            ("interview stage resolution and context parsing", lambda: test_interview_stage_resolution_and_context_parsing(interview_stage)),
+            ("stage filename suffix composes with detailed guide names", lambda: test_stage_filename_suffix_composes_with_existing_detailed_guide_names(interview_stage, build_detailed_interview_guide, question_prep)),
+            ("federal detailed guide wrapper keeps stage params optional", lambda: test_federal_detailed_guide_wrapper_keeps_stage_params_optional(build_federal_detailed_interview_guide, build_detailed_interview_guide, federal_supporting_docs)),
             ("story adaptation and pre-interview routine helpers", lambda: test_story_adaptation_and_pre_interview_routine_helpers(build_resume, build_interview_cheat_sheet)),
             ("spoken sentence split preserves leading characters", test_spoken_sentence_split_preserves_leading_word_characters),
             ("nonconverged spoken repairs are collected", test_nonconverged_spoken_repairs_are_collected),
             ("interview filters filler and claim first answers", lambda: test_interview_filters_filler_and_claim_first_answers(build_resume, build_interview_cheat_sheet, interview_context)),
             ("candidate facing outputs avoid raw core problem", lambda: test_candidate_facing_outputs_avoid_raw_core_problem(build_resume, build_cover_letter, build_interview_cheat_sheet)),
+            ("first 90 day plan reuses shared stage source", lambda: test_first_90_day_plan_reuses_shared_stage_source(build_resume, build_interview_cheat_sheet)),
+            ("application answers use written confirmation and automation boundary", lambda: test_application_answers_use_written_confirmation_and_automation_boundary(question_prep)),
+            ("detailed guide stage patterns and debrief overlay", lambda: test_detailed_guide_stage_patterns_and_debrief_overlay(build_resume, build_interview_cheat_sheet, build_detailed_interview_guide)),
+            ("interview companion documents reuse shared stage sources", lambda: test_interview_companion_documents_reuse_shared_stage_sources(build_resume, build_interview_cheat_sheet, build_detailed_interview_guide)),
             ("federal version control scope gate is unconditional", lambda: test_federal_version_control_scope_gate_is_unconditional(build_federal_resume)),
             ("Foundant summary uses human close", lambda: test_foundant_summary_uses_human_close(build_resume)),
             ("commercial resume model provenance and render", lambda: test_commercial_resume_model_provenance_and_render(commercial_resume_model, build_resume)),
@@ -11352,6 +12054,8 @@ def main() -> None:
             ("dry-run reports default question usage", lambda: test_dry_run_reports_default_question_usage(build_standard_qualifications_statement.question_prep)),
             ("default questions skip stale pairing check", lambda: test_default_questions_skip_stale_pairing_check(build_standard_qualifications_statement.question_prep)),
             ("explicit stale questions still flagged", lambda: test_explicit_stale_questions_still_flagged(build_standard_qualifications_statement.question_prep)),
+            ("qualifications builder uses question prep response engine", test_qualifications_builder_uses_question_prep_response_engine),
+            ("qualifications builder removes local shadow answer helpers", test_qualifications_builder_removes_local_shadow_answer_helpers),
             ("standard qualifications answers known questions", lambda: test_standard_qualifications_answers_known_questions(build_standard_qualifications_statement)),
             ("standard qualifications answers added company and implementation questions", lambda: test_standard_qualifications_answers_added_company_and_implementation_questions(build_standard_qualifications_statement)),
             ("standard application question parser", lambda: test_standard_application_question_parser_dedupes_blocks(build_standard_qualifications_statement)),
