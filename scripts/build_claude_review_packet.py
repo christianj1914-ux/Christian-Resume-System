@@ -30,6 +30,7 @@ TRACKER = PROJECT_ROOT / "scratch" / "applications.csv"
 JD_LIBRARY_INDEX = PROJECT_ROOT / "scratch" / "jd_library" / "index.csv"
 REVIEW_TEMPLATE = PROJECT_ROOT / ".context" / "CLAUDE_REVIEW_TEMPLATE.md"
 PLAN_TEMPLATE = PROJECT_ROOT / ".context" / "CLAUDE_TASK_TEMPLATE.md"
+PROGRESS_CHECK_TEMPLATE = PROJECT_ROOT / ".context" / "CLAUDE_PROGRESS_CHECK_TEMPLATE.md"
 COMMAND_OUTPUT_CACHE: dict[str, str] = {}
 
 CONTEXT_FILES = (
@@ -326,17 +327,21 @@ PACKET_MODES = {
         name="claude-review",
         title="Claude Review System Packet",
         review_goal=(
-            "Review the Claude Review bundle, packet generator, prompt generator, and refresh workflow so Claude sees "
-            "the live system contract clearly and stops recommending mismatched states or stale assumptions."
+            "Review the Claude Review bundle, packet generator, prompt generator, and progress-check contract so "
+            "Claude reports live implementation state clearly, separates interview features from commit packaging, "
+            "and stops recommending mismatched states or stale assumptions."
         ),
         desired_behavior=(
-            "Claude packets should distinguish current live behavior from proposed additions and should not let non-existent states masquerade as current behavior.",
+            "The Claude-side progress checker should report both an Interview Feature Track for phases 1 to 4 and a Commit Train Track for commits 1 to 7.",
+            "Claude packets and prompts should distinguish current live behavior from proposed additions and should not let non-existent states masquerade as current behavior.",
+            "The progress checker should keep companion outputs opt-in, treat Commit 6 archive normalization as the highest-risk gate, and avoid making support/docs commits look like interview regressions.",
             "The common bundle should stay synchronized with current packet modes, audit-state contracts, cover-length contracts, and federal-vs-commercial distinctions.",
             "Packet refresh should reuse validation and tracker command capture across multiple modes instead of rerunning the same expensive checks unnecessarily.",
         ),
         questions=(
-            "Identify the highest-risk drift points in the Claude review bundle, packet generator, prompt generator, and refresh workflow.",
-            "Call out missing live-contract guidance, stale mode coverage, or packet/prompt mismatches that can lead Claude to propose invalid system changes.",
+            "Identify the highest-risk drift points in the Claude review bundle, packet generator, prompt generator, progress-check contract, and refresh workflow.",
+            "Call out missing dual-track monitoring guidance, stale mode coverage, or packet/prompt mismatches that can make Claude misreport interview-feature progress or commit-train progress.",
+            "Check whether the progress-check prompt enforces the required report sections, top-level health language, commit-specific gates, and repo-hygiene checks.",
             "Point out exact smoke-test additions needed to keep the review tooling synchronized with the live codebase.",
             "If one more snippet is required, name only the smallest additional review-tooling function to inspect.",
         ),
@@ -407,7 +412,10 @@ def packet_source_hashes(mode: PacketMode) -> dict[str, str]:
         path = PROJECT_ROOT / ref
         if path.exists():
             hashes[ref] = workspace_health.sha256_path(path)
-    for template_path in (REVIEW_TEMPLATE, PLAN_TEMPLATE, TASKS_PATH):
+    template_paths = [REVIEW_TEMPLATE, PLAN_TEMPLATE, TASKS_PATH]
+    if mode.name == "claude-review":
+        template_paths.append(PROGRESS_CHECK_TEMPLATE)
+    for template_path in template_paths:
         if template_path.exists():
             hashes[workspace_health.rel_path(template_path)] = workspace_health.sha256_path(template_path)
     for excerpt in mode.excerpts:
@@ -699,7 +707,10 @@ def packet_self_audit(mode: PacketMode, warnings: list[str]) -> None:
     for command in ("claude-packet", "claude-prompt", "claude-refresh", "validate", "integration-test", "track-report"):
         if command not in task_source:
             append_warning_once(warnings, f"tasks.py does not visibly register `{command}`.")
-    for template_path in (REVIEW_TEMPLATE, PLAN_TEMPLATE):
+    template_paths = [REVIEW_TEMPLATE, PLAN_TEMPLATE]
+    if mode.name == "claude-review":
+        template_paths.append(PROGRESS_CHECK_TEMPLATE)
+    for template_path in template_paths:
         if not template_path.exists():
             append_warning_once(warnings, f"Missing Claude prompt template: `{template_path.relative_to(PROJECT_ROOT)}`")
             continue

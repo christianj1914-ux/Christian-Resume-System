@@ -65,6 +65,7 @@ Supporting templates:
 
 - `CLAUDE_REVIEW_TEMPLATE.md`
 - `CLAUDE_TASK_TEMPLATE.md`
+- `CLAUDE_PROGRESS_CHECK_TEMPLATE.md`
 
 Authoritative current review artifacts:
 

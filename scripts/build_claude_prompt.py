@@ -22,6 +22,7 @@ PACKET_PATH = CLAUDE_REVIEW_DIR / "TEMP_FOR_REVIEW.md"
 TEMPLATE_DIR = PROJECT_ROOT / ".context"
 REVIEW_TEMPLATE = TEMPLATE_DIR / "CLAUDE_REVIEW_TEMPLATE.md"
 PLAN_TEMPLATE = TEMPLATE_DIR / "CLAUDE_TASK_TEMPLATE.md"
+PROGRESS_CHECK_TEMPLATE = TEMPLATE_DIR / "CLAUDE_PROGRESS_CHECK_TEMPLATE.md"
 PACKET_MODES = ("broad", "tracker", "checklist", "resume", "cover", "interview", "workflow", "federal", "claude-review")
 
 
@@ -76,6 +77,12 @@ def read_prompt_template(path: Path) -> str:
     if match:
         return match.group(1).strip()
     return text.strip()
+
+
+def prompt_template_path(prompt_kind: str, packet_mode: str) -> Path:
+    if prompt_kind == "review" and packet_mode == "claude-review":
+        return PROGRESS_CHECK_TEMPLATE
+    return REVIEW_TEMPLATE if prompt_kind == "review" else PLAN_TEMPLATE
 
 
 def packet_command(packet_mode: str) -> str:
@@ -135,7 +142,7 @@ def packet_manifest_status(packet_path: Path) -> tuple[bool, str]:
 
 
 def build_prompt(prompt_kind: str, packet_mode: str, focus: str, packet_path: str) -> str:
-    template_path = REVIEW_TEMPLATE if prompt_kind == "review" else PLAN_TEMPLATE
+    template_path = prompt_template_path(prompt_kind, packet_mode)
     template = read_prompt_template(template_path)
     replacements = {
         "{{PACKET_PATH}}": packet_path,

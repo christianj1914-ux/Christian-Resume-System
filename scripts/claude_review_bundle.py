@@ -31,6 +31,7 @@ EXACT_COPY_FILES = (
     ReviewBundleFile(CONTEXT_DIR / "SCRIPT_INDEX.md", "SCRIPT_INDEX.md"),
     ReviewBundleFile(CONTEXT_DIR / "CLAUDE_REVIEW_TEMPLATE.md", "CLAUDE_REVIEW_TEMPLATE.md"),
     ReviewBundleFile(CONTEXT_DIR / "CLAUDE_TASK_TEMPLATE.md", "CLAUDE_TASK_TEMPLATE.md"),
+    ReviewBundleFile(CONTEXT_DIR / "CLAUDE_PROGRESS_CHECK_TEMPLATE.md", "CLAUDE_PROGRESS_CHECK_TEMPLATE.md"),
 )
 
 CORE_GUIDANCE_FILES = (
@@ -46,6 +47,7 @@ CORE_GUIDANCE_FILES = (
 SUPPORTING_TEMPLATE_FILES = (
     "CLAUDE_REVIEW_TEMPLATE.md",
     "CLAUDE_TASK_TEMPLATE.md",
+    "CLAUDE_PROGRESS_CHECK_TEMPLATE.md",
 )
 
 
@@ -89,6 +91,7 @@ def source_hashes() -> dict[str, str]:
         CONTEXT_DIR / "COMMON_CHANGE_AREAS.md",
         CONTEXT_DIR / "CLAUDE_REVIEW_TEMPLATE.md",
         CONTEXT_DIR / "CLAUDE_TASK_TEMPLATE.md",
+        CONTEXT_DIR / "CLAUDE_PROGRESS_CHECK_TEMPLATE.md",
     ]
     return {
         workspace_health.rel_path(path): workspace_health.sha256_path(path)
