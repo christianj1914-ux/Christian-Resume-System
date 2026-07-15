@@ -150,6 +150,13 @@ def _new_style_rows(rows: list[dict[str, str]]) -> list[dict[str, str]]:
     ]
 
 
+def _read_metadata_file(path: Path) -> dict[str, object]:
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except (FileNotFoundError, json.JSONDecodeError):
+        return {}
+
+
 def _safe_company_name(job_description_text: str) -> str:
     for extractor in (
         resume_analysis.extract_company_name,
@@ -203,6 +210,58 @@ def _row_from_metadata(metadata: dict[str, object]) -> dict[str, str]:
         "job_description_sha256": str(metadata.get("job_description_sha256", "")),
         "application_questions_sha256": str(metadata.get("application_questions_sha256", "")),
     }
+
+
+def _normalized_snapshot_metadata(snapshot_id: str) -> dict[str, object] | None:
+    snapshot_id = snapshot_id.strip()
+    if not snapshot_id:
+        return None
+    path = snapshot_dir(snapshot_id)
+    metadata_path = metadata_path_for_snapshot(snapshot_id)
+    job_path = job_description_path_for_snapshot(snapshot_id)
+    if not metadata_path.exists() or not job_path.exists():
+        return None
+
+    existing = _read_metadata_file(metadata_path)
+    job_description_text = read_text(job_path)
+    if not job_description_text:
+        return None
+    application_questions_text = read_text(application_questions_path_for_snapshot(snapshot_id))
+    prompts = parse_question_blocks(application_questions_text)
+    created_at = str(existing.get("created_at", "")).strip()
+    if not created_at:
+        created_at = datetime.fromtimestamp(path.stat().st_mtime).isoformat(timespec="seconds")
+    metadata: dict[str, object] = {
+        "snapshot_id": snapshot_id,
+        "created_at": created_at,
+        "company": _safe_company_name(job_description_text),
+        "role": _safe_role_title(job_description_text),
+        "workflow_type": str(existing.get("workflow_type", "commercial") or "commercial"),
+        "source_command": str(existing.get("source_command", "")),
+        "archive_reason": str(existing.get("archive_reason", "")),
+        "lane": _safe_lane(job_description_text),
+        "questions_present": bool(prompts),
+        "question_count": len(prompts),
+        "relative_path": snapshot_id,
+        "job_description_sha256": sha256_text(job_description_text),
+        "application_questions_sha256": sha256_text(application_questions_text),
+    }
+    if metadata != existing:
+        metadata_path.write_text(json.dumps(metadata, indent=2) + "\n", encoding="utf-8")
+    return metadata
+
+
+def _snapshot_rows_from_disk() -> list[dict[str, str]]:
+    rows: list[dict[str, str]] = []
+    if not SCRATCH_JD_LIBRARY.exists():
+        return rows
+    for path in sorted(SCRATCH_JD_LIBRARY.iterdir()):
+        if not path.is_dir():
+            continue
+        metadata = _normalized_snapshot_metadata(path.name)
+        if metadata:
+            rows.append(_row_from_metadata(metadata))
+    return rows
 
 
 def _snapshot_from_metadata(metadata: dict[str, object], path: Path) -> ArchivedJobContext:
@@ -520,11 +579,9 @@ def sync_legacy_archives() -> None:
     _SYNC_COMPLETE = True
     raw_rows = _read_index_raw()
     legacy_rows = [row for row in raw_rows if row.get("filename", "").strip() and not row.get("snapshot_id", "").strip()]
-    new_rows = _new_style_rows(raw_rows)
-    if legacy_rows:
-        _write_index(new_rows)
-    elif raw_rows and raw_rows != new_rows:
-        _write_index(new_rows)
+    disk_rows = _snapshot_rows_from_disk()
+    if raw_rows != disk_rows:
+        _write_index(disk_rows)
     _import_legacy_jd_library_rows(legacy_rows)
     _import_legacy_named_job_files()
     _backfill_from_cover_traces()
