@@ -1236,8 +1236,11 @@ def build_communication_or_implementation_answer(
 ) -> str:
     problem_phrase = candidate_problem_phrase_from_brief(brief)
     topic = normalize_spaces(question_topic or "cross-functional coordination")
+    communication_topic = any(term in topic.lower() for term in ("communication", "presentation", "facilitation", "training", "stakeholder"))
     sentence_one = clean_answer_sentence(
-        f"My approach to {topic} is to make the workflow, owner, risk, and next decision visible early enough for people to act."
+        "My approach to stakeholder communication is to make the workflow, owner, risk, and next decision visible in the live conversation, then confirm it in writing so nothing important stays in memory."
+        if communication_topic
+        else f"My approach to {topic} is to make the workflow, owner, risk, and next decision visible early enough for people to act."
     )
     relevant_lines = [
         sentence for sentence in brief.selected_proof_sentences
@@ -1255,11 +1258,18 @@ def build_communication_or_implementation_answer(
         f"This discipline matters here because the role depends on {problem_phrase} without losing momentum across teams."
     )
     support_parts = [clean_answer_sentence(line) for line in relevant_lines[:2] if clean_answer_sentence(line)]
+    if communication_topic:
+        support_parts.insert(
+            0,
+            clean_answer_sentence(
+                "In practice, that means turning meetings into functional requirements, follow-up notes, screenshots, and named next steps so scope and expectations stay aligned."
+            ),
+        )
     if len(support_parts) < 2 and len(brief.strongest_direct_proofs) > 1:
         support_parts.append(clean_answer_sentence(f"A second proof area is {brief.strongest_direct_proofs[1]}."))
     if len(support_parts) < 2 and brief.strongest_bridge_theme:
         support_parts.append(clean_answer_sentence(f"A transferable strength here is {brief.strongest_bridge_theme}."))
-    if any(term in topic.lower() for term in ("communication", "presentation", "facilitation", "training", "stakeholder")):
+    if communication_topic:
         public_speaking_line = (
             "The strongest public-speaking proof includes 60+ executive workshops and QBRs plus pre-sales discovery and product demonstrations."
             if brief.primary_lane == "presales_solution"
@@ -1328,20 +1338,54 @@ def software_inventory_answer_for_job(job_description: str, resume_text: str) ->
     answer = re.sub(r",\s*,", ",", answer)
     answer = re.sub(r"\s+,", ",", answer)
     answer = re.sub(r",\s+and\s+\.", ".", answer)
-    return normalize_spaces(answer)
+    answer = normalize_spaces(answer)
+    if build_resume.jd_mentions(
+        job_description,
+        "automation",
+        "warehouse automation",
+        "material handling",
+        "conveyor",
+        "conveyors",
+        "controls",
+        "control systems",
+        "plc",
+        "warehouse control",
+        "wcs",
+        "wes",
+        "autostore",
+        "robotics",
+        "asrs",
+        "schematic",
+        "schematics",
+    ):
+        tools_clause = normalize_spaces(re.sub(r"^Intermediate or higher experience with\s+", "", answer, flags=re.I)).rstrip(".")
+        return normalize_spaces(
+            "My experience is primarily business analytics and ERP configuration, not PLC programming or code writing. "
+            f"That includes {tools_clause}. "
+            "I also designed least-privilege access controls after tracing losses caused by incorrectly processed work orders, and my hardware-adjacent exposure is limited to barcode scanners tied into the software layer. "
+            "The strongest depth is in the software, data, workflow, and access-control layer that surrounds automation rather than in controls engineering or mechanical design."
+        )
+    return answer
 
 
-def communication_answer() -> str:
-    job_description = read_text(JOBS_DIR / "job_description.txt") if (JOBS_DIR / "job_description.txt").exists() else ""
+def communication_answer(
+    question_topic: str = "stakeholder communication",
+    *,
+    job_description: str = "",
+    resume_text: str = "",
+) -> str:
+    if not job_description.strip():
+        job_description = read_text(JOBS_DIR / "job_description.txt") if (JOBS_DIR / "job_description.txt").exists() else ""
     if not job_description.strip():
         job_description = (
             "Company: Target Company\n"
             "Role: Cross-Functional Implementation Role\n"
             "This role requires stakeholder communication, implementation coordination, and practical follow-through."
         )
-    resume_text = approved_source_resume_text()
+    if not resume_text.strip():
+        resume_text = approved_source_resume_text()
     brief = active_positioning_brief(job_description, resume_text)
-    return build_communication_or_implementation_answer(brief, "stakeholder communication")
+    return build_communication_or_implementation_answer(brief, question_topic)
 
 
 def company_interest_answer(job_description: str, resume_text: str) -> str:
@@ -1573,9 +1617,10 @@ def answer_prompt(prompt: str, job_description: str, snapshot: ResumeSnapshot, r
     elif category == "communication":
         response = QualificationsResponse(
             prompt,
-            build_communication_or_implementation_answer(
-                active_positioning_brief(job_description, resume_text),
+            communication_answer(
                 communication_question_topic(prompt),
+                job_description=job_description,
+                resume_text=resume_text,
             ),
         )
     elif category == "company_interest":

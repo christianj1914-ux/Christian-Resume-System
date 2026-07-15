@@ -1,1 +1,3 @@
 What motivates me is using technology to help people and organizations work better. Bringing my skills to problems that actually matter to the people affected by them is what makes this work meaningful to me.
+Confirmed East West scope: designed least-privilege ERP access controls after tracing losses caused by incorrectly processed work orders; tightened permissions by role and used incident backtracking to improve controls.
+Confirmed hardware-adjacent scope: limited direct exposure to barcode scanners through the software layer, validating that scanner activity was reflected correctly in the systems being managed.

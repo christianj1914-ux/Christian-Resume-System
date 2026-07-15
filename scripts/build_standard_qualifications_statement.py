@@ -23,7 +23,7 @@ import question_prep
 import prose_engine
 import render_checks
 import resume_analysis
-from build_skills_database import ResumeSnapshot, SOURCE_FILES, parse_resume
+from build_skills_database import ResumeSnapshot
 from config.paths import APPLICATION_QUESTIONS, JOB_DESCRIPTION, OUTPUT_DIR
 from utils import read_text
 
@@ -33,6 +33,11 @@ QUESTION_FONT_SIZE = 13
 NAME_FONT_SIZE = 14
 TITLE_FONT_SIZE = 16
 TITLE_BLUE = RGBColor(46, 116, 181)
+QualificationsResponse = question_prep.QualificationsResponse
+normalize_spaces = question_prep.normalize_spaces
+parse_question_blocks = question_prep.parse_question_blocks
+selected_resume_snapshot = question_prep.selected_resume_snapshot
+build_question_responses = question_prep.build_question_responses
 MONTH_NAME_TO_NUMBER = {
     "january": 1,
     "february": 2,
@@ -47,32 +52,6 @@ MONTH_NAME_TO_NUMBER = {
     "november": 11,
     "december": 12,
 }
-SOFTWARE_ITEMS = (
-    ("Microsoft Excel (including Power Query)", (r"\bexcel power query\b",)),
-    ("Power BI", (r"\bpower bi\b",)),
-    ("SQL", (r"\bsql\b",)),
-    ("SAP Crystal Reports", (r"\bsap crystal reports\b|\bcrystal reports\b",)),
-    ("Tableau", (r"\btableau\b",)),
-    ("Salesforce CRM", (r"\bsalesforce\b",)),
-    ("Salesforce Service Cloud", (r"\bservice cloud\b",)),
-    ("Salesforce Marketing Cloud", (r"\bmarketing cloud\b",)),
-    ("Salesforce AppExchange", (r"\bappexchange\b",)),
-    ("ServiceNow", (r"\bservicenow\b",)),
-    ("Jira", (r"\bjira\b",)),
-    ("Aptean Intuitive", (r"\baptean intuitive\b",)),
-    ("Aptean Encompix", (r"\baptean encompix\b|\bencompix\b",)),
-    ("Epicor Kinetic", (r"\bepicor kinetic\b",)),
-    ("Microsoft Dynamics 365", (r"\bmicrosoft dynamics 365\b",)),
-    ("LivePerson LiveEngage", (r"\bliveperson liveengage\b|\bliveengage\b",)),
-    ("Claude", (r"\bclaude\b",)),
-)
-
-
-@dataclass(frozen=True)
-class QualificationsResponse:
-    prompt: str
-    answer: str
-    warning: str = ""
 
 
 @dataclass(frozen=True)
@@ -87,44 +66,6 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Build Christian Estrada's commercial qualifications statement.")
     parser.add_argument("--no-pdf", action="store_true", help="Accepted for clarity; PDFs are never created.")
     return parser.parse_args()
-
-
-def normalize_spaces(text: str) -> str:
-    return re.sub(r"\s+", " ", text).strip()
-
-
-def normalize_question(text: str) -> str:
-    normalized = normalize_spaces(text).lower()
-    return normalized.rstrip(":")
-
-
-def approved_source_resume_text() -> str:
-    return "\n".join(build_resume.docx_visible_text_from_path(path) for path in SOURCE_FILES)
-
-
-def parse_question_blocks(text: str) -> tuple[str, ...]:
-    prompts: list[str] = []
-    current: list[str] = []
-    for raw_line in text.splitlines():
-        line = raw_line.strip()
-        if not line:
-            if current:
-                prompts.append(normalize_spaces(" ".join(current)))
-                current = []
-            continue
-        if re.fullmatch(r"(application )?(supplemental )?(qualifications )?questions?", line, re.I):
-            continue
-        current.append(line)
-    if current:
-        prompts.append(normalize_spaces(" ".join(current)))
-    return tuple(dict.fromkeys(prompt for prompt in prompts if prompt))
-
-
-def selected_resume_snapshot(job_description: str) -> tuple[Path, ResumeSnapshot, str]:
-    resume_path = build_resume.choose_resume(job_description)
-    snapshot = parse_resume(resume_path)
-    resume_text = approved_source_resume_text()
-    return resume_path, snapshot, resume_text
 
 
 def parse_month_year(text: str) -> tuple[int, int]:
@@ -249,28 +190,6 @@ def certifications_answer(snapshot: ResumeSnapshot) -> str:
     )
 
 
-def software_inventory_answer(resume_text: str) -> str:
-    found: list[str] = []
-    for label, patterns in SOFTWARE_ITEMS:
-        if any(re.search(pattern, resume_text, re.I) for pattern in patterns):
-            found.append(label)
-    if not found:
-        return "Intermediate or higher experience with enterprise systems, reporting tools, CRM workflows, and AI-assisted documentation tools."
-    if len(found) == 1:
-        return f"Intermediate or higher experience with {found[0]}."
-    return normalize_spaces(
-        "Intermediate or higher experience with "
-        + ", ".join(found[:-1])
-        + f", and {found[-1]}."
-    )
-
-
-def communication_answer() -> str:
-    return normalize_spaces(
-        "My demonstrated level in this area is advanced and directly supported by experience facilitating 60+ executive workshops and QBRs, leading pre-sales discovery and product demonstrations, translating technical implementation status into business outcome language, and designing role-based training, onboarding materials, adoption guides, and stakeholder communications across international client teams and five-site internal operations."
-    )
-
-
 def generic_bridge_answer(job_description: str, resume_text: str) -> str:
     profile = build_resume.job_problem_profile(job_description, resume_text)
     return normalize_spaces(
@@ -278,56 +197,9 @@ def generic_bridge_answer(job_description: str, resume_text: str) -> str:
     )
 
 
-def answer_prompt(prompt: str, job_description: str, snapshot: ResumeSnapshot, resume_text: str) -> QualificationsResponse:
-    normalized = normalize_question(prompt)
-    if "post-secondary" in normalized and "education" in normalized:
-        return QualificationsResponse(prompt, education_years_answer(snapshot))
-    if "direct relevant experience" in normalized and "job duties" in normalized:
-        return QualificationsResponse(prompt, direct_experience_years_answer(snapshot))
-    if normalized.startswith("briefly describe your relevant experience"):
-        return QualificationsResponse(prompt, relevant_experience_answer(job_description, snapshot, resume_text))
-    if "public agencies or cooperatives" in normalized:
-        return QualificationsResponse(prompt, public_agency_experience_answer())
-    if "anything else" in normalized and "qualify" in normalized:
-        return QualificationsResponse(prompt, unique_qualifications_answer(job_description, resume_text))
-    if "certifications and licenses" in normalized:
-        return QualificationsResponse(prompt, certifications_answer(snapshot))
-    if "software packages" in normalized or "systems and programs" in normalized:
-        return QualificationsResponse(prompt, software_inventory_answer(resume_text))
-    if "public speaking" in normalized or "group facilitation" in normalized or "presentation experience" in normalized:
-        return QualificationsResponse(prompt, communication_answer())
-    return QualificationsResponse(
-        prompt,
-        generic_bridge_answer(job_description, resume_text),
-        warning=f"QUALIFICATIONS WARNING: used generic bridge answer for unrecognized question: {prompt}",
-    )
-
-
-def build_question_responses(prompts: tuple[str, ...], job_description: str, snapshot: ResumeSnapshot, resume_text: str) -> tuple[QualificationsResponse, ...]:
-    return tuple(answer_prompt(prompt, job_description, snapshot, resume_text) for prompt in prompts)
-
-
-def default_responses(job_description: str, snapshot: ResumeSnapshot, resume_text: str) -> tuple[QualificationsResponse, ...]:
-    return (
-        QualificationsResponse("Relevant experience summary", relevant_experience_answer(job_description, snapshot, resume_text)),
-        QualificationsResponse("Additional qualifications", unique_qualifications_answer(job_description, resume_text)),
-        QualificationsResponse("Relevant systems and tools", software_inventory_answer(resume_text)),
-        QualificationsResponse("Communication, facilitation, and training experience", communication_answer()),
-    )
-
-
 def latest_resume_state(job_description: str) -> str:
     matches = build_resume.matching_output_files(OUTPUT_DIR, job_description, "Resume.docx")
     return resume_analysis.output_audit_state(matches[0] if matches else None)
-
-
-QualificationsResponse = question_prep.QualificationsResponse
-normalize_spaces = question_prep.normalize_spaces
-normalize_question = question_prep.normalize_question
-parse_question_blocks = question_prep.parse_question_blocks
-selected_resume_snapshot = question_prep.selected_resume_snapshot
-build_question_responses = question_prep.build_question_responses
-default_responses = question_prep.default_responses
 
 
 def set_normal_style(document: Document) -> None:
@@ -413,7 +285,7 @@ def build_recent_interviewer_scripts(
 def build_document(
     company_name: str,
     role_title: str,
-    responses: tuple[QualificationsResponse, ...],
+    responses: tuple[question_prep.QualificationsResponse, ...],
     *,
     recent_interviewer_scripts: tuple[tuple[str, str], ...] = (),
     used_custom_questions: bool,
@@ -458,12 +330,12 @@ def build_standard_qualifications_statement() -> QualificationsBuildResult:
     company_name = build_resume.extract_output_name(job_description)
     output_target_name = build_resume.extract_output_target_name(job_description)
     role_title = build_resume.extract_job_title(job_description) or "Target Role"
-    _, snapshot, resume_text = selected_resume_snapshot(job_description)
+    _, snapshot, resume_text = question_prep.selected_resume_snapshot(job_description)
 
     prompt_state = question_prep.load_application_prompt_state(APPLICATION_QUESTIONS)
     prompts = prompt_state.effective_prompts
     used_custom_questions = not prompt_state.uses_default_questions
-    responses = build_question_responses(prompts, job_description, snapshot, resume_text)
+    responses = question_prep.build_question_responses(prompts, job_description, snapshot, resume_text)
     recent_interviewer_items = question_prep.recent_interviewer_question_prep_items(
         job_description,
         company_name,
