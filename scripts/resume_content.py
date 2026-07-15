@@ -1062,7 +1062,13 @@ def summary_requires_erp_proof(job_description: str) -> bool:
 
 
 def summary_has_quantified_anchor(text: str) -> bool:
-    return bool(re.search(r"\b(?:\d|one million|two million|three million|five sites|users)\b|\$", text, re.I))
+    return bool(
+        re.search(
+            r"(?:\b\d+(?:\+|%)?\b|\$\d+[A-Za-z+%]*|\bone million\b|\btwo million\b|\bthree million\b|\bfive sites\b|\busers\b)",
+            text,
+            re.I,
+        )
+    )
 
 
 def summary_anchor_phrase(
@@ -1114,9 +1120,9 @@ def summary_proof_sentence(
     proof = ""
     if emphasis.proof_anchor == "launch":
         proof = (
-            "Owned Aptean Intuitive across five sites and 150+ users, launched system setup for a new warehouse and "
-            "Amazon Robotics program, and cut manual inventory work by 78% and discrepancies by 22% through "
-            "automated adjustments."
+            "Owned Aptean Intuitive across five sites for 150+ users, launched system setup for a new warehouse plus "
+            "the Amazon Robotics program, and cut manual inventory work by 78% with a 22% drop in discrepancies "
+            "through automated adjustments."
         )
     elif emphasis.proof_anchor == "dashboards":
         proof = (
@@ -1142,8 +1148,8 @@ def summary_proof_sentence(
         )
     elif emphasis.proof_anchor == "decision":
         proof = (
-            "Built 200+ dashboards and KPI reporting tools and led 60+ executive workshops and QBRs to turn "
-            "ambiguous operations and engineering needs into scoped recommendations and risk-aware implementation "
+            "Built 200+ dashboards and KPI reporting tools, then led 60+ executive workshops and QBRs that turned "
+            "ambiguous operations plus engineering needs into scoped recommendations and risk-aware implementation "
             "plans before build work began."
         )
     elif profile.primary_lane == "customer_success":

@@ -2,6 +2,8 @@
 setlocal
 cd /d "%~dp0"
 
+if not exist "output" mkdir "output"
+
 call :resolve_python || goto :failed
 echo Workspace root: %CD%
 echo Python: %RESOLVED_PYTHON%

@@ -1,21 +1,45 @@
 @echo off
+
 setlocal
+
 cd /d "%~dp0"
 
 call :resolve_python || goto :failed
+
 echo Workspace root: %CD%
 echo Python: %RESOLVED_PYTHON%
 "%RESOLVED_PYTHON%" ".\scripts\workspace_health.py" --banner --require-healthy
 if errorlevel 1 goto :failed
 
+if not exist ".\output" mkdir ".\output"
+
 echo.
-choice /c YN /n /m "Run a dry run instead of creating documents? [Y/N] "
-if errorlevel 2 goto :run_live
+echo Choose what to build:
+echo   [R] Resume only
+echo   [F] Full workflow (resume + cover letter + qualifications)
+echo   [D] Dry run only
+echo.
+choice /c RFD /n /m "Selection [R/F/D]: "
+if errorlevel 3 goto :run_dry
+if errorlevel 2 goto :run_full
+call :run_task resume --resume-only
+if errorlevel 1 goto :failed
+goto :done
+
+:run_dry
 call :run_task dry-run || goto :failed
 goto :done
 
-:run_live
-call :run_task resume || goto :failed
+:run_full
+call :run_task resume
+if errorlevel 2 goto :draft_cover_letter
+if errorlevel 1 goto :failed
+goto :done
+
+:draft_cover_letter
+echo.
+echo Resume created, but the cover letter was saved as DRAFT.
+echo Qualifications and later steps were skipped by design.
 goto :done
 
 :done

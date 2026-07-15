@@ -164,11 +164,16 @@ def substitution_safety_issues(text: str) -> tuple[str, ...]:
     """Return stable rule IDs for unsafe genericization artifacts."""
 
     issues: list[str] = []
-    lowered = normalize_spaces(text).lower()
+    segments = [
+        normalize_spaces(segment).lower()
+        for segment in re.split(r"(?<=[.!?])\s+|[\r\n]+", text or "")
+        if normalize_spaces(segment)
+    ]
+    lowered = "\n".join(segments)
     generic = "|".join(re.escape(item) for item in GENERIC_PLATFORM_PHRASES)
     if re.search(rf"\b(?P<label>{generic})\s+to\s+(?P=label)\b", lowered):
         issues.append("SUBSTITUTION_X_TO_X")
-    for sentence in re.split(r"(?<=[.!?])\s+", lowered):
+    for sentence in segments:
         for phrase in GENERIC_PLATFORM_PHRASES:
             if sentence.count(phrase) > 1:
                 issues.append("SUBSTITUTION_DUPLICATE_GENERIC_TERM")

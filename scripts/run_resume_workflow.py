@@ -515,17 +515,20 @@ def load_question_prep_module() -> object:
     return question_prep
 
 
-def parse_args() -> argparse.Namespace:
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run the tailored resume workflow with recovery.")
+    parser.add_argument("--resume-only", action="store_true", help="Build only the tailored resume and skip dependent documents.")
     parser.add_argument("--include-cheat-sheet", action="store_true", help="Also build the standard interview cheat sheet.")
     parser.add_argument("--include-detailed-guide", action="store_true", help="Also build the deep interview guide.")
     parser.add_argument("--dry-run", action="store_true", help="Validate inputs and print the planned workflow without writing files.")
     parser.add_argument("--skip-cover-letter", action="store_true", help="Skip the cover letter step (for temp/recruiter roles where no cover letter is needed).")
-    return parser.parse_args()
+    return parser.parse_args(argv)
 
 
 def main() -> None:
     args = parse_args()
+    if args.resume_only and (args.include_cheat_sheet or args.include_detailed_guide):
+        raise SystemExit("--resume-only cannot be combined with interview-output options.")
     workspace_health.ensure_workspace_health_or_exit("The standard commercial workflow")
     if args.dry_run:
         raise SystemExit(run_dry_run())
@@ -548,10 +551,12 @@ def main() -> None:
     required_steps = [
         ("Building resume", "build_resume.py", False),
     ]
-    skip_cover_letter = getattr(args, "skip_cover_letter", False)
+    resume_only = getattr(args, "resume_only", False)
+    skip_cover_letter = resume_only or getattr(args, "skip_cover_letter", False)
     if not skip_cover_letter:
         required_steps.append(("Building cover letter", "build_cover_letter.py", True))
-    required_steps.append(("Building qualifications statement", "build_standard_qualifications_statement.py", True))
+    if not resume_only:
+        required_steps.append(("Building qualifications statement", "build_standard_qualifications_statement.py", True))
     optional_steps: list[tuple[str, str, bool]] = []
     if args.include_cheat_sheet:
         optional_steps.append(("Building interview cheat sheet", "build_interview_cheat_sheet.py", True))
@@ -581,6 +586,12 @@ def main() -> None:
     if draft_artifact_created:
         raise SystemExit(2)
     run_tracker_auto_add()
+    if resume_only:
+        print("\nDone. Resume-only build complete. Check the output folder and render_check folder.")
+        if resume_gap_blockers:
+            print("\nResume bridge guidance for this role:")
+            print(f"  {resume_gap_blockers}")
+        return
     for step_name, script_name, can_rebuild_resume in optional_steps:
         result = run_with_recovery(step_name, script_name, can_rebuild_resume=can_rebuild_resume)
         if not result.ok:

@@ -59,7 +59,10 @@ TASKS: dict[str, Task] = {
         (),
     ),
     "dry-run": Task("Validate the current job description and planned workflow without writing files.", ("scripts/run_resume_workflow.py", "--dry-run"), False),
-    "resume": Task("Build the tailored resume and cover letter workflow.", ("scripts/run_resume_workflow.py",)),
+    "resume": Task(
+        "Build the tailored commercial workflow. Optional flags: --resume-only, --skip-cover-letter, --include-cheat-sheet, --include-detailed-guide.",
+        ("scripts/run_resume_workflow.py",),
+    ),
     "federal-dry-run": Task("Validate the federal job description and federal resume workflow without writing files.", ("scripts/run_federal_resume_workflow.py", "--dry-run"), False),
     "federal-resume": Task(
         "Build the tailored federal resume workflow. Optional flags: --with-cover, --with-interview, --with-guide, --with-supporting-docs.",
@@ -856,7 +859,21 @@ def run_task(command_name: str, task: Task, extra_args: tuple[str, ...]) -> int:
     return result.returncode
 
 
+def _onedrive_run_guard(root: Path = PROJECT_ROOT) -> int | None:
+    """Refuse to run from the retired OneDrive archive copy."""
+    if (root / "DO_NOT_RUN_FROM_ONEDRIVE.txt").exists():
+        print(
+            "Refusing to run: this is the retired OneDrive archive copy. "
+            "Use the canonical repo at C:\\dev\\Christian-Resume-System."
+        )
+        return 2
+    return None
+
+
 def main() -> int:
+    guard = _onedrive_run_guard()
+    if guard is not None:
+        return guard
     if len(sys.argv) < 2:
         print_help()
         return 0
