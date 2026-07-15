@@ -94,6 +94,21 @@ class PreparedAnswer:
 
 
 @dataclass(frozen=True)
+class RecruiterAnswerPair:
+    prompt: str
+    say_this: str
+    dig_deeper: str = ""
+
+
+@dataclass(frozen=True)
+class FirstNinetyDayPlan:
+    answer: str
+    validation_question: str
+    stages: tuple[tuple[str, str], ...]
+    reminders: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
 class QuestionIntentCard:
     prompt: str
     hidden_assessment: str
@@ -2026,13 +2041,218 @@ def manufacturing_depth_answer() -> str:
     )
 
 
-def technical_depth_boundary_answer() -> str:
+def automation_boundary_context(job_description: str) -> bool:
+    return mentions(
+        job_description,
+        "automation",
+        "warehouse automation",
+        "material handling",
+        "conveyor",
+        "conveyors",
+        "controls",
+        "control systems",
+        "plc",
+        "warehouse control",
+        "wcs",
+        "wes",
+        "autostore",
+        "robotics",
+        "asrs",
+        "schematic",
+        "schematics",
+        "barcode scanner",
+        "barcode scanners",
+    )
+
+
+def software_categorization_answer(job_description: str = "") -> str:
+    if automation_boundary_context(job_description):
+        return interview_join(
+            "My experience is primarily business analytics and ERP configuration, not PLC programming or code writing",
+            "Concretely that includes Power BI dashboards, SQL-based validation and reporting, system configuration, and practical access-control design",
+            "On the hardware side my direct exposure is barcode scanners tied into the software layer, not conveyors or automation equipment",
+        )
+    return interview_join(
+        "My experience is primarily business analytics, ERP configuration, and workflow-support systems rather than software-engineering ownership",
+        "Concretely that includes Power BI dashboards, SQL-based validation and reporting, system configuration, and practical access-control design",
+        "The strongest value is translating operational and technical questions into decisions people can act on",
+    )
+
+
+def hardware_gap_bridge_answer(job_description: str = "") -> str:
+    if automation_boundary_context(job_description):
+        return interview_join(
+            "I do not have direct experience with conveyors or physical automation equipment; my hardware exposure has been limited to barcode scanners tied into the software layer",
+            f"At {COMPANY_EAST_WEST}, I was brought onto an Aptean configuration I had not used before and got up to speed quickly enough to train global teams on it",
+            "That is the pattern I would apply here: get close to the workflow, learn fast from the specialists, and make progress visible early instead of pretending the ramp is already complete",
+        )
+    return interview_join(
+        "I would be direct about any technical edge that is adjacent rather than deep",
+        f"The proof pattern is still strong because at {COMPANY_EAST_WEST} I was brought onto an unfamiliar configuration and got up to speed quickly enough to train global teams on it",
+        "That is how I close a domain gap: learn the workflow fast, validate with the right specialists, and make progress visible early",
+    )
+
+
+def technical_depth_boundary_answer(job_description: str = "") -> str:
+    if automation_boundary_context(job_description):
+        return interview_join(
+            software_categorization_answer(job_description),
+            "The strongest depth is in the software, data, workflow, and access-control layer that surrounds automation rather than in controls engineering or mechanical design",
+            "What I do understand well is how shop-floor activity, scanner-driven transactions, and technical process changes need to be represented accurately in the business system",
+            "When the work moves deeper into controls engineering or mechanical design, I bring in the specialists there and stay responsible for the workflow impact and the business risk",
+        )
     return honest_gap_framing(
         "controls engineering or schematic interpretation",
         "ERP, process flow, transaction integrity, and operational systems support",
         "how shop-floor activity and technical processes need to be represented accurately in the business system",
         "engineering and controls specialists",
     )
+
+
+def first_90_day_plan(profile: build_resume.JobProblemProfile) -> FirstNinetyDayPlan:
+    stage_map: dict[str, tuple[tuple[str, str], ...]] = {
+        "presales_solution": (
+            ("Days 1-30", "Learn the product and customer context, shadow discovery conversations, and understand how requirements are captured and handed to technical partners."),
+            ("Days 31-60", "Start leading parts of discovery and draft tighter requirements notes with the sales, engineering, and delivery partners."),
+            ("Days 61-90", "Run requirements documentation more independently, translate customer inputs into recommendations, and keep the handoff aligned through the next decision."),
+        ),
+        "customer_success": (
+            ("Days 1-30", "Learn the customer goals, health signals, escalation paths, and adoption friction that matter most to the team."),
+            ("Days 31-60", "Lead parts of the account rhythm, connect product usage to business value, and make renewal-risk or adoption blockers visible early."),
+            ("Days 61-90", "Own a steady customer operating rhythm with clear next steps, measurable value follow-through, and practical cross-functional coordination."),
+        ),
+        "analytics_operations": (
+            ("Days 1-30", "Learn the business questions, source systems, decision rhythm, and data-quality issues that matter most to leadership."),
+            ("Days 31-60", "Take ownership of the highest-value reporting and validation priorities, clarify definitions, and tighten the handoffs behind the numbers."),
+            ("Days 61-90", "Deliver reporting or workflow improvements people actually use, document the repeatable practices, and confirm the next priority set."),
+        ),
+        "change_enablement": (
+            ("Days 1-30", "Learn the stakeholder map, current workflow friction, and the behaviors the organization actually needs to change."),
+            ("Days 31-60", "Lead the highest-value adoption conversations, clarify ownership, and tighten the rhythm for communication and follow-through."),
+            ("Days 61-90", "Own a practical change cadence with visible progress, role-based support, and clear next decisions for leaders and end users."),
+        ),
+        "implementation_delivery": (
+            ("Days 1-30", "Learn the business outcomes, stakeholder incentives, current friction, and the implementation risks that are easiest to miss early."),
+            ("Days 31-60", "Map the highest-risk workflows, clarify scope and adoption blockers, and build a simple operating rhythm for decisions and escalations."),
+            ("Days 61-90", "Own the visible delivery cadence, validate results with users and leaders, and document the repeatable practices that keep the work moving."),
+        ),
+        "process_improvement": (
+            ("Days 1-30", "Learn the current workflow, where the biggest friction shows up, and which metrics leadership already trusts."),
+            ("Days 31-60", "Map the highest-value process gaps, test the root-cause assumptions, and align stakeholders on one practical improvement path."),
+            ("Days 61-90", "Deliver a visible improvement, validate it against real workflow behavior, and turn the win into a repeatable operating pattern."),
+        ),
+    }
+    stages = stage_map.get(profile.primary_lane, stage_map["implementation_delivery"])
+    answer = interview_join(
+        f"In the first 30 days I would {lower_clause(stages[0][1])}",
+        f"By 60 days I would {lower_clause(stages[1][1])}",
+        f"By 90 days I would {lower_clause(stages[2][1])}",
+    )
+    return FirstNinetyDayPlan(
+        answer=answer,
+        validation_question="Does that match what the team expects at this level?",
+        stages=stages,
+        reminders=(
+            "Answer this first, then invite them to react.",
+            "Lead with a hypothesis, not a question back.",
+        ),
+    )
+
+
+def why_role_first_answer(
+    profile: build_resume.JobProblemProfile,
+    company_name: str,
+    role_title: str,
+    job_description: str,
+    resume_text: str = "",
+) -> str:
+    return interview_join(
+        f"What draws me to the {role_title} role is the chance to stay close to {candidate_problem_phrase(profile)} while making the next decision clearer for the people involved",
+        interview_role_bridge_sentence(profile, company_name, role_title, job_description, resume_text),
+    )
+
+
+def recruiter_screen_pairs(
+    profile: build_resume.JobProblemProfile,
+    company_name: str,
+    role_title: str,
+    job_description: str,
+    stories: list[StoryCard],
+    selected_stories: list[StoryCard],
+    supplied_context: str = "",
+    resume_text: str = "",
+    notes_text: str = "",
+) -> list[RecruiterAnswerPair]:
+    answer_map = {
+        item.prompt: item.answer
+        for item in common_interview_answers(
+            profile,
+            company_name,
+            role_title,
+            job_description,
+            stories,
+            panel_context=False,
+            supplied_context=supplied_context,
+            resume_text=resume_text,
+            notes_text=notes_text,
+        )
+    }
+    ninety_day = first_90_day_plan(profile)
+    closest_story = (
+        story_for_type(selected_stories, "Individual Achievement")
+        or story_for_type(selected_stories, "Analysis and Decision")
+        or (selected_stories[0] if selected_stories else None)
+    )
+    similar_work = (
+        spoken_story_answer(
+            closest_story,
+            profile,
+            company_name,
+            role_title,
+            job_description,
+        )
+        if closest_story
+        else answer_map.get("Why should we hire you?", "")
+    )
+    dig_deeper_story = (
+        interview_join(
+            story_natural_reference(closest_story),
+            story_specific_bridge(closest_story, profile).replace("Bridge: ", ""),
+        )
+        if closest_story
+        else interview_role_bridge_sentence(profile, company_name, role_title, job_description, resume_text)
+    )
+    pairs = [
+        RecruiterAnswerPair(
+            "Why this company?",
+            answer_map.get(f"Why {company_name}?", ""),
+            f"The deeper point is the fit between the role's workflow and Christian's strongest pattern around {candidate_problem_phrase(profile)}.",
+        ),
+        RecruiterAnswerPair(
+            f"Why this {role_title} role?",
+            answer_map.get(f"Why this {role_title} role?", why_role_first_answer(profile, company_name, role_title, job_description, resume_text)),
+            interview_role_bridge_sentence(profile, company_name, role_title, job_description, resume_text),
+        ),
+        RecruiterAnswerPair(
+            "What is the most similar work you have done before?",
+            similar_work,
+            dig_deeper_story,
+        ),
+        RecruiterAnswerPair(
+            "What would you do in the first 90 days?",
+            ninety_day.answer,
+            f"Then ask: {ninety_day.validation_question}",
+        ),
+    ]
+    if automation_boundary_context(job_description):
+        pairs.append(
+            RecruiterAnswerPair(
+                "How should we think about your technical background?",
+                software_categorization_answer(job_description),
+                hardware_gap_bridge_answer(job_description),
+            )
+        )
+    return pairs
 
 
 def _company_note_lines(supplied_context: str) -> list[str]:
@@ -2097,6 +2317,25 @@ def compensation_logistics_answer(supplied_context: str) -> str:
     return interview_join(*details)
 
 
+def confirmed_ai_customer_work_story() -> str:
+    return interview_join(
+        "I use AI as a work accelerator inside a controlled workflow, not as a substitute for judgment",
+        "A concrete example was inventory and item-management work where I separated batch adjustments from one-off corrections so the high-volume work could move in a structured way",
+        "I used ChatGPT Codex as the primary drafting and analysis tool, with Claude, Gemini, and Copilot as comparison tools when I wanted a second pattern or a different way to structure the task",
+        "The AI help was practical: check duplicate part and component patterns, validate template placement before import, and tighten the step sequence before I ran the work through the Aptean Import Wizard",
+        "I still owned the real controls: sandbox validation first, GL-account checks, and confirming the import logic matched the business outcome before anything moved forward",
+        "That is the pattern I would use with customers too: let AI speed up the preparation, but keep the final judgment, validation, and business explanation with the operator",
+    )
+
+
+def confirmed_ai_customer_work_pushback() -> str:
+    return interview_join(
+        "That is fair, and I would describe it as AI-assisted workflow design rather than pretending I built a model",
+        "The value was not just a script existing; it was using AI to pressure-test the structure, catch duplicate or placement issues earlier, and shorten the path to a workflow I could still validate in sandbox before it touched live data",
+        "So the ownership stayed with me, and the AI made the preparation sharper and faster",
+    )
+
+
 def common_interview_answers(
     profile: build_resume.JobProblemProfile,
     company_name: str,
@@ -2128,12 +2367,7 @@ def common_interview_answers(
         ),
         PreparedAnswer(
             f"Why this {role_title} role?",
-            interview_join(
-                "What stands out to me is the mix of customer-facing problem solving and practical delivery",
-                f"At {COMPANY_APTEAN}, I supported requirements, configuration, data migration, testing, go-live, and post-launch support for manufacturing clients",
-                "The experience taught me implementation quality depends on both the system setup and how well the workflow works for the people using it",
-                f"The {role_title} role lets me keep building at that intersection, which is where I have done my strongest work",
-            ),
+            why_role_first_answer(profile, company_name, role_title, job_description, resume_text),
         ),
         PreparedAnswer(
             "Why should we hire you?",
@@ -2150,6 +2384,10 @@ def common_interview_answers(
         PreparedAnswer(
             "How would you manage several implementations at once?",
             "I would keep a simple operating rhythm: clear milestone plans, visible risks and issues, named owners, customer-facing status, and documented next steps after each interaction. The key is not to remember everything manually. The key is to make the work visible enough that scope, data, testing, and stakeholder blockers are caught early.",
+        ),
+        PreparedAnswer(
+            "What would you do in the first 90 days?",
+            first_90_day_plan(profile).answer,
         ),
         PreparedAnswer(
             "How do you handle a difficult implementation issue?",
@@ -2262,7 +2500,7 @@ def keyword_ready_answers(
         if label == "Manufacturing Experience":
             answer = manufacturing_depth_answer()
         elif label == "Technical Depth Boundary":
-            answer = technical_depth_boundary_answer()
+            answer = technical_depth_boundary_answer(job_description)
         elif label == "Implementation":
             answer = f"I would start with discovery and success criteria, translate those into configuration and milestone plans, then manage testing, training, and go-live readiness with visible risks and owners. My {COMPANY_APTEAN} work supports that pattern across requirements, configuration, data migration, testing, go-live, and post-go-live support."
         elif label == "Data Migration And SQL":
@@ -2274,7 +2512,10 @@ def keyword_ready_answers(
         elif label == "NRR And Growth":
             answer = "I would treat expansion as the result of trusted onboarding and visible value. My supported lane is renewal-risk management, expansion discovery, customer health, QBRs, and stabilizing high-risk accounts. The proof is account recovery plus the ability to turn implementation success into the next value conversation."
         elif label == "AI-Enabled Customer Work":
-            answer = "I use AI as a work accelerator, not a substitute for judgment. My supported experience includes AI-assisted documentation, analysis, workflow support, and conversational messaging configuration. With customers, I would focus on trust: validate the data, explain the recommendation clearly, and show how the insight connects to a business action."
+            answer = interview_join(
+                confirmed_ai_customer_work_story(),
+                f"Short pushback answer if they say it sounds more like scripting than AI: {confirmed_ai_customer_work_pushback()}",
+            )
         elif label == "Training And Adoption":
             answer = "I would train around roles and decisions, not just features. The customer needs to know what changes in the workflow, what a good outcome looks like, and how to handle exceptions. My 60+ workshops and QBRs support that kind of practical enablement."
         elif label == "Issue Tracking":
@@ -2528,11 +2769,7 @@ def role_challenge_forecast(
 
 
 def first_90_day_approach(profile: build_resume.JobProblemProfile) -> list[str]:
-    return [
-        "Days 1-30: listen for business outcomes, stakeholder incentives, current friction, decision rights, and the metrics leadership already trusts.",
-        "Days 31-60: map the highest-risk workflows, clarify scope, identify adoption blockers, and build a simple operating rhythm for decisions and escalations.",
-        "Days 61-90: deliver visible improvements, validate results with users and leaders, document repeatable practices, and confirm the next set of priorities.",
-    ]
+    return [f"{label}: {text}" for label, text in first_90_day_plan(profile).stages]
 
 
 def expanded_story_bank() -> list[StoryCard]:
@@ -3362,6 +3599,10 @@ def role_specific_gaps(profile: build_resume.JobProblemProfile, job_description:
             0,
             "Unsupported requirement areas: keep the edge brief, then redirect to the closest resume-backed pattern and proof instead of stretching the claim."
         )
+    if automation_boundary_context(job_description):
+        gaps.append(
+            "If the hardware or controls gap comes up, state the boundary once, bridge immediately to the fast-ramp example, and then ask what the onboarding path usually looks like."
+        )
     if profile.primary_lane == "presales_solution":
         gaps.append(
             "If asked about quota or closing ownership, clarify that the strongest support is in discovery, solution design, demos, and technical buyer confidence rather than direct quota carrying."
@@ -3657,7 +3898,7 @@ def likely_questions(profile: build_resume.JobProblemProfile, job_description: s
         questions.append(
             InterviewQuestion(
                 question="What is your actual hands-on automation or AI experience?",
-                angle="Keep it honest: practical workflow automation, LivePerson messaging configuration, and Codex-assisted documentation are supported; enterprise AI strategy ownership is not."
+                angle="Keep it honest: the strongest proof is AI-assisted workflow preparation at East West plus LivePerson messaging automation; enterprise AI strategy ownership is not supported."
             )
         )
     if mentions(job_description, "sql", "snowflake", "teradata", "data warehouse"):
@@ -4958,6 +5199,7 @@ def phone_screen_script_answers(
         "Tell me about your education and credentials.",
         "Walk me through your career.",
         "How would you learn a new product quickly?",
+        "What would you do in the first 90 days?",
         "What are your compensation expectations and practical constraints?",
     ):
         if answer_map.get(prompt):

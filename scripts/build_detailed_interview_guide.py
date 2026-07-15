@@ -13,6 +13,7 @@ Sources:
 
 from __future__ import annotations
 
+import argparse
 import re
 import sys
 from dataclasses import dataclass
@@ -33,6 +34,7 @@ import build_interview_cheat_sheet as cheat
 import build_resume
 import business_context
 import interview_context
+import interview_stage
 import question_prep
 import prose_engine
 import resume_analysis
@@ -90,8 +92,24 @@ class DetailedGuideResult:
 
 @dataclass(frozen=True)
 class StoryAnswerParts:
-    spoken: str
+    full: str
+    meat_first: str = ""
+    stretch_modules: tuple[tuple[str, str], ...] = ()
+    alternate: str = ""
+    pushback_branches: tuple[tuple[str, str], ...] = ()
     coaching_note: str = ""
+
+    @property
+    def spoken(self) -> str:
+        return self.full
+
+
+@dataclass(frozen=True)
+class TmayVariant:
+    label: str
+    target_window: str
+    script: str
+    modules: tuple[tuple[str, str], ...]
 
 
 NAMED_ERP_PLATFORM_REPLACEMENTS = (
@@ -148,6 +166,101 @@ def relevant_company_research(text: str, company_name: str) -> str:
 
 def safe_lines(text: str) -> list[str]:
     return [re.sub(r"\s+", " ", line).strip() for line in text.splitlines() if line.strip()]
+
+
+DELIVERY_HEDGE_PATTERNS = (
+    r"\bI guess\b",
+    r"\b(?:it(?:'s| is)|that(?:'s| is)|was|were|felt|seems?|sounds?|looked?)\s+kind of\b",
+    r"\bbasically\b",
+    r"\bif that makes sense\b",
+    r"\blet me know if you want me to dive deeper\b",
+    r"\bI think\b",
+    r"\bI would probably\b",
+)
+
+KNOWN_SYSTEM_TERMS = (
+    "Amazon Robotics",
+    "Aptean Import Wizard",
+    "Aptean Intuitive",
+    "AutoStore",
+    "ChatGPT Codex",
+    "Claude",
+    "Copilot",
+    "Crystal Reports",
+    "Epicor Kinetic",
+    "Gemini",
+    "GL-account",
+    "LivePerson LiveEngage",
+    "Power BI",
+    "SQL",
+    "Salesforce",
+    "sandbox",
+)
+
+
+def first_sentence(text: str) -> str:
+    cleaned = re.sub(r"\s+", " ", text).strip()
+    if not cleaned:
+        return ""
+    match = re.match(r"(.+?[.!?])(?:\s+|$)", cleaned)
+    return match.group(1).strip() if match else cleaned
+
+
+def iter_scripted_answer_segments(answer: StoryAnswerParts):
+    if answer.meat_first.strip():
+        yield ("meat_first", answer.meat_first.strip())
+    if answer.full.strip():
+        yield ("full", answer.full.strip())
+    for label, text in answer.stretch_modules:
+        if text.strip():
+            yield (f"stretch:{label}", text.strip())
+    if answer.alternate.strip():
+        yield ("alternate", answer.alternate.strip())
+    for concern, text in answer.pushback_branches:
+        if text.strip():
+            yield (f"pushback:{concern}", text.strip())
+
+
+def _metric_tokens(text: str) -> set[str]:
+    return {
+        token.casefold()
+        for token in re.findall(r"\$?\d[\d,]*(?:\.\d+)?(?:[kKmM])?\+?%?", text)
+        if any(ch.isdigit() for ch in token)
+    }
+
+
+def validate_delivery_principles(answer: StoryAnswerParts, *, label: str) -> None:
+    for segment_name, text in iter_scripted_answer_segments(answer):
+        for pattern in DELIVERY_HEDGE_PATTERNS:
+            if re.search(pattern, text, re.I):
+                fail(f"{label} contains hedge language in {segment_name}: {pattern}")
+
+
+def validate_scripted_answer(
+    answer: StoryAnswerParts,
+    *,
+    label: str,
+    allowed_text: str = "",
+    allowed_terms: Sequence[str] = (),
+) -> None:
+    validate_delivery_principles(answer, label=label)
+    reference_text = re.sub(r"\s+", " ", allowed_text).strip()
+    if not reference_text:
+        reference_text = " ".join(text for _segment, text in iter_scripted_answer_segments(answer))
+    allowed_metrics = _metric_tokens(reference_text)
+    allowed_systems = {
+        term.casefold()
+        for term in KNOWN_SYSTEM_TERMS
+        if term.casefold() in reference_text.casefold()
+    }
+    allowed_systems.update(term.casefold() for term in allowed_terms if term.strip())
+    for segment_name, text in iter_scripted_answer_segments(answer):
+        for token in _metric_tokens(text):
+            if token not in allowed_metrics and token not in {"1", "2", "3", "4"}:
+                fail(f"{label} introduces unsupported metric token in {segment_name}: {token}")
+        for term in KNOWN_SYSTEM_TERMS:
+            if term.casefold() in text.casefold() and term.casefold() not in allowed_systems:
+                fail(f"{label} introduces unsupported named system in {segment_name}: {term}")
 
 
 def set_default_style(document: Document) -> None:
@@ -288,6 +401,21 @@ def _spacer(document: Document, *, points: float = 8) -> None:
     paragraph.paragraph_format.space_before = Pt(0)
 
 
+def add_banner_title(document: Document, title: str, subtitle: str, *, eyebrow: str = "") -> None:
+    """Full-width dark navy banner used across prep outputs."""
+    table, cell = _full_width_box_table(document)
+    _shade_cell(cell, BANNER_NAVY_HEX)
+    _set_cell_margins(cell, top=160, bottom=160, left=200, right=200)
+    lines = [
+        (title, {"bold": True, "size": TITLE_SIZE - 4, "color": RGBColor(0xFF, 0xFF, 0xFF)}),
+        (subtitle, {"italic": True, "size": SUBTITLE_SIZE, "color": RGBColor(0xD9, 0xE2, 0xF0)}),
+    ]
+    if eyebrow.strip():
+        lines.append((eyebrow, {"italic": True, "size": SMALL_SIZE, "color": RGBColor(0xD9, 0xE2, 0xF0)}))
+    _set_cell_text(cell, lines, base_size=BODY_SIZE)
+    _spacer(document, points=10)
+
+
 def add_title(document: Document, company_name: str, role_title: str) -> None:
     """Full-width dark navy banner: bold white name/title line, italic light
     subtitle line with company, role, and date. Mirrors the reference guide's
@@ -365,6 +493,21 @@ def add_answer_box(document: Document, text: str, *, label: str = "SAY THIS:") -
     _spacer(document, points=4)
 
 
+def add_structured_answer_box(document: Document, label: str, entries: Sequence[tuple[str, str]]) -> None:
+    table, cell = _full_width_box_table(document)
+    _shade_cell(cell, ANSWER_BOX_HEX)
+    _set_cell_margins(cell, top=100, bottom=100, left=160, right=160)
+    lines = [(f"{label}:", {"bold": True, "color": RGBColor(0x1F, 0x3B, 0x5C), "size": SMALL_SIZE})]
+    for entry_label, text in entries:
+        spoken = prose_engine.spoken_register(text).text
+        rendered = f"{entry_label}: {spoken}" if entry_label else spoken
+        lines.append((rendered, {"size": BODY_SIZE}))
+    _set_cell_text(cell, lines)
+    if len(cell.paragraphs) > 1:
+        cell.paragraphs[0].paragraph_format.keep_with_next = True
+    _spacer(document, points=4)
+
+
 def add_tip_box(document: Document, text: str, *, label: str = "TIP:") -> None:
     """Pale yellow callout box for coaching tips, matching the reference guide's
     tip footer under each Q&A card."""
@@ -373,6 +516,13 @@ def add_tip_box(document: Document, text: str, *, label: str = "TIP:") -> None:
     _set_cell_margins(cell, top=60, bottom=60, left=160, right=160)
     _set_cell_text(cell, [(f"{label} {text}" if label else text, {"italic": True, "size": SMALL_SIZE})])
     _spacer(document, points=6)
+
+
+def add_stage_answer_pair(document: Document, prompt: str, say_this: str, dig_deeper: str = "") -> None:
+    add_subsection(document, prompt)
+    add_answer_box(document, say_this, label="SAY THIS")
+    if dig_deeper.strip():
+        add_tip_box(document, dig_deeper.strip(), label="DIG DEEPER:")
 
 
 def add_qa_card(document: Document, prompt: str, answer: str, *, tip: str = "") -> None:
@@ -438,11 +588,23 @@ def add_banded_table(document: Document, headers: Sequence[str], rows: Sequence[
 
 
 def add_story_answer(document: Document, answer: StoryAnswerParts, *, prefix: str = "") -> None:
-    spoken = prose_engine.spoken_register(answer.spoken.strip()).text
-    if spoken:
-        add_body(document, f"{prefix}{spoken}" if prefix else spoken)
+    # Layered renderer for the deeper story-bank surfaces: meat-first claim,
+    # full script, extension modules, alternate framing, and pushback prep.
+    if answer.meat_first.strip():
+        opening = f"{prefix}{answer.meat_first.strip()}" if prefix else answer.meat_first.strip()
+        add_answer_box(document, opening, label="SAY THIS FIRST")
+    full_answer = answer.full.strip()
+    if full_answer:
+        full_answer = f"{prefix}{full_answer}" if prefix else full_answer
+        add_answer_box(document, full_answer, label="FULL ANSWER")
+    if answer.stretch_modules:
+        add_structured_answer_box(document, "Stretch to 2 to 3 minutes", answer.stretch_modules)
+    if answer.alternate.strip():
+        add_answer_box(document, answer.alternate.strip(), label="ALTERNATE FRAMING")
+    if answer.pushback_branches:
+        add_structured_answer_box(document, "If they push back", answer.pushback_branches)
     if answer.coaching_note.strip():
-        add_body(document, answer.coaching_note.strip(), small=True)
+        add_tip_box(document, answer.coaching_note.strip(), label="")
 
 
 def add_page_break(document: Document) -> None:
@@ -565,7 +727,9 @@ def add_recent_interview_question_prep_section(
         story = cheat.likely_question_story(cheat.InterviewQuestion(item.prompt, item.answer_angle), stories, used_titles)
         used_titles.add(story.title)
         answer = story_sample_answer(story, profile, company_name, role_title, job_description, interview_notes, resume_text)
-        add_qa_card(document, item.prompt, answer.spoken, tip=answer.coaching_note)
+        # Keep the recent-interview list flat and skim-friendly instead of
+        # expanding every prompt into the layered story-bank treatment.
+        add_qa_card(document, item.prompt, answer.full, tip=answer.coaching_note)
     return True
 
 
@@ -885,7 +1049,9 @@ def add_business_context_question_section(
         ]
         if answer.coaching_note.strip():
             tip_parts.append(answer.coaching_note.strip())
-        add_qa_card(document, item.question, answer.spoken, tip=cheat.join_answer_sentences(*tip_parts))
+        # This business-context bank is a quick-reference Q&A surface, so we
+        # intentionally keep it as the clean full answer instead of the layered renderer.
+        add_qa_card(document, item.question, answer.full, tip=cheat.join_answer_sentences(*tip_parts))
 
 
 def company_story_positioning(
@@ -1001,15 +1167,20 @@ def build_extended_tmay_sections(
 ) -> list[tuple[str, str]]:
     stories = cheat.hero_stories(profile, job_description, resume_text)
     top_story = stories[0] if stories else None
+    claim = cheat.pitch_for_profile(
+        profile,
+        job_description=job_description,
+        company_name=company_name,
+        role_title=role_title,
+        resume_text=resume_text,
+        notes_text=notes_text,
+    )
     proof = ""
     if top_story:
         proof_parts: list[str] = []
         if top_story.title and top_story.hook:
             opener = cheat.story_opener_by_type(set(top_story.story_types), top_story.title)
-            proof_parts.append(
-                f"{opener[:1].upper() + opener[1:]} "
-                f"{cheat.lower_clause(top_story.hook)}"
-            )
+            proof_parts.append(f"{opener[:1].upper() + opener[1:]} {cheat.lower_clause(top_story.hook)}")
         if top_story.level3_trait:
             proof_parts.append(cheat.spoken_level3_trait_sentence(top_story.level3_trait))
         if top_story.evidence:
@@ -1017,22 +1188,38 @@ def build_extended_tmay_sections(
         if top_story.result:
             proof_parts.append(cheat.story_result_sentence(top_story.result))
         proof = cheat.join_answer_sentences(*proof_parts) if proof_parts else ""
-    role_bridge = cheat.join_answer_sentences(
-        cheat.interview_role_bridge_sentence(
-            profile,
-            company_name,
-            role_title,
-            job_description,
-            resume_text,
+    module_bank = (
+        ("Claim", claim or detailed_pitch(company_name, role_title, profile)),
+        ("Career arc", cheat.pitch_career_arc_sentence(profile, job_description)),
+        ("Why this work", human_pivot_paragraph(profile, company_name, role_title, job_description, resume_text, notes_text)),
+        ("Proof", proof or detailed_pitch(company_name, role_title, profile)),
+        (
+            "Why this role",
+            cheat.interview_role_bridge_sentence(
+                profile,
+                company_name,
+                role_title,
+                job_description,
+                resume_text,
+            ),
         ),
+        ("Close", cheat.natural_voice_closing(profile, role_title)),
     )
+
+    def variant(label: str, target_window: str, module_names: tuple[str, ...]) -> TmayVariant:
+        selected = tuple((name, text) for name, text in module_bank if name in module_names and text.strip())
+        return TmayVariant(
+            label=label,
+            target_window=target_window,
+            script=cheat.join_answer_sentences(*(text for _name, text in selected)),
+            modules=selected,
+        )
+
     return [
-        ("Opening Hook", cheat.natural_voice_opening(profile)),
-        ("Career Arc", cheat.pitch_career_arc_sentence(profile, job_description)),
-        ("Why I Care", human_pivot_paragraph(profile, company_name, role_title, job_description, resume_text, notes_text)),
-        ("Proof Beat", proof or detailed_pitch(company_name, role_title, profile)),
-        ("Why This Role", role_bridge),
-        ("Conversation Pivot", cheat.natural_voice_closing(profile, role_title)),
+        variant("20 to 30 seconds", "Anchor", ("Claim", "Proof")),
+        variant("60 to 90 seconds", "Primary", ("Claim", "Career arc", "Proof", "Why this role")),
+        variant("2 minutes", "Follow-up expansion", ("Claim", "Career arc", "Why this work", "Proof", "Why this role")),
+        variant("4 minutes", "Deep-dive version", ("Claim", "Career arc", "Why this work", "Proof", "Why this role", "Close")),
     ]
 
 
@@ -1047,6 +1234,206 @@ def story_coaching_note(human_line: str, role_bridge: str = "") -> str:
     return f"Coaching note: {cheat.join_answer_sentences(*parts)}"
 
 
+def script_sentences(text: str) -> list[str]:
+    cleaned = re.sub(r"\s+", " ", text).strip()
+    if not cleaned:
+        return []
+    return [segment.strip() for segment in re.split(r"(?<=[.!?])\s+", cleaned) if segment.strip()]
+
+
+def structured_modules_from_sentences(
+    text: str,
+    *,
+    labels: Sequence[str] = ("Proof", "Business result", "Role bridge"),
+) -> tuple[tuple[str, str], ...]:
+    sentences = script_sentences(text)[1:]
+    modules: list[tuple[str, str]] = []
+    for label, sentence in zip(labels, sentences):
+        modules.append((label, sentence))
+    return tuple(modules)
+
+
+def scripted_answer_from_text(
+    text: str,
+    *,
+    label: str,
+    coaching_note: str = "",
+    alternate: str = "",
+    pushback_branches: Sequence[tuple[str, str]] = (),
+    stretch_modules: Sequence[tuple[str, str]] | None = None,
+    allowed_text: str = "",
+    allowed_terms: Sequence[str] = (),
+) -> StoryAnswerParts:
+    full = prose_engine.spoken_register(text).text
+    answer = StoryAnswerParts(
+        full=full,
+        meat_first=first_sentence(full),
+        stretch_modules=tuple(stretch_modules) if stretch_modules is not None else structured_modules_from_sentences(full),
+        alternate=prose_engine.spoken_register(alternate).text if alternate.strip() else "",
+        pushback_branches=tuple(
+            (concern, prose_engine.spoken_register(response).text)
+            for concern, response in pushback_branches
+            if response.strip()
+        ),
+        coaching_note=coaching_note.strip(),
+    )
+    validate_scripted_answer(
+        answer,
+        label=label,
+        allowed_text=allowed_text or full,
+        allowed_terms=allowed_terms,
+    )
+    return answer
+
+
+def ai_customer_work_answer() -> StoryAnswerParts:
+    full = cheat.confirmed_ai_customer_work_story()
+    stretch_modules = (
+        ("Batch versus one-off split", "I separated batch adjustments from one-off corrections so the high-volume work had a cleaner workflow before import."),
+        ("AI drafting and comparison", "I used ChatGPT Codex first, then pressure-tested the structure against Claude, Gemini, and Copilot when I wanted a second pattern or wording pass."),
+        ("Import controls", "Before anything moved, I checked duplicate part and component patterns, validated template placement, ran the sequence through the Aptean Import Wizard, and kept sandbox and GL-account validation in front of live execution."),
+        ("Customer-facing rule", "That is also how I would talk about AI with a customer: speed up the preparation, but keep the final judgment, validation, and business explanation with the operator."),
+    )
+    pushback = (
+        ("That sounds like scripting more than AI", cheat.confirmed_ai_customer_work_pushback()),
+    )
+    alternate = (
+        "The practical point is not that I built a model. It is that I used AI to tighten the workflow design, catch issues earlier, "
+        "and shorten the path to a structure I could still validate myself before it touched live data."
+    )
+    return scripted_answer_from_text(
+        full,
+        label="AI-enabled customer work",
+        coaching_note="Coaching note: Lead with ownership and controls. Keep the language practical, not futuristic.",
+        alternate=alternate,
+        pushback_branches=pushback,
+        stretch_modules=stretch_modules,
+        allowed_text=f"{full} {alternate} {' '.join(response for _concern, response in pushback)}",
+        allowed_terms=(
+            "Aptean Import Wizard",
+            "ChatGPT Codex",
+            "Claude",
+            "Copilot",
+            "Gemini",
+            "GL-account",
+            "sandbox",
+        ),
+    )
+
+
+def story_script_bridge(
+    card: cheat.StoryCard,
+    profile: build_resume.JobProblemProfile,
+    company_name: str,
+    role_title: str,
+    job_description: str,
+    interview_notes: str,
+) -> str:
+    if is_state_farm_active(company_name, role_title, job_description):
+        return state_farm_playbook.state_farm_story_bridge(card)
+    if consulting_bigfour.is_bigfour_consulting_active(company_name, role_title, job_description, interview_notes=interview_notes):
+        return consulting_bigfour.bigfour_story_bridge(card)
+    return cheat.story_specific_bridge(card, profile).replace("Bridge: ", "").strip()
+
+
+def story_script_calibration(
+    card: cheat.StoryCard,
+    company_name: str,
+    role_title: str,
+    job_description: str,
+    interview_notes: str,
+) -> str:
+    if is_state_farm_active(company_name, role_title, job_description):
+        return state_farm_playbook.state_farm_calibration_question(card)
+    if consulting_bigfour.is_bigfour_consulting_active(company_name, role_title, job_description, interview_notes=interview_notes):
+        return consulting_bigfour.bigfour_calibration_question(card)
+    return ""
+
+
+def story_script_answer(
+    card: cheat.StoryCard,
+    profile: build_resume.JobProblemProfile,
+    company_name: str,
+    role_title: str,
+    job_description: str = "",
+    interview_notes: str = "",
+    resume_text: str = "",
+) -> StoryAnswerParts:
+    human_line = cheat.story_human_connection_line(
+        card,
+        profile,
+        company_name,
+        role_title,
+        job_description,
+        resume_text,
+    )
+    opener = cheat.story_opener_by_type(set(card.story_types), card.title)
+    claim = f"{opener[:1].upper() + opener[1:]} {cheat.lower_clause(card.hook)}"
+    noticing = (
+        f"What I noticed early was {cheat.lower_clause(card.level3_trait)}"
+        if card.level3_trait
+        else ""
+    )
+    action = cheat.story_evidence_sentence(card.evidence)
+    result = cheat.story_result_sentence(card.result)
+    bridge = story_script_bridge(card, profile, company_name, role_title, job_description, interview_notes)
+    calibration = story_script_calibration(card, company_name, role_title, job_description, interview_notes)
+    full = cheat.join_answer_sentences(claim, noticing, action, result, bridge, calibration)
+    alternate = cheat.join_answer_sentences(
+        f"What matters in that example is {cheat.lower_clause(card.result)}" if card.result else claim,
+        bridge or action,
+    )
+    pushback_branches = (
+        (
+            "What was personally yours in that work?",
+            cheat.join_answer_sentences(
+                "My personal ownership was the structure, validation path, and stakeholder follow-through that kept the work moving",
+                action,
+            ),
+        ),
+        (
+            "How does that map to this role if the environment is different?",
+            cheat.join_answer_sentences(
+                "The environment can change, but the operating pattern is the point",
+                bridge,
+            ),
+        ),
+    )
+    stretch_modules = tuple(
+        (label, text)
+        for label, text in (
+            ("What I noticed early", noticing),
+            ("What I changed", action),
+            ("What happened after", result),
+            ("Why it maps here", bridge),
+        )
+        if text.strip()
+    )
+    allowed_text = " ".join(
+        part
+        for part in (
+            card.hook,
+            card.evidence,
+            card.result,
+            card.outcome,
+            card.level3_trait,
+            bridge,
+            calibration,
+            human_line,
+        )
+        if part
+    )
+    return scripted_answer_from_text(
+        full,
+        label=f"story answer: {card.title}",
+        coaching_note=story_coaching_note(human_line, profile.core_problem),
+        alternate=alternate,
+        pushback_branches=pushback_branches,
+        stretch_modules=stretch_modules,
+        allowed_text=allowed_text,
+    )
+
+
 def add_extended_tmay_section(
     document: Document,
     profile: build_resume.JobProblemProfile,
@@ -1056,12 +1443,12 @@ def add_extended_tmay_section(
     resume_text: str,
     notes_text: str = "",
 ) -> None:
-    add_section(document, "Tell Me About Yourself: Extended Version")
+    add_section(document, "Tell Me About Yourself: Time Ladder")
     add_body(
         document,
-        "Use this when the interviewer is engaged and the opening gives Christian room to go beyond the shorter elevator speech. Rehearse the structure enough that it stays natural under redirects and follow-up questions."
+        "Use this as a true ladder instead of one long monologue. Land the anchor version first, then add the next module only if the interviewer keeps leaning in."
     )
-    for label, paragraph in build_extended_tmay_sections(
+    for item in build_extended_tmay_sections(
         profile,
         company_name,
         role_title,
@@ -1069,8 +1456,13 @@ def add_extended_tmay_section(
         resume_text,
         notes_text,
     ):
-        add_subsection(document, label)
-        add_body(document, paragraph)
+        add_subsection(document, f"{item.label} ({item.target_window})")
+        add_answer_box(document, item.script, label="SCRIPT")
+        add_tip_box(
+            document,
+            "Modules included: " + ", ".join(label for label, _text in item.modules),
+            label="STACKING RULE:",
+        )
 
 
 def add_story_anchor_system_section(
@@ -1611,43 +2003,14 @@ def story_sample_answer(
     interview_notes: str = "",
     resume_text: str = "",
 ) -> StoryAnswerParts:
-    human_line = cheat.story_human_connection_line(
+    return story_script_answer(
         card,
         profile,
         company_name,
         role_title,
         job_description,
+        interview_notes,
         resume_text,
-    )
-    if is_state_farm_active(company_name, role_title, job_description):
-        spoken = cheat.join_answer_sentences(
-            f"{cheat.story_opener_by_type(set(card.story_types), card.title).capitalize()} where {cheat.lower_clause(card.hook)}",
-            f"The key early signal was {cheat.lower_clause(state_farm_playbook.state_farm_story_noticing(card))}",
-            cheat.story_evidence_sentence(card.evidence),
-            cheat.story_result_sentence(card.result),
-            state_farm_playbook.state_farm_story_bridge(card),
-            state_farm_playbook.state_farm_calibration_question(card),
-        )
-        return StoryAnswerParts(
-            spoken=spoken,
-            coaching_note=story_coaching_note(human_line, profile.core_problem),
-        )
-    elif consulting_bigfour.is_bigfour_consulting_active(company_name, role_title, job_description, interview_notes=interview_notes):
-        spoken = cheat.join_answer_sentences(
-            f"{cheat.story_opener_by_type(set(card.story_types), card.title).capitalize()} where {cheat.lower_clause(card.hook)}",
-            cheat.spoken_level3_trait_sentence(card.level3_trait),
-            cheat.story_evidence_sentence(card.evidence),
-            cheat.story_result_sentence(card.result),
-            consulting_bigfour.bigfour_story_bridge(card),
-            consulting_bigfour.bigfour_calibration_question(card),
-        )
-        return StoryAnswerParts(
-            spoken=spoken,
-            coaching_note=story_coaching_note(human_line, profile.core_problem),
-        )
-    return StoryAnswerParts(
-        spoken=cheat.spoken_story_answer(card, profile, company_name, role_title, job_description),
-        coaching_note=story_coaching_note(human_line, profile.core_problem),
     )
 
 
@@ -1675,8 +2038,15 @@ def behavioral_sample_answers(
         related = next((story for story in stories if story.title in item.answer), None)
         if related:
             answer = story_sample_answer(related, profile, company_name, role_title, job_description, interview_notes, resume_text)
+        elif "actual hands-on automation or AI experience" in item.prompt.lower():
+            answer = ai_customer_work_answer()
         else:
-            answer = StoryAnswerParts(spoken=item.answer)
+            answer = scripted_answer_from_text(
+                item.answer,
+                label=f"behavioral answer: {item.prompt}",
+                coaching_note="",
+                allowed_text=item.answer,
+            )
         answers.append((item.prompt, answer))
     return answers
 
@@ -1864,7 +2234,7 @@ def add_story_page(
 ) -> None:
     answer = story_sample_answer(card, profile, company_name, role_title, job_description, interview_notes, resume_text)
     enforce_prose_quality(
-        answer.spoken,
+        answer.full,
         "interview_story_answer",
         label=f"Detailed guide story answer ({card.title})",
         mode="warn",
@@ -2004,6 +2374,13 @@ def add_general_answer_operating_system(document: Document, profile: build_resum
     add_subsection(document, "Answer Framework Hierarchy")
     for line in cheat.answer_framework_section_lines(framework_selection):
         add_bullet(document, line)
+    add_subsection(document, "Meat-First Spine")
+    for line in (
+        "Sentence one must land the point, not the warm-up. Say the answer before the autobiography.",
+        "Treat the first sentence as the claim you want repeated in debrief, then earn it with one proof line.",
+        "If Christian feels himself wandering, return to the first claim sentence instead of restarting the whole answer.",
+    ):
+        add_bullet(document, line)
     add_subsection(document, "One Framework, Three Modes")
     for line in (
         "Do not reach for an acronym during the interview. Reach for the practiced sequence.",
@@ -2013,8 +2390,29 @@ def add_general_answer_operating_system(document: Document, profile: build_resum
         "STAR, CAR, SAR, CAAR, CART, and HERO are prep labels. The live answer should sound like practiced judgment, not an acronym recital.",
     ):
         add_bullet(document, line)
+    add_subsection(document, "Stretch-By-Stacking Rule")
+    for line in (
+        "Do not invent a different long answer. Start with the anchor answer, then add one labeled module at a time only if the interviewer keeps pulling.",
+        "The clean stack is: what you noticed, what you changed, what happened after, and why it matters here.",
+        "If the interviewer interrupts after the first or second module, stop there. That still counts as a strong answer.",
+    ):
+        add_bullet(document, line)
     add_subsection(document, "Two Question Types")
     for line in cheat.response_calibration_lines():
+        add_bullet(document, line)
+    add_subsection(document, "Anti-Hedge Rule")
+    for line in (
+        "Cut weak openers such as 'I guess,' 'I think,' 'kind of,' or 'basically' when the evidence is already supported.",
+        "Do not end with 'let me know if you want me to dive deeper.' Land the point, pause, and let the interviewer pull the next layer.",
+        "If Christian needs to show humility, do it with scope honesty or a validation step, not with apologetic phrasing.",
+    ):
+        add_bullet(document, line)
+    add_subsection(document, "Declarative Landing")
+    for line in (
+        "End on the result or the role bridge, not on trailing explanation.",
+        "The final sentence should sound finished and useful, not like Christian is still looking for the close.",
+        "If a follow-up is likely, land the answer cleanly and let the pause invite it.",
+    ):
         add_bullet(document, line)
     add_subsection(document, "Story-Specific Bridge Rule")
     add_body(
@@ -2078,7 +2476,544 @@ def add_thank_you_strategy_section(document: Document, company_name: str, role_t
 
 
 
-def build_document(company_name: str, role_title: str, job_description: str, resume_docx: Path, output_docx: Path) -> None:
+def output_path_for_stage(output_docx: Path, stage_profile: interview_stage.StageProfile) -> Path:
+    suffix = interview_stage.stage_filename_suffix(stage_profile)
+    if not suffix:
+        return output_docx
+    if suffix in output_docx.stem:
+        return output_docx
+    stem = output_docx.stem
+    if "Detailed Interview Guide" in stem:
+        stem = stem.replace("Detailed Interview Guide", f"Detailed Interview Guide{suffix}")
+    else:
+        stem = f"{stem}{suffix}"
+    return output_docx.with_name(f"{stem}{output_docx.suffix}")
+
+
+def interviewer_focus_lines(context: interview_stage.InterviewerContext, stage_profile: interview_stage.StageProfile) -> tuple[str, ...]:
+    title = context.title.lower()
+    focus: list[str] = []
+    if any(term in title for term in ("recruit", "talent", "people partner", "hr")):
+        focus.append("Likely focus from title only: motivation, communication clarity, logistics, and whether Christian sounds easy to represent to the hiring team.")
+    if any(term in title for term in ("manager", "director", "head", "vp", "chief")):
+        focus.append("Likely focus from title only: useful judgment, business outcomes, stakeholder confidence, and what Christian would own early.")
+    if any(term in title for term in ("technical", "architect", "engineer", "systems", "data")):
+        focus.append("Likely focus from title only: technical reasoning, validation discipline, and how Christian explains complexity without losing the business point.")
+    if any(term in title for term in ("operations", "program", "implementation", "delivery", "product")):
+        focus.append("Likely focus from title only: workflow risk, cross-functional execution, and whether Christian can keep ambiguous work structured.")
+    if not focus:
+        default_by_stage = {
+            "hr_screen": "Likely focus from the stage itself: concise fit story, motivation, and whether the basics are easy to advance.",
+            "hiring_manager": "Likely focus from the stage itself: direct proof of similar work, first-90-day thinking, and practical ownership.",
+            "panel": "Likely focus from the stage itself: collaboration, clear adaptation to different interviewers, and repeatable examples.",
+            "presentation": "Likely focus from the stage itself: structured communication, recommendation logic, and how Christian handles questions under scrutiny.",
+            "technical": "Likely focus from the stage itself: scenario reasoning, validation steps, and business framing.",
+            "final": "Likely focus from the stage itself: executive presence, motivation, and whether Christian feels like a safe final yes.",
+        }
+        focus.append(default_by_stage.get(stage_profile.key, "Likely focus: role fit, useful proof, and clear communication."))
+    return tuple(focus)
+
+
+def best_lead_story(
+    stories: Sequence[cheat.StoryCard],
+    context: interview_stage.InterviewerContext,
+    stage_profile: interview_stage.StageProfile,
+) -> cheat.StoryCard | None:
+    if not stories:
+        return None
+    weighting_terms = " ".join(
+        (
+            context.title,
+            " ".join(context.emphasized_terms),
+            stage_profile.label,
+            " ".join(stage_profile.focus_areas),
+        )
+    ).strip()
+    if not weighting_terms:
+        return stories[0]
+    return max(stories, key=lambda story: cheat.signal_score(weighting_terms, story.signals))
+
+
+def interviewer_question_suggestion(
+    context: interview_stage.InterviewerContext,
+    stage_profile: interview_stage.StageProfile,
+    profile: build_resume.JobProblemProfile,
+    company_name: str,
+) -> str:
+    title = context.title.lower()
+    if any(term in title for term in ("recruit", "talent", "hr")):
+        return "What usually distinguishes the candidates who move fastest from this screen into the next round?"
+    if any(term in title for term in ("technical", "architect", "engineer", "systems", "data")):
+        return "Where do technical handoffs, data validation, or workflow ambiguity create the most risk for this role today?"
+    if any(term in title for term in ("director", "vp", "chief", "head")):
+        return f"If this hire is clearly successful six months in, what would have changed for {company_name} that the leadership team would notice?"
+    if stage_profile.key == "presentation":
+        return "When this team evaluates a recommendation, what separates a persuasive answer from one that feels too theoretical?"
+    if stage_profile.key == "panel":
+        return "Across the different people in this panel, where do you expect the strongest pushback or the most detailed follow-up to come from?"
+    return f"What part of {profile.core_problem} would you want this hire to make visible or measurably better first?"
+
+
+def add_recruiter_feedback_callout(document: Document, context: interview_stage.InterviewerContext) -> None:
+    if not context.recruiter_feedback:
+        return
+    add_section(document, "Recruiter Feedback To Carry Into This Round")
+    for line in context.recruiter_feedback:
+        add_bullet(document, line)
+
+
+def add_interviewer_specific_prep_section(
+    document: Document,
+    context: interview_stage.InterviewerContext,
+    stage_profile: interview_stage.StageProfile,
+    stories: Sequence[cheat.StoryCard],
+    profile: build_resume.JobProblemProfile,
+    company_name: str,
+) -> None:
+    if not (context.name or context.title or context.emphasized_terms or context.notes):
+        return
+    add_section(document, "Interviewer-Specific Prep")
+    if context.name or context.title:
+        heading = context.name or "Interviewer"
+        if context.title:
+            heading = f"{heading} - {context.title}" if context.name else context.title
+        add_bullet(document, f"Interviewer: {heading}")
+    for line in interviewer_focus_lines(context, stage_profile):
+        add_bullet(document, line)
+    if context.emphasized_terms:
+        add_bullet(document, f"Weight likely questions toward these signals only as emphasis hints, not new facts: {', '.join(context.emphasized_terms)}")
+    lead_story = best_lead_story(stories, context, stage_profile)
+    if lead_story:
+        add_bullet(document, f"Best lead story for this interviewer: {lead_story.title} - {lead_story.result}")
+    add_bullet(document, f"Tailored question to keep ready: {interviewer_question_suggestion(context, stage_profile, profile, company_name)}")
+    for note in context.notes[:4]:
+        add_bullet(document, f"Context note: {note}")
+
+
+def _overlay_lines(value: object) -> list[str]:
+    if isinstance(value, str):
+        raw_items = [part.strip() for part in re.split(r"(?:\r?\n|;)", value) if part.strip()]
+    elif isinstance(value, Sequence) and not isinstance(value, (str, bytes)):
+        raw_items = [str(item).strip() for item in value if str(item).strip()]
+    else:
+        raw_items = []
+    return list(dict.fromkeys(raw_items))
+
+
+def add_debrief_overlay_section(
+    document: Document,
+    round_records: Sequence[Mapping[str, object]],
+) -> bool:
+    if not round_records:
+        return False
+    latest = interview_context.compact_round_record(round_records[0])
+    analysis = interview_context.latest_review_analysis(round_records)
+    diagnosis = analysis.get("positioning_diagnosis", {}) if isinstance(analysis, Mapping) else {}
+    answer_strategy = analysis.get("answer_strategy", {}) if isinstance(analysis, Mapping) else {}
+    answer_assets = analysis.get("answer_assets", {}) if isinstance(analysis, Mapping) else {}
+
+    delivery_risks: list[str] = []
+    headline = str(diagnosis.get("headline", "")).strip() if isinstance(diagnosis, Mapping) else ""
+    if headline:
+        delivery_risks.append(headline)
+    delivery_risks.extend(_overlay_lines(diagnosis.get("reasons", []))[:3] if isinstance(diagnosis, Mapping) else [])
+    delivery_risks.extend(_overlay_lines(latest.get("feedback_received", []))[:2])
+    fix_cards = _overlay_lines(answer_strategy.get("delivery_shifts", []))[:4] if isinstance(answer_strategy, Mapping) else []
+    interviewer_language = _overlay_lines(answer_assets.get("role_language_lines", []))[:5] if isinstance(answer_assets, Mapping) else []
+    unexpected_questions = _overlay_lines(latest.get("unexpected_questions", []))[:4]
+    company_terms = _overlay_lines(answer_assets.get("company_signal_lines", []))[:4] if isinstance(answer_assets, Mapping) else []
+
+    if not any((delivery_risks, fix_cards, interviewer_language, unexpected_questions, company_terms)):
+        return False
+
+    add_section(document, "Debrief-To-Prep Overlay")
+    if delivery_risks:
+        add_subsection(document, "Top delivery risks")
+        for line in delivery_risks[:4]:
+            add_bullet(document, line)
+    if fix_cards:
+        add_subsection(document, "Fix cards")
+        for line in fix_cards:
+            add_bullet(document, line)
+    if interviewer_language:
+        add_subsection(document, "Interviewer language to reuse")
+        for line in interviewer_language:
+            add_bullet(document, line)
+    if unexpected_questions:
+        add_subsection(document, "Unexpected questions to drill")
+        for line in unexpected_questions:
+            add_bullet(document, line)
+    if company_terms:
+        add_subsection(document, "Safe repeatable company terms")
+        for line in company_terms:
+            add_bullet(document, line)
+    return True
+
+
+def build_recruiter_screen_companion_document(
+    profile: build_resume.JobProblemProfile,
+    company_name: str,
+    role_title: str,
+    job_description: str,
+    resume_text: str,
+    supplied_context: str,
+    interview_notes: str,
+    stories: Sequence[cheat.StoryCard],
+) -> Document:
+    document = Document()
+    set_default_style(document)
+    add_banner_title(
+        document,
+        f"{company_name}: Recruiter Screen Prep",
+        f"{role_title}  |  Christian Estrada",
+        eyebrow="First-round screen. Keep the answer short, value-first, and recruiter-friendly.",
+    )
+    add_section(document, "Know The Company")
+    for line in cheat.company_background_lines(job_description, profile, company_name, role_title)[:3]:
+        add_bullet(document, line)
+    add_section(document, "Walk Me Through Your Background")
+    variants = cheat.pitch_variants(
+        profile,
+        company_name=company_name,
+        role_title=role_title,
+        job_description=job_description,
+        resume_text=resume_text,
+        notes_text=interview_notes,
+    )
+    for title, answer in (
+        ("Rung 1 (about 30 sec): the anchor", variants["30_second"]),
+        ("Rung 2 (60 to 90 sec): add arc + why this role", variants["60_second"]),
+        ("Rung 3 (about 90 sec): add proof + bridge", variants["90_second"]),
+    ):
+        add_subsection(document, title)
+        add_answer_box(document, answer, label="SAY THIS")
+    add_section(document, "Recruiter Question Bank")
+    for pair in cheat.recruiter_screen_pairs(
+        profile,
+        company_name,
+        role_title,
+        job_description,
+        list(stories),
+        list(stories),
+        supplied_context=supplied_context,
+        resume_text=resume_text,
+        notes_text=interview_notes,
+    ):
+        add_stage_answer_pair(document, pair.prompt, pair.say_this, pair.dig_deeper)
+    add_section(document, "Recruiter Checklist")
+    for line in cheat.recruiter_reminders()[:5]:
+        add_bullet(document, line)
+    add_section(document, "Questions To Ask")
+    for question in cheat.questions_to_ask(company_name, profile, job_description, supplied_context)[:3]:
+        add_bullet(document, question)
+    return document
+
+
+def build_first_90_day_one_pager_document(
+    profile: build_resume.JobProblemProfile,
+    company_name: str,
+    role_title: str,
+    job_description: str,
+) -> Document:
+    plan = cheat.first_90_day_plan(profile)
+    document = Document()
+    set_default_style(document)
+    add_banner_title(
+        document,
+        f"{company_name}: My First 90 Days",
+        f"{role_title}  |  one-page glance sheet",
+        eyebrow="Answer this first, then ask if it matches.",
+    )
+    for label, text in plan.stages:
+        add_subsection(document, label)
+        add_body(document, text)
+    add_tip_box(document, f"\"{plan.validation_question}\"", label="THEN, AND ONLY THEN, ASK:")
+    keep_in_view = [
+        "BLUF: open every answer with the direct answer in one sentence, then support it with proof.",
+        f"Why-role opener: {first_sentence(cheat.why_role_first_answer(profile, company_name, role_title, job_description))}",
+    ]
+    if cheat.automation_boundary_context(job_description):
+        keep_in_view.append(
+            f"Software boundary if it comes up: {first_sentence(cheat.software_categorization_answer(job_description))}"
+        )
+    else:
+        for reminder in plan.reminders:
+            if reminder not in keep_in_view:
+                keep_in_view.append(reminder)
+            if len(keep_in_view) >= 3:
+                break
+    add_section(document, "Keep These Three In View")
+    for line in keep_in_view[:3]:
+        add_bullet(document, line)
+    return document
+
+
+def build_debrief_addendum_document(
+    company_name: str,
+    role_title: str,
+    round_records: Sequence[Mapping[str, object]],
+) -> Document | None:
+    document = Document()
+    set_default_style(document)
+    add_banner_title(
+        document,
+        f"{company_name}: Debrief Prep Addendum",
+        f"{role_title}  |  Christian Estrada",
+        eyebrow="This sharpens the next round from the latest structured debrief, not from new experience.",
+    )
+    analysis = interview_context.latest_review_analysis(round_records)
+    diagnosis = analysis.get("positioning_diagnosis", {}) if isinstance(analysis, Mapping) else {}
+    headline = str(diagnosis.get("headline", "")).strip() if isinstance(diagnosis, Mapping) else ""
+    if headline:
+        add_body(document, headline)
+    add_body(
+        document,
+        "Use this addendum to tighten delivery, reuse the interviewer language that already landed, and drill the questions that created the most pressure.",
+    )
+    return document if add_debrief_overlay_section(document, round_records) else None
+
+
+def add_hr_screen_prep_section(
+    document: Document,
+    profile: build_resume.JobProblemProfile,
+    company_name: str,
+    role_title: str,
+    job_description: str,
+    resume_text: str,
+    supplied_context: str,
+    interview_notes: str,
+    stories: Sequence[cheat.StoryCard],
+) -> None:
+    variants = cheat.pitch_variants(
+        profile,
+        company_name=company_name,
+        role_title=role_title,
+        job_description=job_description,
+        resume_text=resume_text,
+        notes_text=interview_notes,
+    )
+    add_section(document, "HR Screen Prep")
+    add_subsection(document, "Company snapshot")
+    for line in cheat.company_background_lines(job_description, profile, company_name, role_title)[:3]:
+        add_bullet(document, line)
+    add_subsection(document, "Short background")
+    add_answer_box(document, variants["30_second"], label="SAY THIS")
+    add_tip_box(document, variants["60_second"], label="DIG DEEPER:")
+    for pair in cheat.recruiter_screen_pairs(
+        profile,
+        company_name,
+        role_title,
+        job_description,
+        list(stories),
+        list(stories),
+        supplied_context=supplied_context,
+        resume_text=resume_text,
+        notes_text=interview_notes,
+    ):
+        add_stage_answer_pair(document, pair.prompt, pair.say_this, pair.dig_deeper)
+    add_subsection(document, "Why make a move now")
+    add_answer_box(
+        document,
+        cheat.join_answer_sentences(
+            f"I am looking for a role where I can stay close to {profile.core_problem} while having clearer ownership of what changes because I was there",
+            f"The {role_title} role stands out because it asks for exactly that blend of structure, communication, and practical execution",
+        ),
+        label="SAY THIS",
+    )
+    add_subsection(document, "Logistics and salary when asked")
+    add_answer_box(document, cheat.compensation_logistics_answer(supplied_context), label="SAY THIS")
+    add_subsection(document, "Recruiter checklist")
+    for line in cheat.recruiter_reminders()[:5]:
+        add_bullet(document, line)
+    add_subsection(document, "Recruiter questions to ask")
+    for question in cheat.questions_to_ask(company_name, profile, job_description, supplied_context)[:3]:
+        add_bullet(document, question)
+
+
+def add_hiring_manager_prep_section(
+    document: Document,
+    profile: build_resume.JobProblemProfile,
+    company_name: str,
+    role_title: str,
+    job_description: str,
+    stories: Sequence[cheat.StoryCard],
+) -> None:
+    add_section(document, "Hiring Manager Prep")
+    lead_story = stories[0] if stories else None
+    if lead_story:
+        add_bullet(document, f"Lead story first: {lead_story.title} - {lead_story.result}")
+    add_subsection(document, "Role-fit answer")
+    add_answer_box(document, detailed_pitch(company_name, role_title, profile), label="SAY THIS")
+    ninety_day = cheat.first_90_day_plan(profile)
+    add_subsection(document, "First 90-day glance")
+    for label, text in ninety_day.stages:
+        add_bullet(document, f"{label}: {text}")
+    add_answer_box(document, ninety_day.answer, label="SAY THIS")
+    add_tip_box(document, f"Then ask: {ninety_day.validation_question}", label="AFTER YOU ANSWER:")
+    if cheat.automation_boundary_context(job_description):
+        add_stage_answer_pair(
+            document,
+            "Software-boundary answer",
+            cheat.software_categorization_answer(job_description),
+            "Use this before they hand you a PLC-versus-code-versus-analytics framework.",
+        )
+        add_stage_answer_pair(
+            document,
+            "Hardware-gap bridge",
+            cheat.hardware_gap_bridge_answer(job_description),
+            "After the bridge, ask what the onboarding path usually looks like on the hardware and product side.",
+        )
+    if stories:
+        add_subsection(document, "Four anchor stories for this round")
+        table_rows = [
+            (
+                card.title,
+                ", ".join(card.story_types[:2]),
+                card.result,
+            )
+            for card in stories[:4]
+        ]
+        add_banded_table(document, ("Story", "Use it for", "Result"), table_rows)
+    add_subsection(document, "First 90-day delivery reminders")
+    for line in ninety_day.reminders:
+        add_bullet(document, line)
+    add_subsection(document, "Gap pushback")
+    for line in cheat.role_specific_gaps(profile, job_description)[:4]:
+        add_bullet(document, line)
+
+
+def add_panel_prep_section(
+    document: Document,
+    profile: build_resume.JobProblemProfile,
+    stories: Sequence[cheat.StoryCard],
+    context: interview_stage.InterviewerContext,
+) -> None:
+    add_section(document, "Panel Prep")
+    add_bullet(document, "Assume different interviewers are listening for different things. Answer once, but leave obvious entry points for follow-up from execution, stakeholder, and business angles.")
+    if context.emphasized_terms:
+        add_bullet(document, f"Use these context clues to choose examples, not to invent new facts: {', '.join(context.emphasized_terms)}")
+    for story in stories[:3]:
+        add_bullet(document, f"Rotate this story for a different panel angle: {story.title} - {story.result}")
+    add_bullet(document, "If one interviewer pushes deeper, answer that person directly before widening back out to the group.")
+
+
+def add_presentation_prep_section(
+    document: Document,
+    profile: build_resume.JobProblemProfile,
+    company_name: str,
+    role_title: str,
+) -> None:
+    add_section(document, "Presentation Prep")
+    add_subsection(document, "Opening structure")
+    add_bullet(document, "Open with the recommendation or core point first, then show the supporting logic.")
+    add_bullet(document, f"Make the business problem explicit: {profile.core_problem}.")
+    add_bullet(document, f"Close the opening minute by naming what the audience should trust about Christian's approach for the {role_title} role at {company_name}.")
+    add_subsection(document, "Q&A defense")
+    add_bullet(document, "Treat objections as missing confidence, not hostility. Clarify the assumption, answer directly, then return to the business outcome.")
+    add_bullet(document, "If pressed on tradeoffs, name the risk you would protect first and why.")
+
+
+def add_technical_prep_section(
+    document: Document,
+    profile: build_resume.JobProblemProfile,
+    company_name: str,
+    role_title: str,
+    job_description: str,
+    stories: Sequence[cheat.StoryCard],
+) -> None:
+    add_section(document, "Technical Prep")
+    add_bullet(document, "Answer technical scenarios by naming the workflow, the validation step, the risk if it goes wrong, and the business consequence.")
+    add_bullet(document, "Do not try to sound like a pure engineer if the supported proof is implementation, reporting, ERP ownership, and validation discipline.")
+    if stories:
+        add_subsection(document, "Best technical proof")
+        add_answer_box(
+            document,
+            cheat.join_answer_sentences(
+                f"For a technical scenario in the {role_title} role at {company_name}, I would start by clarifying the workflow and the failure point before touching the fix",
+                story_sample_answer(stories[0], profile, company_name, role_title, job_description).meat_first,
+                "Then I would explain the validation checks and the business outcome I was trying to protect",
+            ),
+            label="SAY THIS",
+        )
+
+
+def add_final_round_prep_section(
+    document: Document,
+    company_name: str,
+    role_title: str,
+    job_description: str,
+    profile: build_resume.JobProblemProfile,
+    insights: PrepInsights,
+    supplied_context: str,
+) -> None:
+    add_final_round_strategy_section(document, company_name, role_title, job_description, profile, insights)
+    add_subsection(document, "Compensation handling")
+    add_answer_box(document, cheat.compensation_logistics_answer(supplied_context), label="SAY THIS")
+
+
+def add_stage_specific_sections(
+    document: Document,
+    *,
+    stage_profile: interview_stage.StageProfile,
+    profile: build_resume.JobProblemProfile,
+    company_name: str,
+    role_title: str,
+    job_description: str,
+    resume_text: str,
+    supplied_context: str,
+    interview_notes: str,
+    insights: PrepInsights,
+    stories: Sequence[cheat.StoryCard],
+    context: interview_stage.InterviewerContext,
+) -> None:
+    if stage_profile.key in {"all", "hr_screen"}:
+        add_hr_screen_prep_section(document, profile, company_name, role_title, job_description, resume_text, supplied_context, interview_notes, stories)
+    if stage_profile.key in {"all", "hiring_manager"}:
+        add_hiring_manager_prep_section(document, profile, company_name, role_title, job_description, stories)
+    if stage_profile.key in {"all", "panel"}:
+        add_panel_prep_section(document, profile, stories, context)
+    if stage_profile.key in {"all", "presentation"}:
+        add_presentation_prep_section(document, profile, company_name, role_title)
+    if stage_profile.key in {"all", "technical"}:
+        add_technical_prep_section(document, profile, company_name, role_title, job_description, stories)
+    if stage_profile.key in {"all", "final"}:
+        add_final_round_prep_section(document, company_name, role_title, job_description, profile, insights, supplied_context)
+
+
+def add_focused_story_bank(
+    document: Document,
+    stories: Sequence[cheat.StoryCard],
+    profile: build_resume.JobProblemProfile,
+    company_name: str,
+    role_title: str,
+    job_description: str,
+    interview_notes: str,
+    resume_text: str,
+    *,
+    limit: int = 3,
+) -> None:
+    if not stories:
+        return
+    add_page_break(document)
+    add_section(document, "Focused Story Bank")
+    for card in stories[:limit]:
+        add_subsection(document, card.title)
+        add_story_answer(
+            document,
+            story_sample_answer(card, profile, company_name, role_title, job_description, interview_notes, resume_text),
+        )
+
+
+def build_document(
+    company_name: str,
+    role_title: str,
+    job_description: str,
+    resume_docx: Path,
+    output_docx: Path,
+    *,
+    stage_profile: interview_stage.StageProfile,
+    interviewer_context_data: interview_stage.InterviewerContext,
+) -> None:
     resume_text = "\n".join(cheat.paragraph_texts(resume_docx))
     profile = cheat.adjusted_profile_for_role(
         build_resume.job_problem_profile(job_description, resume_text),
@@ -2120,10 +3055,23 @@ def build_document(company_name: str, role_title: str, job_description: str, res
         add_section(document, "Firm-Specific Interview Profile")
         for line in firm_callout:
             add_bullet(document, line)
+    add_recruiter_feedback_callout(document, interviewer_context_data)
+    add_interviewer_specific_prep_section(
+        document,
+        interviewer_context_data,
+        stage_profile,
+        hero_stories,
+        profile,
+        company_name,
+    )
 
     add_section(document, "How To Use This Guide")
     add_bullet(document, "This is the long-form interview prep document. Use it when an interview is scheduled, not for every resume generation run.")
     add_bullet(document, "Keyword Answer Reference is at the back of the guide. Use it for targeted practice after reviewing the story bank.")
+    if stage_profile.key == "all":
+        add_bullet(document, "This default build keeps the shared rehearsal core once, then adds stage-specific prep sections before the deeper story-bank material.")
+    else:
+        add_bullet(document, f"This build is focused on the {stage_profile.label} stage, so it keeps the shared rehearsal core and the stage-specific prep without dragging in every later-stage section.")
     add_section(document, "Answer Framework Hierarchy")
     for line in cheat.answer_framework_section_lines(framework_selection):
         add_bullet(document, line)
@@ -2181,11 +3129,52 @@ def build_document(company_name: str, role_title: str, job_description: str, res
         add_section(document, "Post-Round Intelligence To Prepare")
         for line in post_round_lines:
             add_bullet(document, line)
+    add_debrief_overlay_section(document, context_bundle.round_records)
     if debrief_summary.top_coaching_signals:
         add_section(document, "Recurring Delivery Habits")
         for item in debrief_summary.top_coaching_signals:
             add_bullet(document, item)
     add_extended_tmay_section(document, profile, company_name, role_title, job_description, resume_text, interview_notes)
+    add_stage_specific_sections(
+        document,
+        stage_profile=stage_profile,
+        profile=profile,
+        company_name=company_name,
+        role_title=role_title,
+        job_description=job_description,
+        resume_text=resume_text,
+        supplied_context=supplied_context,
+        interview_notes=interview_notes,
+        insights=insights,
+        stories=hero_stories,
+        context=interviewer_context_data,
+    )
+    if stage_profile.key != "all":
+        if stage_profile.key != "hr_screen":
+            add_focused_story_bank(
+                document,
+                hero_stories,
+                profile,
+                company_name,
+                role_title,
+                job_description,
+                interview_notes,
+                resume_text,
+            )
+            add_page_break(document)
+            add_section(document, "Answer Mechanics Reference")
+            add_general_answer_operating_system(document, profile, framework_selection)
+            if stage_profile.key == "technical":
+                add_page_break(document)
+                add_keyword_question_bank(document, profile, job_description, resume_text, hero_stories, company_name, role_title, max_keywords=5)
+        body = document_text(document)
+        scrub_document_for_job_language(document, job_description)
+        body = document_text(document)
+        build_resume.assert_no_erp_language_for_non_erp_role(body, job_description, "detailed interview guide")
+        validate_text(body, company_name=company_name, role_title=role_title)
+        output_docx.parent.mkdir(exist_ok=True)
+        document.save(str(output_docx))
+        return
     add_hidden_assessment_section(document, company_name, role_title, profile, job_description, stories)
     if state_farm_mode:
         add_state_farm_full_workbook(document, profile, company_name, role_title, job_description, resume_text, hero_stories, add_keyword_question_bank)
@@ -2237,7 +3226,7 @@ def build_document(company_name: str, role_title: str, job_description: str, res
         add_section(document, "Additional Behavioral Answers")
         for prompt, answer in behavioral_sample_answers(profile, stories, company_name, role_title, job_description, interview_notes, resume_text):
             enforce_prose_quality(
-                answer.spoken,
+                answer.full,
                 "interview_story_answer",
                 label=f"Detailed guide behavioral answer ({prompt[:50]})",
                 mode="warn",
@@ -2382,12 +3371,25 @@ def build_document(company_name: str, role_title: str, job_description: str, res
     document.save(str(output_docx))
 
 
-def build_detailed_interview_guide() -> DetailedGuideResult:
+def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Build the detailed interview guide.")
+    parser.add_argument("--stage", default="", help="Interview stage key: hr_screen, hiring_manager, panel, presentation, technical, final, or all.")
+    parser.add_argument("--interviewer-context", type=Path, default=None, help="Optional path to interviewer-context notes.")
+    return parser.parse_args(argv)
+
+
+def build_detailed_interview_guide(
+    *,
+    stage: str = "",
+    interviewer_context_path: Path | None = None,
+) -> DetailedGuideResult:
     build_resume.require_file(PROJECT_ROOT / "AGENTS.md", "AGENTS.md")
     build_resume.require_file(JOB_DESCRIPTION, "job description")
     job_description = read_text(JOB_DESCRIPTION)
     if not job_description:
         fail("job description is empty")
+    if interviewer_context_path is not None and not interviewer_context_path.exists():
+        fail(f"interviewer context file not found: {interviewer_context_path}")
 
     company_name = build_resume.extract_output_name(job_description)
     output_target_name = build_resume.extract_output_target_name(job_description)
@@ -2401,13 +3403,20 @@ def build_detailed_interview_guide() -> DetailedGuideResult:
         output_name = f"Christian Estrada - {output_target_name} POOR Detailed Interview Guide.docx"
     elif resume_audit_state == "BRIDGE":
         output_name = f"Christian Estrada - {output_target_name} BRIDGE Detailed Interview Guide.docx"
-    output_docx = OUTPUT_DIR / output_name
+    interviewer_context_data = interview_stage.read_interviewer_context(interviewer_context_path)
+    try:
+        stage_profile = interview_stage.resolve_stage(stage, interviewer_context_data, interview_stage.DEFAULT_STAGE_PATH)
+    except ValueError as exc:
+        fail(str(exc))
+    output_docx = output_path_for_stage(OUTPUT_DIR / output_name, stage_profile)
     return build_detailed_interview_guide_for_inputs(
         job_description=job_description,
         resume_docx=resume_docx,
         output_docx=output_docx,
         company_name=company_name,
         role_title=role_title,
+        stage=stage_profile.key,
+        interviewer_context=interviewer_context_data,
     )
 
 
@@ -2418,6 +3427,8 @@ def build_detailed_interview_guide_for_inputs(
     output_docx: Path,
     company_name: str,
     role_title: str,
+    stage: str = "all",
+    interviewer_context: interview_stage.InterviewerContext | None = None,
 ) -> DetailedGuideResult:
     build_resume.require_file(PROJECT_ROOT / "AGENTS.md", "AGENTS.md")
     if not job_description.strip():
@@ -2425,14 +3436,28 @@ def build_detailed_interview_guide_for_inputs(
     if not role_title or role_title == "Role":
         fail("could not determine role title; refusing to create a placeholder detailed interview guide")
     assert_company_name_in_source(company_name, job_description, label="detailed interview guide")
+    interviewer_context_data = interviewer_context or interview_stage.InterviewerContext()
+    try:
+        stage_profile = interview_stage.resolve_stage(stage or "all", interviewer_context_data, None)
+    except ValueError as exc:
+        fail(str(exc))
+    staged_output = output_path_for_stage(output_docx, stage_profile)
     prompt_state = question_prep.load_application_prompt_state()
     question_issues = question_prep.application_question_context_issues(job_description, prompt_state, workflow="commercial")
-    actual_output = question_prep.application_question_draft_path(output_docx) if question_issues else output_docx
+    actual_output = question_prep.application_question_draft_path(staged_output) if question_issues else staged_output
     with prose_engine.collect_spoken_repair_issues() as spoken_issues:
-        build_document(company_name, role_title, job_description, resume_docx, actual_output)
+        build_document(
+            company_name,
+            role_title,
+            job_description,
+            resume_docx,
+            actual_output,
+            stage_profile=stage_profile,
+            interviewer_context_data=interviewer_context_data,
+        )
     review_issues = tuple(dict.fromkeys((*question_issues, *spoken_issues)))
     if spoken_issues and not question_issues:
-        draft_output = question_prep.application_question_draft_path(output_docx)
+        draft_output = question_prep.application_question_draft_path(staged_output)
         actual_output.replace(draft_output)
         actual_output = draft_output
     if review_issues:
@@ -2442,7 +3467,11 @@ def build_detailed_interview_guide_for_inputs(
 
 
 def main() -> None:
-    result = build_detailed_interview_guide()
+    args = parse_args()
+    result = build_detailed_interview_guide(
+        stage=args.stage,
+        interviewer_context_path=args.interviewer_context,
+    )
     print(f"Company: {result.company_name}")
     print(f"Role: {result.role_title}")
     print(f"Resume source: {result.resume_docx}")
