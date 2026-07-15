@@ -1,0 +1,29 @@
+DEPENDENCY: Implement `Claude Review/CODEX_SPEC_SCRIPTED_INTERVIEW_GUIDE_20260713.md` FIRST, with its full test suite passing. This plan builds on the StoryAnswerParts layering, the time ladder, and the validate_delivery_principles check from that spec. Do not start this plan until the scripting spec is merged and green. If you are running both from the bundled hand-off, follow that order.
+
+Implement the plan in `Claude Review/CODEX_SPEC_INTERVIEW_STAGE_AND_INTERVIEWER_CONTEXT_20260713.md`.
+
+Read first, in this order:
+1. `Claude Review/CODEX_SPEC_INTERVIEW_STAGE_AND_INTERVIEWER_CONTEXT_20260713.md` (this plan)
+2. `Claude Review/CODEX_SPEC_SCRIPTED_INTERVIEW_GUIDE_20260713.md` (the companion scripting spec whose Bumbling-to-Boardroom principles and validators still apply)
+3. `CLAUDE.md` and the `.context` files
+
+Target files: `scripts/build_detailed_interview_guide.py`, a new `scripts/interview_stage.py`, `tasks.py`, and `run_detailed_interview_guide.bat`.
+
+This is the implementation pass. Write the code, run it, and validate the rendered Word documents locally. Follow the spec's Sequencing and Gates:
+
+1. Build `scripts/interview_stage.py`: `StageProfile`, `STAGE_PROFILES` (hr_screen, hiring_manager, panel, presentation, technical, final, all), `resolve_stage` (precedence: --stage flag > interviewer-context Stage: line > jobs/interview_stage.txt > default all), `stage_filename_suffix`, `InterviewerContext`, `parse_interviewer_context`.
+2. Wire it through: add argparse (--stage, --interviewer-context) to main(); read/resolve in build_detailed_interview_guide() (2385); add params to build_detailed_interview_guide_for_inputs() (2414) and build_document() (2081); append the stage filename suffix so stage guides never overwrite each other or the comprehensive guide.
+3. Make section assembly in build_document branch on stage.sections; for `all`, render every stage block under a labeled stage header.
+4. Add the Interviewer-Specific Prep section (jobs/interviewer_context.txt) and the presentation/case module.
+5. Update the tasks.py "guide" Task description and add the stage `choice` prompt to run_detailed_interview_guide.bat.
+
+Hard constraints:
+
+- Default behavior with no new inputs must stay identical in spirit: `python tasks.py guide` produces the comprehensive all-stages guide, and nothing breaks for existing runs.
+- No stage or interviewer input may introduce any claim beyond Christian's confirmed evidence and stories. Interviewer inferences stay generic ("people in this kind of role usually care about X"), never fabricated biographical facts about a named person.
+- Every scripted answer must still obey the six Bumbling-to-Boardroom principles and pass validate_delivery_principles from the companion spec.
+- Stage-specific filenames must be distinct so nothing overwrites.
+
+Run the spec's full Test and Acceptance Plan before reporting done, including: the resolve_stage precedence and unknown-key tests; the filename-suffix uniqueness test; parse_interviewer_context on the labeled sample, a bare Name/Title list, and an empty file; a render of `python tasks.py guide --stage hr_screen` (short, recruiter-focused, no deep behavioral bank); a render of `python tasks.py guide` (comprehensive, per-stage headers); a render with jobs/interviewer_context.txt populated (Interviewer-Specific Prep section plus recruiter-feedback callout); and a regression build of an existing playbook guide (State Farm or a Big Four role).
+
+Report back with: what changed per file and function, the test output, sample output filenames for two different stages proving no overwrite, and any place the interviewer inference logic had to stay generic to respect the guardrails.

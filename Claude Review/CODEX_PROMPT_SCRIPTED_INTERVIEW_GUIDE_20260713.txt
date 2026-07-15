@@ -1,0 +1,32 @@
+Implement the plan in `C:\Users\chris\OneDrive\Desktop\Christian Resume System\Claude Review\CODEX_SPEC_SCRIPTED_INTERVIEW_GUIDE_20260713.md`.
+
+Read first, in this order:
+1. `Claude Review/CODEX_SPEC_SCRIPTED_INTERVIEW_GUIDE_20260713.md` (the authoritative spec)
+2. `CLAUDE.md` and the `.context` files
+3. The companion coaching doc `output/Christian Estrada - Public Speaking Transformation Plan.docx` for the delivery principles the guide must embody
+
+Target files: `scripts/build_detailed_interview_guide.py` (primary) and `scripts/build_interview_cheat_sheet.py` (the `cheat` sentence and story helpers).
+
+This is the implementation pass. You write the code, run the scripts, and validate the rendered Word documents locally. Do the work in the dependency order the spec's "Sequencing and Gates" section defines:
+
+1. Change 1: extend `StoryAnswerParts` (line 92) with `meat_first`, `stretch_modules`, `alternate`, `pushback_branches`, keeping a `spoken` property alias so existing callers do not break.
+2. Changes 2 and 3: assemble the layered scripts in `story_sample_answer` (1605) and `behavioral_sample_answers` (1654) via the new `cheat` helpers, then render them in `add_story_answer` (440) in the fixed box order the spec lists.
+3. Change 4: replace `build_extended_tmay_sections` (994) and `add_extended_tmay_section` (1050) with the `build_tmay_ladder` / `add_tmay_ladder_section` time ladder.
+4. Change 5: extend `add_general_answer_operating_system` (2002) with the meat-first spine, stretch-without-tangent rule, and anti-hedge rule.
+5. Change 7 plus the Design North Star: add `validate_scripted_answer` and `validate_delivery_principles`, reusing `validate_text` (453). These must fail the build on unconfirmed metrics, banned hedge phrases, or answers that end on an offer to continue.
+
+Hard constraints:
+
+- Do not let any new template string assert evidence beyond the "Confirmed Evidence Facts" section of the spec. If a template needs a number the source does not support, keep it qualitative and leave a code comment flagging it for Christian's confirmation.
+- Every scripted answer must obey the six Bumbling-to-Boardroom principles in the spec's Design North Star. Treat a violation as a defect, not a style choice.
+- Prefer the smallest safe change over refactors. Keep the State Farm and Big Four playbook override paths working.
+- The worked strings in the spec's Change 6 are target-quality examples and test fixtures; the generator must produce role-specific equivalents from the same structure, not hardcode Sourcewell.
+
+Run the spec's full Test and Acceptance Plan before you report done, including:
+- unit tests for the ladder (identical anchor across 30/60/120/240 sec; each rung a superset of the shorter one),
+- the story-object completeness tests,
+- the guardrail-raises-on-unconfirmed-metric test,
+- a full render of the guide for the current `jobs/job_description.txt` posting, opened and visually checked so the SAY THIS FIRST, FULL ANSWER, stretch, alternate, and IF THEY PUSH BACK boxes all render with no empty boxes,
+- a regression build of at least one existing playbook guide (State Farm or a Big Four role) confirming the `spoken` alias keeps untouched callers working.
+
+Report back with: what changed per file and function, the test output, and any template that had to stay qualitative because the source did not support a specific claim.

@@ -1,0 +1,85 @@
+Master sequenced hand-off: four interview-prep upgrades, implemented in order.
+
+These upgrades share the same files (scripts/build_detailed_interview_guide.py, the cheat helpers, scripts/build_standard_qualifications_statement.py, and scripts/question_prep.py). Later phases depend on earlier ones, so implement strictly in sequence. Do not start Phase 2 until Phase 1 is merged with all its tests green; do not start the Phase 3 interview-guide portions until Phase 1 is merged; do not start Phase 4 until Phases 1 to 3 are merged.
+
+Read up front: `CLAUDE.md`, the `.context` files, and the four spec documents named below.
+
+====================================================================
+PHASE 1 (do first): Scripted, time-layered, pushback-ready answers
+====================================================================
+Spec:   Claude Review/CODEX_SPEC_SCRIPTED_INTERVIEW_GUIDE_20260713.md
+Prompt: Claude Review/CODEX_PROMPT_SCRIPTED_INTERVIEW_GUIDE_20260713.txt
+
+Deliver: extend StoryAnswerParts into layered scripts (meat_first, stretch_modules, alternate, pushback_branches, with a spoken alias); replace the TMAY fragment list with the build_tmay_ladder time ladder; render the new boxes in add_story_answer; document the meat-first spine, stretch rule, and anti-hedge rule in add_general_answer_operating_system; add validate_scripted_answer and validate_delivery_principles reusing validate_text.
+
+Gate: all Phase 1 tests in that spec must pass, including the ladder-superset test, the story-object completeness tests, the guardrail-raises-on-unconfirmed-metric test, a full render for the current jobs/job_description.txt, and a regression build of an existing playbook guide. Merge Phase 1 before continuing.
+
+====================================================================
+PHASE 2 (do second): Stage selection + interviewer context
+====================================================================
+Spec:   Claude Review/CODEX_SPEC_INTERVIEW_STAGE_AND_INTERVIEWER_CONTEXT_20260713.md
+Prompt: Claude Review/CODEX_PROMPT_INTERVIEW_STAGE_AND_INTERVIEWER_CONTEXT_20260713.txt
+
+Why it depends on Phase 1: the stage profiles select and arrange the scripted blocks, the per-stage answer lengths are expressed against the time ladder, and every stage still runs validate_delivery_principles. Building this first would mean wiring stages around content that does not exist yet.
+
+Deliver: scripts/interview_stage.py (StageProfile, STAGE_PROFILES, resolve_stage, stage_filename_suffix, InterviewerContext, parse_interviewer_context); argparse --stage and --interviewer-context in main(); passthrough to build_detailed_interview_guide_for_inputs and build_document; stage-conditional section assembly with per-stage headers for `all`; the Interviewer-Specific Prep section from jobs/interviewer_context.txt; the presentation/case module; the .bat stage prompt; and the tasks.py "guide" description update.
+
+Gate: all Phase 2 tests, including resolve_stage precedence and unknown-key handling, filename-suffix uniqueness (no overwrite between stages or the `all` guide), parse_interviewer_context on labeled / bare / empty inputs, the hr_screen and default `all` renders, the interviewer-context render, and a playbook regression build.
+
+====================================================================
+PHASE 3 (do third): Integrate generalizable Dematic Q&A into the prep bank and qualifications generator
+====================================================================
+Spec:   Claude Review/CODEX_SPEC_DEMATIC_QA_INTEGRATION_20260714.md
+
+Deliver: fold the reusable answer patterns from the 2026-07-14 Dematic screen into shared generator content (NOT Dematic-specific wording). Qualifications generator (scripts/build_standard_qualifications_statement.py): restructure software_inventory_answer to lead with category then tools then the explicit "not PLC/code" boundary when the posting is automation/engineering; make the FRD confirm-in-writing practice the lead of communication_answer; add a reusable stakeholder-relationship/alignment answer anchored to the confirmed client-recovery story. Interview guide/cheat (layered on the Phase 1 model): add three reusable templates (first-90-days answered-first-then-validate, experience-gap bridge, technical-framing/software-categorization opener) and ensure the four anchor stories are in the hero-story bank.
+
+Why it depends on the earlier phases: the interview-guide portions slot into the Phase 1 StoryAnswerParts model and general-answer operating system, so they must come after Phase 1 merges. The qualifications-generator portions are independent and may proceed once Phase 3 starts.
+
+Confirmation gate (RESOLVED 2026-07-14, per Claude Review spec section C):
+- East West least-privilege security: CONFIRMED. Encode as an authorized East West claim, scoped to access-control design (who accesses which functions/screens) plus incident backtracking to improve controls.
+- Barcode-scanner hardware: CONFIRMED as a resume claim, scoped to limited barcode-scanner / hardware-adjacent exposure only. Do NOT extend to conveyors, PLC, or automation equipment.
+- Salary range: KEEP FLEXIBLE. Do not hardcode a default range in the salary guide.
+These two new claims join the authorized evidence set; anything beyond them still needs fresh confirmation from Christian.
+
+VERIFIED CORRECTIONS (2026-07-14 code trace) - build these in, they override the spec's earlier prose:
+- The qualifications document does NOT delegate to question_prep. build_standard_qualifications_statement.answer_prompt (line 281) calls its OWN local software_inventory_answer (296) and communication_answer (298). Changing only question_prep leaves the qualifications doc unchanged. Fix by delegating: line 296 -> question_prep.software_inventory_answer_for_job(job_description, resume_text) (signature-complete). Line 298 -> question_prep.communication_answer() (the no-arg wrapper at 1334 that builds the PositioningBrief internally), NOT build_communication_or_implementation_answer directly. Extend communication_answer to accept OPTIONAL job_description/resume_text (default to current file-read behavior) and pass the qual builder's in-scope values so both paths share context; put the FRD upgrade inside build_communication_or_implementation_answer (1233) so both inherit it. De-dup preferred; fallback is update both copies plus a sync test.
+- The qualifications software answer is not job-aware; the automation "not PLC/code" boundary goes into software_inventory_answer_for_job (question_prep 1321), which the delegation then reaches.
+- Evidence plumbing is REQUIRED (Christian confirmed "Both"): the two claims are absent from source/Estrada_Resume_Implementation.docx and source/Estrada_Resume_PreSales_CSM.docx; both generators read source resume text via their own approved_source_resume_text() (qual 101, question_prep 133); global_notes.txt (paths.py:32, read at question_prep:382) feeds interview prep but NOT the qual doc. Add scoped barcode and least-privilege lines to the commercial source resume(s) AND to source/global_notes.txt. Keep barcode narrow (no conveyor/PLC/equipment) and least-privilege scoped. Do not touch the federal JSON.
+- Phase 3 is answer-shaping + evidence only. The output-pattern and debrief-overlay work moved to Phase 4.
+
+====================================================================
+PHASE 4 (do fourth): Prep-output patterns and debrief-to-prep overlay
+====================================================================
+Spec:   Claude Review/CODEX_SPEC_PHASE4_PREP_PATTERNS_20260714.md
+
+Deliver: fold the reusable structures from the Dematic prep documents into the shared stage-aware guide, all company-specifics sourced from scoped notes. A debrief-to-prep overlay (reads the latest structured round record, normalizes to top delivery risks / fix-cards / interviewer language / unexpected questions / safe company terms; empty-state renders nothing). HR-screen upgrades (company snapshot, TMAY ladder as a stage element, SAY THIS / DIG DEEPER pairs, generic-by-default comp, recruiter checklist). Hiring-manager/team upgrades (First-90-Days glance block sourced from the SAME Phase 3 answer, software-boundary opener, hardware-gap bridge, four anchor stories, story-anchor table, debrief-driven answer-risks). Optional prioritized cheat-sheet consolidation (first-90-days and software-boundary first).
+
+Why it depends on earlier phases: it renders the Phase 1 scripted answers and ladder, lives in the Phase 2 stage sections, and reuses the Phase 3 shared answers (especially first-90-days) so short and long stay in sync. Do not start until Phases 1 to 3 are merged.
+
+Gate: stage renders (hr_screen shows snapshot + ladder + recruiter bank + checklist; hiring_manager shows First-90-Days block + software boundary + hardware bridge when automation-signaled + anchor table); debrief overlay present-and-empty states; no company-term leakage into another company's output; the First-90-Days glance and full answer come from one shared source; python tasks.py validate and python scripts/smoke_test.py; rebuild one Dematic and one unrelated guide.
+
+====================================================================
+Cross-cutting constraints for all phases
+====================================================================
+- Stay strictly inside Christian's confirmed evidence and stories. No template, stage, or interviewer input may assert a claim beyond them; keep anything unsupported qualitative and flag it in a code comment.
+- Interviewer inferences stay generic ("people in this kind of role usually care about X"), never fabricated biographical facts about a named person.
+- Every scripted answer obeys the six Bumbling-to-Boardroom principles (companion doc: output/Christian Estrada - Public Speaking Transformation Plan.docx) and passes validate_delivery_principles.
+- Prefer the smallest safe change; keep the State Farm and Big Four playbook override paths working; keep `python tasks.py guide` (no flags) producing the comprehensive guide.
+
+====================================================================
+Review findings to build in from the start (Claude review, 2026-07-13)
+====================================================================
+Both specs now contain a "Review Findings to Build In" section. Do not rediscover these mid-build:
+
+Phase 1:
+- H2: validate_delivery_principles runs ONLY on scripted spoken-answer strings, never on the reader-facing operating-system section (which quotes the banned hedges as examples). Pass it the answer strings explicitly; do not walk the finished document.
+- H3: StoryAnswerParts(spoken=item.answer) at build_detailed_interview_guide.py:1679 uses the keyword spoken=; migrate it (and any like it) to full=, since spoken becomes a read-only alias.
+- M1: five sites read answer.spoken (lines 441, 568, 888, 1867, 2240); only 441 is inside add_story_answer. Enumerate all five and decide per site whether to route through the layered renderer or keep flat, and document which.
+- M3: limit Phase 1 cheat-sheet edits to the new shared helpers plus the AI-answer swap; do not re-script build_interview_cheat_sheet.py's own rendering.
+- Regression guard: smoke_test.py asserts on .spoken content (lines 4302, 4348); full must preserve those properties so the alias keeps them green.
+
+Phase 2:
+- H1: the new stage and interviewer_context params on build_detailed_interview_guide_for_inputs MUST be optional (stage defaults to all, interviewer_context to empty). The federal guide calls it at build_federal_detailed_interview_guide.py:17 and will break otherwise. Add a federal-guide build to the Phase 2 regression tests.
+- M2: compose the stage filename suffix with the existing FAIL/POOR/BRIDGE audit tokens and the question_prep draft-path logic, e.g. "... FAIL Detailed Interview Guide (HR Screen).docx"; append the stage suffix after the "Detailed Interview Guide" stem, before .docx, and confirm draft-path derivation and tracker/filename audits still work.
+
+Report back after each phase separately: what changed per file and function, the test output, and any place logic had to stay qualitative to respect the guardrails. Do not report Phase 2 done until Phase 1 is merged and green; do not start the Phase 3 interview-guide portions until Phase 1 is merged (the Phase 3 qualifications-generator and evidence portions may proceed independently); do not start Phase 4 until Phases 1 to 3 are merged.
