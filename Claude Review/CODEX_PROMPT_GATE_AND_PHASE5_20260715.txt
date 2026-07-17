@@ -1,0 +1,65 @@
+Codex hand-off: clear the two open gate items, then implement Phase 5. Do them strictly in order. Do not start Phase 5 (Step 3) until Steps 1 and 2 are both done and green.
+
+CONTEXT
+Phases 1 to 4 of the interview-prep upgrade are already landed and verified (scripted layered answers, stage-aware guide, shared answer engine with the shadow qualifications copy removed, confirmed evidence in both source resumes and source/global_notes.txt, opt-in companions). Two loose ends remain, and they gate Phase 5. Full plan context: Claude Review/CODEX_PROMPT_MASTER_INTERVIEW_UPGRADES_20260713.txt and the specs it references.
+
+Read first: CLAUDE.md, the .context files, Claude Review/CODEX_SPEC_PHASE5_CONSULTATIVE_MINDSET_20260715.md.
+
+Standing guardrails for all steps:
+- Never stage or commit the six disposable validation logs: _validate.err.txt, _validate.out.txt, validate.err.txt, validate.out.txt, validate.now.err.txt, validate.now.out.txt.
+- Barcode-scanner exposure stays scoped to limited scanner/software-adjacent framing; never extend to conveyor, PLC, or automation equipment. Least-privilege stays scoped to access-control design plus incident backtracking. Salary stays flexible; no hardcoded range.
+- Companions stay opt-in; default python tasks.py guide must not auto-emit them. Do not reintroduce local software/communication/answer_prompt functions in build_standard_qualifications_statement.py.
+
+============================================================
+STEP 0 - Commit the pending Claude Review planning docs (do first, for a clean baseline)
+============================================================
+Besides scratch/jd_library/index.csv, the working tree has pending Claude Review planning docs (the updated master hand-off, this gate+Phase5 prompt, the Phase 5 spec, and any other new/modified Claude Review/*.txt or *.md planning files). Commit them in their own docs commit so the end-state clean-tree contract is literally true. This matches the existing precedent commit "Add Codex interview upgrade planning records".
+- Stage only the Claude Review planning docs (and any other planning-only markdown/text). Do NOT stage index.csv here, implementation files, or the disposable validation logs.
+- Commit (suggested message: "Add gate and Phase 5 planning records").
+- After this, the only pending items should be scratch/jd_library/index.csv and the disposable logs.
+
+============================================================
+STEP 1 - Resolve scratch/jd_library/index.csv (currently modified and uncommitted)
+============================================================
+The working tree has an uncommitted scratch/jd_library/index.csv. Do NOT edit it by hand.
+- VERIFIED CONTEXT (2026-07-15): the current file already parses clean, 307 rows, with no truncated "implementatio,None,..." row. So this is verify-and-commit, not a normalization/rewrite. Note that `python tasks.py jd-patterns` runs build_jd_library.py "patterns" -> pattern_summary(), which is READ-ONLY; it prints patterns and does not rewrite the index, so use it only as a parse sanity check, not a normalization trigger. Do NOT use `jd-archive` here (it archives the active posting and mutates state).
+- Sanity check: run `python tasks.py jd-patterns` and confirm it succeeds (proves the index and archive still parse). Confirm the index rows are consistent with the actual snapshot directories under scratch/jd_library/ (no orphan or dropped rows).
+- If, and only if, the parse check fails or reveals a genuinely malformed/inconsistent index, repair it through the archive owner path in scripts/job_context_archive.py (still not by hand) and re-verify.
+- Commit scratch/jd_library/index.csv as-is once verified (suggested message: "Commit JD library index"). Do not commit the disposable logs.
+- End state after Step 1: working tree clean except the disposable logs.
+
+============================================================
+STEP 2 - F2 runtime verification (prove the Phase 3 behavior at runtime; no code change expected)
+============================================================
+2a. Live qualifications build against the current jobs/job_description.txt (Dematic) with the restored jobs/application_questions.txt:
+- Run the qualifications build (python tasks.py qualifications).
+- Confirm the output surfaces: the software self-categorization answer with the "not PLC / not code" boundary (automation posting), the communication answer leading with the FRD / confirm-in-writing discipline, and the two confirmed claims (least-privilege access-control; limited barcode-scanner exposure), each correctly scoped.
+
+2b. Unrelated-company leakage check (do this carefully so the active Dematic JD is preserved):
+- Archive the current posting first: python tasks.py jd-archive.
+- Temporarily place a NON-automation posting into jobs/job_description.txt (for example a State Farm or Guidehouse posting from the jobs archive).
+- Build: python tasks.py guide  (default all-stages).
+- Grep the generated output and confirm NO leakage of: Dematic, KION, Jennifer, Dematic iQ, AutoStore, conveyor, PLC, or the automation software-boundary language.
+- Restore the Dematic posting to jobs/job_description.txt so the active state is unchanged.
+- Report both results. If either fails, stop and report rather than proceeding to Step 3.
+
+============================================================
+STEP 3 - Implement Phase 5 (GATED: only after Steps 1 and 2 pass)
+============================================================
+Implement Claude Review/CODEX_SPEC_PHASE5_CONSULTATIVE_MINDSET_20260715.md.
+Deliver a balanced consultative-stance-plus-mindset layer in add_general_answer_operating_system (scripts/build_detailed_interview_guide.py), the two halves weighted equally:
+- Consultative half: problem-first story framing (open on the client bottleneck), a diagnostic-question posture for the interviewer-questions section, the value formula ("I help [client] achieve [result] by [method], saving [time/money/risk]"), and outcomes-not-hours.
+- Fold the self-talk reframe (sharing expertise is service, not bragging) into the existing anti-hedge rule.
+- Mindset half: a short (four to six line) non-clinical pre-interview grounding block rendered as READER GUIDANCE, not scripted answers (lower the bar, feelings-vs-facts, name-the-intent, expect-the-spike, read the evidence log).
+- Add a one-line pointer to keep a personal evidence log. Reference, do not duplicate, output/Christian Estrada - Evidence Log (Confidence and Proof Bank).md and output/Christian Estrada - Daily Confidence and Consultative Delivery Practice.md.
+
+CRITICAL constraint: the grounding block contains example hedge phrases, so it must stay OUTSIDE validate_delivery_principles (that validator runs only on answer strings, per finding H2). Do not let the grounding text trip the delivery validator. No new CLI surface, no new document type, company-agnostic, confirmed facts only, encouraging non-clinical tone.
+
+Gate checks for Step 3: guide renders the Consultative Stance block, the reframed anti-hedge rule, and the grounding block with the two halves balanced; the grounding block does NOT trip validate_delivery_principles; no new claims or company-specific leakage; python tasks.py validate and python scripts/smoke_test.py pass; State Farm / Big Four guides still build. If those regression builds require temporarily swapping jobs/job_description.txt, use the same baseline-and-restore discipline as Step 2 so the final tree stays clean. Commit Phase 5 on its own (suggested message: "Add consultative stance and mindset operating-system layer").
+
+============================================================
+REPORT BACK
+============================================================
+Report after each step separately: what changed per file/function, the exact commands run and their output, and any guardrail that required staying qualitative. Do not report Step 3 done until Steps 1 and 2 are green.
+
+FINAL CLEAN-TREE CONTRACT: after Step 0 (docs committed), Step 1 (index.csv committed), and Step 3 (Phase 5 committed), the working tree must be clean EXCEPT the six disposable validation logs, which remain uncommitted. Step 2 produces only generated outputs (guides/qualifications docs), which are not source and should not be staged; if any generated output lands in a tracked path, note it rather than committing it.

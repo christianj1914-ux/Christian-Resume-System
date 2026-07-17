@@ -1,8 +1,8 @@
-Master sequenced hand-off: four interview-prep upgrades, implemented in order.
+Master sequenced hand-off: five interview-prep upgrades, implemented in order.
 
 These upgrades share the same files (scripts/build_detailed_interview_guide.py, the cheat helpers, scripts/build_standard_qualifications_statement.py, and scripts/question_prep.py). Later phases depend on earlier ones, so implement strictly in sequence. Do not start Phase 2 until Phase 1 is merged with all its tests green; do not start the Phase 3 interview-guide portions until Phase 1 is merged; do not start Phase 4 until Phases 1 to 3 are merged.
 
-Read up front: `CLAUDE.md`, the `.context` files, and the four spec documents named below.
+Read up front: `CLAUDE.md`, the `.context` files, and the five spec documents named below.
 
 ====================================================================
 PHASE 1 (do first): Scripted, time-layered, pushback-ready answers
@@ -59,6 +59,21 @@ Why it depends on earlier phases: it renders the Phase 1 scripted answers and la
 Gate: stage renders (hr_screen shows snapshot + ladder + recruiter bank + checklist; hiring_manager shows First-90-Days block + software boundary + hardware bridge when automation-signaled + anchor table); debrief overlay present-and-empty states; no company-term leakage into another company's output; the First-90-Days glance and full answer come from one shared source; python tasks.py validate and python scripts/smoke_test.py; rebuild one Dematic and one unrelated guide.
 
 ====================================================================
+PHASE 5 (do fifth, GATED): Consultative stance and mindset module
+====================================================================
+Spec:   Claude Review/CODEX_SPEC_PHASE5_CONSULTATIVE_MINDSET_20260715.md
+
+GATE - do not start Phase 5 until BOTH clear:
+1. scratch/jd_library/index.csv resolved: parses cleanly through the archive subsystem (no truncated "implementatio,None,..." row, no dropped legacy rows) and committed or reverted; working tree clean except the six disposable validation logs.
+2. F2 runtime proof passed: a live qualifications build surfaces the software/communication/experience answers and the two confirmed claims, and one unrelated-company guide build shows no Dematic/automation leakage.
+
+Deliver: extend add_general_answer_operating_system in build_detailed_interview_guide.py with a balanced consultative-stance-plus-mindset layer, weighted equally. Consultative half: problem-first story framing (open on the client bottleneck), diagnostic-question posture for the interviewer-questions section, the value formula, outcomes-not-hours. Fold the self-talk reframe (sharing expertise is service, not bragging) into the existing anti-hedge rule. Mindset half: a short non-clinical pre-interview grounding block (lower the bar, feelings-vs-facts, name-the-intent, expect-the-spike, read the evidence log) rendered as READER GUIDANCE, not scripted answers. Add a one-line pointer to keep a personal evidence log. Source-of-truth shape lives in output/Christian Estrada - Evidence Log ... .md and output/Christian Estrada - Daily Confidence and Consultative Delivery Practice.md; reference, do not duplicate.
+
+Critical constraint: the grounding block contains example hedge phrases, so it MUST stay OUTSIDE validate_delivery_principles (that validator runs only on answer strings, per finding H2). No new CLI surface, no new document type, company-agnostic, confirmed facts only, encouraging non-clinical tone.
+
+Gate checks: guide renders the Consultative Stance block + reframed anti-hedge + grounding block with the two halves balanced; the grounding block does NOT trip validate_delivery_principles; no new claims or company-specific leakage; python tasks.py validate and python scripts/smoke_test.py pass; State Farm / Big Four guides still build.
+
+====================================================================
 Cross-cutting constraints for all phases
 ====================================================================
 - Stay strictly inside Christian's confirmed evidence and stories. No template, stage, or interviewer input may assert a claim beyond them; keep anything unsupported qualitative and flag it in a code comment.
@@ -82,4 +97,4 @@ Phase 2:
 - H1: the new stage and interviewer_context params on build_detailed_interview_guide_for_inputs MUST be optional (stage defaults to all, interviewer_context to empty). The federal guide calls it at build_federal_detailed_interview_guide.py:17 and will break otherwise. Add a federal-guide build to the Phase 2 regression tests.
 - M2: compose the stage filename suffix with the existing FAIL/POOR/BRIDGE audit tokens and the question_prep draft-path logic, e.g. "... FAIL Detailed Interview Guide (HR Screen).docx"; append the stage suffix after the "Detailed Interview Guide" stem, before .docx, and confirm draft-path derivation and tracker/filename audits still work.
 
-Report back after each phase separately: what changed per file and function, the test output, and any place logic had to stay qualitative to respect the guardrails. Do not report Phase 2 done until Phase 1 is merged and green; do not start the Phase 3 interview-guide portions until Phase 1 is merged (the Phase 3 qualifications-generator and evidence portions may proceed independently); do not start Phase 4 until Phases 1 to 3 are merged.
+Report back after each phase separately: what changed per file and function, the test output, and any place logic had to stay qualitative to respect the guardrails. Do not report Phase 2 done until Phase 1 is merged and green; do not start the Phase 3 interview-guide portions until Phase 1 is merged (the Phase 3 qualifications-generator and evidence portions may proceed independently); do not start Phase 4 until Phases 1 to 3 are merged; do not start Phase 5 until its two-part gate clears (index.csv resolved and F2 runtime proof passed).
