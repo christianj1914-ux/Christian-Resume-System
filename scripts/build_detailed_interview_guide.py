@@ -2400,10 +2400,19 @@ def add_general_answer_operating_system(document: Document, profile: build_resum
     add_subsection(document, "Two Question Types")
     for line in cheat.response_calibration_lines():
         add_bullet(document, line)
+    add_subsection(document, "Consultative Stance")
+    for line in (
+        "Open with the client bottleneck or team friction, then explain what Christian changed and what happened after. Problem first reads more consultative than credential first.",
+        "When the interviewer asks what Christian would ask the team, default to diagnostic questions that expose where work gets stuck, who owns the decision, and what risk is costing the most time, money, or trust.",
+        "Use the value formula when an answer starts drifting abstract: I help the client achieve the result by the method, saving time, money, or risk.",
+        "Land on outcomes, not hours. The close should name the business result, decision clarity, adoption gain, or risk reduction, not just how much effort the work took.",
+    ):
+        add_bullet(document, line)
     add_subsection(document, "Anti-Hedge Rule")
     for line in (
         "Cut weak openers such as 'I guess,' 'I think,' 'kind of,' or 'basically' when the evidence is already supported.",
         "Do not end with 'let me know if you want me to dive deeper.' Land the point, pause, and let the interviewer pull the next layer.",
+        "When the proof is supported, sharing it is a service, not bragging. Withholding a useful pattern from the interviewer is the bigger miss.",
         "If Christian needs to show humility, do it with scope honesty or a validation step, not with apologetic phrasing.",
     ):
         add_bullet(document, line)
@@ -2421,6 +2430,19 @@ def add_general_answer_operating_system(document: Document, profile: build_resum
     )
     add_subsection(document, "Calibration Question Rule")
     add_body(document, "End only the most important stories with a calibration question, and make each question story-specific. Repeating the same closer makes the answer sound over-rehearsed instead of adaptive.")
+    add_subsection(document, "Pre-Interview Grounding (Reader Guidance)")
+    for line in (
+        "Lower the bar: rehearse only the 30-second anchor out loud, not the whole guide.",
+        "Separate feelings from facts: anxious predictions are theories to test, not outcomes already decided.",
+        "Name the intent: the nervous-system spike is protection trying to help, not proof that Christian is off his game.",
+        "Expect the spike: nerves may climb right before the interview starts. That does not mean the prep failed; it means the body noticed a real performance moment.",
+        "Read the Evidence Log once before the call, especially the praise and problem-first wins, then stop on proof instead of rumination.",
+    ):
+        add_bullet(document, line)
+    add_body(
+        document,
+        "Keep a personal evidence log of confirmed wins, praise, and saved situations. Review it before calls and update it after interviews while the language is still fresh."
+    )
 
 
 

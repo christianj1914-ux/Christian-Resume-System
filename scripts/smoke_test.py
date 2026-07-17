@@ -4525,6 +4525,39 @@ def test_delivery_validator_only_scans_scripted_strings(build_detailed_interview
         raise AssertionError("validate_delivery_principles() should fail on banned hedge language inside scripted answer text")
 
 
+def test_answer_operating_system_includes_consultative_and_grounding_guidance(
+    build_resume: object,
+    build_interview_cheat_sheet: object,
+    build_detailed_interview_guide: object,
+) -> None:
+    from docx import Document
+
+    profile = build_resume.job_problem_profile(DUMMY_JOB_DESCRIPTION, OLLIE_RESUME_TEXT)
+    framework_selection = build_interview_cheat_sheet.answer_framework_selection(DUMMY_JOB_DESCRIPTION)
+    document = Document()
+    build_detailed_interview_guide.set_default_style(document)
+    build_detailed_interview_guide.add_general_answer_operating_system(document, profile, framework_selection)
+    rendered = build_detailed_interview_guide.document_text(document)
+    assert_true(
+        "Consultative Stance" in rendered
+        and "I help the client achieve the result by the method, saving time, money, or risk." in rendered
+        and "outcomes, not hours" in rendered,
+        f"add_general_answer_operating_system() should include the consultative stance guidance; got {rendered!r}",
+    )
+    assert_true(
+        "Pre-Interview Grounding (Reader Guidance)" in rendered
+        and "Lower the bar:" in rendered
+        and "Separate feelings from facts:" in rendered
+        and "Read the Evidence Log once before the call" in rendered,
+        f"add_general_answer_operating_system() should include the grounding block as reader guidance; got {rendered!r}",
+    )
+    assert_true(
+        "sharing it is a service, not bragging" in rendered
+        and "Keep a personal evidence log of confirmed wins" in rendered,
+        f"add_general_answer_operating_system() should fold the self-talk reframe into Anti-Hedge Rule and point to an evidence log; got {rendered!r}",
+    )
+
+
 def test_scripted_answer_validator_rejects_unsupported_metrics(build_detailed_interview_guide: object) -> None:
     answer = build_detailed_interview_guide.StoryAnswerParts(
         full="I rebuilt the workflow and reduced manual work by 99%.",
@@ -11994,6 +12027,7 @@ def main() -> None:
             ("story sample answer separates coaching note", lambda: test_story_sample_answer_separates_coaching_note(build_resume, build_interview_cheat_sheet, build_detailed_interview_guide)),
             ("story sample answer reuses claim sentence in full", lambda: test_story_sample_answer_reuses_claim_sentence_in_full(build_resume, build_interview_cheat_sheet, build_detailed_interview_guide)),
             ("delivery validator only scans scripted strings", lambda: test_delivery_validator_only_scans_scripted_strings(build_detailed_interview_guide)),
+            ("answer operating system includes consultative and grounding guidance", lambda: test_answer_operating_system_includes_consultative_and_grounding_guidance(build_resume, build_interview_cheat_sheet, build_detailed_interview_guide)),
             ("scripted answer validator rejects unsupported metrics", lambda: test_scripted_answer_validator_rejects_unsupported_metrics(build_detailed_interview_guide)),
             ("AI customer work answer uses confirmed qualitative story", lambda: test_ai_customer_work_answer_uses_confirmed_qualitative_story(build_resume, build_interview_cheat_sheet, build_detailed_interview_guide)),
             ("story sample answer does not call dead STAR selection", lambda: test_story_sample_answer_does_not_call_dead_star_selection(build_resume, build_interview_cheat_sheet, build_detailed_interview_guide)),
