@@ -5,8 +5,8 @@ import re
 # Mandatory resume text for roles impacted by reorganization
 MANDATORY_REORG_SENTENCE = "Position impacted by company reorganization."
 MANDATORY_REORG_COMPANIES = ("East West Manufacturing", "Aptean")
-PROFESSIONAL_SUMMARY_MIN_WORDS = 50
-PROFESSIONAL_SUMMARY_MAX_WORDS = 110
+PROFESSIONAL_SUMMARY_MIN_WORDS = 45
+PROFESSIONAL_SUMMARY_MAX_WORDS = 70
 
 PLACEHOLDER_PATTERNS = (
     r"\bplaceholder\b",

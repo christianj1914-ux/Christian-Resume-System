@@ -11010,8 +11010,8 @@ communications, adoption measurement, and measurable follow-through across syste
     sentences = build_resume.summary_sentences(summary)
     repair = prose_engine.repair_text(summary, "summary")
     assert_true(
-        70 <= word_count(summary) <= 110,
-        f"Change-adoption summary should stay within the 70-110 word contract after anchor retention; got {word_count(summary)} words in {summary!r}",
+        build_resume.PROFESSIONAL_SUMMARY_MIN_WORDS <= word_count(summary) <= build_resume.PROFESSIONAL_SUMMARY_MAX_WORDS,
+        f"Change-adoption summary should stay within the F4 word contract after anchor retention; got {word_count(summary)} words in {summary!r}",
     )
     assert_true(
         len(sentences) == 3 and bool(re.search(r"\d|\$", sentences[1])),
@@ -11020,6 +11020,61 @@ communications, adoption measurement, and measurable follow-through across syste
     assert_true(
         repair.converged,
         f"Summary anchor guard should still converge through prose_engine.repair_text(); got {repair.findings}",
+    )
+
+
+def test_f4_summary_quality_rules_and_lane_goldens(build_resume: object) -> None:
+    import prose_engine
+
+    corporate_strategy_jd = """
+Company: StrategyCo
+Role: Strategy Transformation Consultant
+Client-facing consulting role focused on operating model analysis, transformation planning,
+executive stakeholder alignment, recommendations, and measurable follow-through.
+"""
+    cases = (
+        ("presales_solution", LANE_JOB_DESCRIPTIONS["presales_solution"], "$1M+"),
+        ("customer_success", LANE_JOB_DESCRIPTIONS["customer_success"], "$1M+"),
+        ("change_enablement", LANE_JOB_DESCRIPTIONS["change_enablement"], "150+"),
+        ("analytics_operations", LANE_JOB_DESCRIPTIONS["analytics_operations"], "200+"),
+        ("corporate_strategy", corporate_strategy_jd, "200+"),
+        ("implementation_delivery", LANE_JOB_DESCRIPTIONS["implementation_delivery"], "78%"),
+    )
+    for label, job_description, required_anchor in cases:
+        summary = build_resume.build_problem_first_summary(job_description)
+        sentences = build_resume.summary_sentences(summary)
+        hard_failures = [finding.rule_id for finding in prose_engine.validate_text(summary, "summary") if finding.severity == "fail"]
+        assert_true(
+            build_resume.PROFESSIONAL_SUMMARY_MIN_WORDS <= word_count(summary) <= build_resume.PROFESSIONAL_SUMMARY_MAX_WORDS,
+            f"{label} summary should stay in the 45-70 word target; got {word_count(summary)} words: {summary}",
+        )
+        assert_true(
+            len(sentences) in {2, 3} and all(word_count(sentence) <= 34 for sentence in sentences),
+            f"{label} summary should use 2-3 short sentences with no sentence over 34 words; got {sentences}",
+        )
+        assert_true(
+            not hard_failures,
+            f"{label} summary should clear F4 summary fail rules; got {hard_failures}: {summary}",
+        )
+        assert_true(required_anchor in summary, f"{label} summary should preserve proof anchor {required_anchor!r}: {summary}")
+
+    double_for = (
+        "Consultant for enterprise buyers building delivery proof for cloud teams. "
+        "Built 200+ dashboards and led 60+ executive workshops. "
+        "Best used where discovery and delivery judgment stay connected."
+    )
+    infinitive_safe = (
+        "Consultant ready to turn unclear requirements into decisions for enterprise teams. "
+        "Built 200+ dashboards and led 60+ executive workshops. "
+        "Best used where discovery and delivery judgment stay connected."
+    )
+    assert_true(
+        any(finding.rule_id == "SUMMARY_PREPOSITION_PILEUP" for finding in prose_engine.validate_text(double_for, "summary")),
+        "F4 summary rules should flag repeated same-preposition pileups.",
+    )
+    assert_true(
+        not any(finding.rule_id == "SUMMARY_PREPOSITION_PILEUP" for finding in prose_engine.validate_text(infinitive_safe, "summary")),
+        "F4 summary rules should not treat infinitive 'to <verb>' phrasing as a preposition pileup.",
     )
 
 
@@ -12345,6 +12400,7 @@ def main() -> None:
             ("summary condense guard", lambda: test_summary_condense_guard(build_resume)),
             ("ERP summary rebalance", lambda: test_erp_summary_rebalance(build_resume)),
             ("summary anchor retention for change adoption", lambda: test_summary_anchor_retention_for_change_adoption(build_resume)),
+            ("F4 summary quality rules and lane goldens", lambda: test_f4_summary_quality_rules_and_lane_goldens(build_resume)),
             ("summary quantified anchor detects multi-digit proof", test_summary_quantified_anchor_detects_multi_digit_proof),
             ("summary repair preserves three sentences for high-signal variants", lambda: test_summary_repair_preserves_three_sentences_for_high_signal_variants(build_resume)),
             ("substitution safety respects paragraph boundaries", test_substitution_safety_respects_paragraph_boundaries),

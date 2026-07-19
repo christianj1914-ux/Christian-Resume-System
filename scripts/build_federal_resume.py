@@ -1609,7 +1609,7 @@ def build_gs14_summary(source: FederalSource, job_description: str, audit: Feder
     word_count = len(re.findall(r"\b[\w+.#'-]+\b", summary))
     if word_count < MIN_SUMMARY_WORDS:
         fail("Federal Professional Summary generated below minimum word count.")
-    repaired = prose_engine.repair_text(summary, "summary")
+    repaired = prose_engine.repair_text(summary, "federal_summary")
     if not repaired.converged:
         fail("Federal Professional Summary failed shared structural validation: " + ", ".join(item.rule_id for item in repaired.findings))
     summary = repaired.text

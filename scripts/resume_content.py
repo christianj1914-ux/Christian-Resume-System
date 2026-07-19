@@ -1042,6 +1042,18 @@ def woven_context_clause(job_description: str) -> str:
     return ""
 
 
+def apply_summary_context(positioning: str, context: str) -> str:
+    if not context:
+        return positioning
+    context_core = re.sub(r"^\s*for\s+", "", context, flags=re.I).replace(" buyers", "").strip().lower()
+    positioning_lower = positioning.lower()
+    buyer_context_redundant = "buyer" in context.lower() and re.search(r"\bcustomers?\b|\bbuyers?\b", positioning_lower)
+    preposition_pileup = re.search(r"\bfor\b", positioning_lower) and context.lower().strip().startswith("for ")
+    if context_core and context_core not in positioning_lower and not buyer_context_redundant and not preposition_pileup:
+        return f"{positioning}{context}"
+    return positioning
+
+
 def summary_requires_erp_proof(job_description: str) -> bool:
     """ERP ownership proof belongs in summaries only when the role centers on ERP, not catalog vendor name-drops."""
     return jd_mentions(
@@ -1120,43 +1132,38 @@ def summary_proof_sentence(
     proof = ""
     if emphasis.proof_anchor == "launch":
         proof = (
-            "Owned Aptean Intuitive across five sites for 150+ users, launched system setup for a new warehouse plus "
-            "the Amazon Robotics program, and cut manual inventory work by 78% with a 22% drop in discrepancies "
-            "through automated adjustments."
+            "Owned Aptean Intuitive across five sites for 150+ users, launched warehouse and Amazon Robotics setup, "
+            "and cut manual inventory work 78% with 22% fewer discrepancies."
         )
     elif emphasis.proof_anchor == "dashboards":
         proof = (
-            "Built 200+ dashboards and KPI reporting tools to replace raw exports with clearer decisions and "
-            "supported 80+ client engagements and 60+ executive workshops and QBRs across North America, Asia, "
-            "and Europe."
+            "Built 200+ dashboards and KPI tools, supported 80+ client engagements, and led 60+ executive workshops "
+            "across international client environments."
         )
     elif emphasis.proof_anchor == "revenue":
         proof = (
-            "Managed 80+ manufacturing client engagements within a $6M+ book of business, led 60+ executive "
-            "workshops and QBRs, and helped protect $1M+ in at-risk annual revenue through recovery and adoption work."
+            "Managed 80+ client engagements within a $6M+ book of business and helped protect $1M+ in at-risk "
+            "annual revenue through QBRs and recovery work."
         )
     elif emphasis.proof_anchor == "adoption":
         proof = (
-            "Led role-based training and enablement through the Aptean Intuitive to Epicor Kinetic transition for "
-            "150+ users across five manufacturing sites and carried 80+ client engagements through UAT, adoption "
-            "planning, and post-go-live support."
+            "Led role-based training through the Aptean Intuitive to Epicor Kinetic transition for 150+ users and "
+            "supported 80+ engagements through UAT and adoption planning."
         )
     elif emphasis.proof_anchor == "ai":
         proof = (
-            "Built 200+ dashboards and KPI tools while helping launch a zero-to-one SMS support channel in "
-            "LivePerson LiveEngage, using Claude to accelerate documentation, reporting, and SQL workflows."
+            "Built 200+ dashboards and helped launch an SMS support channel, using Claude to accelerate "
+            "documentation, reporting, and SQL workflows."
         )
     elif emphasis.proof_anchor == "decision":
         proof = (
-            "Built 200+ dashboards and KPI reporting tools, then led 60+ executive workshops and QBRs that turned "
-            "ambiguous operations plus engineering needs into scoped recommendations and risk-aware implementation "
-            "plans before build work began."
+            "Built 200+ dashboards and led 60+ executive workshops and QBRs, turning ambiguous needs into scoped "
+            "recommendations and risk-aware implementation plans."
         )
     elif profile.primary_lane == "customer_success":
         proof = (
-            "Managed 80+ client engagements across the Americas, Europe, and Asia within a $6M+ book of business "
-            "and helped protect $1M+ in at-risk annual revenue through 60+ executive QBRs and 200+ dashboards and "
-            "KPI reporting tools."
+            "Managed 80+ client engagements within a $6M+ book of business and helped protect $1M+ in at-risk "
+            "annual revenue through QBRs, recovery work, and reporting."
         )
     else:
         include_erp = summary_requires_erp_proof(job_description)
@@ -1184,19 +1191,29 @@ def summary_proof_sentence(
                     *items,
                 )
         else:
-            items = (
-                "ownership of an enterprise platform across five sites and 150+ users",
-                "80+ manufacturing client engagements across the Americas, Europe, and Asia",
-                "200+ dashboards and KPI reporting tools",
-                "60+ executive workshops and QBRs",
+            proof = (
+                "Owned enterprise platform support for five sites and 150+ users while delivering 80+ client "
+                "engagements, 200+ dashboards, and 60+ executive workshops."
             )
+            return ensure_summary_proof_anchor(proof, profile, emphasis)
         lane_openers = {
             "presales_solution": "Delivered",
             "customer_success": "Managed",
             "analytics_operations": "Built",
         }
         opener = lane_openers.get(profile.primary_lane, "Delivered")
-        proof = f"{opener} {comma_series(items)}."
+        if profile.primary_lane == "presales_solution":
+            proof = (
+                f"{opener} 80+ client engagements, built 200+ dashboards, led 60+ executive workshops, "
+                "and helped protect $1M+ in at-risk revenue."
+            )
+        elif profile.primary_lane == "analytics_operations":
+            proof = (
+                f"{opener} 200+ dashboards, supported 80+ client engagements, and led 60+ executive workshops "
+                "across international teams."
+            )
+        else:
+            proof = f"{opener} {comma_series(items)}."
     return ensure_summary_proof_anchor(proof, profile, emphasis)
 
 
@@ -1250,7 +1267,7 @@ def summary_fit_close_sentence(
     if profile.primary_lane == "presales_solution":
         if emphasis.proof_anchor == "revenue":
             return (
-                "Best used where discovery, executive communication, and implementation judgment all shape revenue, "
+                "Best used where discovery, executive communication, and implementation judgment shape revenue, "
                 "adoption, and expansion conversations."
             )
         if emphasis.proof_anchor == "ai":
@@ -1276,7 +1293,7 @@ def summary_fit_close_sentence(
             )
         return (
             "Best used where customer-facing delivery, account-health judgment, and escalation ownership steady "
-            "complex relationships before issues turn into churn or stalled expansion."
+            "relationships before issues become churn risk."
         )
 
     if profile.primary_lane == "change_enablement":
@@ -1294,12 +1311,11 @@ def summary_fit_close_sentence(
         if emphasis.proof_anchor == "ai":
             if jd_mentions(job_description, "client delivery teams", "client delivery"):
                 return (
-                    "Best used where reporting depth, AI-assisted workflow experimentation, SQL validation, and operating "
-                    "judgment improve decision speed for customer-facing and client delivery teams."
+                    "Best used where reporting depth, SQL validation, and operating judgment improve decisions for "
+                    "customer-facing and client delivery teams."
                 )
             return (
-                "Best used where reporting depth, AI-assisted workflow experimentation, SQL validation, and operating "
-                "judgment all influence decision speed and trust."
+                "Best used where reporting depth, SQL validation, and operating judgment improve decision speed and trust."
             )
         member_business_signals = jd_mentions(
             job_description,
@@ -1341,10 +1357,10 @@ def summary_fit_close_sentence(
                 "Brings executive-ready reporting, workflow validation, and continuous-improvement judgment where data "
                 "trust directly affects whether AI-assisted outputs can be used."
             )
-        return (
-            "Best used where reporting depth and operating judgment improve decision speed, workflow clarity, and "
-            "measurable follow-through in busy cross-functional environments."
-        )
+            return (
+                "Best used where reporting depth and operating judgment improve decision speed, workflow clarity, and "
+                "measurable follow-through."
+            )
 
     if profile.primary_lane == "corporate_strategy":
         return (
@@ -1376,7 +1392,7 @@ def summary_fit_close_sentence(
     return (
         "Brings the most value when "
         + comma_series(selected_close_terms)
-        + " must translate into clearer delivery decisions, durable adoption, and fewer operational surprises."
+        + " turn into durable adoption and fewer operational surprises."
     )
 
 
@@ -1408,7 +1424,7 @@ def ensure_summary_minimum_words(
     job_description: str,
 ) -> str:
     summary = f"{positioning} {proof} {close}"
-    if summary_word_count(summary) >= PROFESSIONAL_SUMMARY_MIN_WORDS:
+    if PROFESSIONAL_SUMMARY_MIN_WORDS <= summary_word_count(summary) <= PROFESSIONAL_SUMMARY_MAX_WORDS:
         return summary
 
     extension = summary_minimum_close_extension(profile, job_description)
@@ -1419,7 +1435,7 @@ def ensure_summary_minimum_words(
         close = f"{close_core}."
 
     summary = f"{positioning} {proof} {close}"
-    if summary_word_count(summary) >= PROFESSIONAL_SUMMARY_MIN_WORDS:
+    if PROFESSIONAL_SUMMARY_MIN_WORDS <= summary_word_count(summary) <= PROFESSIONAL_SUMMARY_MAX_WORDS:
         return summary
 
     checklist_items = tuple(
@@ -1433,7 +1449,7 @@ def ensure_summary_minimum_words(
         for count in range(start_count, len(checklist_items) + 1):
             close_variant = f"{close_base} with {comma_series(checklist_items[:count])}."
             summary = f"{positioning} {proof} {close_variant}"
-            if summary_word_count(summary) >= PROFESSIONAL_SUMMARY_MIN_WORDS:
+            if PROFESSIONAL_SUMMARY_MIN_WORDS <= summary_word_count(summary) <= PROFESSIONAL_SUMMARY_MAX_WORDS:
                 return summary
     return summary
 
@@ -1540,13 +1556,7 @@ def startup_operator_summary(
     profile = job_problem_profile(job_description, resume_text)
     emphasis = determine_tailoring_emphasis(job_description, resume_text, variant_index)
     positioning = summary_positioning_sentence(profile, job_description, emphasis).rstrip(".")
-    context = woven_context_clause(job_description)
-    if context:
-        context_core = re.sub(r"^\s*for\s+", "", context, flags=re.I).replace(" buyers", "").strip().lower()
-        positioning_lower = positioning.lower()
-        buyer_context_redundant = "buyer" in context.lower() and re.search(r"\bcustomers?\b|\bbuyers?\b", positioning_lower)
-        if context_core and context_core not in positioning_lower and not buyer_context_redundant:
-            positioning = f"{positioning}{context}"
+    positioning = apply_summary_context(positioning, woven_context_clause(job_description))
     positioning = f"{positioning}."
     proof = summary_proof_sentence(profile, job_description, emphasis)
     close = summary_fit_close_sentence(profile, job_description, emphasis)
@@ -2014,21 +2024,21 @@ def summary_job_poster_sentence(profile: JobProblemProfile) -> str:
 
 def consulting_story_summary(job_description: str = "") -> str:
     opening = (
-        "Client-facing consultant with 10+ years bringing consulting-style discovery, analysis, and stakeholder alignment "
-        "to complex client programs. "
+        "Client-facing consultant with 10+ years bringing consulting-style discovery, analysis, and stakeholder "
+        "alignment to complex client programs. "
     )
     closing = (
-        "Those engagements needed structured problem solving, data-backed recommendations, stakeholder alignment, "
-        "and execution judgment to hold up together."
+        "Best used where structured problem solving, stakeholder alignment, and execution judgment need to hold "
+        "together."
     )
     if jd_mentions(job_description, "transformation", "modernization", "turnaround"):
         opening = (
-            "Client-facing consultant with 10+ years bringing consulting-style discovery, analysis, and stakeholder alignment "
-            "to complex client delivery and transformation programs. "
+            "Client-facing consultant with 10+ years bringing consulting-style discovery, analysis, and stakeholder "
+            "alignment to transformation programs. "
         )
         closing = (
-            "Those engagements needed structured problem solving, data-backed recommendations, stakeholder alignment, "
-            "and execution judgment to hold up through delivery."
+            "Best used where structured problem solving, data-backed recommendations, and execution judgment need "
+            "to hold through delivery."
         )
     # Keyword-filling branches: the audit uses exact word-boundary matching, so synonyms
     # and different word forms (client-facing vs customer-facing, strategy vs strategic) do
@@ -2040,26 +2050,10 @@ def consulting_story_summary(job_description: str = "") -> str:
         closing = closing.replace("execution judgment", "strategic execution judgment")
     if jd_mentions(job_description, "business process", "process improvement"):
         closing = closing.replace("structured problem solving,", "structured problem solving, process discipline,")
-    # This middle sentence has to carry every scale fact (sites, users, client count,
-    # geography, book size, dashboards, workshops, recovered revenue) while staying ONE
-    # sentence: the Professional Summary guard requires exactly 3 sentences total
-    # (opening + this + closing), and a previous attempt to split it into multiple
-    # sentences pushed the count to 5 and broke that guard. A semicolon was tried next,
-    # but assert_professional_summary_structure() bans semicolons in the proof/close
-    # sentences outright (only the opening sentence may use one). A "while building" /
-    # "helping stabilize" gerund version avoided the semicolon but accidentally demoted
-    # two strong ownership verbs (built, stabilized) into forms hiring_manager_skim_issues'
-    # ownership check doesn't recognize, which tripped a separate "too support-oriented"
-    # audit flag. This version keeps every verb in past tense (owned/supported/built/
-    # facilitated/stabilized) and chains clauses with plain "and" instead of commas or
-    # "while", holding the comma count at 1 (safely under writing_eval.list_density_issue's
-    # >=3-comma trigger) with zero semicolons.
     return (
         opening
-        + "Owned a mission-critical enterprise platform across five sites and 150+ users and supported 80+ "
-        "manufacturing clients across North America, Asia and Europe within a $6M+ client book of business and "
-        "built 200+ dashboards and KPI reporting tools and facilitated 60+ executive workshops and QBRs and "
-        "stabilized $1M+ in at-risk annual revenue. "
+        + "Owned five-site platform support for 150+ users, built 200+ dashboards, led 60+ executive workshops, "
+        "and helped stabilize $1M+ in at-risk annual revenue. "
         + closing
     )
 
@@ -2203,13 +2197,7 @@ def build_problem_first_summary(
         return consulting_story_summary(job_description)
 
     positioning = summary_positioning_sentence(profile, job_description, emphasis).rstrip(".")
-    context = woven_context_clause(job_description)
-    if context:
-        context_core = re.sub(r"^\s*for\s+", "", context, flags=re.I).replace(" buyers", "").strip().lower()
-        positioning_lower = positioning.lower()
-        buyer_context_redundant = "buyer" in context.lower() and re.search(r"\bcustomers?\b|\bbuyers?\b", positioning_lower)
-        if context_core and context_core not in positioning_lower and not buyer_context_redundant:
-            positioning = f"{positioning}{context}"
+    positioning = apply_summary_context(positioning, woven_context_clause(job_description))
     positioning = f"{positioning}."
     proof = summary_proof_sentence(profile, job_description, emphasis)
     close = summary_fit_close_sentence(profile, job_description, emphasis)
@@ -2330,8 +2318,8 @@ def optimized_role_summary(
         )
         if emphasis.proof_anchor == "launch":
             body = (
-                "Scaled a five-site manufacturing environment for 150+ users by owning Aptean Intuitive "
-                "administration and launching system setup for a new warehouse and Amazon Robotics program. "
+                "Scaled a five-site manufacturing environment across 150+ users by owning Aptean Intuitive "
+                "administration and launching setup for a new warehouse and Amazon Robotics program. "
                 "Supported Epicor Kinetic transition planning through training, testing, and final launch readiness."
             )
         elif emphasis.proof_anchor == "dashboards":
@@ -2387,8 +2375,8 @@ def optimized_role_summary(
     elif company_key == normalize_compare(COMPANY_APTEAN):
         body = (
             "Delivered 12 full-lifecycle ERP implementations and managed up to four at a time for 80+ manufacturing "
-            "clients in the Americas, Europe, and Asia through structured issue ownership that turned ambiguous "
-            "requirements into cleaner configurations and steadier post-go-live adoption."
+            "clients across international environments. Turned ambiguous requirements into cleaner configurations "
+            "and steadier post-go-live adoption through structured issue ownership."
         )
         if emphasis.proof_anchor == "revenue":
             body = (

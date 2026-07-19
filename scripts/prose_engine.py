@@ -148,6 +148,31 @@ def _nested_list(text: str) -> bool:
     return any(item.count(",") >= 4 and len(re.findall(r"\b(?:and|or|including)\b", item, re.I)) >= 3 for item in _sentences(text))
 
 
+def _word_count(text: str) -> int:
+    return len(re.findall(r"\b[\w+.#'-]+\b", text))
+
+
+def _summary_too_long(text: str) -> bool:
+    return _word_count(text) > 70
+
+
+def _summary_sentence_too_long(text: str) -> bool:
+    return any(_word_count(sentence) > 34 for sentence in _sentences(text))
+
+
+def _double_preposition_pileup(text: str) -> bool:
+    infinitive_re = re.compile(
+        r"\bto\s+(?:align|analyze|build|clarify|configure|coordinate|create|deliver|develop|document|drive|enable|gather|guide|help|implement|improve|launch|lead|manage|map|move|own|protect|reduce|scope|support|translate|turn|validate)\b",
+        re.I,
+    )
+    for sentence in _sentences(text):
+        cleaned = infinitive_re.sub("", sentence)
+        cleaned = re.sub(r"\bfor\s+(?:\d+(?:\+|%)?|\$[\d,]+)", "", cleaned, flags=re.I)
+        if len(re.findall(r"\bfor\b", cleaned, re.I)) >= 2 or len(re.findall(r"\bto\b", cleaned, re.I)) >= 2:
+            return True
+    return False
+
+
 def _stacked_modifier(text: str) -> bool:
     # Allow common business compounds; flag only chains such as
     # "senior-technical-authority" with two or more hyphens in one token.
@@ -207,12 +232,15 @@ def _bullet_overloaded(text: str) -> bool:
 
 
 VALIDATION_RULES: tuple[ValidationRule, ...] = (
-    ValidationRule("PROSE_AND_CHAIN", frozenset({"summary", "cover", "spoken"}), "fail", _conjunction_overload, "Sentence contains an overloaded conjunction chain."),
-    ValidationRule("PROSE_NESTED_LIST", frozenset({"summary", "cover", "spoken"}), "fail", _nested_list, "Sentence embeds one long list inside another."),
-    ValidationRule("PROSE_STACKED_MODIFIER", frozenset({"summary", "cover", "spoken"}), "warn", _stacked_modifier, "Sentence contains a stacked hyphenated modifier."),
-    ValidationRule("PROSE_REPEATED_OPENING", frozenset({"summary", "cover", "spoken"}), "warn", _repeated_opening_verbs, "Three or more sentences repeat the same opening word."),
-    ValidationRule("PROSE_REPEATED_PROOF", frozenset({"summary", "cover", "spoken"}), "warn", _repeated_proof_clauses, "Two sentences repeat the same proof-clause opening."),
-    ValidationRule("PROSE_SLOT_OVERLAP", frozenset({"summary", "cover", "spoken"}), "warn", _slot_template_overlap, "Two assembled sentences substantially overlap."),
+    ValidationRule("PROSE_AND_CHAIN", frozenset({"summary", "federal_summary", "cover", "spoken"}), "fail", _conjunction_overload, "Sentence contains an overloaded conjunction chain."),
+    ValidationRule("PROSE_NESTED_LIST", frozenset({"summary", "federal_summary", "cover", "spoken"}), "fail", _nested_list, "Sentence embeds one long list inside another."),
+    ValidationRule("SUMMARY_TOO_LONG", frozenset({"summary"}), "fail", _summary_too_long, "Summary exceeds the 70-word target."),
+    ValidationRule("SUMMARY_SENTENCE_TOO_LONG", frozenset({"summary"}), "fail", _summary_sentence_too_long, "Summary contains a sentence longer than 34 words."),
+    ValidationRule("SUMMARY_PREPOSITION_PILEUP", frozenset({"summary"}), "fail", _double_preposition_pileup, "Summary stacks repeated for/to prepositional phrases."),
+    ValidationRule("PROSE_STACKED_MODIFIER", frozenset({"summary", "federal_summary", "cover", "spoken"}), "warn", _stacked_modifier, "Sentence contains a stacked hyphenated modifier."),
+    ValidationRule("PROSE_REPEATED_OPENING", frozenset({"summary", "federal_summary", "cover", "spoken"}), "warn", _repeated_opening_verbs, "Three or more sentences repeat the same opening word."),
+    ValidationRule("PROSE_REPEATED_PROOF", frozenset({"summary", "federal_summary", "cover", "spoken"}), "warn", _repeated_proof_clauses, "Two sentences repeat the same proof-clause opening."),
+    ValidationRule("PROSE_SLOT_OVERLAP", frozenset({"summary", "federal_summary", "cover", "spoken"}), "warn", _slot_template_overlap, "Two assembled sentences substantially overlap."),
     ValidationRule("BULLET_OVERLOADED", frozenset({"bullet"}), "warn", _bullet_overloaded, "Resume bullet is dense enough to need human review before submission."),
     ValidationRule("SPOKEN_RESUME_MANDATE", frozenset({"spoken"}), "fail", _resume_mandate_in_spoken, "Spoken answer contains a resume-only compliance sentence."),
     ValidationRule("SPOKEN_SENTENCE_LENGTH", frozenset({"spoken"}), "fail", _long_spoken_sentence, "Spoken answer contains a sentence longer than 28 words."),
