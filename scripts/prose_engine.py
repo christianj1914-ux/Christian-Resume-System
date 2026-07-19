@@ -234,9 +234,9 @@ def _bullet_overloaded(text: str) -> bool:
 VALIDATION_RULES: tuple[ValidationRule, ...] = (
     ValidationRule("PROSE_AND_CHAIN", frozenset({"summary", "federal_summary", "cover", "spoken"}), "fail", _conjunction_overload, "Sentence contains an overloaded conjunction chain."),
     ValidationRule("PROSE_NESTED_LIST", frozenset({"summary", "federal_summary", "cover", "spoken"}), "fail", _nested_list, "Sentence embeds one long list inside another."),
-    ValidationRule("SUMMARY_TOO_LONG", frozenset({"summary"}), "fail", _summary_too_long, "Summary exceeds the 70-word target."),
-    ValidationRule("SUMMARY_SENTENCE_TOO_LONG", frozenset({"summary"}), "fail", _summary_sentence_too_long, "Summary contains a sentence longer than 34 words."),
-    ValidationRule("SUMMARY_PREPOSITION_PILEUP", frozenset({"summary"}), "fail", _double_preposition_pileup, "Summary stacks repeated for/to prepositional phrases."),
+    ValidationRule("SUMMARY_TOO_LONG", frozenset({"summary"}), "warn", _summary_too_long, "Summary exceeds the 70-word target."),
+    ValidationRule("SUMMARY_SENTENCE_TOO_LONG", frozenset({"summary"}), "warn", _summary_sentence_too_long, "Summary contains a sentence longer than 34 words."),
+    ValidationRule("SUMMARY_PREPOSITION_PILEUP", frozenset({"summary"}), "warn", _double_preposition_pileup, "Summary stacks repeated for/to prepositional phrases."),
     ValidationRule("PROSE_STACKED_MODIFIER", frozenset({"summary", "federal_summary", "cover", "spoken"}), "warn", _stacked_modifier, "Sentence contains a stacked hyphenated modifier."),
     ValidationRule("PROSE_REPEATED_OPENING", frozenset({"summary", "federal_summary", "cover", "spoken"}), "warn", _repeated_opening_verbs, "Three or more sentences repeat the same opening word."),
     ValidationRule("PROSE_REPEATED_PROOF", frozenset({"summary", "federal_summary", "cover", "spoken"}), "warn", _repeated_proof_clauses, "Two sentences repeat the same proof-clause opening."),

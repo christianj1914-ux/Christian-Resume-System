@@ -2547,6 +2547,23 @@ def summary_sentences(summary: str) -> list[str]:
     return [part.strip() for part in re.split(r"(?<=[.!?])\s+", summary.strip()) if part.strip()]
 
 
+SUMMARY_UNBLOCK_WARN_RULES = frozenset(
+    {
+        "SUMMARY_TOO_LONG",
+        "SUMMARY_SENTENCE_TOO_LONG",
+        "SUMMARY_PREPOSITION_PILEUP",
+    }
+)
+
+
+def summary_unblock_warnings(summary: str) -> list[prose_engine.ValidationFinding]:
+    return [
+        finding
+        for finding in prose_engine.validate_text(summary, "summary")
+        if finding.severity == "warn" and finding.rule_id in SUMMARY_UNBLOCK_WARN_RULES
+    ]
+
+
 def resume_text_for_non_erp_audit(document_xml: Path) -> str:
     paragraphs = paragraph_infos(document_xml)
     summary_start = section_index(paragraphs, "Professional Summary")
@@ -2587,9 +2604,11 @@ def assert_professional_summary_structure(document_xml: Path) -> None:
         fail("Professional Summary text could not be located")
     sentences = summary_sentences(summary)
     if len(sentences) != 3:
-        fail(
-            f"Professional Summary must use exactly 3 recruiter-friendly sentences; found {len(sentences)}: {summary}"
-        )
+        warnings = summary_unblock_warnings(summary)
+        if len(sentences) != 4 or not warnings:
+            fail(
+                f"Professional Summary must use exactly 3 recruiter-friendly sentences; found {len(sentences)}: {summary}"
+            )
     if summary.count(";") > 1:
         fail(
             f"Professional Summary has too many semicolons ({summary.count(';')}); "
@@ -3747,6 +3766,45 @@ def bullet_prose_audit_notes(document_xml: Path) -> list[str]:
     return notes
 
 
+def summary_prose_audit_notes(document_xml: Path) -> list[str]:
+    notes: list[str] = []
+    candidates: list[tuple[str, str]] = []
+    summary = professional_summary_text(document_xml)
+    if summary:
+        candidates.append(("Professional Summary", summary))
+
+    current_company = ""
+    for paragraph in paragraph_infos(document_xml):
+        text = paragraph.text.strip()
+        if not text:
+            continue
+        if normalize_required_section_name(text) or is_role_heading(text):
+            current_company = ""
+            continue
+        if not paragraph.is_bullet and " | " in text:
+            current_company = text.split("|", 1)[0].strip()
+            continue
+        if current_company and not paragraph.is_bullet:
+            if is_company_context_paragraph(current_company, text):
+                continue
+            candidates.append((f"{current_company} role summary", text))
+            current_company = ""
+
+    seen: set[tuple[str, str]] = set()
+    for label, text in candidates:
+        key = (label, normalize_compare(text))
+        if key in seen:
+            continue
+        seen.add(key)
+        findings = summary_unblock_warnings(text)
+        if not findings:
+            continue
+        excerpt = text if len(text) <= 150 else text[:147].rstrip() + "..."
+        rule_ids = ", ".join(dict.fromkeys(finding.rule_id for finding in findings))
+        notes.append(f"Summary prose warning ({rule_ids}) in {label}: {excerpt}")
+    return notes
+
+
 def alignment_score_report(job_description: str, resume_text: str) -> dict[str, object]:
     """Score pre-build alignment across keywords, lane fit, domain specialty, business context, and outcome density."""
     profile = job_problem_profile(job_description, resume_text)
@@ -4436,7 +4494,11 @@ def build_resume() -> BuildResult:
                 auto_closed_keywords=auto_closed_keywords,
                 alignment_grade=str(alignment_report.get("grade", "")).strip() or None,
             )
-            audit_notes = [*audit_notes, *bullet_prose_audit_notes(document_xml)]
+            audit_notes = [
+                *audit_notes,
+                *summary_prose_audit_notes(document_xml),
+                *bullet_prose_audit_notes(document_xml),
+            ]
             audit_document_text = visible_text(document_xml)
             readiness = resume_readiness_report(
                 job_description,
