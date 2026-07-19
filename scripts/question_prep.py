@@ -240,9 +240,11 @@ def looks_like_resume_noise_line(text: str) -> bool:
 
 def compact_anchor_phrase(text: str) -> str:
     patterns = (
+        r"\$[\d,]+(?:\+)?(?:\s*[MK])?\s+average\s+deal\s+size\b[^.,;]{0,35}",
         r"\$[\d,]+(?:\+)?(?:\s*[MK])?(?:\s+in\s+[^.,;]{0,45})?",
         r"\b\d+\+?\s+(?:[\w-]+\s+){0,3}(?:client engagements?|clients?|users?|sites?|dashboards?|kpi tools|reporting tools|workshops?|qbrs?|offices|accounts?)\b[^.,;]{0,45}",
         r"\b\d+%\s+(?:reduction|lower|fewer|improvement|improved|cut)\b[^.,;]{0,55}",
+        r"\b(?:EFT/ACH|Truist|Amazon Robotics|LivePerson LiveEngage|LiveEngage|SMS|Approved Manufacturer List|RFP|RFI|SOW)\b[^.,;]{0,65}",
     )
     candidates: list[str] = []
     for pattern in patterns:

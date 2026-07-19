@@ -200,6 +200,8 @@ def story_evidence_sentence(text: str) -> str:
     lowered = cleaned.lower()
     if lowered.startswith("i "):
         return cleaned
+    if lowered.startswith("at "):
+        return cleaned
     if starts_with_action_fragment(cleaned):
         return f"I {lower_clause(cleaned)}"
     return f"My role was to {lower_clause(cleaned)}"
@@ -261,20 +263,30 @@ def story_opener_by_type(
     real spoken answers just start describing the situation. story_title is
     kept as a parameter for call-site compatibility but is unused here.
     """
-    company_clause = f"At {company}, " if company else ""
-    if "Challenge and Failure" in story_types:
-        return f"{company_clause}there was a stretch where"
-    if "Persuasion" in story_types or "Opposing Views" in story_types:
-        return f"{company_clause}there was a moment where"
-    if "Rapid Learning" in story_types:
-        return f"{company_clause}early on, there was a point where"
-    if "Managing and Leading" in story_types or "Teamwork" in story_types:
-        return f"{company_clause}there was a project where"
-    if "Analysis and Decision" in story_types:
-        return f"{company_clause}there was a decision point where"
-    if "Individual Achievement" in story_types:
-        return f"{company_clause}there was a piece of work where"
-    return f"{company_clause}there was a time where"
+    if company:
+        return f"At {company},"
+    return "The work involved"
+
+
+def story_company_hint(card: StoryCard, fallback: str = "") -> str:
+    searchable = f"{card.title} {card.hook} {card.evidence} {card.result}"
+    if re.search(r"\bEast West\b", searchable, re.I):
+        return COMPANY_EAST_WEST
+    if re.search(r"\bAptean\b", searchable, re.I):
+        return COMPANY_APTEAN
+    if re.search(r"\bHome Depot\b", searchable, re.I):
+        return COMPANY_HOME_DEPOT
+    return fallback
+
+
+def concrete_story_opening(card: StoryCard, company: str = "") -> str:
+    company_name = story_company_hint(card, company)
+    hook = re.sub(r"\s+", " ", card.hook).strip().rstrip(".")
+    if company_name and not re.search(re.escape(company_name), hook, re.I):
+        hook = f"At {company_name}, {lower_clause(hook)}"
+    elif not company_name:
+        hook = hook[:1].upper() + hook[1:]
+    return hook
 
 
 def story_natural_reference(card: StoryCard, company: str = "") -> str:
@@ -284,9 +296,7 @@ def story_natural_reference(card: StoryCard, company: str = "") -> str:
     States the situation and result as plain sentences instead of announcing
     the story as "a good/best example" or naming its internal title out loud.
     """
-    opener = story_opener_by_type(set(card.story_types), card.title, company)
-    spoken_opener = opener[:1].upper() + opener[1:]
-    parts = [f"{spoken_opener} {lower_clause(card.hook)}"]
+    parts = [concrete_story_opening(card, company)]
     if card.result:
         parts.append(story_result_sentence(card.result))
     return join_answer_sentences(*parts)
@@ -2767,15 +2777,27 @@ def first_90_day_approach(profile: build_resume.JobProblemProfile) -> list[str]:
 def expanded_story_bank() -> list[StoryCard]:
     return [
         StoryCard(
-            title="Inventory adjustment system",
+            title="EFT/ACH payment integration replacement",
+            story_types=("Managing and Leading", "Teamwork", "Ambiguous Problem", "Analysis and Decision"),
+            hook="a five-month EFT/ACH payment integration replacement had to restore reliable, compliant payments across IT, finance, Aptean, and Truist Bank.",
+            takeaways=("Mapped the full payment chain", "Aligned four parties without direct authority", "Kept compliance and auditability visible from the start"),
+            evidence="At East West, I owned the scope, milestones, and cross-functional coordination for an EFT/ACH replacement involving internal IT, global finance, Aptean, and Truist Bank.",
+            level3_trait="Show what was noticed: the issue was not only technical; ownership was split across four parties, so the work needed one end-to-end delivery path.",
+            result="Replaced a fragile payment setup with a compliant, auditable workflow that restored payment process integrity.",
+            outcome="Use this for cross-functional project delivery, data or integration risk, banking/payment workflow, and influence without authority.",
+            evidence_terms=("EFT/ACH", "Truist"),
+            signals=("payment", "integration", "bank", "compliance", "finance", "delivery", "risk", "stakeholder"),
+        ),
+        StoryCard(
+            title="High-volume inventory automation",
             story_types=("Individual Achievement", "Analysis and Decision", "Ambiguous Problem"),
-            hook="The challenge was a high-volume inventory adjustment process that was too manual and exposed the operation to avoidable discrepancies.",
+            hook="high-volume inventory adjustments were manual and error-prone, and Approved Manufacturer List maintenance needed the same controlled audit trail.",
             takeaways=("Structured the messy workflow before building", "Validated the fix against operational reality", "Turned the work into measurable business improvement"),
-            evidence="Built a large-scale inventory adjustment system in Aptean Intuitive ERP for high-volume operations.",
+            evidence="At East West, built automated, auditable workflows for high-volume inventory adjustments and Approved Manufacturer List maintenance.",
             level3_trait="Show what was noticed: repeated manual touches were creating delay and discrepancy risk, so the workflow was mapped, tested, and tightened before broader use.",
             result="Reduced manual work for the adjustment process by 78% and lowered inventory adjustment discrepancies by 22%.",
             outcome="Use this for process improvement, structured problem solving, and practical systems execution.",
-            evidence_terms=("78%", "22%", "inventory adjustment"),
+            evidence_terms=("78%", "22%", "Approved Manufacturer"),
             signals=("inventory", "process", "optimization", "efficiency", "operations", "analysis"),
         ),
         StoryCard(
@@ -2793,13 +2815,13 @@ def expanded_story_bank() -> list[StoryCard]:
         StoryCard(
             title="$1M+ account stabilization",
             story_types=("Persuasion", "Challenge and Failure", "Customer Disagreement"),
-            hook="The challenge was recovering customer trust after integration, customization, or unresolved workflow issues put accounts at risk.",
+            hook="several accounts inside a $6M+ book were sliding toward churn, with roughly $1M in annual revenue at risk.",
             takeaways=("Created one accountable path through the issue", "Listened for the real business pain behind the escalation", "Kept product, development, and customer stakeholders focused on resolution"),
-            evidence="Consolidated case ownership, led structured working sessions, and coordinated product and development teams around complex failures.",
+            evidence="At Aptean, consolidated case ownership, led structured working sessions, and coordinated product and development teams around complex failures.",
             level3_trait="Show what was noticed in the room: the customer needed ownership and a credible recovery path more than another status update.",
-            result="Stabilized at-risk accounts representing more than one million dollars in annual revenue.",
+            result="Protected $1M+ in at-risk annual revenue and converted shaky relationships back into retained accounts.",
             outcome="Use this for customer trust, escalation recovery, and influencing without authority.",
-            evidence_terms=("annual revenue", "integration"),
+            evidence_terms=("$1M", "$6M"),
             signals=("risk", "escalation", "retention", "revenue", "integration", "customer success"),
         ),
         StoryCard(
@@ -2863,15 +2885,15 @@ def expanded_story_bank() -> list[StoryCard]:
             signals=("salesforce", "crm", "digital", "backlog", "uat", "release", "product", "adoption", "workflow", "customer experience"),
         ),
         StoryCard(
-            title="LivePerson messaging workflows",
+            title="Zero-to-one SMS support channel",
             story_types=("Individual Achievement", "Analysis and Decision", "Rapid Learning"),
-            hook="The challenge was helping customer-facing teams adopt a new communication channel with consistent messaging workflows.",
-            takeaways=("Learned the workflow through real customer interactions", "Configured repeatable messaging steps", "Used trend monitoring to improve the operating model"),
-            evidence=f"Configured LivePerson LiveEngage chat and text workflows, automated greetings and closings, and supported the {COMPANY_HOME_DEPOT} SMS texting pilot.",
-            level3_trait="Show how customer interaction trends shaped the workflow language and channel adoption support.",
-            result="Improved consistency in customer-facing eCommerce communication workflows.",
-            outcome="Use this carefully for practical automation, messaging workflows, conversational AI, or channel adoption.",
-            evidence_terms=("LivePerson LiveEngage", "automated greetings and closings"),
+            hook="customers had no way to reach support over text, and the pilot team had to stand up an SMS support channel from zero.",
+            takeaways=("Designed the workflow before scaling", "Configured repeatable messaging steps", "Documented the setup so the channel could be repeated"),
+            evidence=f"Configured LivePerson LiveEngage chat and text workflows, automated greetings and closings, AI-assisted chatbot logic, and early channel-usage monitoring for the {COMPANY_HOME_DEPOT} SMS pilot.",
+            level3_trait="Show what was noticed: the new channel needed an operating workflow first, including how text conversations opened, routed, closed, and got measured.",
+            result="Launched a working SMS support channel and documented the setup so the workflow could be repeated consistently.",
+            outcome="Use this for zero-to-one workflow design, practical automation, messaging workflows, conversational AI, or channel adoption.",
+            evidence_terms=("LiveEngage", "SMS"),
             signals=("automation", "ai", "chatbot", "messaging", "workflow", "nlp"),
         ),
         StoryCard(
@@ -2975,19 +2997,19 @@ def expanded_story_bank() -> list[StoryCard]:
             signals=("persuasion", "stakeholder", "executive", "hardware", "implementation", "risk", "scope", "infrastructure"),
         ),
         StoryCard(
-            title="Amazon Robotics warehouse certification",
+            title="New warehouse and Amazon Robotics systems launch",
             story_types=("Individual Achievement", "Managing and Leading", "Ambiguous Problem"),
-            hook="The challenge was standing up an entirely new warehouse facility in the ERP and passing Amazon's compliance and certification requirements before anything could go live.",
+            hook="a new warehouse operation and Amazon Robotics program had to be production-ready by go-live across concurrent systems workstreams.",
             takeaways=(
-                "Managed a multi-stakeholder cross-functional process where every configuration decision had a downstream certification consequence",
-                "Coordinated across internal finance, operations, and external compliance simultaneously",
-                "Delivered on Amazon's timeline without flexibility to learn by doing",
+                "Treated product families, GL accounts, BOMs, and training as parallel workstreams",
+                "Sequenced the work so systems and users were ready at cutover",
+                "Delivered production readiness without needing formal authority over every contributor",
             ),
-            evidence="Led the Amazon Robotics warehouse setup at East West Manufacturing: a six-month compliance and certification process that required configuring every product family, bill of materials, and component structure in the ERP across coordination with the CFO, plant controllers at every site, manufacturers, vendors, and Amazon's compliance team.",
-            level3_trait="Show the constraint that made this hard: Amazon's certification requirements meant there was no room for iteration — everything had to be right before it could go live, and every configuration decision upstream affected compliance downstream.",
-            result="Achieved full Amazon Robotics certification and delivered a live operational warehouse environment.",
-            outcome="Use this for high-stakes cross-functional delivery, compliance-constrained implementation, or any question about the most complex project managed. It is the strongest manufacturing execution proof with named external stakeholders and no room for error.",
-            evidence_terms=("Amazon Robotics",),
+            evidence="At East West, launched a production-ready system setup for a new warehouse operation and Amazon Robotics program, scoping product families, GL accounts, BOMs, and cross-site training from initial requirements through go-live.",
+            level3_trait="Show what was noticed: this was not one task but several concurrent workstreams that all had to converge by go-live.",
+            result="Delivered a production-ready go-live with the systems and the people ready at the same time.",
+            outcome="Use this for high-stakes cross-functional delivery, most complex project, manufacturing execution, and parallel workstream ownership.",
+            evidence_terms=("Amazon Robotics", "warehouse"),
             signals=("manufacturing", "implementation", "compliance", "delivery", "executive", "stakeholder", "go-live", "complex"),
         ),
     ]
@@ -3039,6 +3061,8 @@ def story_theme_key(card: StoryCard) -> str:
     lowered = card.title.lower()
     if "inventory" in lowered:
         return "inventory"
+    if "eft" in lowered or "payment" in lowered:
+        return "payment_integration"
     if "account" in lowered or "$1m" in lowered:
         return "account"
     if "dashboard" in lowered or "decision visibility" in lowered:
@@ -3063,7 +3087,7 @@ def story_theme_key(card: StoryCard) -> str:
         return "crm_visibility"
     if "backlog" in lowered or "release coordination" in lowered:
         return "backlog_release"
-    if "liveperson" in lowered or "messaging workflows" in lowered:
+    if "liveperson" in lowered or "messaging workflows" in lowered or "sms" in lowered:
         return "messaging_automation"
     if "lifecycle delivery" in lowered:
         return "lifecycle_delivery"
@@ -3074,6 +3098,7 @@ def story_specific_bridge(card: StoryCard, profile: build_resume.JobProblemProfi
     key = story_theme_key(card)
     bridges = {
         "inventory": "Bridge: this is the process-improvement proof: map the actual workflow, find the structural gap, validate the fix with users, pilot it, and measure whether the work actually changed.",
+        "payment_integration": "Bridge: this is the cross-functional delivery proof: name the operational risk, create one accountable path across finance, IT, vendor, and bank stakeholders, then validate that the workflow is reliable before handoff.",
         "account": "Bridge: this is the trust-recovery proof: when an experience is breaking down, the answer is accountable ownership and a credible path forward, not a better status cadence.",
         "dashboards": "Bridge: this is the decision-quality proof: define the business decision before touching the data, validate the source, and segment the view so the next action is obvious.",
         "learning": "Bridge: this is the ramp proof: learn through the live workflow and the people doing it, not through documentation alone.",
@@ -3453,9 +3478,8 @@ def pyramid_answer(card: StoryCard, profile: build_resume.JobProblemProfile) -> 
 
 
 def spoken_caar_answer(card: StoryCard, profile: build_resume.JobProblemProfile) -> str:
-    opener = story_opener_by_type(set(card.story_types), card.title)
     parts = [
-        f"{opener[:1].upper() + opener[1:]} {lower_clause(card.hook)}",
+        concrete_story_opening(card),
     ]
     if card.level3_trait:
         parts.append(spoken_level3_trait_sentence(card.level3_trait))
@@ -3470,9 +3494,8 @@ def spoken_caar_answer(card: StoryCard, profile: build_resume.JobProblemProfile)
 
 
 def spoken_cart_answer(card: StoryCard, profile: build_resume.JobProblemProfile) -> str:
-    opener = story_opener_by_type(set(card.story_types), card.title)
     parts = [
-        f"{opener[:1].upper() + opener[1:]} {lower_clause(card.hook)}",
+        concrete_story_opening(card),
         cart_takeaway_sentence(card),
     ]
     if card.evidence:
@@ -3501,10 +3524,9 @@ def cart_takeaway_sentence(card: StoryCard) -> str:
 
 
 def spoken_pyramid_answer(card: StoryCard, profile: build_resume.JobProblemProfile) -> str:
-    opener = story_opener_by_type(set(card.story_types), card.title)
     parts = [
         "Yes, I have handled that kind of situation by structuring the problem first and then using evidence and stakeholder alignment to move toward a practical outcome",
-        f"{opener[:1].upper() + opener[1:]} {lower_clause(card.hook)}",
+        concrete_story_opening(card),
     ]
     if card.level3_trait:
         parts.append(spoken_level3_trait_sentence(card.level3_trait))
@@ -3906,6 +3928,7 @@ def likely_questions(profile: build_resume.JobProblemProfile, job_description: s
 def likely_question_story(item: InterviewQuestion, stories: list[StoryCard], used_titles: set[str] | None = None) -> StoryCard:
     used_titles = used_titles or set()
     prompt = f"{item.question} {item.angle}".lower()
+    mapped_title = closest_anchor_story_title(item.question, item.angle)
     lifecycle_terms = ("implementation", "go-live", "configuration", "readiness", "lifecycle", "rollout")
     enhancement_terms = ("upgrade", "customization", "service pack", "already live", "enhancement")
     hints: tuple[tuple[tuple[str, ...], tuple[str, ...]], ...] = (
@@ -3922,6 +3945,8 @@ def likely_question_story(item: InterviewQuestion, stories: list[StoryCard], use
     for story in stories:
         score = signal_score(prompt, story.signals)
         story_text = " ".join((story.title, story.hook, " ".join(story.story_types), " ".join(story.signals))).lower()
+        if mapped_title and story.title == mapped_title:
+            score += 100
         for question_terms, story_terms in hints:
             if any(term in prompt for term in question_terms):
                 if any(term.lower() in story_text for term in story_terms):
@@ -4459,6 +4484,14 @@ def questions_to_ask(
     job_description: str = "",
     context_text: str = "",
 ) -> list[str]:
+    outcome_first = [
+        "What does success look like in the first three to six months for this role?",
+        "How will you know, a year from now, that this was a great hire?",
+        "What is the biggest problem you are hoping this person solves in the first year?",
+        "Where does this function or team most often get stuck today?",
+        "Who are the key stakeholders this role depends on, and what does each of them care about most?",
+        "When priorities compete here, how do decisions actually get made?",
+    ]
     base_questions = {
         "presales_solution": [
             f"What separates a strong {profile.lane_label} from an average one at this stage of {company_name}'s growth?",
@@ -4505,8 +4538,10 @@ def questions_to_ask(
             "Where do SOPs, standard work, or quality-control checkpoints most need improvement today?",
         ],
     }
-    questions = list(base_questions.get(profile.primary_lane, base_questions["implementation_delivery"]))
-    questions.insert(0, biggest_gap_question())
+    questions = list(outcome_first[:3])
+    questions.append(biggest_gap_question())
+    questions.extend(outcome_first[3:])
+    questions.extend(base_questions.get(profile.primary_lane, base_questions["implementation_delivery"]))
     questions.extend([
         "What projects or customer problems most need help right now?",
         "What is the biggest business goal this role helps the team hit?",
@@ -4533,10 +4568,165 @@ def questions_to_ask(
     progress_question = search_progress_question(job_description, context_text)
     if progress_question:
         questions.append(progress_question)
-    final_questions = questions[:6]
+    final_questions = []
+    seen: set[str] = set()
+    for question in questions:
+        key = build_resume.normalize_compare(question)
+        if key in seen:
+            continue
+        seen.add(key)
+        final_questions.append(question)
+        if len(final_questions) >= 6:
+            break
     if progress_question and progress_question not in final_questions:
-        final_questions = questions[:5] + [progress_question]
+        final_questions = final_questions[:5] + [progress_question]
     return final_questions
+
+
+def closest_anchor_story_title(prompt: str, angle: str = "") -> str:
+    text = f"{prompt} {angle}".lower()
+    mapping = (
+        (("walk me through", "implementation you owned", "full lifecycle"), "Aptean lifecycle delivery"),
+        (("scope creep", "changing requirements", "sow", "frd"), "Aptean lifecycle delivery"),
+        (("data migration", "go-live risk", "integration risk", "payment", "validation"), "EFT/ACH payment integration replacement"),
+        (("went wrong", "failure", "lost the account", "mistake"), "Customer loss and proactive success lesson"),
+        (("ambiguity", "ambiguous", "methodology", "run a project"), "Aptean lifecycle delivery"),
+        (("largest project", "most complex project", "no formal authority"), "EFT/ACH payment integration replacement"),
+        (("warehouse", "amazon robotics"), "New warehouse and Amazon Robotics systems launch"),
+        (("manual work", "process improvement", "inventory"), "High-volume inventory automation"),
+        (("sms", "liveengage", "new workflow", "zero"), "Zero-to-one SMS support channel"),
+        (("at-risk", "churn", "recovery", "retention"), "$1M+ account stabilization"),
+    )
+    for terms, title in mapping:
+        if any(term in text for term in terms):
+            return title
+    return ""
+
+
+def delivery_watch_list_lines() -> tuple[str, ...]:
+    return (
+        "Lead first: sentence one is the answer plus the ownership verb.",
+        "Use one closest example, not two adjacent examples.",
+        "Name the outcome and number, then stop; trim 30-40% sooner than feels natural.",
+        "Own the action explicitly with I led, I owned, I built, I coordinated, or I validated.",
+        "Cut filler, restarts, hedges, and tactical detours; brevity reads as senior.",
+    )
+
+
+def consultative_selling_lines() -> tuple[str, ...]:
+    return (
+        "Reframe: I am not selling myself. I am diagnosing their problem.",
+        "Translate each project into the business problem, the decision I made, and what changed.",
+        "Do not narrate every step. Give accurate evidence at full size, then let silence work.",
+    )
+
+
+def company_hypothesis_line(company_name: str, profile: build_resume.JobProblemProfile, job_description: str, context_text: str = "") -> str:
+    supplied_lines = supplied_company_background_lines(company_name, context_text)
+    if supplied_lines:
+        source = re.sub(r"\s+", " ", supplied_lines[0]).strip().rstrip(".")
+        if len(source) > 110:
+            source = source[:107].rstrip(" ,.;:") + "..."
+        return f"Company hypothesis: From the context I reviewed, {source}. Is that close?"
+    first_priority = next(iter(build_resume.jd_priority_phrases(job_description)), "")
+    if first_priority:
+        return f"Company hypothesis: From the posting, the main challenge looks like {first_priority}. Is that close?"
+    return f"Company hypothesis: From the posting, the main challenge looks like {candidate_problem_phrase(profile)}. Is that close?"
+
+
+def signature_story_for_checklist(stories: list[StoryCard], profile: build_resume.JobProblemProfile, job_description: str) -> StoryCard | None:
+    priority_titles = {
+        "analytics_operations": ("High-volume inventory automation", "200+ dashboards and decision visibility"),
+        "implementation_delivery": ("EFT/ACH payment integration replacement", "New warehouse and Amazon Robotics systems launch"),
+        "customer_success": ("$1M+ account stabilization", "Customer loss and proactive success lesson"),
+        "presales_solution": ("Aptean lifecycle delivery",),
+        "change_enablement": ("New warehouse and Amazon Robotics systems launch", "60+ workshops and QBRs"),
+        "corporate_strategy": ("EFT/ACH payment integration replacement", "13-month modernization complexity"),
+    }
+    for title in priority_titles.get(profile.primary_lane, ()):
+        story = next((card for card in stories if card.title == title), None)
+        if story:
+            return story
+    return stories[0] if stories else None
+
+
+def checklist_output_path(output_docx: Path) -> Path:
+    return output_docx.with_name(output_docx.stem.replace("Interview Cheat Sheet", "Pre-Interview Checklist") + output_docx.suffix)
+
+
+def add_checklist_title(document: Document, company_name: str, role_title: str) -> None:
+    title = document.add_paragraph()
+    title.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    run = title.add_run("10-Minute Pre-Interview Checklist")
+    run.bold = True
+    run.font.name = RESUME_FONT
+    run.font.size = Pt(TITLE_SIZE)
+    run.font.color.rgb = NAME_BLUE
+    subtitle = document.add_paragraph()
+    subtitle.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    run = subtitle.add_run(f"Christian Estrada | {company_name} | {role_title}")
+    run.font.name = RESUME_FONT
+    run.font.size = Pt(SUBTITLE_SIZE)
+
+
+def build_pre_interview_checklist_document(
+    company_name: str,
+    role_title: str,
+    job_description: str,
+    resume_text: str,
+    stories: list[StoryCard],
+    context_text: str = "",
+) -> Document:
+    profile = build_resume.job_problem_profile(job_description, resume_text)
+    signature_story = signature_story_for_checklist(stories, profile, job_description)
+    document = Document()
+    set_default_style(document)
+    add_checklist_title(document, company_name, role_title)
+    add_section(document, "Ground")
+    add_bullet(document, 'Mindset: "My brain is trying to keep me safe. I am secure enough to handle this."')
+    add_bullet(document, 'Consultative: "I am not selling myself. I am diagnosing their problem."')
+    add_section(document, "Answer Shape")
+    for line in delivery_watch_list_lines()[:4]:
+        add_bullet(document, line)
+    add_section(document, "Company Hypothesis")
+    add_bullet(document, company_hypothesis_line(company_name, profile, job_description, context_text))
+    add_section(document, "Three Questions To Ask")
+    for question in questions_to_ask(company_name, profile, job_description, context_text)[:3]:
+        add_bullet(document, question)
+    add_section(document, "Signature Story")
+    if signature_story:
+        add_bullet(document, f"{signature_story.title}: {concrete_story_opening(signature_story)}")
+        add_bullet(document, f"Result: {signature_story.result}")
+    add_section(document, "Presence And Close")
+    add_bullet(document, "Declarative, not tentative. Cut I guess, kind of, I just, and restarts.")
+    add_bullet(document, "Let one beat of silence stand instead of filling it.")
+    add_bullet(document, "Close: Based on our conversation, I am confident I can help with your stated priority. What are the next steps, and is there anything about my background I should address?")
+    return document
+
+
+def write_pre_interview_checklist(
+    company_name: str,
+    role_title: str,
+    job_description: str,
+    resume_text: str,
+    stories: list[StoryCard],
+    output_docx: Path,
+    context_text: str = "",
+) -> Path:
+    checklist_path = checklist_output_path(output_docx)
+    document = build_pre_interview_checklist_document(
+        company_name,
+        role_title,
+        job_description,
+        resume_text,
+        stories,
+        context_text,
+    )
+    body = "\n".join(paragraph.text for paragraph in document.paragraphs)
+    validate_text(body, company_name=company_name, role_title=role_title)
+    checklist_path.parent.mkdir(exist_ok=True)
+    document.save(str(checklist_path))
+    return checklist_path
 
 
 def company_profile_interview_callout(company_name: str, job_description: str, profile: build_resume.JobProblemProfile) -> list[str]:
@@ -5445,6 +5635,14 @@ def build_document(company_name: str, role_title: str, job_description: str, res
     add_section(document, "Pre-Call Routine")
     for line in pre_interview_routine_lines(role_title, context_bundle.round_records, global_round_records):
         add_bullet(document, line)
+    add_section(document, "Delivery Watch-List")
+    for line in delivery_watch_list_lines():
+        add_bullet(document, line)
+    add_section(document, "Consultative Selling Reframe")
+    for line in consultative_selling_lines():
+        add_bullet(document, line)
+    add_section(document, "Company Hypothesis")
+    add_bullet(document, company_hypothesis_line(company_name, profile, job_description, supplied_context))
     add_section(document, "Call Pacing")
     for line in phone_screen_first_round_playbook(profile, company_name, role_title, job_description, resume_text, interview_notes)[:6]:
         add_bullet(document, line)
@@ -5536,6 +5734,16 @@ def build_document(company_name: str, role_title: str, job_description: str, res
     assert_cheat_sheet_qc(body)
     output_docx.parent.mkdir(exist_ok=True)
     document.save(str(output_docx))
+    checklist_path = write_pre_interview_checklist(
+        company_name,
+        role_title,
+        job_description,
+        resume_text,
+        selected_stories,
+        output_docx,
+        supplied_context,
+    )
+    render_checks.render_docx(checklist_path)
 
 
 def assert_cheat_sheet_qc(text: str) -> None:

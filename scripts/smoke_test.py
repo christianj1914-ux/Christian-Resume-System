@@ -5661,6 +5661,39 @@ def test_compact_anchor_phrase_handles_intermediate_scope_words() -> None:
     )
 
 
+def test_compact_anchor_phrase_keeps_expansion_proof_anchors() -> None:
+    import question_prep
+
+    cases = (
+        (
+            "Supported pre-sales motions across RFP, RFI, and SOW requests with an $80K average deal size.",
+            "$80K average deal size",
+        ),
+        (
+            "Owned the scope, milestones, and coordination for an EFT/ACH replacement involving Truist Bank.",
+            "EFT/ACH replacement involving Truist Bank",
+        ),
+        (
+            "Launched system setup for a new warehouse operation and Amazon Robotics program.",
+            "Amazon Robotics program",
+        ),
+        (
+            "Configured LivePerson LiveEngage chat and SMS workflows for a customer support pilot.",
+            "LivePerson LiveEngage chat and SMS workflows",
+        ),
+        (
+            "Built auditable workflows for Approved Manufacturer List maintenance.",
+            "Approved Manufacturer List maintenance",
+        ),
+    )
+    for source, expected in cases:
+        compacted = question_prep.compact_anchor_phrase(source)
+        assert_true(
+            expected.lower() in compacted.lower(),
+            f"compact_anchor_phrase() should keep the noun-bearing expansion anchor {expected!r}; got {compacted!r}",
+        )
+
+
 def test_extract_selected_proof_sentences_strips_trailing_reorg_annotation() -> None:
     import build_resume
     import question_prep
@@ -6270,7 +6303,7 @@ They need measurable implementation discipline.""",
         "analyze_entries() should detect the most common recurring debrief question",
     )
     assert_true(
-        summary.top_story_title == "Inventory adjustment system",
+        summary.top_story_title == "High-volume inventory automation",
         "analyze_entries() should identify a repeated top-performing story theme when one is present",
     )
     reordered = build_debrief_analysis.reorder_story_cards(
@@ -6278,7 +6311,7 @@ They need measurable implementation discipline.""",
         summary,
     )
     assert_true(
-        reordered[0].title == "Inventory adjustment system",
+        reordered[0].title == "High-volume inventory automation",
         "reorder_story_cards() should move the top-performing story to the front when debrief analysis finds one",
     )
 
@@ -7599,6 +7632,102 @@ def test_likely_question_story_avoids_reuse_when_alternative_exists(build_interv
         "likely_question_story() should still return a story (best of the already-used ones) when every "
         f"story has been used; got {last_resort_choice.title!r}",
     )
+
+
+def test_expansion_story_bank_uses_supported_core_stories(
+    build_resume: object,
+    build_interview_cheat_sheet: object,
+) -> None:
+    resume_text = build_resume.docx_visible_text_from_path(build_resume.IMPLEMENTATION_RESUME)
+    stories = build_interview_cheat_sheet.supported_story_bank(resume_text)
+    by_title = {story.title: story for story in stories}
+    expected_story_companies = {
+        "EFT/ACH payment integration replacement": "East West Manufacturing",
+        "High-volume inventory automation": "East West Manufacturing",
+        "$1M+ account stabilization": "Aptean",
+        "Zero-to-one SMS support channel": "The Home Depot",
+        "New warehouse and Amazon Robotics systems launch": "East West Manufacturing",
+    }
+    for title, company in expected_story_companies.items():
+        story = by_title.get(title)
+        assert_true(story is not None, f"supported_story_bank() should include the expansion story {title!r}.")
+        reference = build_interview_cheat_sheet.story_natural_reference(story)
+        assert_true(
+            company in reference,
+            f"{title!r} should open with the concrete company/stakes hook; got {reference!r}.",
+        )
+        assert_true(
+            "there was" not in reference.lower() and "where " not in reference.lower()[:30],
+            f"{title!r} should avoid generic spoken-story openers; got {reference!r}.",
+        )
+
+    unsupported_resume = resume_text.replace("EFT/ACH", "payment method").replace("Truist", "bank partner")
+    unsupported_titles = {story.title for story in build_interview_cheat_sheet.supported_story_bank(unsupported_resume)}
+    assert_true(
+        "EFT/ACH payment integration replacement" not in unsupported_titles,
+        "Expansion stories should only select when rendered-resume evidence terms support them.",
+    )
+
+
+def test_expansion_question_mapping_and_checklist_content(
+    build_resume: object,
+    build_interview_cheat_sheet: object,
+) -> None:
+    resume_text = build_resume.docx_visible_text_from_path(build_resume.IMPLEMENTATION_RESUME)
+    job_description = (
+        "Solutions Delivery Consultant role focused on implementation delivery, requirements, workflow adoption, "
+        "data migration, go-live readiness, stakeholder communication, and customer outcomes."
+    )
+    profile = build_resume.job_problem_profile(job_description, resume_text)
+    stories = build_interview_cheat_sheet.supported_story_bank(resume_text)
+
+    assert_true(
+        build_interview_cheat_sheet.closest_anchor_story_title("Walk me through an implementation you owned.")
+        == "Aptean lifecycle delivery",
+        "Common implementation questions should map to the closest lifecycle anchor story.",
+    )
+    assert_true(
+        build_interview_cheat_sheet.closest_anchor_story_title("How do you handle data migration or go-live risk?")
+        == "EFT/ACH payment integration replacement",
+        "Migration/go-live risk questions should map to the closest direct payment/integration anchor.",
+    )
+
+    questions = build_interview_cheat_sheet.questions_to_ask("Randstad", profile, job_description)
+    assert_true(
+        questions[:3]
+        == [
+            "What does success look like in the first three to six months for this role?",
+            "How will you know, a year from now, that this was a great hire?",
+            "What is the biggest problem you are hoping this person solves in the first year?",
+        ],
+        f"questions_to_ask() should lead with outcome-first questions from the reference bank; got {questions[:3]!r}.",
+    )
+    hypothesis = build_interview_cheat_sheet.company_hypothesis_line("Randstad", profile, job_description)
+    assert_true(
+        hypothesis.startswith("Company hypothesis:") and hypothesis.endswith("Is that close?"),
+        f"company_hypothesis_line() should add a concise confirmable role hypothesis; got {hypothesis!r}.",
+    )
+
+    checklist = build_interview_cheat_sheet.build_pre_interview_checklist_document(
+        "Randstad",
+        "Solutions Delivery Consultant",
+        job_description,
+        resume_text,
+        stories,
+    )
+    checklist_text = "\n".join(paragraph.text for paragraph in checklist.paragraphs)
+    required_fragments = (
+        "10-Minute Pre-Interview Checklist",
+        "I am not selling myself. I am diagnosing their problem.",
+        "Lead first: sentence one is the answer plus the ownership verb.",
+        "Use one closest example, not two adjacent examples.",
+        "Company hypothesis:",
+        "What does success look like in the first three to six months for this role?",
+        "EFT/ACH payment integration replacement",
+        "Close: Based on our conversation",
+    )
+    for fragment in required_fragments:
+        assert_true(fragment in checklist_text, f"Generated checklist should include {fragment!r}.")
 
 
 def test_interview_addition_helpers(build_resume: object, build_interview_cheat_sheet: object) -> None:
@@ -9262,6 +9391,62 @@ def test_resume_degree_master_line_is_canonical(build_resume: object) -> None:
             any("Bachelor of Business Administration, Management Information Systems" in line for line in lines),
             f"{source_path.name} should still allow the legitimate BBA/MIS line.",
         )
+
+
+def test_expansion_source_resumes_and_reference_docs_are_durable(build_resume: object) -> None:
+    source_paths = (
+        build_resume.IMPLEMENTATION_RESUME,
+        build_resume.PRESALES_CSM_RESUME,
+    )
+    required_anchors = (
+        "PMP",
+        "78%",
+        "22%",
+        "Approved Manufacturer",
+        "EFT/ACH",
+        "Truist",
+        "Amazon Robotics",
+        "LiveEngage",
+        "SMS",
+        "$80K",
+        "RFP",
+        "RFI",
+        "SOW",
+    )
+    unsupported_cert_fragments = (
+        "Six Sigma certified",
+        "Scrum certified",
+        "AWS certified",
+        "PMP certified",
+    )
+    for source_path in source_paths:
+        text = build_resume.docx_visible_text_from_path(source_path)
+        assert_true(
+            "Master of Science, Information Systems" in text
+            and "Master of Science, Management Information Systems" not in text,
+            f"{source_path.name} should keep the corrected Master's line and reject the stale Master's/MIS title.",
+        )
+        assert_true(
+            "PMP" in text and "in progress" in text.lower(),
+            f"{source_path.name} should mention PMP only as in-progress.",
+        )
+        for anchor in required_anchors:
+            assert_true(anchor in text, f"{source_path.name} should preserve expansion proof anchor {anchor!r}.")
+        for fragment in unsupported_cert_fragments:
+            assert_true(
+                fragment.lower() not in text.lower(),
+                f"{source_path.name} should not claim unsupported completed certification wording {fragment!r}.",
+            )
+
+    reference_docs = (
+        "Christian Estrada - Project Delivery Interview Stories.md",
+        "Christian Estrada - 10-Minute Pre-Interview Checklist.md",
+        "Christian Estrada - Interview Answer and Question Bank.md",
+        "Christian Estrada - Daily Confidence and Consultative Delivery Practice.md",
+    )
+    for name in reference_docs:
+        path = PROJECT_ROOT / "interview_prep" / name
+        assert_true(path.exists(), f"{name} should live in tracked interview_prep/, not only ignored output/.")
 
 
 def test_bullet_overload_validation_warns_without_repairing() -> None:
@@ -12228,6 +12413,7 @@ def main() -> None:
         ("spoken sentence split preserves leading characters", None),
         ("spoken nested-list repairs converge without collected issues", None),
         ("resume degree Master line is canonical", None),
+        ("expansion source resumes and reference docs are durable", None),
         ("bullet overload validation warns without repairing", None),
         ("resume notes report overloaded bullets without failing", None),
         ("interview filters filler and claim first answers", None),
@@ -12241,6 +12427,10 @@ def main() -> None:
         ("commercial resume model provenance and render", None),
         ("canonical catalog preserves provenance identity", None),
         ("application question pairing detects JD swap", None),
+        ("compact anchor phrase handles intermediate scope words", None),
+        ("compact anchor phrase keeps expansion proof anchors", None),
+        ("extract selected proof sentences strips trailing reorg annotation", None),
+        ("application answers rotate selected proof sentences", None),
         ("repo guidance prefers rehearsed foundation", None),
         ("pitch helpers handle missing cover letter pitch parts", None),
         ("read the room opening", None),
@@ -12520,6 +12710,7 @@ def main() -> None:
             ("Aptean customer success role summary passes prose check", lambda: test_aptean_customer_success_role_summary_passes_prose_check(build_resume)),
             ("PROSE_NESTED_LIST regressions converge", test_prose_nested_list_regressions_converge),
             ("resume degree Master line is canonical", lambda: test_resume_degree_master_line_is_canonical(build_resume)),
+            ("expansion source resumes and reference docs are durable", lambda: test_expansion_source_resumes_and_reference_docs_are_durable(build_resume)),
             ("bullet overload validation warns without repairing", test_bullet_overload_validation_warns_without_repairing),
             ("resume notes report overloaded bullets without failing", lambda: test_resume_notes_report_overloaded_bullets_without_failing(build_resume)),
             ("rewritten high-risk role summaries avoid nested-list detector", lambda: test_rewritten_high_risk_role_summaries_avoid_nested_list_detector(build_resume)),
@@ -12632,6 +12823,10 @@ def main() -> None:
             ("commercial resume model provenance and render", lambda: test_commercial_resume_model_provenance_and_render(commercial_resume_model, build_resume)),
             ("canonical catalog preserves provenance identity", lambda: test_canonical_catalog_preserves_provenance_identity(commercial_resume_model)),
             ("application question pairing detects JD swap", test_application_question_pairing_detects_jd_swap),
+            ("compact anchor phrase handles intermediate scope words", test_compact_anchor_phrase_handles_intermediate_scope_words),
+            ("compact anchor phrase keeps expansion proof anchors", test_compact_anchor_phrase_keeps_expansion_proof_anchors),
+            ("extract selected proof sentences strips trailing reorg annotation", test_extract_selected_proof_sentences_strips_trailing_reorg_annotation),
+            ("application answers rotate selected proof sentences", test_application_answers_rotate_selected_proof_sentences),
             ("repo guidance prefers rehearsed foundation", test_repo_guidance_prefers_rehearsed_foundation),
             ("pitch helpers handle missing cover letter pitch parts", lambda: test_pitch_helpers_handle_missing_cover_letter_pitch_parts(build_resume, build_interview_cheat_sheet)),
             ("read the room opening", lambda: test_read_the_room_opening(build_resume, build_interview_cheat_sheet)),
@@ -12688,6 +12883,8 @@ def main() -> None:
             ("question intent framework", lambda: test_question_intent_framework(build_resume, build_interview_cheat_sheet)),
             ("likely question story direct example preference", lambda: test_likely_question_story_prefers_direct_example(build_interview_cheat_sheet)),
             ("likely question story avoids reuse when alternative exists", lambda: test_likely_question_story_avoids_reuse_when_alternative_exists(build_interview_cheat_sheet)),
+            ("expansion story bank uses supported core stories", lambda: test_expansion_story_bank_uses_supported_core_stories(build_resume, build_interview_cheat_sheet)),
+            ("expansion question mapping and checklist content", lambda: test_expansion_question_mapping_and_checklist_content(build_resume, build_interview_cheat_sheet)),
             ("interview addition helpers", lambda: test_interview_addition_helpers(build_resume, build_interview_cheat_sheet)),
             ("search progress question is conditional", lambda: test_search_progress_question_is_conditional(build_resume, build_interview_cheat_sheet)),
             ("salary guide helpers", lambda: test_salary_guide_helpers(build_salary_guide, job_search_guidance)),

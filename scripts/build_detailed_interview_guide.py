@@ -3100,6 +3100,14 @@ def build_document(
     add_section(document, "Rehearsal Method")
     for line in cheat.rehearsal_foundation_lines(role_title, context_bundle.round_records, global_round_records):
         add_bullet(document, line)
+    add_section(document, "Delivery Watch-List")
+    for line in cheat.delivery_watch_list_lines():
+        add_bullet(document, line)
+    add_section(document, "Consultative Selling Reframe")
+    for line in cheat.consultative_selling_lines():
+        add_bullet(document, line)
+    add_section(document, "Company Hypothesis")
+    add_bullet(document, cheat.company_hypothesis_line(company_name, profile, job_description, supplied_context))
     add_section(document, "Anti-Filler And Length Control")
     for line in cheat.answer_mode_lines():
         add_bullet(document, line)

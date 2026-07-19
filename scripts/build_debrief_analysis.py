@@ -25,7 +25,7 @@ DEBRIEF_HISTORY = PROJECT_ROOT / "jobs" / "debrief_history.txt"
 DEBRIEF_DELIMITER = "POST-INTERVIEW DEBRIEF CAPTURED"
 
 STORY_THEME_RULES: dict[str, tuple[str, ...]] = {
-    "Inventory adjustment system": ("inventory adjustment", "inventory workflow", "manual work", "discrepanc"),
+    "High-volume inventory automation": ("inventory adjustment", "inventory workflow", "manual work", "discrepanc"),
     "Aptean rapid product learning": ("learn quickly", "learning quickly", "ramp quickly", "comfortable with", "new product"),
     "$1M+ account stabilization": ("account risk", "at-risk account", "customer trust", "escalation", "renewal risk", "revenue risk"),
     "200+ dashboards and decision visibility": ("dashboard", "dashboards", "reporting", "excel", "kpi", "data trust"),
