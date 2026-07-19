@@ -5200,7 +5200,7 @@ def test_story_adaptation_and_pre_interview_routine_helpers(
     assert_true(
         "Hook:" not in spoken
         and "CONTEXT" not in spoken
-        and build_interview_cheat_sheet.lower_clause(card.hook) in spoken,
+        and build_interview_cheat_sheet.lower_clause(card.hook).lower() in spoken.lower(),
         f"spoken_story_answer() should return a rehearsable spoken answer instead of framework labels; got {spoken!r}",
     )
 
@@ -7728,6 +7728,165 @@ def test_expansion_question_mapping_and_checklist_content(
     )
     for fragment in required_fragments:
         assert_true(fragment in checklist_text, f"Generated checklist should include {fragment!r}.")
+
+
+def test_item_g_story_hooks_are_concrete(build_interview_cheat_sheet: object) -> None:
+    generic_starters = ("The challenge was", "The lesson is", "There was")
+    for card in build_interview_cheat_sheet.expanded_story_bank():
+        assert_true(
+            not card.hook.startswith(generic_starters),
+            f"{card.title} should not use a generic hook starter; got {card.hook!r}.",
+        )
+        reference = build_interview_cheat_sheet.story_natural_reference(card)
+        assert_true(
+            "there was" not in reference.lower(),
+            f"{card.title} should not render the old generic spoken opener; got {reference!r}.",
+        )
+        assert_true(
+            reference.startswith(("At ", "During "))
+            or bool(re.match(r"^(?:\d|\$|Customer-facing)", reference)),
+            f"{card.title} should name a company or lead with a concrete number/stake; got {reference!r}.",
+        )
+
+
+def test_item_g_flagship_story_ranking_is_controlled(
+    build_resume: object,
+    build_interview_cheat_sheet: object,
+) -> None:
+    resume_text = " ".join(
+        f"{card.evidence} {' '.join(card.evidence_terms)}" for card in build_interview_cheat_sheet.expanded_story_bank()
+    )
+    flagship_titles = {
+        "High-volume inventory automation",
+        "$1M+ account stabilization",
+        "EFT/ACH payment integration replacement",
+    }
+
+    analytics_jd = (
+        "Analytics operations role focused on reporting, workflow improvement, project delivery, customer "
+        "requirements, operational quality, and data-backed decisions."
+    )
+    analytics_profile = build_resume.job_problem_profile(analytics_jd, resume_text)
+    analytics_titles = [
+        story.title for story in build_interview_cheat_sheet.hero_stories(analytics_profile, analytics_jd, resume_text)
+    ]
+    assert_true(
+        flagship_titles.issubset(set(analytics_titles)),
+        f"Analytics/process-relevant guides should surface the 78/22, $1M+, and EFT/ACH stories; got {analytics_titles!r}.",
+    )
+
+    change_jd = "Change enablement role focused on training adoption, stakeholder communications, manager readiness, and resistance."
+    change_profile = build_resume.job_problem_profile(change_jd, resume_text)
+    change_titles = [
+        story.title for story in build_interview_cheat_sheet.hero_stories(change_profile, change_jd, resume_text)
+    ]
+    assert_true(
+        any(title not in flagship_titles for title in change_titles[:3]),
+        f"The flagship boost should stay controlled so non-matching lanes still vary; got {change_titles!r}.",
+    )
+
+
+def test_item_g_checklist_signature_uses_full_supported_pool(
+    build_resume: object,
+    build_interview_cheat_sheet: object,
+) -> None:
+    resume_text = " ".join(
+        f"{card.evidence} {' '.join(card.evidence_terms)}" for card in build_interview_cheat_sheet.expanded_story_bank()
+    )
+    job_description = "Analytics operations role focused on workflow improvement, reporting, quality, and project delivery."
+    profile = build_resume.job_problem_profile(job_description, resume_text)
+    all_stories = build_interview_cheat_sheet.supported_story_bank(resume_text)
+
+    guide_with_quantified = [
+        story
+        for story in all_stories
+        if story.title in {"200+ dashboards and decision visibility", "$1M+ account stabilization", "Aptean lifecycle delivery"}
+    ]
+    signature = build_interview_cheat_sheet.signature_story_for_checklist(
+        all_stories,
+        profile,
+        job_description,
+        guide_with_quantified,
+    )
+    assert_true(
+        signature is not None and signature.title == "$1M+ account stabilization",
+        f"Checklist signature should prefer a suitable quantified story already in the guide; got {signature!r}.",
+    )
+
+    guide_without_flagship = [
+        story
+        for story in all_stories
+        if story.title in {"200+ dashboards and decision visibility", "Aptean lifecycle delivery"}
+    ]
+    fallback_signature = build_interview_cheat_sheet.signature_story_for_checklist(
+        all_stories,
+        profile,
+        job_description,
+        guide_without_flagship,
+    )
+    assert_true(
+        fallback_signature is not None and fallback_signature.title == "High-volume inventory automation",
+        "Checklist signature should use the full supported pool when no suitable flagship story is in the guide; "
+        f"got {fallback_signature!r}.",
+    )
+
+
+def test_item_g_randstad_analytics_keeps_automation_evidence_and_bridge_gate(
+    build_resume: object,
+    build_interview_cheat_sheet: object,
+) -> None:
+    job_description = RANDSTAD_QUALIFICATIONS_JOB_DESCRIPTION
+    with TemporaryDirectory(prefix="randstad_item_g_") as temp_name:
+        temp_root = Path(temp_name)
+        with zipfile.ZipFile(build_resume.IMPLEMENTATION_RESUME) as archive:
+            archive.extractall(temp_root)
+        document_xml = temp_root / "word" / "document.xml"
+        source_text = build_resume.docx_visible_text_from_path(build_resume.IMPLEMENTATION_RESUME)
+        profile = build_resume.job_problem_profile(job_description, source_text)
+        keywords = build_resume.keyword_set(job_description)
+        build_resume.apply_supported_rewrites(document_xml, job_description)
+        build_resume.apply_outcome_framing_rewrites(document_xml, job_description)
+        build_resume.apply_consulting_story_rewrites(document_xml, job_description)
+        build_resume.apply_value_story_rewrites(document_xml, job_description)
+        build_resume.apply_startup_operator_rewrites(document_xml, job_description)
+        build_resume.reorder_bullets(document_xml, keywords, profile, job_description)
+        build_resume.select_experience_bullets_for_two_page_resume(document_xml, job_description)
+        rendered_text = build_resume.visible_text(document_xml)
+
+    assert_true(
+        "78%" in rendered_text and "22%" in rendered_text and "Approved Manufacturer" in rendered_text,
+        "Randstad analytics/process trimming should keep the 78/22 automation evidence resume-backed.",
+    )
+    automation_bullets = [
+        bullet
+        for bullet in build_resume.experience_bullet_texts_from_text(rendered_text)
+        if "78%" in bullet and "22%" in bullet and "Approved Manufacturer" in bullet
+    ]
+    assert_true(
+        len(automation_bullets) == 1,
+        f"Randstad should keep one canonical 78/22 automation bullet, not duplicate rewrite output; got {automation_bullets!r}.",
+    )
+    alignment = build_resume.alignment_score_report(job_description, rendered_text)
+    assert_true(
+        int(alignment["total_score"]) >= build_resume.ALIGNMENT_FAIL_FLOOR,
+        f"Adding the 78/22 automation bullet must not drop Randstad below the fail floor; got {alignment!r}.",
+    )
+    guide_stories = build_interview_cheat_sheet.hero_stories(profile, job_description, rendered_text)
+    guide_titles = {story.title for story in guide_stories}
+    assert_true(
+        {"High-volume inventory automation", "$1M+ account stabilization"} & guide_titles,
+        f"Randstad analytics guide should surface a flagship quantified story; got {guide_titles!r}.",
+    )
+    signature = build_interview_cheat_sheet.signature_story_for_checklist(
+        build_interview_cheat_sheet.supported_story_bank(rendered_text),
+        profile,
+        job_description,
+        guide_stories,
+    )
+    assert_true(
+        signature is not None and signature.title != "200+ dashboards and decision visibility",
+        f"Randstad checklist signature should not default to the dashboard story when flagship proof is available; got {signature!r}.",
+    )
 
 
 def test_interview_addition_helpers(build_resume: object, build_interview_cheat_sheet: object) -> None:
@@ -12431,6 +12590,10 @@ def main() -> None:
         ("compact anchor phrase keeps expansion proof anchors", None),
         ("extract selected proof sentences strips trailing reorg annotation", None),
         ("application answers rotate selected proof sentences", None),
+        ("Item G story hooks are concrete", None),
+        ("Item G flagship story ranking is controlled", None),
+        ("Item G checklist signature uses full supported pool", None),
+        ("Item G Randstad analytics keeps automation evidence and bridge gate", None),
         ("repo guidance prefers rehearsed foundation", None),
         ("pitch helpers handle missing cover letter pitch parts", None),
         ("read the room opening", None),
@@ -12885,6 +13048,10 @@ def main() -> None:
             ("likely question story avoids reuse when alternative exists", lambda: test_likely_question_story_avoids_reuse_when_alternative_exists(build_interview_cheat_sheet)),
             ("expansion story bank uses supported core stories", lambda: test_expansion_story_bank_uses_supported_core_stories(build_resume, build_interview_cheat_sheet)),
             ("expansion question mapping and checklist content", lambda: test_expansion_question_mapping_and_checklist_content(build_resume, build_interview_cheat_sheet)),
+            ("Item G story hooks are concrete", lambda: test_item_g_story_hooks_are_concrete(build_interview_cheat_sheet)),
+            ("Item G flagship story ranking is controlled", lambda: test_item_g_flagship_story_ranking_is_controlled(build_resume, build_interview_cheat_sheet)),
+            ("Item G checklist signature uses full supported pool", lambda: test_item_g_checklist_signature_uses_full_supported_pool(build_resume, build_interview_cheat_sheet)),
+            ("Item G Randstad analytics keeps automation evidence and bridge gate", lambda: test_item_g_randstad_analytics_keeps_automation_evidence_and_bridge_gate(build_resume, build_interview_cheat_sheet)),
             ("interview addition helpers", lambda: test_interview_addition_helpers(build_resume, build_interview_cheat_sheet)),
             ("search progress question is conditional", lambda: test_search_progress_question_is_conditional(build_resume, build_interview_cheat_sheet)),
             ("salary guide helpers", lambda: test_salary_guide_helpers(build_salary_guide, job_search_guidance)),

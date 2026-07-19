@@ -2779,7 +2779,7 @@ def expanded_story_bank() -> list[StoryCard]:
         StoryCard(
             title="EFT/ACH payment integration replacement",
             story_types=("Managing and Leading", "Teamwork", "Ambiguous Problem", "Analysis and Decision"),
-            hook="a five-month EFT/ACH payment integration replacement had to restore reliable, compliant payments across IT, finance, Aptean, and Truist Bank.",
+            hook="At East West Manufacturing, a five-month EFT/ACH payment integration replacement had to restore reliable, compliant payments across IT, finance, Aptean, and Truist Bank.",
             takeaways=("Mapped the full payment chain", "Aligned four parties without direct authority", "Kept compliance and auditability visible from the start"),
             evidence="At East West, I owned the scope, milestones, and cross-functional coordination for an EFT/ACH replacement involving internal IT, global finance, Aptean, and Truist Bank.",
             level3_trait="Show what was noticed: the issue was not only technical; ownership was split across four parties, so the work needed one end-to-end delivery path.",
@@ -2791,7 +2791,7 @@ def expanded_story_bank() -> list[StoryCard]:
         StoryCard(
             title="High-volume inventory automation",
             story_types=("Individual Achievement", "Analysis and Decision", "Ambiguous Problem"),
-            hook="high-volume inventory adjustments were manual and error-prone, and Approved Manufacturer List maintenance needed the same controlled audit trail.",
+            hook="At East West Manufacturing, high-volume inventory adjustments were manual and error-prone, and Approved Manufacturer List maintenance needed the same controlled audit trail.",
             takeaways=("Structured the messy workflow before building", "Validated the fix against operational reality", "Turned the work into measurable business improvement"),
             evidence="At East West, built automated, auditable workflows for high-volume inventory adjustments and Approved Manufacturer List maintenance.",
             level3_trait="Show what was noticed: repeated manual touches were creating delay and discrepancy risk, so the workflow was mapped, tested, and tightened before broader use.",
@@ -2803,7 +2803,7 @@ def expanded_story_bank() -> list[StoryCard]:
         StoryCard(
             title="Aptean rapid product learning",
             story_types=("Rapid Learning", "Challenge and Failure", "Individual Achievement"),
-            hook="The challenge was becoming credible quickly across a complex ERP product and a broad international client base.",
+            hook="At Aptean, 80+ international client engagements required fast credibility across a complex ERP product and varied manufacturing workflows.",
             takeaways=("Learned through client problems, not abstract study", "Built a repeatable discovery rhythm", "Converted product complexity into clearer customer decisions"),
             evidence="Managed 80+ international client engagements through 12 full-lifecycle ERP implementations, carrying up to four concurrent deliveries from discovery through data migration, UAT, and post-go-live support.",
             level3_trait="Show how unfamiliar workflows were broken into requirements, risks, decision owners, and next actions until the client could move forward.",
@@ -2815,7 +2815,7 @@ def expanded_story_bank() -> list[StoryCard]:
         StoryCard(
             title="$1M+ account stabilization",
             story_types=("Persuasion", "Challenge and Failure", "Customer Disagreement"),
-            hook="several accounts inside a $6M+ book were sliding toward churn, with roughly $1M in annual revenue at risk.",
+            hook="At Aptean, several accounts inside a $6M+ book were sliding toward churn, with roughly $1M in annual revenue at risk.",
             takeaways=("Created one accountable path through the issue", "Listened for the real business pain behind the escalation", "Kept product, development, and customer stakeholders focused on resolution"),
             evidence="At Aptean, consolidated case ownership, led structured working sessions, and coordinated product and development teams around complex failures.",
             level3_trait="Show what was noticed in the room: the customer needed ownership and a credible recovery path more than another status update.",
@@ -2827,7 +2827,7 @@ def expanded_story_bank() -> list[StoryCard]:
         StoryCard(
             title="200+ dashboards and decision visibility",
             story_types=("Analysis and Decision", "Individual Achievement", "Ambiguous Problem"),
-            hook="The challenge was that leaders needed clearer visibility into performance, workflow friction, and trend signals.",
+            hook="200+ KPI dashboards and reporting tools had to turn performance, workflow friction, and trend signals into clearer operating decisions.",
             takeaways=("Clarified the decision the report needed to support", "Translated operational questions into usable metrics", "Made the output practical for leaders and operators"),
             evidence="Built 200+ dashboards, KPI reports, and analytics tools using SQL, Crystal Reports, and Power BI.",
             level3_trait="Show how the question behind the data was clarified before building the report.",
@@ -2839,7 +2839,7 @@ def expanded_story_bank() -> list[StoryCard]:
         StoryCard(
             title="60+ workshops and QBRs",
             story_types=("Managing and Leading", "Persuasion", "Teamwork"),
-            hook="The challenge was keeping executives and delivery stakeholders aligned when each group cared about different outcomes.",
+            hook="At Aptean, 60+ executive workshops and QBRs had to keep delivery stakeholders aligned when each group cared about different outcomes.",
             takeaways=("Read each stakeholder group differently", "Made tradeoffs visible", "Kept the conversation tied to business objectives"),
             evidence="Facilitated 60+ executive workshops and quarterly business reviews focused on roadmap alignment, adoption needs, and business priorities.",
             level3_trait="Show what was noticed: executives needed confidence in outcomes, operators needed workflow clarity, and delivery teams needed decision rights.",
@@ -2851,7 +2851,7 @@ def expanded_story_bank() -> list[StoryCard]:
         StoryCard(
             title="East West ERP ownership",
             story_types=("Managing and Leading", "Ambiguous Problem", "Teamwork"),
-            hook="The challenge was owning a mission-critical ERP environment across multiple sites without losing adoption, data, or operational trust.",
+            hook="At East West, a five-site ERP environment supporting 150+ users had to keep adoption, data, and operational trust intact.",
             takeaways=("Put structure around ambiguous needs", "Balanced operations, finance, and engineering priorities", "Protected adoption through training and validation"),
             evidence="Owned ERP strategy, administration, and continuous improvement across five sites and more than 150 users.",
             level3_trait="Show how each group was heard differently before requirements and recommendations were finalized.",
@@ -2863,7 +2863,7 @@ def expanded_story_bank() -> list[StoryCard]:
         StoryCard(
             title="East West Salesforce visibility",
             story_types=("Analysis and Decision", "Teamwork", "Process Improvement"),
-            hook="The challenge was giving business teams clearer visibility into requests and customer or project activity during migration work without letting follow-up disappear into spreadsheet tracking.",
+            hook="At East West, migration teams needed clearer request and project visibility without letting follow-up disappear into spreadsheet tracking.",
             takeaways=("Kept the operating view inside the system", "Connected CRM visibility to ERP and reporting work", "Made owner and next step easier to see across teams"),
             evidence="Used Salesforce alongside ERP data and SQL-backed reporting to track requests, surface owner and next step, and give business teams clearer visibility into customer and project activity during migration and post-go-live support.",
             level3_trait="Show what was noticed: when teams updated side trackers instead of the system, the real blocker was not effort but visibility and ownership.",
@@ -2875,7 +2875,7 @@ def expanded_story_bank() -> list[StoryCard]:
         StoryCard(
             title="Salesforce backlog and release coordination",
             story_types=("Analysis and Decision", "Managing and Leading", "Teamwork"),
-            hook="The challenge was keeping customer-facing CRM and digital-workflow changes useful for customers and support teams instead of turning them into another spreadsheet-driven status exercise.",
+            hook="Customer-facing CRM and digital-workflow changes had to stay useful for customers and support teams instead of becoming another spreadsheet-driven status exercise.",
             takeaways=("Translated noisy requests into backlog-ready work", "Used testing and release discipline to protect adoption", "Kept the workflow visible in system rather than in side trackers"),
             evidence="Turned business needs into backlog-ready requirements, coordinated UAT, and validated releases across Salesforce customer and marketing workflows.",
             level3_trait="Show what was noticed: when ownership lived in email threads or spreadsheets, follow-up got blurry, so the work had to move into clearer CRM workflows, test scenarios, and next-step tracking.",
@@ -2887,7 +2887,7 @@ def expanded_story_bank() -> list[StoryCard]:
         StoryCard(
             title="Zero-to-one SMS support channel",
             story_types=("Individual Achievement", "Analysis and Decision", "Rapid Learning"),
-            hook="customers had no way to reach support over text, and the pilot team had to stand up an SMS support channel from zero.",
+            hook="At The Home Depot, customers had no way to reach support over text, and the pilot team had to stand up an SMS support channel from zero.",
             takeaways=("Designed the workflow before scaling", "Configured repeatable messaging steps", "Documented the setup so the channel could be repeated"),
             evidence=f"Configured LivePerson LiveEngage chat and text workflows, automated greetings and closings, AI-assisted chatbot logic, and early channel-usage monitoring for the {COMPANY_HOME_DEPOT} SMS pilot.",
             level3_trait="Show what was noticed: the new channel needed an operating workflow first, including how text conversations opened, routed, closed, and got measured.",
@@ -2899,7 +2899,7 @@ def expanded_story_bank() -> list[StoryCard]:
         StoryCard(
             title="Aptean lifecycle delivery",
             story_types=("Individual Achievement", "Managing and Leading", "Ambiguous Problem"),
-            hook="The challenge was guiding clients from ambiguous business needs into practical ERP scope, delivery, and adoption.",
+            hook="At Aptean, 80+ manufacturing clients needed ambiguous business needs translated into practical ERP scope, delivery, and adoption.",
             takeaways=("Started with discovery before solutioning", "Converted requirements into scope and milestones", "Stayed with clients through go-live and hypercare"),
             evidence="Led discovery, requirements definition, configuration, data migration, integration, testing, go-live, and post-go-live support.",
             level3_trait="Show how vague asks were translated into SOWs, functional requirements, test plans, and delivery checkpoints.",
@@ -2911,7 +2911,7 @@ def expanded_story_bank() -> list[StoryCard]:
         StoryCard(
             title="Operations versus finance alignment",
             story_types=("Persuasion", "Teamwork", "Opposing Views"),
-            hook="The challenge was balancing operational needs, finance controls, cost, timeline, and system impact when stakeholders did not naturally want the same thing.",
+            hook="At East West, operations, finance, engineering, and vendor stakeholders needed one decision path across cost, timeline, and system impact.",
             takeaways=("Listened for the constraint behind each position", "Made tradeoffs explicit", "Recommended the option that protected the business outcome"),
             evidence="Led cross-functional discovery, surfaced the tradeoffs, and negotiated priorities with vendors and internal stakeholders.",
             level3_trait="Show what was noticed: one group was optimizing speed, another was protecting control, and the answer had to make the tradeoff visible.",
@@ -2923,7 +2923,7 @@ def expanded_story_bank() -> list[StoryCard]:
         StoryCard(
             title="Failure lesson and stronger validation",
             story_types=("Challenge and Failure", "Analysis and Decision", "Rapid Learning"),
-            hook="The lesson is that unclear requirements or weak validation can turn a solvable system issue into a larger adoption problem.",
+            hook="During East West release-readiness work, unclear requirements and weak validation could turn a solvable system issue into a larger adoption problem.",
             takeaways=("Own the miss without over-explaining", "Show the control that changed afterward", "Connect the lesson to better delivery risk management"),
             evidence="Led go-live readiness, sandbox testing, user acceptance validation, issue triage, and release readiness across ERP work.",
             level3_trait="Show the changed behavior: clearer requirements, stronger validation checkpoints, more explicit rollback planning, and earlier stakeholder signoff.",
@@ -2935,7 +2935,7 @@ def expanded_story_bank() -> list[StoryCard]:
         StoryCard(
             title="Customer loss and proactive success lesson",
             story_types=("Challenge and Failure", "Customer Disagreement", "Persuasion"),
-            hook="The challenge was recovering a customer relationship after inheriting a broken implementation — and still losing the account despite resolving every technical issue.",
+            hook="At Aptean, an inherited customer relationship had to be recovered after a broken implementation, even though resolving every technical issue did not save the account.",
             takeaways=(
                 "Owned the relationship directly rather than managing it through escalation",
                 "Negotiated feature acceleration to rebuild trust faster than a standard roadmap allowed",
@@ -2951,7 +2951,7 @@ def expanded_story_bank() -> list[StoryCard]:
         StoryCard(
             title="13-month modernization complexity",
             story_types=("Ambiguous Problem", "Managing and Leading", "Persuasion"),
-            hook="The challenge was discovering mid-engagement that a customer who wanted to modernize their ERP was running infrastructure too outdated to support any modern software at all.",
+            hook="At Aptean, a four-to-seven-month modernization engagement became 13 months when discovery uncovered infrastructure too outdated for modern software.",
             takeaways=(
                 "Surfaced a constraint the customer had not anticipated and could not work around",
                 "Aligned CEO and upper management on real costs before any software work could begin",
@@ -2967,7 +2967,7 @@ def expanded_story_bank() -> list[StoryCard]:
         StoryCard(
             title="UAT defect catch before go-live",
             story_types=("Challenge and Failure", "Persuasion", "Analysis and Decision"),
-            hook="The challenge was discovering during UAT that a defect would break a live client workflow if it reached production.",
+            hook="During Aptean UAT, a defect would have broken a live client workflow if it reached production.",
             takeaways=(
                 "Named the go-live risk directly instead of softening it",
                 "Coordinated root-cause work quickly across development and product partners",
@@ -2983,7 +2983,7 @@ def expanded_story_bank() -> list[StoryCard]:
         StoryCard(
             title="CEO hardware scoping conversation",
             story_types=("Persuasion", "Customer Disagreement", "Managing and Leading"),
-            hook="The challenge was getting an executive sponsor to treat outdated infrastructure as a business risk before ERP work could move forward.",
+            hook="At Aptean, an executive sponsor needed to see outdated infrastructure as a business risk before ERP work could move forward.",
             takeaways=(
                 "Diagnosed the real blocker before talking solutions",
                 "Framed hardware upgrades as implementation risk rather than IT preference",
@@ -2999,7 +2999,7 @@ def expanded_story_bank() -> list[StoryCard]:
         StoryCard(
             title="New warehouse and Amazon Robotics systems launch",
             story_types=("Individual Achievement", "Managing and Leading", "Ambiguous Problem"),
-            hook="a new warehouse operation and Amazon Robotics program had to be production-ready by go-live across concurrent systems workstreams.",
+            hook="At East West Manufacturing, a new warehouse operation and Amazon Robotics program had to be production-ready by go-live across concurrent systems workstreams.",
             takeaways=(
                 "Treated product families, GL accounts, BOMs, and training as parallel workstreams",
                 "Sequenced the work so systems and users were ready at cutover",
@@ -3023,7 +3023,7 @@ def hero_stories(profile: build_resume.JobProblemProfile, job_description: str, 
     lane_bonus_terms = {
         "presales_solution": {"discovery", "solution", "pre-sales", "executive"},
         "customer_success": {"risk", "retention", "customer success", "executive"},
-        "analytics_operations": {"analytics", "dashboard", "kpi", "data"},
+        "analytics_operations": {"analytics", "dashboard", "kpi", "data", "analysis", "operations", "process", "workflow", "automation", "quality"},
         "change_enablement": {"training", "adoption", "stakeholder", "workflow"},
         "process_improvement": {"process", "optimization", "efficiency", "analysis", "workflow", "operations", "data"},
         "implementation_delivery": {"implementation", "go-live", "delivery", "testing"},
@@ -3033,7 +3033,7 @@ def hero_stories(profile: build_resume.JobProblemProfile, job_description: str, 
 
     def score(card: StoryCard) -> int:
         bonus = sum(1 for signal in card.signals if signal in lane_bonus)
-        return signal_score(job_description, card.signals) + bonus
+        return signal_score(job_description, card.signals) + bonus + quantified_story_boost(card, profile, job_description)
 
     supported.sort(key=score, reverse=True)
     return supported[:5]
@@ -3041,6 +3041,68 @@ def hero_stories(profile: build_resume.JobProblemProfile, job_description: str, 
 
 def supported_story_bank(resume_text: str) -> list[StoryCard]:
     return [card for card in expanded_story_bank() if contains_all(resume_text, card.evidence_terms)]
+
+
+def quantified_story_boost(card: StoryCard, profile: build_resume.JobProblemProfile, job_description: str) -> int:
+    """Let memorable quantified stories compete without flattening lane fit."""
+    title = card.title
+    lane = profile.primary_lane
+    if title == "High-volume inventory automation":
+        if lane in {"analytics_operations", "process_improvement"} and build_resume.jd_mentions(
+            job_description,
+            "analytics",
+            "analysis",
+            "operations",
+            "process",
+            "workflow",
+            "automation",
+            "quality",
+            "reporting",
+            "data",
+            "improvement",
+        ):
+            return 14
+        if lane == "implementation_delivery" and build_resume.jd_mentions(job_description, "workflow", "validation", "data", "process"):
+            return 6
+    if title == "$1M+ account stabilization":
+        if lane == "customer_success":
+            return 16
+        if lane in {"analytics_operations", "implementation_delivery", "corporate_strategy"} and build_resume.jd_mentions(
+            job_description,
+            "client",
+            "customer",
+            "account",
+            "project",
+            "stakeholder",
+            "requirements",
+            "risk",
+            "delivery",
+        ):
+            return 12
+    if title == "EFT/ACH payment integration replacement":
+        if lane in {"implementation_delivery", "corporate_strategy"} and build_resume.jd_mentions(
+            job_description,
+            "integration",
+            "data migration",
+            "delivery",
+            "project",
+            "stakeholder",
+            "finance",
+            "bank",
+            "payment",
+        ):
+            return 14
+        if lane in {"analytics_operations", "process_improvement"} and build_resume.jd_mentions(
+            job_description,
+            "data",
+            "workflow",
+            "validation",
+            "risk",
+            "project",
+            "stakeholder",
+        ):
+            return 8
+    return 0
 
 
 def story_for_type(stories: list[StoryCard], story_type: str) -> StoryCard | None:
@@ -3098,7 +3160,7 @@ def story_specific_bridge(card: StoryCard, profile: build_resume.JobProblemProfi
     key = story_theme_key(card)
     bridges = {
         "inventory": "Bridge: this is the process-improvement proof: map the actual workflow, find the structural gap, validate the fix with users, pilot it, and measure whether the work actually changed.",
-        "payment_integration": "Bridge: this is the cross-functional delivery proof: name the operational risk, create one accountable path across finance, IT, vendor, and bank stakeholders, then validate that the workflow is reliable before handoff.",
+        "payment_integration": "Bridge: this is the cross-functional delivery proof: name the operational risk, create one accountable path across finance, IT, vendor partners plus banking stakeholders, then validate that the workflow is reliable before handoff.",
         "account": "Bridge: this is the trust-recovery proof: when an experience is breaking down, the answer is accountable ownership and a credible path forward, not a better status cadence.",
         "dashboards": "Bridge: this is the decision-quality proof: define the business decision before touching the data, validate the source, and segment the view so the next action is obvious.",
         "learning": "Bridge: this is the ramp proof: learn through the live workflow and the people doing it, not through documentation alone.",
@@ -4634,7 +4696,49 @@ def company_hypothesis_line(company_name: str, profile: build_resume.JobProblemP
     return f"Company hypothesis: From the posting, the main challenge looks like {candidate_problem_phrase(profile)}. Is that close?"
 
 
-def signature_story_for_checklist(stories: list[StoryCard], profile: build_resume.JobProblemProfile, job_description: str) -> StoryCard | None:
+def signature_story_for_checklist(
+    stories: list[StoryCard],
+    profile: build_resume.JobProblemProfile,
+    job_description: str,
+    guide_stories: list[StoryCard] | None = None,
+) -> StoryCard | None:
+    guide_stories = guide_stories or stories
+    quantified_priority_titles = {
+        "analytics_operations": (
+            "High-volume inventory automation",
+            "$1M+ account stabilization",
+            "EFT/ACH payment integration replacement",
+        ),
+        "process_improvement": (
+            "High-volume inventory automation",
+            "EFT/ACH payment integration replacement",
+            "$1M+ account stabilization",
+        ),
+        "implementation_delivery": (
+            "EFT/ACH payment integration replacement",
+            "New warehouse and Amazon Robotics systems launch",
+            "High-volume inventory automation",
+            "$1M+ account stabilization",
+        ),
+        "customer_success": (
+            "$1M+ account stabilization",
+            "Customer loss and proactive success lesson",
+        ),
+        "corporate_strategy": (
+            "EFT/ACH payment integration replacement",
+            "$1M+ account stabilization",
+            "13-month modernization complexity",
+        ),
+    }
+    for title in quantified_priority_titles.get(profile.primary_lane, ()):
+        story = next((card for card in guide_stories if card.title == title), None)
+        if story:
+            return story
+    for title in quantified_priority_titles.get(profile.primary_lane, ()):
+        story = next((card for card in stories if card.title == title), None)
+        if story:
+            return story
+
     priority_titles = {
         "analytics_operations": ("High-volume inventory automation", "200+ dashboards and decision visibility"),
         "implementation_delivery": ("EFT/ACH payment integration replacement", "New warehouse and Amazon Robotics systems launch"),
@@ -4676,9 +4780,10 @@ def build_pre_interview_checklist_document(
     resume_text: str,
     stories: list[StoryCard],
     context_text: str = "",
+    guide_stories: list[StoryCard] | None = None,
 ) -> Document:
     profile = build_resume.job_problem_profile(job_description, resume_text)
-    signature_story = signature_story_for_checklist(stories, profile, job_description)
+    signature_story = signature_story_for_checklist(stories, profile, job_description, guide_stories)
     document = Document()
     set_default_style(document)
     add_checklist_title(document, company_name, role_title)
@@ -4712,6 +4817,7 @@ def write_pre_interview_checklist(
     stories: list[StoryCard],
     output_docx: Path,
     context_text: str = "",
+    guide_stories: list[StoryCard] | None = None,
 ) -> Path:
     checklist_path = checklist_output_path(output_docx)
     document = build_pre_interview_checklist_document(
@@ -4721,6 +4827,7 @@ def write_pre_interview_checklist(
         resume_text,
         stories,
         context_text,
+        guide_stories,
     )
     body = "\n".join(paragraph.text for paragraph in document.paragraphs)
     validate_text(body, company_name=company_name, role_title=role_title)
@@ -5687,7 +5794,7 @@ def build_document(company_name: str, role_title: str, job_description: str, res
     for index, card in enumerate(selected_stories[:5], start=1):
         add_subsection(document, f"Story {index}: {card.title}")
         add_bullet(document, f"Memory anchor: {card.title}")
-        add_bullet(document, f"Hook: {card.hook}")
+        add_bullet(document, f"Hook: {concrete_story_opening(card)}")
         add_bullet(document, story_scale_anchor_label(card))
         add_bullet(document, f"Result: {card.result}")
         add_bullet(document, f"Role bridge: {story_specific_bridge(card, profile).replace('Bridge: ', '')}")
@@ -5739,9 +5846,10 @@ def build_document(company_name: str, role_title: str, job_description: str, res
         role_title,
         job_description,
         resume_text,
-        selected_stories,
+        all_stories,
         output_docx,
         supplied_context,
+        selected_stories,
     )
     render_checks.render_docx(checklist_path)
 

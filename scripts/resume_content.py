@@ -2709,7 +2709,7 @@ def apply_startup_operator_rewrites(document_xml: Path, job_description: str) ->
         ),
         (
             ("inventory adjustment", "78%", "22%"),
-            "Reduced manual inventory adjustment work by 78% and lowered discrepancies by 22% by diagnosing a recurring warehouse accuracy problem and building an automated, auditable workflow",
+            "Reduced manual inventory adjustment work by 78% and lowered discrepancies by 22% by building automated, auditable workflows for recurring warehouse accuracy issues and Approved Manufacturer List maintenance",
         ),
         (
             ("200 dashboards", "KPI reports", "Power BI", "near real-time visibility"),
@@ -2733,7 +2733,7 @@ def apply_startup_operator_rewrites(document_xml: Path, job_description: str) ->
         ),
         (
             ("recurring inventory accuracy", "automated adjustment system", "78%", "22%"),
-            "Reduced manual inventory work by 78% and discrepancies by 22% by diagnosing a recurring warehouse accuracy problem and building an automated, auditable adjustment workflow",
+            "Reduced manual inventory work by 78% and discrepancies by 22% by building automated, auditable workflows for recurring warehouse accuracy issues and Approved Manufacturer List maintenance",
         ),
         (
             ("Aptean Intuitive to Epicor Kinetic", "extracting", "validating", "SQL-based validation", "clean migration close"),
@@ -2944,8 +2944,23 @@ def merge_low_fit_bullets_before_delete(document_xml: Path, job_description: str
 
 def clean_merged_role_bullets(document_xml: Path) -> int:
     tree = ET.parse(document_xml)
+    root = tree.getroot()
     changed = 0
-    for paragraph in tree.getroot().findall(f".//{W}p"):
+    body = root.find(f"{W}body")
+    if body is not None:
+        seen_bullets: set[str] = set()
+        for paragraph in list(body):
+            if not is_bullet(paragraph):
+                continue
+            text = re.sub(r"\s+", " ", paragraph_text(paragraph)).strip()
+            key = re.sub(r"[^a-z0-9]+", " ", text.lower()).strip()
+            if key and key in seen_bullets:
+                body.remove(paragraph)
+                changed += 1
+                continue
+            if key:
+                seen_bullets.add(key)
+    for paragraph in root.findall(f".//{W}p"):
         if not is_bullet(paragraph):
             continue
         text = re.sub(r"\s+", " ", paragraph_text(paragraph)).strip()

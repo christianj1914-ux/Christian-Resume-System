@@ -1273,7 +1273,9 @@ def natural_top_bullet_score(
             ),
             "analytics_operations": (
                 "dashboard", "kpi", "reporting", "sql", "analytics", "decision", "visibility",
-                "200+", "crystal reports", "power bi", "bi", "insight",
+                "200+", "crystal reports", "power bi", "bi", "insight", "process", "workflow",
+                "operations", "automation", "inventory", "approved manufacturer", "manual",
+                "78%", "22%", "discrepancy", "improvement", "quality",
             ),
             "change_enablement": (
                 "change", "adoption", "training", "enablement", "stakeholder", "resistance",
@@ -1292,6 +1294,20 @@ def natural_top_bullet_score(
         text_lower = text.lower()
         lane_hits = sum(1 for s in signals if s in text_lower)
         total += min(lane_hits * 5, 20)
+        if profile.primary_lane in {"analytics_operations", "process_improvement"} and jd_mentions(
+            job_description,
+            "analytics",
+            "analysis",
+            "operations",
+            "process",
+            "workflow",
+            "automation",
+            "quality",
+            "reporting",
+            "data",
+            "project",
+        ) and re.search(r"\b(?:78%|22%|approved manufacturer|inventory adjustment|manual inventory|auditable workflow)\b", text_lower, re.I):
+            total += 20
         if job_description and higher_level_private_sector_role(job_description):
             leadership_terms = (
                 "led", "owned", "facilitated", "executive", "vp", "director", "stakeholder",
