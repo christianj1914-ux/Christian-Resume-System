@@ -78,6 +78,18 @@ DEFAULT_COVER_MODE = STANDARD_COVER_MODE
 LEGACY_DEFAULT_COVER_MODE = "default"
 LEGACY_CONCISE_COVER_MODE = "concise"
 COVER_TRACE_DIR = SCRATCH_DIR / "cover_letter_traces"
+COVER_INTERNAL_TOKEN_PATTERNS: tuple[tuple[str, str], ...] = (
+    (r"\bpresales_solution\b", "presales_solution"),
+    (r"\bcustomer_success\b", "customer_success"),
+    (r"\bchange_enablement\b", "change_enablement"),
+    (r"\banalytics_operations\b", "analytics_operations"),
+    (r"\bimplementation_delivery\b", "implementation_delivery"),
+    (r"\bcorporate_strategy\b", "corporate_strategy"),
+    (r"\bprocess_improvement\b", "process_improvement"),
+    (r"\brole-based enablement and adoption work\b", "role-based enablement and adoption work"),
+    (r"\bconsulting and structured problem solving this role calls for\b", "consulting and structured problem solving this role calls for"),
+    (r"\bkind of [a-z, ]+ environment where\b", "kind of ... environment where"),
+)
 
 
 def fail(message: str) -> None:
@@ -497,6 +509,37 @@ def dedupe_sentences(sentences: list[str]) -> list[str]:
     return deduped
 
 
+def cover_problem_context(company_name: str, role_title: str, job_description: str, resume_text: str) -> str:
+    profile = build_resume.job_problem_profile(job_description, resume_text)
+    sections = cover_letter_jd_sections(job_description)
+    lane_key = effective_lane_key(role_title, job_description, profile)
+    phrase = extract_pain_area(
+        job_description,
+        lane_key,
+        extract_cover_letter_terms(job_description, lane_key, sections),
+        extract_test_environments(job_description, sections),
+    )
+    phrase = safe_connector_fragment(phrase, max_words=12) or build_resume.natural_problem_phrase(profile)
+    phrase = re.sub(r"^(?:the need to|need to)\s+", "", phrase, flags=re.I).strip(" .")
+    if not phrase:
+        phrase = "turning complex operating needs into usable outcomes"
+    return safe_sentence(
+        f"I am interested in the {safe_role_title(role_title)} role at {safe_company_name(company_name)} "
+        f"because the work centers on {phrase} for {safe_company_name(company_name)}'s teams and customers."
+    )
+
+
+def synthetic_cover_interest(text: str, company_name: str) -> bool:
+    lowered = (text or "").lower()
+    if re.search(r"\bkind of [a-z, ]+ environment where\b", lowered):
+        return True
+    if "directly shape the work" in lowered or "directly shapes the work" in lowered:
+        return True
+    if company_name and re.search(rf"\bbecause\s+{re.escape(company_name.lower())}\s+is\b", lowered):
+        return True
+    return any(re.search(pattern, lowered, re.I) for pattern, _label in COVER_INTERNAL_TOKEN_PATTERNS)
+
+
 def short_company_interest_sentence(
     bank: CoverResponseBank,
     company_name: str,
@@ -508,6 +551,8 @@ def short_company_interest_sentence(
     sentences = response_sentences(answer)
     if sentences:
         first = sentences[0]
+        if synthetic_cover_interest(first, company_name):
+            return cover_problem_context(company_name, role_title, job_description, resume_text)
         first = re.sub(
             rf"^I am interested in joining\s+{re.escape(company_name)}\s+because\s+",
             "",
@@ -519,17 +564,19 @@ def short_company_interest_sentence(
             first,
             re.I,
         ):
-            return safe_sentence(first)
+            if not synthetic_cover_interest(first, company_name):
+                return safe_sentence(first)
+            return cover_problem_context(company_name, role_title, job_description, resume_text)
         first = re.sub(
             rf"^I am interested in the\s+.+?\s+role at\s+{re.escape(company_name)}\s+because\s+",
             "",
             first,
             flags=re.I,
         )
+        if synthetic_cover_interest(first, company_name):
+            return cover_problem_context(company_name, role_title, job_description, resume_text)
         return safe_sentence(f"I am interested in the {safe_role_title(role_title)} role at {safe_company_name(company_name)} because {first[:1].lower()}{first[1:]}")
-    return safe_sentence(
-        f"I am interested in the {safe_role_title(role_title)} role at {safe_company_name(company_name)} because it sits close to {extract_pain_area(job_description, effective_lane_key(role_title, job_description, build_resume.job_problem_profile(job_description, resume_text)), (), ())}."
-    )
+    return cover_problem_context(company_name, role_title, job_description, resume_text)
 
 
 def build_cover_response_bank(
@@ -672,6 +719,10 @@ def select_opening_support_sentence(
             row["rejection_reason"] = "lowercase_fragment"
         elif cover_sentences_near_duplicate(cleaned, opening_sentence):
             row["rejection_reason"] = "duplicate_with_opening"
+        elif re.match(r"^(?:A representative scope marker is\b|Scope-wise,)", cleaned, re.I):
+            row["rejection_reason"] = "proof_scope_marker_not_opening_support"
+        elif re.search(r"\d|\$|%", cleaned):
+            row["rejection_reason"] = "metric_proof_not_opening_support"
         elif cover_sentence_is_generic(cleaned, company_name, role_title, job_description):
             row["rejection_reason"] = "generic_opening_support"
         elif re.match(r"^I bring approximately\b", cleaned, re.I):
@@ -1056,23 +1107,35 @@ def concise_bridge_sentence(
     )
 
 
+def cover_close_focus(signals: CoverLetterSignals) -> str:
+    signal_text = " ".join(
+        [
+            signals.role_core_function,
+            signals.jd_pain_area,
+            " ".join(signals.jd_skill_terms[:6]),
+        ]
+    ).lower()
+    if re.search(r"\bretention\b", signal_text) and re.search(r"\blifecycle\b", signal_text):
+        return "retention and lifecycle data"
+    if re.search(r"\btesting\b", signal_text) and re.search(r"\b(reporting|workflow|quality)\b", signal_text):
+        return "reporting, testing, and workflow priorities"
+    if re.search(r"\b(implementation|deployment|onboarding|scoping|integration)\b", signal_text):
+        return "implementation and delivery priorities"
+    if re.search(r"\b(reporting|analytics|data|excel|assessment|workflow|quality)\b", signal_text):
+        return "reporting and workflow priorities"
+    if re.search(r"\b(change|adoption|training|enablement|workshop)\b", signal_text):
+        return "change and adoption priorities"
+    if re.search(r"\b(discovery|buyer|solution|demo|pre-sales|presales)\b", signal_text):
+        return "solution discovery priorities"
+    if re.search(r"\b(customer|retention|renewal|account|escalation)\b", signal_text):
+        return "customer delivery priorities"
+    return "the role's delivery priorities"
+
+
 def concise_close_sentence(company_name: str, role_title: str, signals: CoverLetterSignals) -> str:
-    pain_area = safe_connector_fragment(signals.jd_pain_area, max_words=12) or "highest-priority work"
-    role_fragment = safe_role_title(role_title)
-    specialty_term = next(
-        (
-            safe_connector_fragment(term, max_words=5)
-            for term in signals.jd_skill_terms
-            if safe_connector_fragment(term, max_words=5)
-        ),
-        "",
-    )
-    if specialty_term and specialty_term.lower() not in pain_area.lower():
-        return safe_sentence(
-            f"I would welcome the chance to discuss how I could support {company_possessive(company_name)} {specialty_term} work around {pain_area}."
-        )
+    focus = cover_close_focus(signals)
     return safe_sentence(
-        f"I would welcome the chance to discuss how I could support {company_possessive(company_name)} {pain_area} in the {role_fragment} role."
+        f"I would welcome the chance to discuss how my systems, reporting, and stakeholder background could support {company_possessive(company_name)} {focus}."
     )
 
 
@@ -3150,10 +3213,11 @@ def proof_first_gap_sentence(brief: question_prep.PositioningBrief) -> str:
 
 def friendly_direct_proof_phrase(brief: question_prep.PositioningBrief) -> str:
     phrase_map = {
-        "Change Adoption and Enablement": "role-based enablement and adoption work",
+        "Change Adoption and Enablement": "stakeholder enablement and adoption follow-through",
         "Client-Side ERP Ownership and Finance Partnership": "client-side ERP ownership with finance partnership",
         "Implementation Delivery": "implementation delivery",
         "Project-Based ERP Delivery": "project-based ERP delivery",
+        "Consulting and Structured Problem Solving": "structured consulting delivery",
         "Customer and Revenue Outcomes": "customer outcome ownership",
         "Customer Success and Retention": "customer success and retention work",
         "Analytics and Decision Support": "analytics and decision-support work",
@@ -5063,12 +5127,15 @@ def cover_sentences_near_duplicate(left: str, right: str, *, same_paragraph: boo
         return False
     overlap = len(left_tokens & right_tokens)
     similarity = overlap / max(len(left_tokens | right_tokens), 1)
+    left_metrics = set(re.findall(r"\$?\d[\d,.]*\+?%?", left))
+    right_metrics = set(re.findall(r"\$?\d[\d,.]*\+?%?", right))
+    same_metric_anchor = bool(left_metrics & right_metrics and overlap >= 2)
     return similarity >= 0.72 or (
         not same_paragraph
         and overlap >= 4
         and bool(re.search(r"\d|%|\$", left))
         and bool(re.search(r"\d|%|\$", right))
-    )
+    ) or same_metric_anchor
 
 
 def cover_sentence_is_thesis(sentence: str) -> bool:
@@ -6132,6 +6199,14 @@ def validate_cover_letter_specificity(
     return problems
 
 
+def cover_internal_token_issues(text: str) -> list[str]:
+    issues: list[str] = []
+    for pattern, label in COVER_INTERNAL_TOKEN_PATTERNS:
+        if re.search(pattern, text, re.I):
+            issues.append(f"cover letter contains internal lane/template language: {label}")
+    return issues
+
+
 def cover_letter_body_paragraphs(text: str) -> list[str]:
     lines = [line.strip() for line in text.splitlines() if line.strip()]
     start = next((index for index, line in enumerate(lines) if line.lower().startswith("dear ")), -1)
@@ -6580,6 +6655,7 @@ def cover_letter_text_issues(
         issues.append("cover letter contains generic operating-outcomes thesis sentence")
     if build_resume.contains_ai_writing_word(text):
         issues.append("cover letter contains banned AI-writing words")
+    issues.extend(cover_internal_token_issues(text))
     issues.extend(cover_letter_shape_issues(text, mode=mode))
     active_job_description = job_description if job_description is not None else read_text(JOB_DESCRIPTION)
     try:

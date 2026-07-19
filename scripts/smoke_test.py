@@ -8136,7 +8136,7 @@ def test_standard_cover_mode(build_cover_letter: object) -> None:
         "standard cover draft should include at least one quantified credential",
     )
     assert_true(
-        "executive workshops" in letter_text.lower() or "80+ international client engagements" in letter_text,
+        any(marker in letter_text for marker in ("executive workshops", "80+ international client engagements", "150+ users")),
         f"standard cover draft should materially reflect the application-question response bank; got {letter_text}",
     )
     assert_true(
@@ -8217,6 +8217,119 @@ def test_force_bridge_standard_cover_stays_natural(build_cover_letter: object) -
         isinstance(specificity_warnings, list),
         "force_bridge standard covers should still return normal specificity warnings instead of failing shape or prose checks",
     )
+
+
+def test_f5_randstad_cover_draft_stays_specific_and_natural(build_cover_letter: object, build_resume: object) -> None:
+    resume_text = build_resume.docx_visible_text_from_path(
+        build_resume.choose_resume(RANDSTAD_QUALIFICATIONS_JOB_DESCRIPTION)
+    )
+    draft = build_cover_letter.compose_cover_letter_draft(
+        "Randstad",
+        "Solutions Delivery Consultant",
+        RANDSTAD_QUALIFICATIONS_JOB_DESCRIPTION,
+        resume_text,
+        mode=build_cover_letter.STANDARD_COVER_MODE,
+    )
+    letter_text = "\n".join(
+        [
+            f"Christian Estrada | Atlanta, GA | christianj1914@gmail.com | {build_cover_letter.build_resume.LINKEDIN_URL}",
+            draft.salutation,
+            *draft.body_paragraphs,
+            "Thank you for your time and consideration,",
+            "Christian Estrada",
+        ]
+    )
+    assert_true(
+        len(draft.body_paragraphs) == 3,
+        f"Randstad standard cover should keep the concise three-paragraph shape; got {draft.body_paragraphs!r}",
+    )
+    assert_true(
+        "Randstad" in draft.body_paragraphs[0]
+        and "Solutions Delivery Consultant" in draft.body_paragraphs[0]
+        and "work centers on" in draft.body_paragraphs[0],
+        f"Randstad opener should name the company, role, and concrete work context; got {draft.body_paragraphs[0]!r}",
+    )
+    assert_true(
+        not re.search(r"\d|\$|%", draft.body_paragraphs[0]),
+        f"Randstad opener should save quantified proof for the proof paragraph; got {draft.body_paragraphs[0]!r}",
+    )
+    assert_true(
+        build_cover_letter.paragraph_has_fast_proof(draft.body_paragraphs[1]),
+        f"Randstad proof paragraph should carry a concrete metric or scope marker; got {draft.body_paragraphs[1]!r}",
+    )
+    assert_true(
+        "systems, reporting, and stakeholder background" in draft.body_paragraphs[-1]
+        and "reporting and workflow priorities" in draft.body_paragraphs[-1],
+        f"Randstad close should use a natural work-focus ask instead of raw JD terms; got {draft.body_paragraphs[-1]!r}",
+    )
+    assert_true(
+        all(
+            banned not in letter_text.lower()
+            for banned in (
+                "kind of analytics operations environment",
+                "randstad is the kind of",
+                "assessment quality and excel",
+                "role-based enablement and adoption work",
+            )
+        ),
+        f"Randstad cover should not leak internal/template phrasing; got {letter_text}",
+    )
+    assert_true(
+        not build_cover_letter.cover_letter_text_issues(
+            letter_text,
+            RANDSTAD_QUALIFICATIONS_JOB_DESCRIPTION,
+            "Randstad",
+            mode=build_cover_letter.STANDARD_COVER_MODE,
+        ),
+        f"Randstad cover text should pass hard cover validation; got {letter_text}",
+    )
+
+
+def test_cover_letter_validator_blocks_internal_lane_language(build_cover_letter: object) -> None:
+    proof_phrase = build_cover_letter.friendly_direct_proof_phrase(
+        SimpleNamespace(
+            strongest_direct_proofs=(
+                "Change Adoption and Enablement",
+                "Consulting and Structured Problem Solving",
+            )
+        )
+    )
+    assert_true(
+        "stakeholder enablement and adoption follow-through" in proof_phrase
+        and "structured consulting delivery" in proof_phrase,
+        f"friendly_direct_proof_phrase() should convert internal proof labels to natural cover language; got {proof_phrase!r}",
+    )
+    assert_true(
+        "role-based enablement and adoption work" not in proof_phrase
+        and "consulting and structured problem solving" not in proof_phrase,
+        f"friendly_direct_proof_phrase() should not leak internal proof labels; got {proof_phrase!r}",
+    )
+
+    bad_text = "\n".join(
+        [
+            f"Christian Estrada | Atlanta, GA | christianj1914@gmail.com | {build_cover_letter.build_resume.LINKEDIN_URL}",
+            "Dear Smoke Test Systems Team,",
+            "I am interested in the Implementation Consultant role at Smoke Test Systems because it matches presales_solution work.",
+            "Built 200+ reporting tools across five-site operations where leaders needed clearer workflow visibility and decision support.",
+            "I would welcome the chance to discuss how I could support Smoke Test Systems through role-based enablement and adoption work.",
+            "Thank you for your time and consideration,",
+            "Christian Estrada",
+        ]
+    )
+    try:
+        build_cover_letter.validate_cover_letter_text(
+            bad_text,
+            DUMMY_JOB_DESCRIPTION,
+            "Smoke Test Systems",
+            mode=build_cover_letter.STANDARD_COVER_MODE,
+        )
+    except SystemExit as error:
+        assert_true(
+            "internal lane/template language" in str(error),
+            f"validate_cover_letter_text() should explain internal cover language; got {error}",
+        )
+        return
+    raise SmokeFailure("validate_cover_letter_text() should fail when cover prose leaks internal lane/template language")
 
 
 def test_cover_letter_validator_blocks_generic_experience_summary(build_cover_letter: object) -> None:
@@ -12591,6 +12704,8 @@ def main() -> None:
             ("Procore bridge-hard standard outputs", lambda: test_procore_bridge_hard_standard_outputs(build_resume, build_cover_letter, build_interview_cheat_sheet)),
             ("standard cover mode", lambda: test_standard_cover_mode(build_cover_letter)),
             ("force-bridge standard cover stays natural", lambda: test_force_bridge_standard_cover_stays_natural(build_cover_letter)),
+            ("F5 Randstad cover draft stays natural", lambda: test_f5_randstad_cover_draft_stays_specific_and_natural(build_cover_letter, build_resume)),
+            ("cover letter validator blocks internal lane language", lambda: test_cover_letter_validator_blocks_internal_lane_language(build_cover_letter)),
             ("cover letter validator blocks generic experience summary", lambda: test_cover_letter_validator_blocks_generic_experience_summary(build_cover_letter)),
             ("cover letter QC rejects lowercase proof paragraph", lambda: test_cover_letter_qc_rejects_lowercase_proof_paragraph(build_cover_letter)),
             ("cover opening names company specific role context", lambda: test_cover_opening_names_company_specific_role_context(build_cover_letter)),
