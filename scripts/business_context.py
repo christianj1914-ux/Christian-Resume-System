@@ -52,6 +52,10 @@ EDUCATION_ASSESSMENT_CONTEXT_RE = (
     r"instructional|psychometric|psychometrics|constructed-response|technology-enhanced items?|"
     r"educational measurement|measurement and learning|learning systems?|learner-facing)\b"
 )
+STAFFING_WORKFORCE_CONTEXT_RE = (
+    r"\b(?:staffing|workforce|msp|rpo|sow programs?|client delivery teams?|"
+    r"hiring objectives?|payroll|talent solutions?|managed service provider|recruitment process outsourcing)\b"
+)
 
 
 BUSINESS_FACT_PATTERNS: tuple[str, ...] = (
@@ -102,6 +106,7 @@ def extract_business_context(source_text: str) -> BusinessContext:
     business_model = detect_first(
         lowered,
         (
+            ("staffing / workforce solutions", STAFFING_WORKFORCE_CONTEXT_RE),
             ("education / assessment systems", EDUCATION_ASSESSMENT_CONTEXT_RE),
             ("supply chain / logistics operations", r"\bsupply chain|logistics|transportation|warehousing|warehouse|trade compliance|order management\b"),
             ("cloud software / SaaS", r"\bsaas\b|software-as-a-service|cloud-based|cloud based"),
@@ -114,6 +119,7 @@ def extract_business_context(source_text: str) -> BusinessContext:
     product_or_service = detect_first(
         lowered,
         (
+            ("workforce delivery programs", STAFFING_WORKFORCE_CONTEXT_RE),
             ("assessment and learning systems", r"\b(?:assessment and learning|measurement and learning|learning systems?|assessment systems?|assessment item development|instructional guidance)\b"),
             ("educational content and learning materials", r"\b(?:educational content|learning materials|practice items?|instructional supports?)\b"),
             ("cloud-based platform", r"cloud-based platform|cloud based platform|proprietary cloud-based platform"),
@@ -143,6 +149,7 @@ def extract_business_context(source_text: str) -> BusinessContext:
     industry = detect_first(
         lowered,
         (
+            ("staffing / workforce solutions", STAFFING_WORKFORCE_CONTEXT_RE),
             ("education / assessment", EDUCATION_ASSESSMENT_CONTEXT_RE),
             ("supply chain / logistics", r"\bsupply chain|logistics|transportation|warehousing|warehouse|trade compliance|order management\b"),
             ("healthcare", HEALTHCARE_CONTEXT_RE),

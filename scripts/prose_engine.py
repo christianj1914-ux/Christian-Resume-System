@@ -38,6 +38,69 @@ class RepairOutcome:
 
 
 _SPOKEN_REPAIR_ISSUES: ContextVar[list[str] | None] = ContextVar("spoken_repair_issues", default=None)
+_LEADING_SENTENCE_REWRITES = {
+    "accelerating": "Accelerated",
+    "accelerated": "Accelerated",
+    "aligning": "Aligned",
+    "aligned": "Aligned",
+    "building": "Built",
+    "built": "Built",
+    "combining": "Combined",
+    "combined": "Combined",
+    "coordinating": "Coordinated",
+    "coordinated": "Coordinated",
+    "delivering": "Delivered",
+    "delivered": "Delivered",
+    "designing": "Designed",
+    "designed": "Designed",
+    "driving": "Drove",
+    "drove": "Drove",
+    "facilitating": "Facilitated",
+    "facilitated": "Facilitated",
+    "giving": "Gave",
+    "gave": "Gave",
+    "guiding": "Guided",
+    "guided": "Guided",
+    "helping": "Helped",
+    "helped": "Helped",
+    "including": "Included",
+    "included": "Included",
+    "improving": "Improved",
+    "improved": "Improved",
+    "launching": "Launched",
+    "launched": "Launched",
+    "leading": "Led",
+    "led": "Led",
+    "managing": "Managed",
+    "managed": "Managed",
+    "moving": "Moved",
+    "moved": "Moved",
+    "owning": "Owned",
+    "owned": "Owned",
+    "protecting": "Protected",
+    "protected": "Protected",
+    "providing": "Provided",
+    "provided": "Provided",
+    "resolving": "Resolved",
+    "resolved": "Resolved",
+    "running": "Ran",
+    "ran": "Ran",
+    "scaling": "Scaled",
+    "scaled": "Scaled",
+    "structuring": "Structured",
+    "structured": "Structured",
+    "supporting": "Supported",
+    "supported": "Supported",
+    "translating": "Translated",
+    "translated": "Translated",
+    "turning": "Turned",
+    "turned": "Turned",
+    "using": "Used",
+    "used": "Used",
+}
+_CLAUSE_STARTER_PATTERN = r"(?:%s)\b" % "|".join(
+    re.escape(token) for token in sorted(_LEADING_SENTENCE_REWRITES, key=len, reverse=True)
+)
 
 
 @contextmanager
@@ -126,6 +189,23 @@ def _slot_template_overlap(text: str) -> bool:
     return False
 
 
+def _bullet_overloaded(text: str) -> bool:
+    cleaned = normalize_spaces(text)
+    words = re.findall(r"\b[\w+.#'-]+\b", cleaned)
+    if len(words) > 40:
+        return True
+    if cleaned.count(",") >= 5:
+        return True
+    return bool(
+        re.search(
+            r"\b\w+(?:ing|ed),\s+\w+(?:ing|ed),\s+\w+(?:ing|ed),\s+"
+            r"\w+(?:ing|ed),?\s+and\s+\w+(?:ing|ed)\b",
+            cleaned,
+            re.I,
+        )
+    )
+
+
 VALIDATION_RULES: tuple[ValidationRule, ...] = (
     ValidationRule("PROSE_AND_CHAIN", frozenset({"summary", "cover", "spoken"}), "fail", _conjunction_overload, "Sentence contains an overloaded conjunction chain."),
     ValidationRule("PROSE_NESTED_LIST", frozenset({"summary", "cover", "spoken"}), "fail", _nested_list, "Sentence embeds one long list inside another."),
@@ -133,6 +213,7 @@ VALIDATION_RULES: tuple[ValidationRule, ...] = (
     ValidationRule("PROSE_REPEATED_OPENING", frozenset({"summary", "cover", "spoken"}), "warn", _repeated_opening_verbs, "Three or more sentences repeat the same opening word."),
     ValidationRule("PROSE_REPEATED_PROOF", frozenset({"summary", "cover", "spoken"}), "warn", _repeated_proof_clauses, "Two sentences repeat the same proof-clause opening."),
     ValidationRule("PROSE_SLOT_OVERLAP", frozenset({"summary", "cover", "spoken"}), "warn", _slot_template_overlap, "Two assembled sentences substantially overlap."),
+    ValidationRule("BULLET_OVERLOADED", frozenset({"bullet"}), "warn", _bullet_overloaded, "Resume bullet is dense enough to need human review before submission."),
     ValidationRule("SPOKEN_RESUME_MANDATE", frozenset({"spoken"}), "fail", _resume_mandate_in_spoken, "Spoken answer contains a resume-only compliance sentence."),
     ValidationRule("SPOKEN_SENTENCE_LENGTH", frozenset({"spoken"}), "fail", _long_spoken_sentence, "Spoken answer contains a sentence longer than 28 words."),
 )
@@ -150,6 +231,59 @@ def validate_text(text: str, artifact: str) -> tuple[ValidationFinding, ...]:
 
 def _split_semicolons(text: str) -> str:
     return re.sub(r";\s+(?=[A-Za-z])", ". ", text)
+
+
+def _finish_sentence(fragment: str) -> str:
+    text = normalize_spaces(fragment).strip()
+    if not text:
+        return ""
+    if text[-1] not in ".!?":
+        text = text.rstrip(" ,;:.") + "."
+    return text
+
+
+def _promote_clause_to_sentence(fragment: str) -> str:
+    text = normalize_spaces(fragment).strip(" ,;:.")
+    text = re.sub(r"^(?:and|while)\s+", "", text, flags=re.I)
+    match = re.match(rf"(?P<lemma>{_CLAUSE_STARTER_PATTERN})(?P<rest>\b.*)?", text, re.I)
+    if match:
+        replacement = _LEADING_SENTENCE_REWRITES.get(match.group("lemma").lower())
+        rest = match.group("rest") or ""
+        text = f"{replacement}{rest}" if replacement else text
+    elif text and text[0].isalpha():
+        text = text[0].upper() + text[1:]
+    return _finish_sentence(text)
+
+
+def _nested_list_split_point(item: str) -> re.Match[str] | None:
+    patterns = (
+        rf",\s+and\s+(?={_CLAUSE_STARTER_PATTERN})",
+        rf"\s+while\s+(?={_CLAUSE_STARTER_PATTERN})",
+        rf",\s+(?={_CLAUSE_STARTER_PATTERN})",
+    )
+    for pattern in patterns:
+        matches = list(re.finditer(pattern, item, re.I))
+        if matches:
+            return matches[-1]
+    return None
+
+
+def _repair_nested_list(text: str) -> str:
+    repaired: list[str] = []
+    for item in _sentences(text):
+        current = item
+        while _nested_list(current):
+            split = _nested_list_split_point(current)
+            if split is None:
+                break
+            first = _finish_sentence(current[: split.start()].rstrip(" ,;:."))
+            second = _promote_clause_to_sentence(current[split.end() :])
+            if not first or not second:
+                break
+            repaired.append(first)
+            current = second
+        repaired.append(current)
+    return normalize_spaces(" ".join(part for part in repaired if part))
 
 
 def _repair_and_chain(text: str) -> str:
@@ -252,7 +386,10 @@ def repair_text(text: str, artifact: str, *, max_passes: int = 3) -> RepairOutco
             current = _split_long_spoken(current)
             repairs.append("SPOKEN_SENTENCE_SPLIT")
         if "PROSE_AND_CHAIN" in hard or "PROSE_NESTED_LIST" in hard:
-            current = _repair_and_chain(_split_semicolons(current))
+            current = _split_semicolons(current)
+            if "PROSE_NESTED_LIST" in hard:
+                current = _repair_nested_list(current)
+            current = _repair_and_chain(current)
             repairs.append("CLAUSE_DENSITY_REPAIR")
         if current == before:
             break

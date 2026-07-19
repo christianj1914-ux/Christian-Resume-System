@@ -9,6 +9,7 @@ import io
 import json
 import os
 import re
+import subprocess
 import sys
 import xml.etree.ElementTree as ET
 import zipfile
@@ -181,6 +182,17 @@ Company: Sourcewell
 Job Title: Senior Solution Consultant
 
 The Senior Solution Consultant role supports innovation work from Discovery to Pilot to Prove to Scale. The role develops project plans, coordinates cross-functional teams, contributes research and solution ideas, shapes business cases, works with CRM systems such as Salesforce, uses Excel and Power BI reporting, and requires public speaking or sales presentation experience.
+"""
+
+RANDSTAD_QUALIFICATIONS_JOB_DESCRIPTION = """
+Company: Randstad
+Job Title: Solutions Delivery Consultant
+
+What makes a great fit here
+Project Expertise: Demonstrated experience managing large, complex accounts or projects,
+as well as describing and documenting project or client requirements.
+Lead delivery optimization, reporting, program data analysis, customer-facing process
+improvement, and stakeholder communication across delivery teams.
 """
 
 OLLIE_RESUME_TEXT = """
@@ -1931,6 +1943,71 @@ def test_proof_first_opening_avoids_list_density_with_comma_heavy_core_problem(
         all("stacked list" not in failure.lower() for failure in report["failures"] + report["warnings"]),
         f"prose_quality_report() should not flag the proof-first opening as a stacked list after truncation; got {report}",
     )
+
+
+def test_randstad_cover_hook_rejects_raw_jd_fragment(build_cover_letter: object) -> None:
+    snapshot_path = (
+        PROJECT_ROOT
+        / "scratch"
+        / "jd_library"
+        / "20260718_215753_Randstad_Solutions_Delivery_Consultant_5d0064cc"
+        / "job_description.txt"
+    )
+    job_description = (
+        snapshot_path.read_text(encoding="utf-8")
+        if snapshot_path.exists()
+        else RANDSTAD_QUALIFICATIONS_JOB_DESCRIPTION
+    )
+    hook = build_cover_letter.jd_concrete_hook(job_description)
+    opener = f"Randstad is hiring a Solutions Delivery Consultant to {hook}."
+    work_center = f"The work centers on the need to {hook}."
+
+    assert_true(
+        re.match(r"^[a-z]+(?:\s|$)", hook)
+        and hook.split()[0]
+        in {
+            "align",
+            "analyze",
+            "build",
+            "capture",
+            "clarify",
+            "collaborate",
+            "configure",
+            "coordinate",
+            "create",
+            "deliver",
+            "develop",
+            "diagnose",
+            "document",
+            "drive",
+            "gather",
+            "guide",
+            "implement",
+            "improve",
+            "lead",
+            "manage",
+            "map",
+            "move",
+            "own",
+            "prioritize",
+            "resolve",
+            "scope",
+            "support",
+            "translate",
+            "troubleshoot",
+            "turn",
+            "validate",
+        },
+        f"jd_concrete_hook() should return a lowercase verb-led clause; got {hook!r}",
+    )
+    for sentence in (opener, work_center):
+        assert_true(
+            sentence.count(".") == 1
+            and "project Expertise" not in sentence
+            and "Demonstrated experience" not in sentence
+            and "  " not in sentence,
+            f"Randstad cover hook use site should stay a single clean sentence; got {sentence!r}",
+        )
 
 
 def test_cover_letter_prose_check_text_strips_header_before_quality_eval(
@@ -5144,16 +5221,37 @@ def test_spoken_sentence_split_preserves_leading_word_characters() -> None:
     )
 
 
-def test_nonconverged_spoken_repairs_are_collected() -> None:
+def _assert_nested_list_repair_case(text: str, label: str, *, artifact: str = "summary") -> None:
+    import prose_engine
+
+    assert_true(
+        prose_engine._nested_list(text),
+        f"{label} should start as a nested-list detector case; got {text!r}",
+    )
+    outcome = prose_engine.repair_text(text, artifact)
+    assert_true(
+        outcome.converged,
+        f"{label} should converge through prose repair; got {outcome}",
+    )
+    assert_true(
+        outcome.text != text,
+        f"{label} should be rewritten when the nested-list detector fires; got {outcome.text!r}",
+    )
+    assert_true(
+        not any(f.rule_id == "PROSE_NESTED_LIST" and f.severity == "fail" for f in outcome.findings),
+        f"{label} should clear PROSE_NESTED_LIST after repair; got {outcome.findings}",
+    )
+
+
+def test_spoken_nested_list_repairs_converge_without_collected_issues() -> None:
     import prose_engine
 
     nested = "I managed scope, risk, testing, deployment, including data, security, or training and support."
     with prose_engine.collect_spoken_repair_issues() as issues:
         outcome = prose_engine.spoken_register(nested)
     assert_true(
-        not outcome.converged
-        and any("PROSE_NESTED_LIST" in issue for issue in issues),
-        f"Non-converged spoken repairs must expose rule IDs to the document DRAFT gate; got {outcome}, {issues}",
+        outcome.converged and not issues,
+        f"Nested spoken repairs should converge cleanly without adding DRAFT-gate issues; got {outcome}, {issues}",
     )
 
 
@@ -7070,6 +7168,67 @@ def test_standard_qualifications_recent_interviewer_scripts_resolve_factual_scri
     )
 
 
+def test_randstad_qualifications_answers_avoid_descriptor_subject_and_bare_numbers(
+    build_standard_qualifications_statement: object,
+    build_resume: object,
+) -> None:
+    job_description = RANDSTAD_QUALIFICATIONS_JOB_DESCRIPTION
+    resume_text = build_resume.docx_visible_text_from_path(build_resume.IMPLEMENTATION_RESUME)
+    question_prep = build_standard_qualifications_statement.question_prep
+    why_answer = question_prep.build_why_company_answer(
+        question_prep.build_positioning_brief(
+            job_description,
+            resume_text,
+            notes_text="I am drawn to practical delivery work where better data helps teams act.",
+        )
+    )
+    prompts = (
+        "Why did your most recent role end in November?",
+        "Are there specific product offerings you specialized in?",
+        "Who is the target audience and what is the business value?",
+        "Talk me through an implementation you owned; when does your team come into the cycle?",
+        "Would you say the implementation flow is similar - discovery, configuration, data migration, training, go-live?",
+    )
+    items = tuple(
+        question_prep.InterviewQuestionPrep(
+            prompt=prompt,
+            answer_angle=question_prep.interviewer_question_answer_angle(prompt, job_description, resume_text),
+            category=question_prep.interviewer_question_category(prompt),
+        )
+        for prompt in prompts
+    )
+    scripts = build_standard_qualifications_statement.build_recent_interviewer_scripts(
+        items,
+        job_description,
+        resume_text,
+        "Randstad",
+        "Solutions Delivery Consultant",
+    )
+    answers = [why_answer, *(script for _prompt, script in scripts)]
+    normalized_answers = [re.sub(r"[^a-z0-9]+", " ", answer.lower()).strip() for answer in answers[1:]]
+
+    assert_true(
+        len(scripts) == len(prompts) and all(script.strip() for _prompt, script in scripts),
+        f"Randstad recent-interviewer scripts should all resolve to non-empty answers; got {scripts!r}",
+    )
+    assert_true(
+        len(normalized_answers) == len(set(normalized_answers)),
+        f"Randstad recent-interviewer scripts should be distinct for distinct prompts; got {scripts!r}",
+    )
+    assert_true(
+        all(not re.search(r"\bA concrete proof point is\s+(?:\$[\d,]+(?:\+)?|\d+\+?%?)\.", answer) for answer in answers),
+        f"Randstad qualifications answers should never leave a bare-number proof slot; got {answers!r}",
+    )
+    assert_true(
+        all("questions turning into decisions people can use" not in answer for answer in answers),
+        f"Randstad qualifications answers should use noun-form lane phrasing; got {answers!r}",
+    )
+    assert_true(
+        "analytics, reporting, and workflow improvement" in why_answer,
+        f"Randstad why-company answer should use the grammatical noun-form analytics descriptor; got {why_answer!r}",
+    )
+
+
 def test_startup_interview_false_positive_guard(build_interview_cheat_sheet: object) -> None:
     false_positive = build_interview_cheat_sheet.startup_interview_lines(
         "Fortune 500 company seeking someone comfortable in a fast-paced environment.",
@@ -8937,6 +9096,156 @@ def test_aptean_customer_success_role_summary_passes_prose_check(build_resume: o
         )
 
 
+def test_prose_nested_list_regressions_converge() -> None:
+    cases = (
+        (
+            "packet East West decision sentence",
+            "Turned operations, finance, and engineering tradeoffs into clearer system decisions by owning "
+            "Aptean Intuitive administration across a five-site manufacturing environment, supporting 150+ users, "
+            "and guiding Epicor Kinetic transition planning and launch readiness.",
+        ),
+        (
+            "legacy East West launch summary",
+            "Scaled a five-site manufacturing environment for 150+ users by owning Aptean Intuitive "
+            "administration, launching system setup for a new warehouse and Amazon Robotics program, and "
+            "supporting Epicor Kinetic transition planning, training, testing, and final launch readiness.",
+        ),
+        (
+            "legacy East West solution architecture summary",
+            "Owned Aptean Intuitive administration, solution architecture, and deployment strategy for a five-site "
+            "manufacturing operation supporting 150+ users, translating ambiguous operations, finance, and "
+            "engineering needs into structured ERP recommendations while supporting Epicor Kinetic migration "
+            "planning, transition readiness, training, and final launch readiness.",
+        ),
+        (
+            "legacy Aptean docs and training summary",
+            "Ran full ERP lifecycle delivery for 80+ manufacturing clients across international client "
+            "environments, turning ambiguous requirements into working configurations, cleaner data migrations, "
+            "and steadier post-go-live adoption while supporting customer-facing delivery through workflow "
+            "documentation and customer training, structured issue ownership, and stakeholder communication.",
+        ),
+    )
+    for label, text in cases:
+        _assert_nested_list_repair_case(text, label)
+
+
+def test_resume_degree_master_line_is_canonical(build_resume: object) -> None:
+    for source_path in (
+        build_resume.IMPLEMENTATION_RESUME,
+        build_resume.PRESALES_CSM_RESUME,
+        build_resume.EDFIX_RESUME,
+    ):
+        lines = build_resume.docx_visible_text_from_path(source_path).splitlines()
+        master_lines = [line for line in lines if "Master of Science" in line]
+        assert_true(
+            any(line.startswith("Master of Science, Information Systems") for line in master_lines),
+            f"{source_path.name} should include the canonical Master's line; got {master_lines!r}",
+        )
+        assert_true(
+            not any(line.startswith("Master of Science, Management Information Systems") for line in master_lines),
+            f"{source_path.name} should not use the stale Master's/MIS title; got {master_lines!r}",
+        )
+        assert_true(
+            any("Bachelor of Business Administration, Management Information Systems" in line for line in lines),
+            f"{source_path.name} should still allow the legitimate BBA/MIS line.",
+        )
+
+
+def test_bullet_overload_validation_warns_without_repairing() -> None:
+    import prose_engine
+
+    cases = (
+        (
+            "East West migration",
+            "Reduced migration and audit risk from Aptean Intuitive to Epicor Kinetic by extracting, "
+            "querying, transforming, updating, and validating system/database records through ETL tools, "
+            "SQL checks, user access reviews, control validation, cutover coordination, and least-privilege "
+            "permission tightening after incident backtracking tied avoidable work-order losses to access mistakes.",
+        ),
+        (
+            "CreatorIQ ETL",
+            "Built CreatorIQ-ready reporting and ETL support by extracting, reconciling, transforming, "
+            "validating, and documenting campaign, CRM, and customer data across source exports, SQL checks, "
+            "stakeholder reviews, and operational handoff notes.",
+        ),
+    )
+    for label, bullet in cases:
+        findings = prose_engine.validate_text(bullet, "bullet")
+        outcome = prose_engine.repair_text(bullet, "bullet")
+        assert_true(
+            any(finding.rule_id == "BULLET_OVERLOADED" and finding.severity == "warn" for finding in findings),
+            f"{label} bullet should be flagged for human review; got {findings!r}",
+        )
+        assert_true(
+            outcome.converged and outcome.text == bullet and not outcome.repairs,
+            f"{label} bullet warning should not trigger auto-repair; got {outcome!r}",
+        )
+
+
+def test_resume_notes_report_overloaded_bullets_without_failing(build_resume: object) -> None:
+    document_xml = """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+  <w:body>
+    <w:p><w:r><w:t>Professional Experience</w:t></w:r></w:p>
+    <w:p><w:r><w:t>ERP Systems Manager | January 2020 - Present</w:t></w:r></w:p>
+    <w:p><w:r><w:t>East West Manufacturing | Atlanta, GA</w:t></w:r></w:p>
+    <w:p><w:pPr><w:numPr><w:ilvl w:val="0"/><w:numId w:val="1"/></w:numPr></w:pPr><w:r><w:t>Reduced migration and audit risk from Aptean Intuitive to Epicor Kinetic by extracting, querying, transforming, updating, and validating system/database records through ETL tools, SQL checks, user access reviews, control validation, cutover coordination, and least-privilege permission tightening.</w:t></w:r></w:p>
+    <w:p><w:r><w:t>Education</w:t></w:r></w:p>
+  </w:body>
+</w:document>
+"""
+    with TemporaryDirectory(prefix="bullet_notes_") as temp_name:
+        path = Path(temp_name) / "document.xml"
+        path.write_text(document_xml, encoding="utf-8")
+        notes = build_resume.bullet_prose_audit_notes(path)
+    assert_true(
+        len(notes) == 1 and "BULLET_OVERLOADED" in notes[0] and "Reduced migration and audit risk" in notes[0],
+        f"Resume Notes should report overloaded bullets as warnings without a build status failure; got {notes!r}",
+    )
+
+
+def test_rewritten_high_risk_role_summaries_avoid_nested_list_detector(build_resume: object) -> None:
+    import prose_engine
+
+    cases = (
+        (
+            "East West launch summary",
+            build_resume.optimized_role_summary(
+                "East West Manufacturing",
+                "placeholder",
+                "warehouse launch readiness Amazon Robotics migration planning testing go-live execution",
+                SimpleNamespace(proof_anchor="launch"),
+            ),
+        ),
+        (
+            "East West solution architecture summary",
+            build_resume.optimized_role_summary(
+                "East West Manufacturing",
+                "placeholder",
+                "solution architecture enterprise solutions technical uncertainty deployment strategies",
+            ),
+        ),
+        (
+            "Aptean docs and training summary",
+            build_resume.optimized_role_summary(
+                "Aptean",
+                "placeholder",
+                "workflow documentation customer training implementation consultant",
+            ),
+        ),
+    )
+    for label, summary in cases:
+        assert_true(
+            not prose_engine._nested_list(summary),
+            f"{label} should avoid the nested-list detector before repair; got {summary!r}",
+        )
+        repair = prose_engine.repair_text(summary, "summary")
+        assert_true(
+            repair.converged,
+            f"{label} should still converge through prose repair; got {repair.findings}",
+        )
+
+
 def test_proof_first_close_uses_discuss_and_has_no_first_person_switch(build_cover_letter: object) -> None:
     import question_prep
 
@@ -9064,6 +9373,10 @@ def test_contains_search_term_handles_simple_plural_forms(build_resume: object) 
         build_resume.contains_search_term("Customer businesses expanded after go-live.", "business"),
         "contains_search_term() should treat -es plural business forms as hits",
     )
+    assert_true(
+        build_resume.contains_search_term("Monitoring and reporting improved delivery visibility.", "monitoring reporting"),
+        "contains_search_term() should credit natural coordinated phrases for extracted keyword bigrams",
+    )
 
 
 def test_business_context_module(business_context: object) -> None:
@@ -9144,6 +9457,19 @@ def test_business_context_module(business_context: object) -> None:
     assert_true(
         clorox_like_context.customer_type != "schools, educators, and learners",
         f"business context should not classify consumer/manufacturing postings as an education audience just because the brand statement mentions schools; got {clorox_like_context.customer_type!r}",
+    )
+    randstad_like_text = (
+        "Company: Randstad\n"
+        "Job Title: Solutions Delivery Consultant\n"
+        "This role supports MSP, RPO, and SOW programs by partnering with client delivery teams, "
+        "monitoring reporting, payroll, compliance education, hiring objectives, and customer satisfaction targets."
+    )
+    randstad_like_context = business_context.extract_business_context(randstad_like_text)
+    assert_true(
+        randstad_like_context.industry == "staffing / workforce solutions"
+        and randstad_like_context.business_model == "staffing / workforce solutions",
+        "business context should classify MSP/RPO/SOW staffing delivery roles as workforce solutions, "
+        f"not education/assessment; got {randstad_like_context}",
     )
 
 
@@ -11050,6 +11376,81 @@ def test_bootstrap_copy_filter_preserves_render_checks_module() -> None:
     )
 
 
+def test_bootstrap_configure_fresh_pycache_avoids_stale_timestamp_bytecode() -> None:
+    helper_env = os.environ.copy()
+    helper_env.pop("PYTHONPYCACHEPREFIX", None)
+    helper_env["PYTHONPATH"] = (
+        str(SCRIPT_DIR)
+        if not helper_env.get("PYTHONPATH")
+        else str(SCRIPT_DIR) + os.pathsep + helper_env["PYTHONPATH"]
+    )
+    baseline_env = helper_env.copy()
+
+    with TemporaryDirectory(prefix="pycache_runtime_") as temp_name:
+        root = Path(temp_name)
+        module_path = root / "demo.py"
+        module_path.write_text("VALUE = 1\n", encoding="utf-8")
+
+        subprocess.run(
+            [sys.executable, "-c", "import demo"],
+            cwd=root,
+            env=baseline_env,
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        original_mtime = module_path.stat().st_mtime
+        module_path.write_text("VALUE = 2\n", encoding="utf-8")
+        os.utime(module_path, (original_mtime, original_mtime))
+
+        stale_result = subprocess.run(
+            [sys.executable, "-c", "import demo; print(demo.VALUE)"],
+            cwd=root,
+            env=baseline_env,
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        helper_code = (
+            "import json, os, sys; "
+            "from pathlib import Path; "
+            "import _bootstrap; "
+            "root = Path(sys.argv[1]); "
+            "_bootstrap.configure_fresh_pycache(root); "
+            "sys.path.insert(0, str(root)); "
+            "import demo; "
+            "print(json.dumps({'value': demo.VALUE, 'pycache_prefix': sys.pycache_prefix, 'env_prefix': os.environ.get('PYTHONPYCACHEPREFIX')}))"
+        )
+        fresh_result = subprocess.run(
+            [sys.executable, "-c", helper_code, str(root)],
+            cwd=root,
+            env=helper_env,
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        pycache_root = (root / "scratch" / "pycache").resolve()
+
+    payload = json.loads(fresh_result.stdout.strip())
+
+    assert_true(
+        stale_result.stdout.strip() == "1",
+        f"Baseline import should demonstrate stale timestamp bytecode reuse before bootstrap hardening; got {stale_result.stdout!r}",
+    )
+    assert_true(
+        payload["value"] == 2,
+        f"configure_fresh_pycache() should force the interpreter to see the edited source; got {payload}",
+    )
+    assert_true(
+        payload["env_prefix"] == payload["pycache_prefix"],
+        f"configure_fresh_pycache() should keep env and runtime pycache prefixes aligned; got {payload}",
+    )
+    assert_true(
+        Path(payload["pycache_prefix"]).resolve().is_relative_to(pycache_root),
+        f"configure_fresh_pycache() should write under scratch/pycache for the provided project root; got {payload}",
+    )
+
+
 def test_bootstrap_gitignore_ignores_generated_bundle_manifest() -> None:
     import bootstrap_canonical_repo
 
@@ -11583,6 +11984,7 @@ def main() -> None:
         ("cover sentence score prioritizes signal density over length", None),
         ("mission or context sentence survives job label header", None),
         ("word budget trims opening filler before dense proof", None),
+        ("Randstad cover hook rejects raw JD fragment", None),
         ("cover selection prefers lane direct and keeps ERP for ERP JD", None),
         ("cover opening quality flags article and circularity", None),
         ("consulting story summary avoids list density overload", None),
@@ -11656,7 +12058,10 @@ def main() -> None:
         ("federal detailed guide wrapper keeps stage params optional", None),
         ("story adaptation and pre-interview routine helpers", None),
         ("spoken sentence split preserves leading characters", None),
-        ("nonconverged spoken repairs are collected", None),
+        ("spoken nested-list repairs converge without collected issues", None),
+        ("resume degree Master line is canonical", None),
+        ("bullet overload validation warns without repairing", None),
+        ("resume notes report overloaded bullets without failing", None),
         ("interview filters filler and claim first answers", None),
         ("candidate facing outputs avoid raw core problem", None),
         ("first 90 day plan reuses shared stage source", None),
@@ -11696,6 +12101,7 @@ def main() -> None:
             ("qualifications builder uses question prep response engine", None),
             ("qualifications builder removes local shadow answer helpers", None),
             ("standard qualifications answers known questions", None),
+            ("Randstad qualifications avoid descriptor subject and bare numbers", None),
             ("startup interview false-positive guard", None),
             ("application checklist debrief lookup", None),
             ("general advice active job helpers", None),
@@ -11792,6 +12198,7 @@ def main() -> None:
         ("workflow hard-fails docx validation issues", None),
         ("cleanup render checks only targets timestamped nested folders", None),
         ("bootstrap copy filter preserves render checks module", None),
+        ("bootstrap configure fresh pycache avoids stale timestamp bytecode", None),
         ("bootstrap gitignore ignores generated bundle manifest", None),
         ("bootstrap copy filter excludes retired onedrive markers", None),
         ("bootstrap writes live canonical launchers", None),
@@ -11911,6 +12318,7 @@ def main() -> None:
             ("packet excerpt resolution and contract", lambda: test_packet_excerpt_resolution_and_contract(build_claude_review_packet)),
             ("cleanup render checks only targets timestamped nested folders", test_cleanup_render_checks_limits_nested_cleanup_to_timestamped_folders),
             ("bootstrap copy filter preserves render checks module", test_bootstrap_copy_filter_preserves_render_checks_module),
+            ("bootstrap configure fresh pycache avoids stale timestamp bytecode", test_bootstrap_configure_fresh_pycache_avoids_stale_timestamp_bytecode),
             ("bootstrap gitignore ignores generated bundle manifest", test_bootstrap_gitignore_ignores_generated_bundle_manifest),
             ("bootstrap copy filter excludes retired onedrive markers", test_bootstrap_copy_filter_excludes_retired_onedrive_markers),
             ("bootstrap writes live canonical launchers", test_bootstrap_writes_live_canonical_launchers),
@@ -11941,6 +12349,11 @@ def main() -> None:
             ("summary repair preserves three sentences for high-signal variants", lambda: test_summary_repair_preserves_three_sentences_for_high_signal_variants(build_resume)),
             ("substitution safety respects paragraph boundaries", test_substitution_safety_respects_paragraph_boundaries),
             ("Aptean customer success role summary passes prose check", lambda: test_aptean_customer_success_role_summary_passes_prose_check(build_resume)),
+            ("PROSE_NESTED_LIST regressions converge", test_prose_nested_list_regressions_converge),
+            ("resume degree Master line is canonical", lambda: test_resume_degree_master_line_is_canonical(build_resume)),
+            ("bullet overload validation warns without repairing", test_bullet_overload_validation_warns_without_repairing),
+            ("resume notes report overloaded bullets without failing", lambda: test_resume_notes_report_overloaded_bullets_without_failing(build_resume)),
+            ("rewritten high-risk role summaries avoid nested-list detector", lambda: test_rewritten_high_risk_role_summaries_avoid_nested_list_detector(build_resume)),
             ("proof first close uses discuss and has no first person switch", lambda: test_proof_first_close_uses_discuss_and_has_no_first_person_switch(build_cover_letter)),
             ("enterprise CS JD extracts CS terms not analytics fallback", lambda: test_cs_enterprise_jd_extracts_cs_terms_not_analytics_fallback(build_cover_letter)),
             ("alignment score distinguishes lane and domain fit", lambda: test_alignment_score_report_distinguishes_lane_and_domain_fit(build_resume)),
@@ -11948,6 +12361,7 @@ def main() -> None:
             ("cover sentence score prioritizes signal density over length", lambda: test_cover_sentence_score_prioritizes_signal_density_over_length(build_cover_letter)),
             ("mission or context sentence survives job label header", lambda: test_mission_or_context_sentence_survives_job_label_header(build_cover_letter)),
             ("word budget trims opening filler before dense proof", lambda: test_word_budget_trims_opening_filler_before_dense_proof(build_cover_letter)),
+            ("Randstad cover hook rejects raw JD fragment", lambda: test_randstad_cover_hook_rejects_raw_jd_fragment(build_cover_letter)),
             ("cover selection prefers lane direct and keeps ERP for ERP JD", lambda: test_cover_selection_prefers_lane_direct_and_keeps_erp_for_erp_jd(build_cover_letter, build_resume)),
             ("cover opening quality flags article and circularity", lambda: test_cover_opening_quality_flags_article_and_circularity(build_cover_letter)),
             ("consulting story summary avoids list density overload", lambda: test_consulting_story_summary_avoids_list_density_overload(writing_eval, build_resume)),
@@ -12037,7 +12451,7 @@ def main() -> None:
             ("federal detailed guide wrapper keeps stage params optional", lambda: test_federal_detailed_guide_wrapper_keeps_stage_params_optional(build_federal_detailed_interview_guide, build_detailed_interview_guide, federal_supporting_docs)),
             ("story adaptation and pre-interview routine helpers", lambda: test_story_adaptation_and_pre_interview_routine_helpers(build_resume, build_interview_cheat_sheet)),
             ("spoken sentence split preserves leading characters", test_spoken_sentence_split_preserves_leading_word_characters),
-            ("nonconverged spoken repairs are collected", test_nonconverged_spoken_repairs_are_collected),
+            ("spoken nested-list repairs converge without collected issues", test_spoken_nested_list_repairs_converge_without_collected_issues),
             ("interview filters filler and claim first answers", lambda: test_interview_filters_filler_and_claim_first_answers(build_resume, build_interview_cheat_sheet, interview_context)),
             ("candidate facing outputs avoid raw core problem", lambda: test_candidate_facing_outputs_avoid_raw_core_problem(build_resume, build_cover_letter, build_interview_cheat_sheet)),
             ("first 90 day plan reuses shared stage source", lambda: test_first_90_day_plan_reuses_shared_stage_source(build_resume, build_interview_cheat_sheet)),
@@ -12095,6 +12509,7 @@ def main() -> None:
             ("standard application question parser", lambda: test_standard_application_question_parser_dedupes_blocks(build_standard_qualifications_statement)),
             ("standard qualifications render recent interview prep", lambda: test_standard_qualifications_document_renders_recent_interview_questions(build_standard_qualifications_statement)),
             ("standard qualifications recent interviewer scripts resolve factual script", lambda: test_standard_qualifications_recent_interviewer_scripts_resolve_factual_script(build_standard_qualifications_statement)),
+            ("Randstad qualifications avoid descriptor subject and bare numbers", lambda: test_randstad_qualifications_answers_avoid_descriptor_subject_and_bare_numbers(build_standard_qualifications_statement, build_resume)),
             ("startup interview false-positive guard", lambda: test_startup_interview_false_positive_guard(build_interview_cheat_sheet)),
             ("application checklist debrief lookup", lambda: test_application_checklist_debrief_lookup(build_application_checklist)),
             ("application checklist prefers tailored analysis resume", lambda: test_application_checklist_analysis_resume_prefers_tailored_output(build_application_checklist)),

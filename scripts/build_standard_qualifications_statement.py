@@ -278,6 +278,14 @@ def build_recent_interviewer_scripts(
                 "falling back to coaching angle"
             )
             spoken = item.answer_angle
+        normalized_spoken = re.sub(r"[^a-z0-9]+", " ", spoken.lower()).strip()
+        for prior_prompt, prior_spoken in scripts:
+            prior_normalized = re.sub(r"[^a-z0-9]+", " ", prior_spoken.lower()).strip()
+            if normalized_spoken and normalized_spoken == prior_normalized and item.prompt != prior_prompt:
+                raise ValueError(
+                    "Recent interviewer question scripts must be distinct for distinct prompts: "
+                    f"{prior_prompt!r} and {item.prompt!r}"
+                )
         scripts.append((item.prompt, spoken))
     return tuple(scripts)
 

@@ -3172,6 +3172,60 @@ def friendly_direct_proof_phrase(brief: question_prep.PositioningBrief) -> str:
     return f"{phrases[0]} and {phrases[1]}"
 
 
+_HOOK_VERB_RE = re.compile(
+    r"^(?:align|analyze|build|capture|clarify|collaborate|configure|coordinate|create|deliver|"
+    r"develop|diagnose|document|drive|gather|guide|implement|improve|lead|manage|map|move|"
+    r"own|prioritize|resolve|scope|support|translate|troubleshoot|turn|validate)\b",
+    re.I,
+)
+
+
+def _clean_jd_hook_candidate(line: str) -> str:
+    cleaned = re.sub(
+        r"^(?:you(?:'ll| will)?|the role(?: will)?|this role(?: will)?|responsibilities include|"
+        r"responsible for|candidate will|you are expected to)\s+",
+        "",
+        line,
+        flags=re.I,
+    )
+    cleaned = re.sub(r"\s+", " ", cleaned).strip(" -:;.")
+    cleaned = re.split(r"(?<=[.!?])\s+", cleaned, maxsplit=1)[0]
+    cleaned = re.split(r"\s+(?:qualifications?|requirements?|expertise|experience)\s*:\s*", cleaned, maxsplit=1, flags=re.I)[0]
+    cleaned = re.sub(r"\s*,\s*(?:as well as|including but not limited to)\b.*$", "", cleaned, flags=re.I)
+    cleaned = cleaned.rstrip(" ,;:.")
+    if not cleaned:
+        return ""
+    words = cleaned.split()
+    if len(words) > 22:
+        cleaned = " ".join(words[:22]).rstrip(" ,;:.")
+    if not _HOOK_VERB_RE.match(cleaned):
+        return ""
+    return cleaned[:1].lower() + cleaned[1:]
+
+
+def _fallback_jd_hook(job_description: str) -> str:
+    phrase = build_resume.natural_problem_phrase(build_resume.job_problem_profile(job_description))
+    phrase = re.sub(r"^(?:the need to|need to)\s+", "", phrase, flags=re.I).strip(" .")
+    gerund_rewrites = {
+        "aligning": "align",
+        "building": "build",
+        "delivering": "deliver",
+        "driving": "drive",
+        "guiding": "guide",
+        "keeping": "keep",
+        "moving": "move",
+        "supporting": "support",
+        "translating": "translate",
+        "turning": "turn",
+    }
+    match = re.match(r"^([a-z]+ing)\b(.*)", phrase, re.I)
+    if match and match.group(1).lower() in gerund_rewrites:
+        phrase = gerund_rewrites[match.group(1).lower()] + match.group(2)
+    if _HOOK_VERB_RE.match(phrase):
+        return phrase[:1].lower() + phrase[1:]
+    return f"support {phrase}"
+
+
 def jd_concrete_hook(job_description: str) -> str:
     candidates: list[tuple[int, int, str]] = []
     for raw_line in build_resume.role_requirement_text(job_description).splitlines():
@@ -3189,6 +3243,9 @@ def jd_concrete_hook(job_description: str) -> str:
                 "most successful team members",
                 "came out the other side",
                 "what makes a great fit",
+                "lead by example",
+                "behaviors and standards",
+                "courage and accountability",
             )
         ):
             continue
@@ -3205,21 +3262,15 @@ def jd_concrete_hook(job_description: str) -> str:
             score += 3
         if score <= 0:
             continue
-        cleaned = re.sub(
-            r"^(?:you(?:'ll| will)?|the role(?: will)?|this role(?: will)?|responsibilities include|responsible for)\s+",
-            "",
-            line,
-            flags=re.I,
-        ).rstrip(".")
+        cleaned = _clean_jd_hook_candidate(line)
         if cleaned:
             candidates.append((score, -len(cleaned), cleaned))
     if candidates:
-        best = sorted(candidates, reverse=True)[0][2]
-        return best[:1].lower() + best[1:] if best and best[0].isupper() else best
+        return sorted(candidates, reverse=True)[0][2]
     lowered_job = job_description.lower()
     if "acumatica" in lowered_job and any(term in lowered_job for term in ("construction", "engineering")):
         return "configure Acumatica for engineering and construction clients and keep implementations on track through go-live"
-    return build_resume.natural_problem_phrase(build_resume.job_problem_profile(job_description))
+    return _fallback_jd_hook(job_description)
 
 
 def proof_first_opening_paragraph(
@@ -3242,7 +3293,7 @@ def proof_first_opening_paragraph(
         )
     else:
         role_sentence = ensure_sentence(
-            f"The work centers on {concrete_hook}."
+            f"The work centers on the need to {concrete_hook}."
         )
     motivation_sentence = ensure_sentence(brief.personal_reason_to_care)
     if re.search(r"\b(mission|nonprofit|values)\b", brief.employer_type, re.I):

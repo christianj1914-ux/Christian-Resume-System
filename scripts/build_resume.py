@@ -1766,8 +1766,15 @@ def contains_search_term(text: str, term: str) -> bool:
     elif not last.endswith("s") and not last.endswith("ing"):
         variants.append(" ".join(parts[:-1] + [last + "s"]))
 
+    def variant_pattern(variant: str) -> str:
+        tokens = variant.split()
+        if len(tokens) <= 1:
+            return re.escape(variant)
+        connector = r"(?:\s+(?:and|&)\s+|\s+)"
+        return connector.join(re.escape(token) for token in tokens)
+
     return any(
-        re.search(rf"(?<![a-z0-9]){re.escape(variant)}(?![a-z0-9])", normalized) is not None
+        re.search(rf"(?<![a-z0-9]){variant_pattern(variant)}(?![a-z0-9])", normalized) is not None
         for variant in dict.fromkeys(variants)
     )
 
@@ -3708,6 +3715,22 @@ def write_resume_audit_notes(
     return output_path
 
 
+def bullet_prose_audit_notes(document_xml: Path) -> list[str]:
+    notes: list[str] = []
+    for bullet in experience_bullet_texts(document_xml):
+        findings = [
+            finding
+            for finding in prose_engine.validate_text(bullet, "bullet")
+            if finding.severity == "warn" and finding.rule_id.startswith("BULLET_")
+        ]
+        if not findings:
+            continue
+        excerpt = bullet if len(bullet) <= 150 else bullet[:147].rstrip() + "..."
+        rule_ids = ", ".join(dict.fromkeys(finding.rule_id for finding in findings))
+        notes.append(f"Bullet prose warning ({rule_ids}): {excerpt}")
+    return notes
+
+
 def alignment_score_report(job_description: str, resume_text: str) -> dict[str, object]:
     """Score pre-build alignment across keywords, lane fit, domain specialty, business context, and outcome density."""
     profile = job_problem_profile(job_description, resume_text)
@@ -4397,6 +4420,7 @@ def build_resume() -> BuildResult:
                 auto_closed_keywords=auto_closed_keywords,
                 alignment_grade=str(alignment_report.get("grade", "")).strip() or None,
             )
+            audit_notes = [*audit_notes, *bullet_prose_audit_notes(document_xml)]
             audit_document_text = visible_text(document_xml)
             readiness = resume_readiness_report(
                 job_description,

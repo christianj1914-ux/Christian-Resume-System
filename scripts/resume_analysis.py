@@ -68,8 +68,15 @@ def contains_search_term(text: str, term: str) -> bool:
         else:
             variants.append(" ".join(parts[:-1] + [last + "s"]))
 
+    def variant_pattern(variant: str) -> str:
+        tokens = variant.split()
+        if len(tokens) <= 1:
+            return re.escape(variant)
+        connector = r"(?:\s+(?:and|&)\s+|\s+)"
+        return connector.join(re.escape(token) for token in tokens)
+
     return any(
-        re.search(rf"(?<![a-z0-9]){re.escape(variant)}(?![a-z0-9])", normalized) is not None
+        re.search(rf"(?<![a-z0-9]){variant_pattern(variant)}(?![a-z0-9])", normalized) is not None
         for variant in dict.fromkeys(variants)
     )
 

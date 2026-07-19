@@ -21,12 +21,18 @@ from pathlib import Path
 import re
 import xml.etree.ElementTree as ET
 
-sys.path.insert(0, str(Path(__file__).resolve().parent / "scripts"))
+PROJECT_ROOT = Path(__file__).resolve().parent
+SCRIPTS_DIR = PROJECT_ROOT / "scripts"
+if str(SCRIPTS_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPTS_DIR))
+import _bootstrap  # type: ignore[import-not-found]
+
+_bootstrap.ensure_script_path()
+_bootstrap.configure_fresh_pycache(PROJECT_ROOT)
 import render_checks  # type: ignore[import-not-found]
 import business_context  # type: ignore[import-not-found]
 
 
-PROJECT_ROOT = Path(__file__).resolve().parent
 JOB_DESCRIPTION = PROJECT_ROOT / "jobs" / "job_description.txt"
 APPLICATIONS_CSV = PROJECT_ROOT / "scratch" / "applications.csv"
 DEBRIEF_HISTORY = PROJECT_ROOT / "jobs" / "debrief_history.txt"

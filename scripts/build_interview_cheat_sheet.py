@@ -634,15 +634,7 @@ def natural_voice_closing(profile: build_resume.JobProblemProfile, role_title: s
 
 
 def candidate_problem_phrase(profile: build_resume.JobProblemProfile) -> str:
-    return {
-        "implementation_delivery": "complex ERP implementations moving cleanly from discovery through go-live and adoption",
-        "customer_success": "customer adoption, risk, and renewal work staying steady under pressure",
-        "presales_solution": "buyer questions turning into workable solution decisions",
-        "analytics_operations": "systems, data, and workflow questions turning into decisions people can use",
-        "change_enablement": "systems and process changes turning into real adoption",
-        "process_improvement": "operational friction turning into measurable process improvement",
-        "corporate_strategy": "complex cross-functional questions turning into decisions people can act on",
-    }.get(profile.primary_lane, build_resume.natural_problem_phrase(profile))
+    return question_prep.candidate_problem_phrase(profile)
 
 
 def concise_pitch_pain_area(text: str) -> str:

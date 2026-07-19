@@ -1292,6 +1292,11 @@ def summary_fit_close_sentence(
 
     if profile.primary_lane == "analytics_operations":
         if emphasis.proof_anchor == "ai":
+            if jd_mentions(job_description, "client delivery teams", "client delivery"):
+                return (
+                    "Best used where reporting depth, AI-assisted workflow experimentation, SQL validation, and operating "
+                    "judgment improve decision speed for customer-facing and client delivery teams."
+                )
             return (
                 "Best used where reporting depth, AI-assisted workflow experimentation, SQL validation, and operating "
                 "judgment all influence decision speed and trust."
@@ -1834,6 +1839,11 @@ def summary_positioning_sentence(
         )
     if profile.primary_lane == "analytics_operations":
         if emphasis.proof_anchor == "ai":
+            if jd_mentions(job_description, "data-driven"):
+                return (
+                    "Enterprise systems and analytics consultant with 10+ years turning AI-assisted workflow questions, "
+                    "service-channel data, and data-driven reporting gaps into clearer decisions teams can trust."
+                )
             return (
                 "Enterprise systems and analytics consultant with 10+ years turning AI-assisted workflow questions, "
                 "service-channel data, and reporting gaps into clearer decisions teams can trust."
@@ -2321,8 +2331,8 @@ def optimized_role_summary(
         if emphasis.proof_anchor == "launch":
             body = (
                 "Scaled a five-site manufacturing environment for 150+ users by owning Aptean Intuitive "
-                "administration, launching system setup for a new warehouse and Amazon Robotics program, and "
-                "supporting Epicor Kinetic transition planning, training, testing, and final launch readiness."
+                "administration and launching system setup for a new warehouse and Amazon Robotics program. "
+                "Supported Epicor Kinetic transition planning through training, testing, and final launch readiness."
             )
         elif emphasis.proof_anchor == "dashboards":
             body = (
@@ -2339,8 +2349,8 @@ def optimized_role_summary(
         elif emphasis.proof_anchor == "decision":
             body = (
                 "Turned operations, finance, and engineering tradeoffs into clearer system decisions by owning "
-                "Aptean Intuitive administration across a five-site manufacturing environment, supporting 150+ users, "
-                "and guiding Epicor Kinetic transition planning and launch readiness."
+                "Aptean Intuitive administration across a five-site manufacturing environment. Supported 150+ users "
+                "while guiding Epicor Kinetic transition planning and launch readiness."
             )
         if documentation_phrase or training_phrase != "role-based training":
             support_terms = [term for term in (documentation_phrase, training_phrase) if term]
@@ -2370,9 +2380,9 @@ def optimized_role_summary(
         elif jd_mentions(job_description, "solution architecture", "enterprise solutions", "technical uncertainty", "deployment strategies"):
             body = (
                 "Owned Aptean Intuitive administration, solution architecture, and deployment strategy for a five-site "
-                "manufacturing operation supporting 150+ users, translating ambiguous operations, finance, and "
-                "engineering needs into structured ERP recommendations while supporting Epicor Kinetic migration "
-                "planning, transition readiness, training, and final launch readiness."
+                "manufacturing operation supporting 150+ users. Translated ambiguous operations, finance, and "
+                "engineering needs into structured ERP recommendations. Supported Epicor Kinetic migration planning, "
+                "transition readiness, training, and final launch readiness."
             )
     elif company_key == normalize_compare(COMPANY_APTEAN):
         body = (
@@ -2418,7 +2428,7 @@ def optimized_role_summary(
             body = (
                 "Ran full ERP lifecycle delivery for 80+ manufacturing clients across the Americas, Europe, and Asia, "
                 "turning ambiguous requirements into working configurations, cleaner data migrations, and steadier "
-                f"post-go-live adoption while supporting {delivery_phrase} through {support_phrase}."
+                f"post-go-live adoption. Supported {delivery_phrase} through {support_phrase}."
             )
         if profile.primary_lane == "customer_success":
             body = (
@@ -2633,7 +2643,7 @@ def apply_consulting_story_rewrites(document_xml: Path, job_description: str) ->
         ),
         (
             ("go-live readiness", "sandbox testing", "user acceptance validation", "Epicor Kinetic"),
-            "Owned go-live readiness across concurrent program tracks, including sandbox testing, user acceptance validation, and targeted Epicor Kinetic training as the migration reached launch readiness, protecting production stability during live operations",
+            "Owned Epicor Kinetic readiness across concurrent program tracks through scope alignment, sandbox testing, user acceptance validation, and targeted training that protected production stability during launch",
         ),
         (
             ("Aptean Intuitive to Epicor Kinetic", "extracting", "validating", "ETL tools", "SQL-based validation"),
@@ -2649,7 +2659,7 @@ def apply_consulting_story_rewrites(document_xml: Path, job_description: str) ->
         ),
         (
             ("international manufacturing clients", "unclear requirements", "usable go-live outcomes", "post-go-live support"),
-            "Guided international manufacturing clients from unclear requirements to analysis-backed implementation outcomes by leading discovery, requirements definition, configuration, data migration, testing, customer training, and post-go-live support in enterprise software",
+            "Guided international manufacturing clients from unclear requirements to usable go-live outcomes through discovery, configuration, testing, customer training, and post-go-live support in enterprise software",
         ),
         (
             ("scope, risk, and escalation", "at-risk accounts", "one million dollars", "annual revenue"),
@@ -2854,7 +2864,7 @@ def apply_value_story_rewrites(document_xml: Path, job_description: str) -> int:
         ),
         (
             ("implementation readiness", "sandbox testing", "user acceptance validation", "Epicor Kinetic training"),
-            "Protected migration stability by leading implementation readiness, scope alignment, sandbox testing, UAT validation, targeted Epicor Kinetic training, and administrative release tasks across concurrent program tracks",
+            "Protected migration stability during Epicor Kinetic readiness by leading scope alignment, sandbox testing, UAT validation, and targeted training across concurrent program tracks",
         ),
         (
             ("Aptean Intuitive to Epicor Kinetic", "extracting", "updating ERP", "SQL-based validation", "cutover coordination"),
@@ -3343,6 +3353,8 @@ def skill_relevance_score(
         score += 5
     if re.search(rf"\b{re.escape(normalized)}\b", jd_lower):
         score += 3
+    if "excel" in normalized and re.search(r"\bexcel\b", jd_lower):
+        score += 6
     if normalized in IMPORTANT_SHORT_ATS_TERMS:
         score += 4
     if emphasis:

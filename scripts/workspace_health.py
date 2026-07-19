@@ -14,8 +14,13 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
+
+import _bootstrap
+
+_bootstrap.ensure_script_path()
+_bootstrap.configure_fresh_pycache(PROJECT_ROOT)
+
 SCRIPTS_DIR = PROJECT_ROOT / "scripts"
 QUESTION_PREP_PATH = SCRIPTS_DIR / "question_prep.py"
 BACKUPS_DIR = PROJECT_ROOT / "backups"

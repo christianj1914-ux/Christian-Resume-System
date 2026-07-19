@@ -13,10 +13,16 @@ from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+
+import _bootstrap
+
+_bootstrap.ensure_script_path()
+_bootstrap.configure_fresh_pycache(PROJECT_ROOT)
+
 from config.paths import FEDERAL_ESSAY_SOURCE, FEDERAL_JOB_DESCRIPTION, FEDERAL_RESUME_SOURCE, OUTPUT_DIR, PYTHON_EXECUTABLE, SCRIPTS_DIR
 import workspace_health
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
 PYTHON = PYTHON_EXECUTABLE
 LOG_DIR = PROJECT_ROOT / "scratch" / "run_logs"
 

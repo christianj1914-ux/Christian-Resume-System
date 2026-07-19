@@ -11,6 +11,7 @@ from pathlib import Path
 import build_resume
 import evidence_engine
 import interview_context
+import prose_engine
 from build_skills_database import ResumeSnapshot, SOURCE_FILES, parse_resume
 from config.language_rules import MANDATORY_REORG_SENTENCE
 from config.paths import APPLICATION_QUESTIONS, COMPANY_RESEARCH, FEDERAL_RESUME_SOURCE, GLOBAL_NOTES, INTERVIEW_NOTES, JOBS_DIR
@@ -119,6 +120,30 @@ DATE_RANGE_PATTERN = re.compile(
     r"\b(?:january|february|march|april|may|june|july|august|september|october|november|december)\b.*\b20\d{2}\b",
     re.I,
 )
+LANE_PROBLEM_PHRASES = {
+    "implementation_delivery": "complex ERP implementations moving cleanly from discovery through go-live and adoption",
+    "customer_success": "customer adoption, risk, and renewal work staying steady under pressure",
+    "presales_solution": "buyer questions turning into workable solution decisions",
+    "analytics_operations": "systems, data, and workflow questions turning into decisions people can use",
+    "change_enablement": "systems and process changes turning into real adoption",
+    "process_improvement": "operational friction turning into measurable process improvement",
+    "corporate_strategy": "complex cross-functional questions turning into decisions people can act on",
+}
+LANE_PROBLEM_NOUN_PHRASES = {
+    "implementation_delivery": "ERP implementation, go-live, and adoption work",
+    "customer_success": "customer adoption, risk, and renewal work",
+    "presales_solution": "buyer questions and solution decisions",
+    "analytics_operations": "analytics, reporting, and workflow improvement",
+    "change_enablement": "system change and user adoption",
+    "process_improvement": "operational friction and process improvement",
+    "corporate_strategy": "cross-functional operating decisions",
+}
+BARE_NUMERIC_ANCHOR_RE = re.compile(r"^(?:\$[\d,]+(?:\+)?(?:\s*[MK])?|\d+\+?%?)$", re.I)
+ANCHOR_NOUN_RE = re.compile(
+    r"\b(?:accounts?|clients?|client engagements?|dashboards?|engagements?|implementations?|"
+    r"offices|qbrs?|reports?|reporting tools?|sites?|users?|workshops?|reduction|improvement|recovery)\b",
+    re.I,
+)
 
 
 def normalize_spaces(text: str) -> str:
@@ -216,7 +241,7 @@ def looks_like_resume_noise_line(text: str) -> bool:
 def compact_anchor_phrase(text: str) -> str:
     patterns = (
         r"\$[\d,]+(?:\+)?(?:\s*[MK])?(?:\s+in\s+[^.,;]{0,45})?",
-        r"\b\d+\+?\s+(?:\w+\s+){0,2}(?:client engagements?|clients?|users?|sites?|dashboards?|kpi tools|reporting tools|workshops?|qbrs?|offices|accounts?)\b[^.,;]{0,45}",
+        r"\b\d+\+?\s+(?:[\w-]+\s+){0,3}(?:client engagements?|clients?|users?|sites?|dashboards?|kpi tools|reporting tools|workshops?|qbrs?|offices|accounts?)\b[^.,;]{0,45}",
         r"\b\d+%\s+(?:reduction|lower|fewer|improvement|improved|cut)\b[^.,;]{0,55}",
     )
     candidates: list[str] = []
@@ -224,6 +249,7 @@ def compact_anchor_phrase(text: str) -> str:
         for match in re.finditer(pattern, text, re.I):
             snippet = normalize_spaces(match.group(0)).rstrip(".,;:")
             snippet = re.sub(r"\s+by\s+\w+ing$", "", snippet, flags=re.I)
+            snippet = re.sub(r"\s+(?:that|which|while|by)\b.*$", "", snippet, flags=re.I)
             end_pos = match.end()
             if end_pos < len(text) and text[end_pos : end_pos + 1].isalpha():
                 snippet = re.sub(r"\s+\S+$", "", snippet)
@@ -233,6 +259,30 @@ def compact_anchor_phrase(text: str) -> str:
     if candidates:
         return max(candidates, key=lambda item: (proof_anchor_value(item), len(item)))
     return normalize_spaces(text).rstrip(".,;:")
+
+
+def noun_bearing_proof_anchor(brief: PositioningBrief) -> str:
+    candidates = [normalize_spaces(anchor).rstrip(".,;:") for anchor in brief.top_proof_anchors]
+    for anchor in list(candidates):
+        if BARE_NUMERIC_ANCHOR_RE.fullmatch(anchor):
+            candidates.extend(
+                compact_anchor_phrase(sentence)
+                for sentence in brief.selected_proof_sentences
+                if re.search(re.escape(anchor), sentence, re.I)
+            )
+            candidates.extend(
+                compact_anchor_phrase(sentence[match.start() :])
+                for sentence in brief.selected_proof_sentences
+                for match in [re.search(re.escape(anchor), sentence, re.I)]
+                if match
+            )
+    for candidate in candidates:
+        number_match = ANCHOR_NUMBER_PATTERN.search(candidate)
+        if number_match and number_match.start() > 0:
+            candidate = candidate[number_match.start() :]
+        if candidate and not BARE_NUMERIC_ANCHOR_RE.fullmatch(candidate) and ANCHOR_NOUN_RE.search(candidate):
+            return candidate
+    return ""
 
 
 def sentence_word_count(text: str) -> int:
@@ -338,27 +388,19 @@ def lane_default_human_motivation_sentence(profile: build_resume.JobProblemProfi
 
 
 def candidate_problem_phrase(profile: build_resume.JobProblemProfile) -> str:
-    return {
-        "implementation_delivery": "complex ERP implementations moving cleanly from discovery through go-live and adoption",
-        "customer_success": "customer adoption, risk, and renewal work staying steady under pressure",
-        "presales_solution": "buyer questions turning into workable solution decisions",
-        "analytics_operations": "systems, data, and workflow questions turning into decisions people can use",
-        "change_enablement": "systems and process changes turning into real adoption",
-        "process_improvement": "operational friction turning into measurable process improvement",
-        "corporate_strategy": "complex cross-functional questions turning into decisions people can act on",
-    }.get(profile.primary_lane, build_resume.natural_problem_phrase(profile))
+    return LANE_PROBLEM_PHRASES.get(profile.primary_lane, build_resume.natural_problem_phrase(profile))
+
+
+def candidate_problem_noun_phrase(profile: build_resume.JobProblemProfile) -> str:
+    return LANE_PROBLEM_NOUN_PHRASES.get(profile.primary_lane, build_resume.natural_problem_phrase(profile))
 
 
 def candidate_problem_phrase_from_brief(brief: PositioningBrief) -> str:
-    return {
-        "implementation_delivery": "complex ERP implementations moving cleanly from discovery through go-live and adoption",
-        "customer_success": "customer adoption, risk, and renewal work staying steady under pressure",
-        "presales_solution": "buyer questions turning into workable solution decisions",
-        "analytics_operations": "systems, data, and workflow questions turning into decisions people can use",
-        "change_enablement": "systems and process changes turning into real adoption",
-        "process_improvement": "operational friction turning into measurable process improvement",
-        "corporate_strategy": "complex cross-functional questions turning into decisions people can act on",
-    }.get(brief.primary_lane, brief.role_problem_phrase)
+    return LANE_PROBLEM_PHRASES.get(brief.primary_lane, brief.role_problem_phrase)
+
+
+def candidate_problem_noun_phrase_from_brief(brief: PositioningBrief) -> str:
+    return LANE_PROBLEM_NOUN_PHRASES.get(brief.primary_lane, brief.role_core_problem or brief.role_problem_phrase)
 
 
 def active_positioning_context(job_description: str) -> tuple[str, str]:
@@ -1058,7 +1100,7 @@ def select_within_word_budget(
 
 
 def build_why_company_answer(brief: PositioningBrief) -> str:
-    problem_phrase = candidate_problem_phrase_from_brief(brief)
+    problem_noun_phrase = candidate_problem_noun_phrase_from_brief(brief)
     if "mission" in brief.employer_type.lower() or "nonprofit" in brief.employer_type.lower():
         if brief.personal_reason_source != "notes":
             raise ValueError(
@@ -1069,7 +1111,7 @@ def build_why_company_answer(brief: PositioningBrief) -> str:
         ensure_company_named(brief.company_specific_fact, brief.company_name)
         or ensure_company_named(brief.mission_or_context, brief.company_name)
         or clean_answer_sentence(
-            f"{brief.company_name} is the kind of {brief.employer_type} environment where {problem_phrase} directly shapes the work."
+            f"{brief.company_name} is the kind of {brief.employer_type} environment where {problem_noun_phrase} directly shape the work."
         )
     )
     motivation = clean_answer_sentence(
@@ -1083,13 +1125,10 @@ def build_why_company_answer(brief: PositioningBrief) -> str:
         else f"The background already includes {brief.strongest_direct_proofs[0]} in complex operating environments."
     )
     role_fit = clean_answer_sentence(
-        f"What stands out about the {brief.role_title} role is the need to solve {problem_phrase}, and that is already visible in the background."
+        f"What stands out about the {brief.role_title} role is the need to solve problems in {problem_noun_phrase}, and that is already visible in the background."
     )
-    anchor = clean_answer_sentence(
-        f"A concrete proof point is {brief.top_proof_anchors[0]}."
-        if brief.top_proof_anchors
-        else f"A concrete proof point is {brief.strongest_direct_proofs[0]}."
-    )
+    anchor_phrase = noun_bearing_proof_anchor(brief)
+    anchor = clean_answer_sentence(f"A concrete proof point is {anchor_phrase}.") if anchor_phrase else ""
     lead = " ".join(part for part in (opening, motivation) if part)
     optional_parts = select_within_word_budget(lead, [role_fit, proof_sentence, anchor], "", 165)
     answer = " ".join(part for part in (lead, *optional_parts) if part)
@@ -1099,7 +1138,7 @@ def build_why_company_answer(brief: PositioningBrief) -> str:
 
 
 def build_relevant_experience_answer(brief: PositioningBrief) -> str:
-    problem_phrase = candidate_problem_phrase_from_brief(brief)
+    problem_phrase = candidate_problem_noun_phrase_from_brief(brief)
     lead_theme = brief.strongest_direct_proofs[0]
     sentence_one = clean_answer_sentence(
         f"{lead_theme.capitalize()} has been a consistent part of the work, especially in environments where {problem_phrase} mattered."
@@ -1174,7 +1213,7 @@ def build_relevant_experience_answer(brief: PositioningBrief) -> str:
 
 
 def build_unique_qualifications_answer(brief: PositioningBrief) -> str:
-    problem_phrase = candidate_problem_phrase_from_brief(brief)
+    problem_phrase = candidate_problem_noun_phrase_from_brief(brief)
     proof_a = brief.strongest_direct_proofs[0]
     proof_b = brief.strongest_direct_proofs[1] if len(brief.strongest_direct_proofs) > 1 else brief.strongest_bridge_theme or brief.role_problem_phrase
     sentence_one = clean_answer_sentence(
@@ -1234,7 +1273,7 @@ def build_communication_or_implementation_answer(
     brief: PositioningBrief,
     question_topic: str,
 ) -> str:
-    problem_phrase = candidate_problem_phrase_from_brief(brief)
+    problem_phrase = candidate_problem_noun_phrase_from_brief(brief)
     topic = normalize_spaces(question_topic or "cross-functional coordination")
     communication_topic = any(term in topic.lower() for term in ("communication", "presentation", "facilitation", "training", "stakeholder"))
     sentence_one = clean_answer_sentence(
@@ -1667,6 +1706,10 @@ def answer_prompt(prompt: str, job_description: str, snapshot: ResumeSnapshot, r
         claim_first=category in claim_first_categories,
         min_words=18 if category in claim_first_categories else 8,
     )
+    if category == "company_interest":
+        spoken = prose_engine.spoken_register(finalized)
+        if spoken.converged:
+            finalized = spoken.text
     return QualificationsResponse(response.prompt, finalized, response.warning)
 
 
@@ -1817,33 +1860,40 @@ def interviewer_question_factual_script(prompt: str, job_description: str, resum
     """
     category = interviewer_question_category(prompt)
     profile = build_resume.job_problem_profile(job_description, resume_text)
+    problem_noun_phrase = candidate_problem_noun_phrase(profile)
     if category == "role_end":
         if re.search(r"\b(?:position|role) impacted by (?:company )?reorgani[sz]ation\b", resume_text, re.I):
-            return (
+            return prose_engine.spoken_register(
                 "My most recent position was impacted by company reorganization. "
-                f"I am now looking for a role where I can apply {candidate_problem_phrase(profile)} more consistently, "
+                f"I am now looking for a role where I can apply my {problem_noun_phrase} background more consistently, "
                 "and this role stood out for that reason."
-            )
-        return (
+            ).text
+        return prose_engine.spoken_register(
             "I keep the reason a role ended factual and brief, without adding details the record does not support. "
-            f"The important next step for me is finding a role where I can apply {candidate_problem_phrase(profile)} more consistently, "
+            f"The important next step for me is finding a role where I can apply my {problem_noun_phrase} background more consistently, "
             "and this role stood out for that reason."
-        )
+        ).text
     if category == "product_explainer":
-        return (
-            f"My specialization has been in systems and workflows tied to {candidate_problem_phrase(profile)}. "
+        normalized_prompt = normalize_question(prompt)
+        if "target audience" in normalized_prompt or "business value" in normalized_prompt:
+            return prose_engine.spoken_register(
+                f"My specialization has been with systems used by operations, finance, customer, and executive stakeholders. "
+                f"The business value is helping those teams turn {problem_noun_phrase} into clearer priorities, cleaner handoffs, and decisions they can use."
+            ).text
+        return prose_engine.spoken_register(
+            f"My specialization has been in enterprise systems and workflows tied to {problem_noun_phrase}. "
             "When I explain a product, I start with who uses it, the business problem it solves, and the value in plain language."
-        )
+        ).text
     if category == "ai_saas_experience":
-        return (
+        return prose_engine.spoken_register(
             "Yes, I've worked in SaaS and technology-company environments, and that included AI-enabled workflows in "
             "supported tools, messaging, and service use cases. I haven't built AI products myself, but I've evaluated "
             "AI-enabled workflows, explained them to stakeholders, and applied them where they actually fit."
-        )
+        ).text
     if category == "comprehension_check":
-        return (
+        return prose_engine.spoken_register(
             "Yes, that makes sense. If any part of what I said was unclear, happy to go deeper on it."
-        )
+        ).text
     return ""
 
 
