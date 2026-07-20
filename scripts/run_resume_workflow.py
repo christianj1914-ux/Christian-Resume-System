@@ -199,6 +199,14 @@ def preflight_warnings_from_output(output: str) -> list[str]:
     return warning_lines_from_output(output, "COVER LETTER PREFLIGHT:")
 
 
+def review_blocking_artifact_status(output: str) -> str:
+    if re.search(r"(?:Final audit:\s*DRAFT|Output DOCX:.*\bDRAFT\b)", output, re.I):
+        return "DRAFT"
+    if re.search(r"(?:Final audit:\s*FAIL|Output DOCX:.*\bFAIL\b)", output, re.I):
+        return "FAIL"
+    return ""
+
+
 def repair_generated_docx_outputs(output: str) -> tuple[list[str], list[str], list[str]]:
     specificity_warnings = specificity_warnings_from_output(output)
     cover_warnings = cover_warnings_from_output(output)
@@ -573,7 +581,7 @@ def main() -> None:
     cover_warnings: list[str] = []
     cover_preflight_warnings: list[str] = []
     resume_gap_blockers = ""
-    draft_artifact_created = False
+    review_artifact_status = ""
     for step_name, script_name, can_rebuild_resume in required_steps:
         result = run_with_recovery(step_name, script_name, can_rebuild_resume=can_rebuild_resume)
         if not result.ok:
@@ -585,11 +593,14 @@ def main() -> None:
             cover_specificity_warnings.extend(result.specificity_warnings)
             cover_warnings.extend(result.cover_warnings)
             cover_preflight_warnings.extend(result.preflight_warnings)
-        if re.search(r"(?:Final audit:\s*DRAFT|Output DOCX:.*\bDRAFT\b)", result.output, re.I):
-            draft_artifact_created = True
-            print("Workflow stopped: a DRAFT artifact was created and is excluded from downstream builders and tracker updates.")
+        review_artifact_status = review_blocking_artifact_status(result.output)
+        if review_artifact_status:
+            print(
+                f"Workflow stopped: a {review_artifact_status} artifact was created and is excluded "
+                "from downstream builders and tracker updates."
+            )
             break
-    if draft_artifact_created:
+    if review_artifact_status:
         raise SystemExit(2)
     run_tracker_auto_add()
     if resume_only:

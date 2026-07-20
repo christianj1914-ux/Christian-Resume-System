@@ -3032,6 +3032,48 @@ Participate in organizational assessments, including data collection, analysis, 
     )
 
 
+def test_cover_letter_weaves_only_supported_specialty_terms(build_cover_letter: object) -> None:
+    jd = """
+Company: Hard Rock Digital
+Job Title: Senior Systems Administrator
+Responsibilities
+Own reporting, data analysis, cross-functional delivery, and unsupported casino gaming administration.
+"""
+    resume_text = "\n".join(
+        [
+            "Built 200+ dashboards and KPI reporting tools that gave leaders clearer visibility into operational performance and decision-making.",
+            "Led cross-functional delivery across five sites and 150+ users while coordinating workflow, reporting, data validation, and adoption.",
+        ]
+    )
+    sections = build_cover_letter.cover_letter_jd_sections(jd)
+    profile = build_cover_letter.build_resume.job_problem_profile(jd, resume_text)
+    lane_key = build_cover_letter.effective_lane_key("Senior Systems Administrator", jd, profile)
+    supported = build_cover_letter.supported_cover_specialty_terms(jd, lane_key, sections, resume_text)
+    assert_true(
+        any(term in supported for term in ("reporting", "data analysis", "cross-functional delivery")),
+        f"supported_cover_specialty_terms() should find resume-backed role specialties; got {supported}",
+    )
+    assert_true(
+        not any("casino" in term.lower() or "gaming" in term.lower() for term in supported),
+        f"supported_cover_specialty_terms() should not treat unsupported gaming terms as supported; got {supported}",
+    )
+    draft = build_cover_letter.compose_cover_letter_draft(
+        "Hard Rock Digital",
+        "Senior Systems Administrator",
+        jd,
+        resume_text,
+    )
+    combined = " ".join(draft.body_paragraphs).lower()
+    assert_true(
+        any(term in combined for term in ("reporting", "data analysis", "cross-functional delivery")),
+        f"compose_cover_letter_draft() should weave at least one supported specialty term into the letter; got {combined!r}",
+    )
+    assert_true(
+        "casino gaming administration" not in combined,
+        f"compose_cover_letter_draft() should not insert unsupported specialty language; got {combined!r}",
+    )
+
+
 def test_finalize_communication_metric_candidate_rejects_fragment(build_cover_letter: object) -> None:
     fragment = (
         "Led change adoption and continuous improvement for mission-critical enterprise system "
@@ -3295,6 +3337,17 @@ def test_alignment_gate_decision(build_resume: object) -> None:
     assert_true(
         stretch_decision == "STRETCH FIT - evaluate before applying" and len(stretch_actions) == 5,
         f"alignment_gate_decision() should return five actions for STRETCH FIT; got {stretch_decision}, {stretch_actions}",
+    )
+
+
+def test_final_alignment_fail_reason_names_score_floor(build_resume: object) -> None:
+    message = build_resume.final_alignment_fail_reason(build_resume.ALIGNMENT_FAIL_FLOOR + 1)
+    assert_true(
+        "FAIL reason:" in message
+        and f"{build_resume.ALIGNMENT_FAIL_FLOOR + 1}/{build_resume.ALIGNMENT_MAX_SCORE}" in message
+        and "clears the score floor" in message
+        and "sendability checks" in message,
+        f"final_alignment_fail_reason() should explain score-vs-sendability mismatch; got {message!r}",
     )
 
 
@@ -10829,6 +10882,70 @@ def test_workflow_tracks_after_required_steps_before_optional_failure() -> None:
     )
 
 
+def test_workflow_stops_fail_artifacts_before_tracker() -> None:
+    import run_resume_workflow
+
+    order: list[str] = []
+    original_parse_args = run_resume_workflow.parse_args
+    original_workspace_health = run_resume_workflow.workspace_health.ensure_workspace_health_or_exit
+    original_validate_job_description = run_resume_workflow.validate_job_description
+    original_run_with_recovery = run_resume_workflow.run_with_recovery
+    original_run_tracker_auto_add = run_resume_workflow.run_tracker_auto_add
+    original_pairing_issue = run_resume_workflow.job_context_archive.application_question_pairing_issue
+    try:
+        run_resume_workflow.parse_args = lambda: SimpleNamespace(
+            resume_only=False,
+            include_cheat_sheet=False,
+            include_detailed_guide=False,
+            dry_run=False,
+        )
+        run_resume_workflow.workspace_health.ensure_workspace_health_or_exit = lambda _workflow_name: {}
+        run_resume_workflow.validate_job_description = lambda _path: None
+        run_resume_workflow.job_context_archive.application_question_pairing_issue = lambda *_args: ""
+
+        def fake_run_with_recovery(step_name: str, script_name: str, *, can_rebuild_resume: bool = False):
+            order.append(step_name)
+            return run_resume_workflow.StepResult(
+                name=step_name,
+                returncode=0,
+                stdout="Output DOCX: output/Christian Estrada - Acme FAIL Resume.docx\nFinal audit: FAIL\n",
+                stderr="",
+                log_path=Path("dummy.log"),
+                specificity_warnings=[],
+                cover_warnings=[],
+                preflight_warnings=[],
+            )
+
+        run_resume_workflow.run_with_recovery = fake_run_with_recovery
+        run_resume_workflow.run_tracker_auto_add = lambda: order.append("tracker")
+        stdout = io.StringIO()
+        with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(io.StringIO()):
+            try:
+                run_resume_workflow.main()
+                raise SmokeFailure("run_resume_workflow.main() should exit when a FAIL artifact is created")
+            except SystemExit as error:
+                assert_true(
+                    error.code == 2,
+                    f"run_resume_workflow.main() should exit with review-required code 2 for FAIL artifacts; got {error.code}",
+                )
+    finally:
+        run_resume_workflow.parse_args = original_parse_args
+        run_resume_workflow.workspace_health.ensure_workspace_health_or_exit = original_workspace_health
+        run_resume_workflow.validate_job_description = original_validate_job_description
+        run_resume_workflow.run_with_recovery = original_run_with_recovery
+        run_resume_workflow.run_tracker_auto_add = original_run_tracker_auto_add
+        run_resume_workflow.job_context_archive.application_question_pairing_issue = original_pairing_issue
+
+    assert_true(
+        order == ["Building resume"],
+        f"Workflow should stop at the FAIL resume and avoid tracker/downstream builders; got {order}",
+    )
+    assert_true(
+        "FAIL artifact was created" in stdout.getvalue(),
+        f"Workflow should explain FAIL gating; got {stdout.getvalue()!r}",
+    )
+
+
 def test_workflow_parses_cover_warning_channels() -> None:
     import run_resume_workflow
 
@@ -10837,7 +10954,7 @@ def test_workflow_parses_cover_warning_channels() -> None:
             [
                 "SPECIFICITY WARNING: company appears only once",
                 "COVER LETTER WARNING: abrupt first-person switch detected",
-                "COVER LETTER PREFLIGHT: Cover letter has fewer than 4 job-description keyword hits.",
+                "COVER LETTER PREFLIGHT: Low-overlap cover DRAFT policy: cover letter has fewer than 4 job-description keyword hits; keep as review-only instead of padding unsupported claims.",
             ]
         )
     )
@@ -10850,7 +10967,7 @@ def test_workflow_parses_cover_warning_channels() -> None:
         f"Workflow warning parsing should preserve cover warnings; got {cover_warnings}",
     )
     assert_true(
-        preflight_warnings == ["Cover letter has fewer than 4 job-description keyword hits."],
+        preflight_warnings == ["Low-overlap cover DRAFT policy: cover letter has fewer than 4 job-description keyword hits; keep as review-only instead of padding unsupported claims."],
         f"Workflow warning parsing should preserve preflight warnings; got {preflight_warnings}",
     )
 
@@ -12998,6 +13115,7 @@ def main() -> None:
             ("short proof paragraph pulls supporting metric", lambda: test_short_proof_paragraph_pulls_supporting_metric(build_cover_letter)),
             ("cover compaction avoids incomplete clause fragments", lambda: test_compact_cover_sentence_avoids_incomplete_clause_fragments(build_cover_letter)),
             ("change consulting cover letter stays in change lane", lambda: test_change_consulting_cover_letter_stays_in_change_lane(build_cover_letter)),
+            ("cover weaves only supported specialty terms", lambda: test_cover_letter_weaves_only_supported_specialty_terms(build_cover_letter)),
             ("communication metric fragment rejection", lambda: test_finalize_communication_metric_candidate_rejects_fragment(build_cover_letter)),
             ("cover letter synthetic JD cleanup", lambda: test_cover_letter_no_jd_artifacts(build_resume, build_cover_letter)),
             ("role title dash not treated as bullet artifact", lambda: test_has_bullet_artifact_ignores_role_title_dash(build_cover_letter)),
@@ -13009,6 +13127,7 @@ def main() -> None:
             ("positive question framing", lambda: test_positive_question_framing(build_interview_cheat_sheet)),
             ("alignment score report", lambda: test_alignment_score_report(build_resume)),
             ("alignment gate decision", lambda: test_alignment_gate_decision(build_resume)),
+            ("final alignment fail reason", lambda: test_final_alignment_fail_reason_names_score_floor(build_resume)),
             ("dynamic header title line", lambda: test_dynamic_header_title_line(build_resume)),
             ("header dedupe avoids near-duplicate consultant titles", lambda: test_header_dedupe_avoids_near_duplicate_consultant_titles(build_resume)),
             ("scope marker injection", lambda: test_scope_marker_injection(build_resume)),
@@ -13216,6 +13335,7 @@ def main() -> None:
             ("tracker refresh warning when output missing", test_tracker_refresh_warning_when_output_missing),
             ("debrief outcome mapping and notes", test_debrief_outcome_mapping_and_notes),
             ("workflow tracks before optional failure", test_workflow_tracks_after_required_steps_before_optional_failure),
+            ("workflow stops fail artifacts before tracker", test_workflow_stops_fail_artifacts_before_tracker),
             ("workflow parses cover warning channels", test_workflow_parses_cover_warning_channels),
             ("tasks auto-archive environment for commercial command", test_tasks_auto_archive_environment_for_commercial_command),
             ("workflow hard-fails docx validation issues", test_workflow_hard_fails_docx_validation_issues),

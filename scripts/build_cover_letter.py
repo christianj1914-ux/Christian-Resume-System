@@ -366,6 +366,7 @@ class CoverLetterSignals:
     communication_metric: str
     partner_functions: tuple[str, ...]
     jd_pain_area: str
+    supported_specialty_terms: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -2919,6 +2920,7 @@ def build_cover_letter_signals(
     lane_key = effective_lane_key(role_title, job_description, profile)
     test_environments = extract_test_environments(job_description, sections)
     jd_skill_terms = extract_cover_letter_terms(job_description, lane_key, sections)
+    supported_specialty_terms = supported_cover_specialty_terms(job_description, lane_key, sections, resume_text)
     top_accomplishment = extract_top_accomplishment(job_description, resume_text)
     try:
         fit_bridge = anticipated_fit_bridge(company_name, role_title, job_description, resume_text)
@@ -2941,7 +2943,87 @@ def build_cover_letter_signals(
         ),
         partner_functions=extract_partner_functions(job_description, sections),
         jd_pain_area=extract_pain_area(job_description, lane_key, jd_skill_terms, test_environments),
+        supported_specialty_terms=supported_specialty_terms,
     )
+
+
+def supported_cover_specialty_terms(
+    job_description: str,
+    lane_key: str,
+    sections: dict[str, str],
+    resume_text: str,
+) -> tuple[str, ...]:
+    """Return role-specialty terms that are requested by the JD and visibly backed by the resume."""
+    candidates = list(extract_cover_letter_terms(job_description, lane_key, sections))
+    for term in build_resume.visible_role_specialties(job_description):
+        if term and term not in candidates:
+            candidates.append(term)
+    supported: list[str] = []
+    resume_lower = resume_text.lower()
+    generic_tokens = {
+        "area",
+        "areas",
+        "client",
+        "cross",
+        "delivery",
+        "functional",
+        "management",
+        "role",
+        "specialty",
+        "support",
+        "team",
+        "teams",
+        "work",
+    }
+    for term in candidates:
+        normalized = re.sub(r"\s+", " ", term).strip()
+        if not normalized or normalized in supported:
+            continue
+        if build_resume.contains_search_term(resume_text, normalized):
+            supported.append(normalized)
+        else:
+            tokens = [
+                token
+                for token in re.findall(r"[a-z][a-z-]{3,}", normalized.lower())
+                if token not in generic_tokens
+            ]
+            hits = sum(1 for token in tokens if token in resume_lower)
+            if tokens and hits >= max(1, min(2, len(tokens))):
+                supported.append(normalized)
+        if len(supported) >= 3:
+            break
+    return tuple(supported)
+
+
+def supported_specialty_weave_sentence(company_name: str, signals: CoverLetterSignals) -> str:
+    terms = [term for term in signals.supported_specialty_terms if term]
+    if not terms:
+        return ""
+    specialty = comma_join(tuple(terms[:2]))
+    return (
+        f"For {company_name}, I would keep that same evidence connected to the role's {specialty} "
+        "work without overstating unsupported specialty depth."
+    )
+
+
+def weave_supported_specialty_sentence(
+    body_paragraphs: tuple[str, ...],
+    company_name: str,
+    signals: CoverLetterSignals,
+) -> tuple[str, ...]:
+    sentence = supported_specialty_weave_sentence(company_name, signals)
+    if not sentence or not body_paragraphs:
+        return body_paragraphs
+    combined = " ".join(body_paragraphs).lower()
+    if any(term.lower() in combined for term in signals.supported_specialty_terms):
+        return body_paragraphs
+    target_index = 1 if len(body_paragraphs) > 1 else 0
+    paragraphs = list(body_paragraphs)
+    paragraphs[target_index] = repair_cover_paragraph(
+        f"{paragraphs[target_index]} {sentence}".strip(),
+        "cover supported-specialty sentence",
+    )
+    return tuple(paragraphs)
 
 
 def cover_letter_plan_warnings(sections: dict[str, str], signals: CoverLetterSignals, mode: str) -> tuple[str, ...]:
@@ -3024,6 +3106,7 @@ def build_cover_letter_plan(
             question_prep.scrub_cover_answer_for_job(job_description, paragraph)
             for paragraph in body_paragraphs
         )
+    body_paragraphs = weave_supported_specialty_sentence(body_paragraphs, company_name, signals)
     opening = body_paragraphs[0] if body_paragraphs else ""
     proof = body_paragraphs[1] if len(body_paragraphs) > 1 else ""
     bridge = body_paragraphs[2] if len(body_paragraphs) > 2 else ""
@@ -6385,7 +6468,9 @@ def cover_letter_preflight(
     if re.search(r"(?:^|\n)[•\-\*]\s+\w", "\n".join(body_paragraphs), re.I):
         issues.append("Bullet characters found in cover letter body.")
     if build_resume.keyword_hits(text, build_resume.audit_keywords(job_description)) < 4:
-        issues.append("Cover letter has fewer than 4 job-description keyword hits.")
+        issues.append(
+            "Low-overlap cover DRAFT policy: cover letter has fewer than 4 job-description keyword hits; keep as review-only instead of padding unsupported claims."
+        )
     return dedupe_warnings(issues)
 
 

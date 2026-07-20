@@ -3695,7 +3695,17 @@ def final_fit_audit(
             + ". Address them directly in the cover letter and interview without overstating direct ownership."
         )
 
+    if status == "FAIL" and total_score >= ALIGNMENT_FAIL_FLOOR:
+        notes.append(final_alignment_fail_reason(total_score))
+
     return status, notes
+
+
+def final_alignment_fail_reason(total_score: int) -> str:
+    return (
+        f"FAIL reason: final alignment clears the score floor at {total_score}/{ALIGNMENT_MAX_SCORE}, "
+        "but one or more sendability checks still failed. Review the specific audit notes above rather than treating the score as a pass."
+    )
 
 
 def write_resume_audit_notes(
@@ -4363,7 +4373,7 @@ def build_resume() -> BuildResult:
         else:
             print("\nDomain Specialty: not a major differentiator in this posting.\n")
     print(
-        f"Alignment Score: {alignment_report['total_score']}/{alignment_report['score_scale_max']} - "
+        f"Pre-tailoring alignment score: {alignment_report['total_score']}/{alignment_report['score_scale_max']} - "
         f"{alignment_report['grade']}"
     )
     print(f"  Requirement coverage: {alignment_report['requirement_coverage']['score']}/40")
