@@ -162,7 +162,7 @@ def _summary_sentence_too_long(text: str) -> bool:
 
 def _double_preposition_pileup(text: str) -> bool:
     infinitive_re = re.compile(
-        r"\bto\s+(?:align|analyze|build|clarify|configure|coordinate|create|deliver|develop|document|drive|enable|gather|guide|help|implement|improve|launch|lead|manage|map|move|own|protect|reduce|scope|support|translate|turn|validate)\b",
+        r"\bto\s+(?:align|analyze|build|clarify|configure|coordinate|create|deliver|develop|document|drive|enable|gather|guide|help|implement|improve|launch|lead|manage|map|move|own|protect|raise|reduce|scope|support|translate|turn|validate)\b",
         re.I,
     )
     for sentence in _sentences(text):
@@ -234,9 +234,9 @@ def _bullet_overloaded(text: str) -> bool:
 VALIDATION_RULES: tuple[ValidationRule, ...] = (
     ValidationRule("PROSE_AND_CHAIN", frozenset({"summary", "federal_summary", "cover", "spoken"}), "fail", _conjunction_overload, "Sentence contains an overloaded conjunction chain."),
     ValidationRule("PROSE_NESTED_LIST", frozenset({"summary", "federal_summary", "cover", "spoken"}), "fail", _nested_list, "Sentence embeds one long list inside another."),
-    ValidationRule("SUMMARY_TOO_LONG", frozenset({"summary"}), "warn", _summary_too_long, "Summary exceeds the 70-word target."),
-    ValidationRule("SUMMARY_SENTENCE_TOO_LONG", frozenset({"summary"}), "warn", _summary_sentence_too_long, "Summary contains a sentence longer than 34 words."),
-    ValidationRule("SUMMARY_PREPOSITION_PILEUP", frozenset({"summary"}), "warn", _double_preposition_pileup, "Summary stacks repeated for/to prepositional phrases."),
+    ValidationRule("SUMMARY_TOO_LONG", frozenset({"summary"}), "fail", _summary_too_long, "Summary exceeds the 70-word target."),
+    ValidationRule("SUMMARY_SENTENCE_TOO_LONG", frozenset({"summary"}), "fail", _summary_sentence_too_long, "Summary contains a sentence longer than 34 words."),
+    ValidationRule("SUMMARY_PREPOSITION_PILEUP", frozenset({"summary"}), "fail", _double_preposition_pileup, "Summary stacks repeated for/to prepositional phrases."),
     ValidationRule("PROSE_STACKED_MODIFIER", frozenset({"summary", "federal_summary", "cover", "spoken"}), "warn", _stacked_modifier, "Sentence contains a stacked hyphenated modifier."),
     ValidationRule("PROSE_REPEATED_OPENING", frozenset({"summary", "federal_summary", "cover", "spoken"}), "warn", _repeated_opening_verbs, "Three or more sentences repeat the same opening word."),
     ValidationRule("PROSE_REPEATED_PROOF", frozenset({"summary", "federal_summary", "cover", "spoken"}), "warn", _repeated_proof_clauses, "Two sentences repeat the same proof-clause opening."),
@@ -388,6 +388,104 @@ def _split_long_spoken(text: str) -> str:
     return normalize_spaces(" ".join(output))
 
 
+def _summary_tail_sentence(fragment: str) -> str:
+    text = normalize_spaces(fragment).strip(" ,;:.")
+    if not text:
+        return ""
+    if re.match(r"\bfor\b", text, re.I):
+        text = re.sub(r"^for\s+", "Supports ", text, flags=re.I)
+    elif re.match(r"\bto\b", text, re.I):
+        text = re.sub(r"^to\s+", "Aims to ", text, flags=re.I)
+    return _promote_clause_to_sentence(text)
+
+
+def _summary_split_match(sentence: str, *, max_words: int = 34) -> re.Match[str] | None:
+    patterns = (
+        r",\s+while\s+",
+        r",\s+supporting\s+",
+        r",\s+turning\s+",
+        r",\s+giving\s+",
+        r",\s+using\s+",
+        r",\s+designing\s+",
+        r"\s+while\s+",
+        r"\s+through\s+",
+    )
+    candidates: list[re.Match[str]] = []
+    for pattern in patterns:
+        for match in re.finditer(pattern, sentence, re.I):
+            left_words = _word_count(sentence[: match.start()])
+            right_words = _word_count(sentence[match.end() :])
+            if 8 <= left_words <= max_words and right_words >= 5:
+                candidates.append(match)
+    if candidates:
+        return max(candidates, key=lambda match: _word_count(sentence[: match.start()]))
+    return None
+
+
+def _repair_summary_sentence_length(text: str) -> str:
+    output: list[str] = []
+    for sentence in _sentences(text):
+        current = sentence
+        while _word_count(current) > 34:
+            split = _summary_split_match(current)
+            if split is None:
+                break
+            first = _finish_sentence(current[: split.start()].rstrip(" ,;:."))
+            tail = current[split.end() :]
+            if re.search(r"supporting\s+$", current[: split.end()], re.I):
+                tail = "supporting " + tail
+            elif re.search(r"turning\s+$", current[: split.end()], re.I):
+                tail = "turning " + tail
+            elif re.search(r"giving\s+$", current[: split.end()], re.I):
+                tail = "giving " + tail
+            elif re.search(r"using\s+$", current[: split.end()], re.I):
+                tail = "using " + tail
+            elif re.search(r"designing\s+$", current[: split.end()], re.I):
+                tail = "designing " + tail
+            second = _summary_tail_sentence(tail)
+            if not first or not second or second == current:
+                break
+            output.append(first)
+            current = second
+        output.append(current)
+    return normalize_spaces(" ".join(output))
+
+
+def _repair_summary_preposition_pileup(text: str) -> str:
+    output: list[str] = []
+    for sentence in _sentences(text):
+        current = sentence
+        while _double_preposition_pileup(current):
+            matches = [
+                match
+                for match in re.finditer(r"\s+(?:for|to)\s+", current, re.I)
+                if _word_count(current[: match.start()]) >= 6 and _word_count(current[match.end() :]) >= 2
+            ]
+            if not matches:
+                break
+            split = matches[-1]
+            first = _finish_sentence(current[: split.start()].rstrip(" ,;:."))
+            second = _summary_tail_sentence(current[split.start() :])
+            if not first or not second or second == current:
+                break
+            output.append(first)
+            current = second
+        output.append(current)
+    return normalize_spaces(" ".join(output))
+
+
+def _repair_summary_total_length(text: str) -> str:
+    sentences = _sentences(text)
+    if _word_count(text) <= 70 or len(sentences) <= 2:
+        return text
+    kept: list[str] = []
+    for sentence in sentences:
+        candidate = normalize_spaces(" ".join((*kept, sentence)))
+        if _word_count(candidate) <= 70:
+            kept.append(sentence)
+    return normalize_spaces(" ".join(kept or sentences[:3]))
+
+
 def repair_text(text: str, artifact: str, *, max_passes: int = 3) -> RepairOutcome:
     current = normalize_spaces(text)
     repairs: list[str] = []
@@ -413,6 +511,14 @@ def repair_text(text: str, artifact: str, *, max_passes: int = 3) -> RepairOutco
         if "SPOKEN_SENTENCE_LENGTH" in hard:
             current = _split_long_spoken(current)
             repairs.append("SPOKEN_SENTENCE_SPLIT")
+        if artifact == "summary" and hard & {"SUMMARY_TOO_LONG", "SUMMARY_SENTENCE_TOO_LONG", "SUMMARY_PREPOSITION_PILEUP"}:
+            if "SUMMARY_PREPOSITION_PILEUP" in hard:
+                current = _repair_summary_preposition_pileup(current)
+            if "SUMMARY_SENTENCE_TOO_LONG" in hard:
+                current = _repair_summary_sentence_length(current)
+            if "SUMMARY_TOO_LONG" in hard:
+                current = _repair_summary_total_length(current)
+            repairs.append("SUMMARY_QUALITY_REPAIR")
         if "PROSE_AND_CHAIN" in hard or "PROSE_NESTED_LIST" in hard:
             current = _split_semicolons(current)
             if "PROSE_NESTED_LIST" in hard:

@@ -9530,6 +9530,58 @@ def test_prose_nested_list_regressions_converge() -> None:
         _assert_nested_list_repair_case(text, label)
 
 
+def test_fail_severity_prose_rules_have_convergent_repairs() -> None:
+    import prose_engine
+
+    cases = (
+        (
+            "summary",
+            "PROSE_AND_CHAIN",
+            "Led discovery and implementation and testing and training and adoption for enterprise teams.",
+        ),
+        (
+            "summary",
+            "PROSE_NESTED_LIST",
+            "Managed scope, risk, testing, deployment, including data, security, training, and support while coordinating discovery and adoption.",
+        ),
+        (
+            "summary",
+            "SUMMARY_SENTENCE_TOO_LONG",
+            "Owned Aptean Intuitive administration and continuous improvement as the primary ERP platform for a five-site manufacturing operation, giving 150+ users clearer supply chain, finance, and operations visibility while supporting Epicor Kinetic transition planning and final launch readiness during migration.",
+        ),
+        (
+            "summary",
+            "SUMMARY_PREPOSITION_PILEUP",
+            "Consultant for enterprise buyers building delivery proof for cloud teams. Built 200+ dashboards and led 60+ workshops. Best used where discovery and delivery judgment stay connected.",
+        ),
+        (
+            "spoken",
+            "SPOKEN_RESUME_MANDATE",
+            "Position impacted by company reorganization.",
+        ),
+        (
+            "spoken",
+            "SPOKEN_SENTENCE_LENGTH",
+            "I led the implementation team through discovery, requirements, testing, stakeholder alignment, training, launch readiness, and post go-live support while keeping leaders informed, users ready, risks visible, and handoffs clear.",
+        ),
+    )
+    for artifact, rule_id, text in cases:
+        findings = prose_engine.validate_text(text, artifact)
+        assert_true(
+            any(finding.rule_id == rule_id and finding.severity == "fail" for finding in findings),
+            f"{rule_id} fixture should trigger its fail rule before repair; got {findings!r}",
+        )
+        outcome = prose_engine.repair_text(text, artifact)
+        assert_true(
+            outcome.converged,
+            f"{rule_id} should have a convergent repair path for {artifact}; got {outcome!r}",
+        )
+        assert_true(
+            not any(finding.severity == "fail" for finding in outcome.findings),
+            f"{rule_id} repair should clear fail findings; got {outcome.findings!r}",
+        )
+
+
 def test_resume_degree_master_line_is_canonical(build_resume: object) -> None:
     for source_path in (
         build_resume.IMPLEMENTATION_RESUME,
@@ -12607,6 +12659,7 @@ def main() -> None:
         ("expansion source resumes and reference docs are durable", None),
         ("source lint uses docx bullets without context false positives", None),
         ("source resumes pass docx-aware source lint", None),
+        ("fail severity prose rules have convergent repairs", None),
         ("bullet overload validation warns without repairing", None),
         ("resume notes report overloaded bullets without failing", None),
         ("interview filters filler and claim first answers", None),
@@ -12910,6 +12963,7 @@ def main() -> None:
             ("expansion source resumes and reference docs are durable", lambda: test_expansion_source_resumes_and_reference_docs_are_durable(build_resume)),
             ("source lint uses docx bullets without context false positives", lambda: test_source_lint_uses_docx_bullets_without_context_false_positives(build_resume)),
             ("source resumes pass docx-aware source lint", lambda: test_source_resumes_pass_docx_aware_source_lint(build_resume)),
+            ("fail severity prose rules have convergent repairs", test_fail_severity_prose_rules_have_convergent_repairs),
             ("bullet overload validation warns without repairing", test_bullet_overload_validation_warns_without_repairing),
             ("resume notes report overloaded bullets without failing", lambda: test_resume_notes_report_overloaded_bullets_without_failing(build_resume)),
             ("rewritten high-risk role summaries avoid nested-list detector", lambda: test_rewritten_high_risk_role_summaries_avoid_nested_list_detector(build_resume)),

@@ -1765,8 +1765,8 @@ def summary_positioning_sentence(
         )
     ):
         return (
-            "Enterprise systems and operations project manager with 10+ years driving software delivery and process "
-            "standardization to raise adoption confidence and data reliability across day-to-day operations."
+            "Enterprise systems and operations project manager with 10+ years improving software delivery, process "
+            "standardization, adoption confidence, and data reliability across operating teams."
         )
     if profile.primary_lane == "presales_solution":
         if emphasis.proof_anchor == "revenue":
@@ -2312,9 +2312,8 @@ def optimized_role_summary(
     if company_key == normalize_compare(COMPANY_EAST_WEST):
         body = (
             "Owned Aptean Intuitive administration and continuous improvement as the primary ERP "
-            "platform for a five-site manufacturing operation, giving 150+ users clearer supply chain, finance, and "
-            "operations visibility while supporting Epicor Kinetic transition planning and final launch readiness "
-            "during migration."
+            "platform for a five-site manufacturing operation. Gave 150+ users clearer supply chain, finance, and "
+            "operations visibility while supporting Epicor Kinetic transition planning and launch readiness."
         )
         if emphasis.proof_anchor == "launch":
             body = (
@@ -2345,25 +2344,24 @@ def optimized_role_summary(
             body = (
                 "Owned Aptean Intuitive administration and continuous improvement as the primary ERP "
                 "platform for a five-site manufacturing operation, giving 150+ users clearer supply chain, finance, "
-                "and operations visibility while supporting "
+                "and operations visibility. Supported "
                 + comma_series(tuple(support_terms))
-                + ", Epicor Kinetic transition planning, and final launch readiness during migration."
+                + ", Epicor Kinetic transition planning, and launch readiness during migration."
             )
         if profile.primary_lane == "change_enablement":
             body = (
                 "Led change adoption and continuous improvement for Aptean Intuitive across a five-site manufacturing "
                 "operation, designing role-based training, stakeholder "
                 "communications, and enablement resources that moved 150+ operations, finance, and engineering users "
-                "from resistance to measurable system confidence while supporting Epicor Kinetic transition planning "
-                "and final launch readiness during migration."
+                "from resistance to measurable system confidence. Supported Epicor Kinetic transition planning "
+                "and launch readiness during migration."
             )
         elif profile.primary_lane == "corporate_strategy":
             body = (
                 "Led structured operating analysis and stakeholder alignment around Aptean Intuitive for a five-site "
                 "manufacturing environment, turning workflow, reporting, and "
-                "systems tradeoffs into executive-ready recommendations for 150+ users across operations, finance, "
-                "and engineering while supporting Epicor Kinetic migration planning, transition readiness, and final "
-                "launch readiness."
+                "systems tradeoffs into executive-ready recommendations for 150+ users. Supported Epicor Kinetic "
+                "migration planning, transition readiness, and launch readiness."
             )
         elif jd_mentions(job_description, "solution architecture", "enterprise solutions", "technical uncertainty", "deployment strategies"):
             body = (
@@ -2429,8 +2427,8 @@ def optimized_role_summary(
             body = (
                 "Led change adoption and full-lifecycle ERP delivery for 80+ manufacturing clients across the Americas, "
                 "Europe, and Asia, designing training programs, adoption guides, and stakeholder communications that "
-                "reduced resistance and improved go-live confidence; managed scope alignment, risk visibility, and "
-                "post-go-live support from requirements through customer handoff."
+                "reduced resistance and improved go-live confidence. Managed scope alignment, risk visibility, and "
+                "post-go-live support through customer handoff."
             )
         elif profile.primary_lane == "corporate_strategy":
             body = (

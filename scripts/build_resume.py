@@ -2566,23 +2566,6 @@ def summary_sentences(summary: str) -> list[str]:
     return [part.strip() for part in re.split(r"(?<=[.!?])\s+", summary.strip()) if part.strip()]
 
 
-SUMMARY_UNBLOCK_WARN_RULES = frozenset(
-    {
-        "SUMMARY_TOO_LONG",
-        "SUMMARY_SENTENCE_TOO_LONG",
-        "SUMMARY_PREPOSITION_PILEUP",
-    }
-)
-
-
-def summary_unblock_warnings(summary: str) -> list[prose_engine.ValidationFinding]:
-    return [
-        finding
-        for finding in prose_engine.validate_text(summary, "summary")
-        if finding.severity == "warn" and finding.rule_id in SUMMARY_UNBLOCK_WARN_RULES
-    ]
-
-
 def resume_text_for_non_erp_audit(document_xml: Path) -> str:
     paragraphs = paragraph_infos(document_xml)
     summary_start = section_index(paragraphs, "Professional Summary")
@@ -2623,11 +2606,9 @@ def assert_professional_summary_structure(document_xml: Path) -> None:
         fail("Professional Summary text could not be located")
     sentences = summary_sentences(summary)
     if len(sentences) != 3:
-        warnings = summary_unblock_warnings(summary)
-        if len(sentences) != 4 or not warnings:
-            fail(
-                f"Professional Summary must use exactly 3 recruiter-friendly sentences; found {len(sentences)}: {summary}"
-            )
+        fail(
+            f"Professional Summary must use exactly 3 recruiter-friendly sentences; found {len(sentences)}: {summary}"
+        )
     if summary.count(";") > 1:
         fail(
             f"Professional Summary has too many semicolons ({summary.count(';')}); "
@@ -3868,7 +3849,7 @@ def summary_prose_audit_notes(document_xml: Path) -> list[str]:
         if key in seen:
             continue
         seen.add(key)
-        findings = summary_unblock_warnings(text)
+        findings = [finding for finding in prose_engine.validate_text(text, "summary") if finding.severity == "warn"]
         if not findings:
             continue
         excerpt = text if len(text) <= 150 else text[:147].rstrip() + "..."
