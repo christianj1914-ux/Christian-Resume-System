@@ -9608,6 +9608,38 @@ def test_expansion_source_resumes_and_reference_docs_are_durable(build_resume: o
         assert_true(path.exists(), f"{name} should live in tracked interview_prep/, not only ignored output/.")
 
 
+def test_source_lint_uses_docx_bullets_without_context_false_positives(build_resume: object) -> None:
+    paragraphs = [
+        build_resume.ParagraphInfo(
+            "The Home Depot is one of the largest eCommerce operations in US retail.",
+            False,
+        ),
+        build_resume.ParagraphInfo(
+            "Built 200+ dashboards that improved KPI visibility for operating leaders.",
+            True,
+        ),
+        build_resume.ParagraphInfo(
+            "Built customizations I proposed for implementation teams.",
+            True,
+        ),
+    ]
+    findings = build_resume.source_lint_findings_for_paragraphs("synthetic.docx", paragraphs)
+    rule_ids = [finding.rule_id for finding in findings]
+    assert_true(
+        rule_ids == ["SOURCE_FIRST_PERSON"],
+        f"source lint should scan real bullets only and use safe first-person detection; got {findings!r}",
+    )
+
+
+def test_source_resumes_pass_docx_aware_source_lint(build_resume: object) -> None:
+    findings = build_resume.source_resume_lint_findings()
+    assert_true(
+        not findings,
+        "source resume lint should pass on committed source resumes; got "
+        + "; ".join(f"{item.source}:{item.rule_id}:{item.excerpt}" for item in findings[:8]),
+    )
+
+
 def test_bullet_overload_validation_warns_without_repairing() -> None:
     import prose_engine
 
@@ -12573,6 +12605,8 @@ def main() -> None:
         ("spoken nested-list repairs converge without collected issues", None),
         ("resume degree Master line is canonical", None),
         ("expansion source resumes and reference docs are durable", None),
+        ("source lint uses docx bullets without context false positives", None),
+        ("source resumes pass docx-aware source lint", None),
         ("bullet overload validation warns without repairing", None),
         ("resume notes report overloaded bullets without failing", None),
         ("interview filters filler and claim first answers", None),
@@ -12874,6 +12908,8 @@ def main() -> None:
             ("PROSE_NESTED_LIST regressions converge", test_prose_nested_list_regressions_converge),
             ("resume degree Master line is canonical", lambda: test_resume_degree_master_line_is_canonical(build_resume)),
             ("expansion source resumes and reference docs are durable", lambda: test_expansion_source_resumes_and_reference_docs_are_durable(build_resume)),
+            ("source lint uses docx bullets without context false positives", lambda: test_source_lint_uses_docx_bullets_without_context_false_positives(build_resume)),
+            ("source resumes pass docx-aware source lint", lambda: test_source_resumes_pass_docx_aware_source_lint(build_resume)),
             ("bullet overload validation warns without repairing", test_bullet_overload_validation_warns_without_repairing),
             ("resume notes report overloaded bullets without failing", lambda: test_resume_notes_report_overloaded_bullets_without_failing(build_resume)),
             ("rewritten high-risk role summaries avoid nested-list detector", lambda: test_rewritten_high_risk_role_summaries_avoid_nested_list_detector(build_resume)),

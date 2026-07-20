@@ -624,6 +624,14 @@ class ParagraphInfo:
 
 
 @dataclass(frozen=True)
+class SourceLintFinding:
+    source: str
+    rule_id: str
+    message: str
+    excerpt: str
+
+
+@dataclass(frozen=True)
 class RoleInfo:
     title: str
     company: str
@@ -1171,6 +1179,17 @@ def docx_visible_text_from_path(path: Path) -> str:
         if text:
             paragraphs.append(text)
     return "\n".join(paragraphs)
+
+
+def docx_paragraph_infos_from_path(path: Path) -> list[ParagraphInfo]:
+    with zipfile.ZipFile(path) as archive:
+        root = ET.fromstring(archive.read("word/document.xml"))
+    paragraphs: list[ParagraphInfo] = []
+    for paragraph in root.findall(f".//{W}p"):
+        text = re.sub(r"\s+", " ", paragraph_text(paragraph)).strip()
+        if text:
+            paragraphs.append(ParagraphInfo(text=text, is_bullet=is_bullet(paragraph)))
+    return paragraphs
 
 
 def ats_plain_text_validation(docx_path: Path) -> dict[str, object]:
@@ -3764,6 +3783,59 @@ def bullet_prose_audit_notes(document_xml: Path) -> list[str]:
         rule_ids = ", ".join(dict.fromkeys(finding.rule_id for finding in findings))
         notes.append(f"Bullet prose warning ({rule_ids}): {excerpt}")
     return notes
+
+
+SOURCE_RESUME_PATHS = (
+    IMPLEMENTATION_RESUME,
+    PRESALES_CSM_RESUME,
+)
+
+
+def source_lint_findings_for_paragraphs(source_name: str, paragraphs: list[ParagraphInfo]) -> list[SourceLintFinding]:
+    findings: list[SourceLintFinding] = []
+    for paragraph in paragraphs:
+        if not paragraph.is_bullet:
+            continue
+        bullet = paragraph.text
+        excerpt = bullet if len(bullet) <= 160 else bullet[:157].rstrip() + "..."
+        if contains_first_person(bullet):
+            findings.append(
+                SourceLintFinding(source_name, "SOURCE_FIRST_PERSON", "Source bullet uses first-person wording.", excerpt)
+            )
+        if any(re.search(pattern, bullet, flags=re.I) for pattern in PLACEHOLDER_PATTERNS):
+            findings.append(
+                SourceLintFinding(source_name, "SOURCE_PLACEHOLDER", "Source bullet contains placeholder language.", excerpt)
+            )
+        if contains_cliche(bullet):
+            findings.append(
+                SourceLintFinding(source_name, "SOURCE_CLICHE", "Source bullet contains generic cliche language.", excerpt)
+            )
+        if contains_ai_writing_word(bullet):
+            findings.append(
+                SourceLintFinding(source_name, "SOURCE_AI_WRITING", "Source bullet contains banned AI-writing language.", excerpt)
+            )
+        if starts_with_duty_only_language(bullet):
+            findings.append(
+                SourceLintFinding(source_name, "SOURCE_DUTY_ONLY", "Source bullet opens with duty-only language without clear outcome proof.", excerpt)
+            )
+        for prose_finding in prose_engine.validate_text(bullet, "bullet"):
+            if prose_finding.severity == "warn":
+                findings.append(
+                    SourceLintFinding(
+                        source_name,
+                        prose_finding.rule_id,
+                        prose_finding.message,
+                        excerpt,
+                    )
+                )
+    return findings
+
+
+def source_resume_lint_findings(paths: tuple[Path, ...] = SOURCE_RESUME_PATHS) -> list[SourceLintFinding]:
+    findings: list[SourceLintFinding] = []
+    for path in paths:
+        findings.extend(source_lint_findings_for_paragraphs(path.name, docx_paragraph_infos_from_path(path)))
+    return findings
 
 
 def summary_prose_audit_notes(document_xml: Path) -> list[str]:

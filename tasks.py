@@ -50,6 +50,7 @@ class Task:
 
 TASKS: dict[str, Task] = {
     "validate": Task("Run the smoke test and print a pass/fail summary.", ("scripts/smoke_test.py",), False),
+    "source-lint": Task("Validate source resume bullets before JD-specific tailoring selects them.", ("scripts/source_lint.py",), False),
     "integration-test": Task("Run the end-to-end function-chain integration test.", ("scripts/integration_test.py",), False),
     "morning": Task("Show a one-screen job-search briefing.", (), False),
     "ci": Task("Show how to run or trigger the GitHub Actions smoke-test workflow.", (), False),
