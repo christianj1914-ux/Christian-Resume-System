@@ -2297,7 +2297,8 @@ def normalize_role_bullet_endings(document_xml: Path) -> int:
         if not is_bullet(paragraph):
             continue
         current = re.sub(r"\s+", " ", paragraph_text(paragraph)).strip()
-        normalized = normalize_bullet_ending(current)
+        normalized = current.replace("discovery-to-go-live", "discovery-to-launch")
+        normalized = normalize_bullet_ending(normalized)
         if normalized and normalized != current:
             set_paragraph_text(paragraph, normalized)
             changed += 1

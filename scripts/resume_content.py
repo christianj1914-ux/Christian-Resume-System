@@ -1404,7 +1404,7 @@ def summary_fit_close_sentence(
     return (
         "Brings the most value when "
         + comma_series(selected_close_terms)
-        + " turn into durable adoption and fewer operational surprises."
+        + " turn into lasting usage and fewer operational surprises."
     )
 
 
@@ -1487,7 +1487,7 @@ def compact_summary_close(close: str) -> str:
     compact = finish_summary_sentence(close)
     compact = re.sub(r"\s+with\s+[^.]+(?=\.)", "", compact, flags=re.I)
     compact = re.sub(r"\s+across\s+[^.]+(?=\.)", "", compact, flags=re.I)
-    compact = compact.replace("durable adoption and fewer operational surprises", "lasting adoption and fewer operational surprises")
+    compact = compact.replace("durable adoption and fewer operational surprises", "lasting usage and fewer operational surprises")
     return finish_summary_sentence(compact)
 
 
@@ -2463,7 +2463,7 @@ def optimized_role_summary(
         body = (
             "Delivered 12 full-lifecycle ERP implementations and managed up to four at a time for 80+ manufacturing "
             "clients across international environments. Turned ambiguous requirements into cleaner configurations "
-            "and steadier post-go-live adoption through structured issue ownership."
+            "and steadier adoption after launch through structured issue ownership."
         )
         if emphasis.proof_anchor == "revenue":
             body = (
@@ -2480,7 +2480,7 @@ def optimized_role_summary(
         elif emphasis.proof_anchor == "adoption":
             body = (
                 "Moved 80+ manufacturing clients across the Americas, Europe, and Asia from unclear requirements to "
-                "usable go-live outcomes through discovery, configuration, testing, customer training, and post-go-live adoption support."
+                "usable go-live outcomes through discovery, configuration, testing, customer training, and adoption support after launch."
             )
         elif emphasis.proof_anchor == "ai":
             body = (
@@ -2501,9 +2501,9 @@ def optimized_role_summary(
                 else "structured issue ownership and stakeholder communication"
             )
             body = (
-                "Ran full ERP lifecycle delivery for 80+ manufacturing clients across the Americas, Europe, and Asia, "
+                "Ran ERP lifecycle delivery for 80+ manufacturing clients across the Americas, Europe, and Asia, "
                 "turning ambiguous requirements into working configurations, cleaner data migrations, and steadier "
-                f"post-go-live adoption. Supported {delivery_phrase} through {support_phrase}."
+                f"adoption after launch. Supported {delivery_phrase} through {support_phrase}."
             )
         if profile.primary_lane == "customer_success":
             body = (
@@ -2514,10 +2514,10 @@ def optimized_role_summary(
             )
         elif profile.primary_lane == "change_enablement":
             body = (
-                "Led change adoption and full-lifecycle ERP delivery for 80+ manufacturing clients across the Americas, "
+                "Led change adoption and ERP delivery for 80+ manufacturing clients across the Americas, "
                 "Europe, and Asia, designing training programs, adoption guides, and stakeholder communications that "
                 "reduced resistance and improved go-live confidence. Managed scope alignment, risk visibility, and "
-                "post-go-live support through customer handoff."
+                "support after launch through customer handoff."
             )
         elif profile.primary_lane == "corporate_strategy":
             body = (
@@ -2527,9 +2527,9 @@ def optimized_role_summary(
             )
         elif jd_mentions(job_description, "technical sales", "sales pursuits", "rfp", "executive", "solution design"):
             body = (
-                "Drove pre-sales and full-lifecycle ERP delivery for 80+ manufacturing clients across the Americas, "
+                "Drove pre-sales and ERP delivery for 80+ manufacturing clients across the Americas, "
                 "Europe, and Asia, using discovery, solution design, and implementation judgment to shorten sales "
-                "cycles and improve post-go-live adoption."
+                "cycles and improve adoption after launch."
             )
     elif company_key == normalize_compare(COMPANY_HOME_DEPOT):
         body = (
