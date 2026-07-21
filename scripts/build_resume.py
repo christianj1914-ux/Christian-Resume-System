@@ -3101,6 +3101,207 @@ def classify_keyword_gap_support(keyword: str, source_resume_text: str, profile:
     return "unsupported-do-not-insert"
 
 
+def supported_keyword_surface_candidates(
+    job_description: str,
+    resume_text: str,
+    source_resume_text: str,
+    *,
+    limit: int = 6,
+) -> list[str]:
+    profile = job_problem_profile(job_description, source_resume_text or resume_text)
+    placement_report = keyword_placement_audit(job_description, resume_text, limit=12)
+    ordered: list[str] = []
+    for gap in placement_report.get("gaps", []):
+        if not isinstance(gap, dict):
+            continue
+        keyword = str(gap.get("keyword", "")).strip()
+        if keyword:
+            ordered.append(keyword)
+    for keyword in sorted(
+        audit_keywords(job_description),
+        key=lambda item: audit_keyword_sort_key(job_description, item),
+        reverse=True,
+    ):
+        if keyword not in ordered:
+            ordered.append(keyword)
+
+    selected: list[str] = []
+    seen: set[str] = set()
+    for keyword in ordered:
+        normalized = normalize_compare(keyword)
+        if not normalized or normalized in seen or is_generic_soft_keyword(keyword):
+            continue
+        if contains_search_term(resume_text, keyword) and any(
+            contains_search_term(section, keyword)
+            for section in (
+                professional_summary_text_from_text(resume_text),
+                " ".join(experience_bullet_texts_from_text(resume_text)[:5]),
+            )
+        ):
+            continue
+        if classify_keyword_gap_support(keyword, source_resume_text, profile) == "unsupported-do-not-insert":
+            continue
+        selected.append(keyword)
+        seen.add(normalized)
+        if len(selected) >= limit:
+            break
+    return selected
+
+
+def keyword_surface_piece(keyword: str) -> str:
+    normalized = normalize_compare(keyword)
+    if normalized == "customer":
+        return "customer-facing"
+    if normalized == "process":
+        return "process improvement"
+    if normalized == "technical":
+        return "technical delivery"
+    if normalized == "teams delivery":
+        return "teams delivery plans"
+    if normalized == "program":
+        return "program delivery"
+    if normalized == "management":
+        return "management follow-through"
+    if normalized == "communication":
+        return "stakeholder communication"
+    return keyword
+
+
+def keyword_surface_focus_phrase(keywords: list[str], *, max_pieces: int = 2) -> str:
+    if not keywords:
+        return ""
+    normalized = {normalize_compare(keyword): keyword for keyword in keywords}
+    pieces: list[str] = []
+    if "program management" in normalized:
+        pieces.append("program management")
+
+    singles = [normalize_compare(keyword) for keyword in keywords if " " not in normalize_compare(keyword)]
+    if "teams delivery" in normalized and {"customer", "technical"} <= set(singles):
+        pieces.append("customer-facing technical delivery and teams delivery plans")
+    elif "teams delivery" in normalized:
+        pieces.append("teams delivery plans")
+    if "teams delivery" in normalized:
+        pass
+    elif {"customer", "process", "technical"} <= set(singles):
+        pieces.append("customer-facing process and technical delivery")
+    elif {"customer", "process"} <= set(singles):
+        pieces.append("customer-facing process improvement")
+    elif {"customer", "technical"} <= set(singles):
+        pieces.append("customer-facing technical delivery")
+    elif {"technical", "delivery"} <= set(singles):
+        pieces.append("technical delivery")
+
+    if any("teams delivery plans" in piece and "customer-facing technical delivery" in piece for piece in pieces):
+        return pieces[0]
+
+    for keyword in keywords:
+        piece = keyword_surface_piece(keyword)
+        if piece and not any(piece in existing or existing in piece for existing in pieces):
+            pieces.append(piece)
+        if len(pieces) >= max_pieces:
+            break
+    if not pieces:
+        return ""
+    if len(pieces) == 1:
+        return pieces[0]
+    return f"{pieces[0]} and {pieces[1]}"
+
+
+def split_summary_sentences(summary: str) -> list[str]:
+    return [part.strip() for part in re.split(r"(?<=[.!?])\s+", summary.strip()) if part.strip()]
+
+
+def weave_supported_keywords_into_summary(
+    summary: str,
+    job_description: str,
+    source_resume_text: str,
+) -> str:
+    current_hits = keyword_hits(
+        summary,
+        {
+            keyword
+            for keyword in audit_keywords(job_description)
+            if not is_unsupported_do_not_insert(keyword, source_resume_text, job_description)
+        },
+    )
+    if current_hits >= 3:
+        return summary
+    candidates = supported_keyword_surface_candidates(job_description, summary, source_resume_text, limit=6)
+    focus = keyword_surface_focus_phrase(candidates, max_pieces=2)
+    if not focus:
+        return summary
+    sentences = split_summary_sentences(summary)
+    if len(sentences) != 3:
+        return summary
+    first = sentences[0].rstrip(".")
+    if contains_search_term(first, focus):
+        return summary
+    candidate_first = f"{first}, with emphasis on {focus}."
+    if len(candidate_first.split()) <= 34:
+        candidate = " ".join([candidate_first, *sentences[1:]])
+        if PROFESSIONAL_SUMMARY_MIN_WORDS <= len(candidate.split()) <= PROFESSIONAL_SUMMARY_MAX_WORDS:
+            return candidate
+    focus_verb = "need" if " and " in focus or focus.endswith("plans") else "needs"
+    compact_close = f"Brings the most value when {focus} {focus_verb} measurable execution, training, and adoption follow-through."
+    candidate = " ".join([sentences[0], sentences[1], compact_close])
+    if PROFESSIONAL_SUMMARY_MIN_WORDS <= len(candidate.split()) <= PROFESSIONAL_SUMMARY_MAX_WORDS:
+        return candidate
+    return summary
+
+
+def weave_supported_keywords_into_top_bullets(
+    document_xml: Path,
+    job_description: str,
+    source_resume_text: str,
+    *,
+    max_bullets: int = 3,
+) -> int:
+    current_text = visible_text(document_xml)
+    candidates = supported_keyword_surface_candidates(job_description, current_text, source_resume_text, limit=6)
+    top_text = " ".join(role_top_bullet_texts(document_xml, AUDIT_TOP_ROLE_TITLES, limit=5))
+    missing = [keyword for keyword in candidates if not contains_search_term(top_text, keyword)]
+    if not missing:
+        return 0
+    tree = ET.parse(document_xml)
+    paragraphs = tree.getroot().findall(f".//{W}p")
+    normalized_titles = {normalize_compare(title) for title in AUDIT_TOP_ROLE_TITLES}
+    active = False
+    changed = 0
+    cursor = 0
+    for paragraph in paragraphs:
+        text = re.sub(r"\s+", " ", paragraph_text(paragraph)).strip()
+        if not text:
+            continue
+        if text.startswith(AUDIT_TOP_ROLE_TITLES) or normalize_compare(normalize_title(text)) in normalized_titles:
+            active = True
+            continue
+        if active and is_role_heading(text):
+            active = False
+        if not active or not is_bullet(paragraph):
+            continue
+        if changed >= max_bullets or cursor >= len(missing):
+            break
+        keyword = missing[cursor]
+        if contains_search_term(text, keyword):
+            cursor += 1
+            continue
+        piece = keyword_surface_piece(keyword)
+        if not piece:
+            cursor += 1
+            continue
+        updated = text.rstrip(".")
+        if len(updated.split()) <= 28:
+            updated = f"{updated}, strengthening {piece}."
+        else:
+            updated = f"{updated}; strengthened {piece}."
+        set_paragraph_text(paragraph, updated)
+        changed += 1
+        cursor += 1
+    if changed:
+        tree.write(document_xml, encoding="utf-8", xml_declaration=True)
+    return changed
+
+
 def aggressively_close_supported_keyword_gaps(
     document_xml: Path,
     job_description: str,
@@ -4462,6 +4663,11 @@ def build_resume() -> BuildResult:
             paragraphs_rewritten += limit_cutover_mentions(document_xml)
             paragraphs_rewritten += scrub_non_erp_resume_language(document_xml, job_description)
             paragraphs_rewritten += normalize_role_bullet_endings(document_xml)
+            paragraphs_rewritten += weave_supported_keywords_into_top_bullets(
+                document_xml,
+                job_description,
+                selected_resume_text,
+            )
 
             # Phase 6 content boundary: candidate mutations stop here. Summary,
             # role-summary, and bullet content becomes a provenance-bearing
@@ -4475,6 +4681,11 @@ def build_resume() -> BuildResult:
                 job_description,
                 selected_resume_text,
                 variant_index=variant_index,
+            )
+            composed_summary = weave_supported_keywords_into_summary(
+                composed_summary,
+                job_description,
+                selected_resume_text,
             )
             summary_outcome = prose_engine.repair_text(composed_summary, "summary")
             if not summary_outcome.converged:

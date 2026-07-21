@@ -3795,6 +3795,44 @@ def test_keyword_placement_audit(build_resume: object) -> None:
     )
 
 
+def test_s3_supported_keyword_weave_targets_priority_summaries(build_resume: object) -> None:
+    cases = (
+        (
+            "20260720_225241_Adobe_Senior_Program_Manager_GSO_d8bcc5f7",
+            ("program management", "customer", "process"),
+        ),
+        (
+            "20260720_222322_Blue_Yonder_Program_Manager_83b35faa",
+            ("technical", "customer", "delivery"),
+        ),
+    )
+    for snapshot_id, expected_terms in cases:
+        job_description = (
+            PROJECT_ROOT / "scratch" / "jd_library" / snapshot_id / "job_description.txt"
+        ).read_text(encoding="utf-8-sig")
+        source_text = build_resume.docx_visible_text_from_path(build_resume.choose_resume(job_description))
+        summary = build_resume.build_problem_first_summary(job_description, source_text)
+        woven = build_resume.weave_supported_keywords_into_summary(summary, job_description, source_text)
+        supported_keywords = {
+            keyword
+            for keyword in build_resume.audit_keywords(job_description)
+            if not build_resume.is_unsupported_do_not_insert(keyword, source_text, job_description)
+        }
+        assert_true(
+            build_resume.keyword_hits(woven, supported_keywords) >= 3,
+            f"S3 summary weave should lift supported job-language hits for {snapshot_id}; got {woven!r}",
+        )
+        for term in expected_terms:
+            assert_true(
+                build_resume.contains_search_term(woven, term),
+                f"S3 summary weave should surface supported term {term!r}; got {woven!r}",
+            )
+        assert_true(
+            "[unsupported-do-not-insert]" not in woven,
+            f"S3 summary weave should never insert unsupported markers; got {woven!r}",
+        )
+
+
 def test_obvious_choice_positioning(build_resume: object, build_cover_letter: object, build_interview_cheat_sheet: object) -> None:
     job_description = LANE_JOB_DESCRIPTIONS["change_enablement"]
     profile = build_resume.job_problem_profile(job_description)
@@ -12891,6 +12929,7 @@ def main() -> None:
         ("XML page estimate word guard", None),
         ("resume non-ERP audit ignores company context", None),
         ("keyword placement audit", None),
+        ("S3 supported keyword weave targets priority summaries", None),
         ("build resume uses selected resume text for profile and alignment", None),
         ("obvious choice positioning", None),
         ("positioning statement output", None),
@@ -13305,6 +13344,7 @@ def main() -> None:
             ("resume non-ERP audit ignores company context", lambda: test_resume_non_erp_audit_ignores_company_context(build_resume)),
             ("planned competency trim integrity", lambda: test_resume_integrity_allows_planned_competency_trim(build_resume)),
             ("keyword placement audit", lambda: test_keyword_placement_audit(build_resume)),
+            ("S3 supported keyword weave targets priority summaries", lambda: test_s3_supported_keyword_weave_targets_priority_summaries(build_resume)),
             ("build resume uses selected resume text for profile and alignment", lambda: test_build_resume_uses_selected_resume_text_for_profile_and_alignment_report(build_resume)),
             ("obvious choice positioning", lambda: test_obvious_choice_positioning(build_resume, build_cover_letter, build_interview_cheat_sheet)),
             ("positioning statement output", lambda: test_positioning_statement_output(build_resume, build_interview_cheat_sheet)),
