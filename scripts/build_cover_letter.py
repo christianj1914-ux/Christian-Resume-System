@@ -88,6 +88,9 @@ COVER_INTERNAL_TOKEN_PATTERNS: tuple[tuple[str, str], ...] = (
     (r"\bprocess_improvement\b", "process_improvement"),
     (r"\brole-based enablement and adoption work\b", "role-based enablement and adoption work"),
     (r"\bconsulting and structured problem solving this role calls for\b", "consulting and structured problem solving this role calls for"),
+    (r"\bconfiguration choices, and follow-through stay aligned through go-live\b", "configuration choices ... through go-live"),
+    (r"\bWhat motivates me is using technology to help people and organizations work better\b", "generic motivation sentence"),
+    (r"\bthe and plant controllers\b", "the and plant controllers"),
     (r"\bkind of [a-z, ]+ environment where\b", "kind of ... environment where"),
 )
 
@@ -522,6 +525,7 @@ def cover_problem_context(company_name: str, role_title: str, job_description: s
     )
     phrase = safe_connector_fragment(phrase, max_words=12) or build_resume.natural_problem_phrase(profile)
     phrase = re.sub(r"^(?:the need to|need to)\s+", "", phrase, flags=re.I).strip(" .")
+    phrase = sanitize_cover_context_artifacts(phrase)
     if not phrase:
         phrase = "turning complex operating needs into usable outcomes"
     return safe_sentence(
@@ -566,7 +570,7 @@ def short_company_interest_sentence(
             re.I,
         ):
             if not synthetic_cover_interest(first, company_name):
-                return safe_sentence(first)
+                return safe_sentence(sanitize_cover_context_artifacts(first))
             return cover_problem_context(company_name, role_title, job_description, resume_text)
         first = re.sub(
             rf"^I am interested in the\s+.+?\s+role at\s+{re.escape(company_name)}\s+because\s+",
@@ -1000,6 +1004,8 @@ def select_proof_sentences(
             row["rejection_reason"] = "generic_proof"
         elif any(cover_sentences_near_duplicate(cleaned, sentence) for sentence in opening_sentences):
             row["rejection_reason"] = "duplicate_with_opening"
+        elif not proof_sentence_matches_job(cleaned, job_description):
+            row["rejection_reason"] = "proof_context_mismatch"
         elif cover_sentence_is_generic(cleaned, company_name, role_title, job_description) and not paragraph_has_fast_proof(cleaned):
             row["rejection_reason"] = "generic_proof"
         else:
@@ -3420,12 +3426,29 @@ def jd_concrete_hook(job_description: str) -> str:
     return _fallback_jd_hook(job_description)
 
 
+def cover_safe_concrete_hook(job_description: str) -> str:
+    hook = jd_concrete_hook(job_description)
+    if re.search(r"\bassessment quality and excel\b", hook, re.I):
+        return "support reporting and workflow priorities"
+    return hook
+
+
+def sanitize_cover_context_artifacts(text: str) -> str:
+    return re.sub(
+        r"\bassessment quality and Excel\b",
+        "reporting and workflow priorities",
+        text,
+        flags=re.I,
+    )
+
+
 def proof_first_opening_paragraph(
     brief: question_prep.PositioningBrief,
     company_name: str,
     role_title: str,
+    job_description: str,
 ) -> str:
-    concrete_hook = jd_concrete_hook(read_text(JOB_DESCRIPTION))
+    concrete_hook = cover_safe_concrete_hook(job_description)
     fallback_context_sentence = ensure_sentence(
         f"{company_name} is hiring {with_indefinite_article(role_title)} to {concrete_hook}."
     )
@@ -3436,7 +3459,7 @@ def proof_first_opening_paragraph(
     )
     if context_sentence == fallback_context_sentence:
         role_sentence = ensure_sentence(
-            "The work only lands when client requirements, configuration choices, and follow-through stay aligned through go-live."
+            role_specific_cover_work_sentence(brief, concrete_hook, company_name, role_title, job_description)
         )
     else:
         role_sentence = ensure_sentence(
@@ -3452,28 +3475,107 @@ def proof_first_opening_paragraph(
         # sentence first since it is the least essential of the three when the
         # company-context and role-framing sentences alone already run long.
         opening = join_answer_sentences(context_sentence, role_sentence)
+    opening = sanitize_cover_context_artifacts(opening)
     return repair_cover_paragraph(opening, "cover opening")
 
 
-def proof_first_proof_paragraph(brief: question_prep.PositioningBrief) -> str:
-    base_sentence = brief.selected_proof_sentences[0] if brief.selected_proof_sentences else ensure_sentence(
-        f"The background already includes {brief.strongest_direct_proofs[0]} in complex, cross-functional environments."
+def role_specific_cover_work_sentence(
+    brief: question_prep.PositioningBrief,
+    concrete_hook: str,
+    company_name: str,
+    role_title: str,
+    job_description: str,
+) -> str:
+    lane_focus = {
+        "analytics_operations": "reporting, recommendations, and stakeholder decisions",
+        "change_enablement": "training, adoption, and stakeholder follow-through",
+        "corporate_strategy": "analysis, tradeoffs, and execution planning",
+        "customer_success": "customer adoption, account risk, and value conversations",
+        "implementation_delivery": "scope, testing, launch readiness, and adoption",
+        "presales_solution": "discovery, solution proof, and buyer confidence",
+    }.get(brief.primary_lane, "stakeholder decisions and measurable follow-through")
+    specialty_terms = extract_cover_letter_terms(
+        job_description,
+        brief.primary_lane,
+        cover_letter_jd_sections(job_description),
     )
-    sentences = [ensure_sentence(base_sentence)]
+    if specialty_terms:
+        first = specialty_terms[0]
+        second = specialty_terms[1] if len(specialty_terms) > 1 else "stakeholder communication"
+        third = specialty_terms[2] if len(specialty_terms) > 2 else "delivery follow-through"
+        return (
+            f"The work calls for {first} that keeps {second} clear and uses {third} "
+            "to connect scope with launch readiness and handoff discipline."
+        )
+    return (
+        f"The work calls for {lane_focus} that keeps scope, launch readiness, and handoff discipline connected."
+    )
+
+
+def proof_sentence_matches_job(sentence: str, job_description: str) -> bool:
+    lowered = sentence.lower()
+    jd_lower = job_description.lower()
+    warehouse_terms = ("warehouse", "amazon robotics", "robotics", "inventory", "supply chain", "manufacturing")
+    if any(term in lowered for term in warehouse_terms) and not any(
+        term in jd_lower
+        for term in (
+            "warehouse",
+            "robotics",
+            "inventory",
+            "supply chain",
+            "manufacturing",
+            "logistics",
+            "erp",
+            "wms",
+        )
+    ):
+        return False
+    return True
+
+
+def distinct_proof_sentences(
+    brief: question_prep.PositioningBrief,
+    job_description: str,
+    *,
+    limit: int = 2,
+) -> list[str]:
+    selected: list[str] = []
+    candidates = [
+        sentence
+        for sentence in brief.selected_proof_sentences
+        if proof_sentence_matches_job(sentence, job_description)
+    ]
+    for sentence in candidates:
+        cleaned = ensure_sentence(sentence)
+        if not cleaned:
+            continue
+        if any(cover_sentences_near_duplicate(cleaned, existing) for existing in selected):
+            continue
+        selected.append(cleaned)
+        if len(selected) >= limit:
+            break
+    if not selected:
+        fallback_themes = " and ".join(brief.strongest_direct_proofs[:2])
+        if not fallback_themes:
+            fallback_themes = brief.strongest_bridge_theme or brief.role_problem_phrase
+        selected.append(ensure_sentence(f"The background already includes {fallback_themes} in complex operating environments."))
+    return selected
+
+
+def proof_first_proof_paragraph(brief: question_prep.PositioningBrief, job_description: str) -> str:
+    sentences = distinct_proof_sentences(brief, job_description, limit=2)
     if brief.top_proof_anchors:
         anchor = brief.top_proof_anchors[0]
-        if anchor.lower() not in base_sentence.lower():
+        if not any(anchor.lower() in sentence.lower() for sentence in sentences):
             sentences.append(ensure_sentence(f"The scope of that work included {anchor}."))
-    return join_answer_sentences(*sentences)
+    return repair_cover_paragraph(join_answer_sentences(*sentences[:2]), "cover proof paragraph")
 
 
-def proof_first_support_paragraph(brief: question_prep.PositioningBrief) -> str:
-    if len(brief.selected_proof_sentences) > 1:
+def proof_first_support_paragraph(brief: question_prep.PositioningBrief, job_description: str) -> str:
+    support_sentences = distinct_proof_sentences(brief, job_description, limit=3)[1:]
+    if support_sentences:
         return repair_cover_paragraph(
-            join_answer_sentences(
-            brief.selected_proof_sentences[1],
-            brief.selected_proof_sentences[2] if len(brief.selected_proof_sentences) > 2 else "",
-            ),
+            join_answer_sentences(*support_sentences[:2]),
             "cover support paragraph",
         )
     if brief.strongest_bridge_theme:
@@ -3525,9 +3627,9 @@ def build_cover_letter_proof_first(
     job_description: str = "",
 ) -> CoverLetterPlan:
     normalized_mode = normalize_cover_mode(mode)
-    opening = proof_first_opening_paragraph(brief, company_name, role_title)
-    proof = proof_first_proof_paragraph(brief)
-    support = proof_first_support_paragraph(brief)
+    opening = proof_first_opening_paragraph(brief, company_name, role_title, job_description)
+    proof = proof_first_proof_paragraph(brief, job_description)
+    support = proof_first_support_paragraph(brief, job_description)
     close = proof_first_close_paragraph(
         brief,
         company_name,
@@ -3539,7 +3641,19 @@ def build_cover_letter_proof_first(
     banned_issues = cover_letter_banned_phrase_issues(letter_text)
     if banned_issues:
         fail("; ".join(banned_issues))
-    signals = cover_letter_signals_from_brief(brief)
+    safe_proofs = distinct_proof_sentences(brief, job_description, limit=3)
+    safe_anchors = [
+        anchor
+        for anchor in brief.top_proof_anchors
+        if proof_sentence_matches_job(anchor, job_description)
+    ]
+    signals = replace(
+        cover_letter_signals_from_brief(brief),
+        top_accomplishment=safe_proofs[0] if safe_proofs else brief.role_problem_phrase,
+        ambiguity_process=safe_proofs[1] if len(safe_proofs) > 1 else "",
+        jd_test_environments=tuple(safe_anchors[:2]),
+        communication_metric=safe_anchors[0] if safe_anchors else "",
+    )
     return CoverLetterPlan(
         company_name=company_name,
         role_title=role_title,
@@ -3558,14 +3672,14 @@ def build_cover_letter_proof_first(
         workflow=support if normalized_mode == LONG_COVER_MODE else "",
         communication="",
         closing=close,
-        proof_mapped_terms=tuple(brief.top_proof_anchors[:2] or brief.strongest_direct_proofs[:2]),
+        proof_mapped_terms=tuple(safe_anchors[:2] or safe_proofs[:2] or brief.strongest_direct_proofs[:2]),
         close_mapped_terms=(brief.role_problem_phrase,),
         warnings=(),
         blockers=(),
         selection_debug={
             "resume_audit_state": resume_audit_state,
-            "proof_sentences": list(brief.selected_proof_sentences),
-            "proof_anchors": list(brief.top_proof_anchors),
+            "proof_sentences": list(safe_proofs),
+            "proof_anchors": list(safe_anchors),
             "employer_type": brief.employer_type,
         },
     )
@@ -4921,6 +5035,7 @@ def smooth_cover_letter_text(
         cleaned,
         flags=re.I,
     )
+    cleaned = re.sub(r"\bthe and plant controllers\b", "the CFO and plant controllers", cleaned, flags=re.I)
     cleaned = re.sub(
         r"\b([A-Z][A-Za-z]{2,40}):\s+",
         lambda match: f"{match.group(1)}. ",

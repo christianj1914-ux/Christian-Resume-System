@@ -8611,6 +8611,8 @@ def test_f5_randstad_cover_draft_stays_specific_and_natural(build_cover_letter: 
                 "randstad is the kind of",
                 "assessment quality and excel",
                 "role-based enablement and adoption work",
+                "configuration choices, and follow-through stay aligned through go-live",
+                "what motivates me is using technology to help people and organizations work better",
             )
         ),
         f"Randstad cover should not leak internal/template phrasing; got {letter_text}",
@@ -8671,6 +8673,56 @@ def test_cover_letter_validator_blocks_internal_lane_language(build_cover_letter
         )
         return
     raise SmokeFailure("validate_cover_letter_text() should fail when cover prose leaks internal lane/template language")
+
+
+def test_cover_letter_validator_blocks_canned_f5_sentences(build_cover_letter: object) -> None:
+    bad_text = "\n".join(
+        [
+            f"Christian Estrada | Atlanta, GA | christianj1914@gmail.com | {build_cover_letter.build_resume.LINKEDIN_URL}",
+            "Dear Hiring Manager,",
+            "I am interested in the Implementation Consultant role at Smoke Test Systems because the team needs steady implementation delivery and stakeholder alignment.",
+            "Built 200+ reporting tools across five-site operations where leaders needed clearer workflow visibility and decision support.",
+            "The work only lands when client requirements, configuration choices, and follow-through stay aligned through go-live. What motivates me is using technology to help people and organizations work better.",
+            "Thank you for your time and consideration,",
+            "Christian Estrada",
+        ]
+    )
+    try:
+        build_cover_letter.validate_cover_letter_text(
+            bad_text,
+            DUMMY_JOB_DESCRIPTION,
+            "Smoke Test Systems",
+            mode=build_cover_letter.STANDARD_COVER_MODE,
+        )
+    except SystemExit as error:
+        assert_true(
+            "configuration choices" in str(error) and "generic motivation" in str(error),
+            f"validate_cover_letter_text() should explain canned F5 prose; got {error}",
+        )
+        return
+    raise SmokeFailure("validate_cover_letter_text() should fail when canned F5 sentences return")
+
+
+def test_cover_letter_avoids_warehouse_proof_for_fintech(build_cover_letter: object, build_resume: object) -> None:
+    jd_path = PROJECT_ROOT / "scratch" / "jd_library" / "20260720_184346_Advyzon_Technical_Consultant_137f41db" / "job_description.txt"
+    job_description = jd_path.read_text(encoding="utf-8-sig")
+    resume_text = build_resume.docx_visible_text_from_path(build_resume.choose_resume(job_description))
+    draft = build_cover_letter.compose_cover_letter_draft(
+        "Advyzon",
+        "Technical Consultant",
+        job_description,
+        resume_text,
+        mode=build_cover_letter.STANDARD_COVER_MODE,
+    )
+    proof = draft.body_paragraphs[1] if len(draft.body_paragraphs) > 1 else ""
+    assert_true(
+        not re.search(r"\b(?:warehouse|Amazon Robotics|robotics)\b", proof, re.I),
+        f"Fintech technical-consultant proof paragraph should not lead with warehouse/Amazon proof; got {proof!r}",
+    )
+    assert_true(
+        build_cover_letter.paragraph_has_fast_proof(proof),
+        f"Fintech proof paragraph should still carry concrete supported proof; got {proof!r}",
+    )
 
 
 def test_cover_letter_validator_blocks_generic_experience_summary(build_cover_letter: object) -> None:
@@ -12051,7 +12103,7 @@ def test_candidate_facing_outputs_avoid_raw_core_problem(build_resume: object, b
     )
     candidate_text = "\n".join(
         [
-            build_cover_letter.proof_first_support_paragraph(brief),
+            build_cover_letter.proof_first_support_paragraph(brief, LANE_JOB_DESCRIPTIONS["implementation_delivery"]),
             *build_interview_cheat_sheet.closing_fit_summary(profile),
             *build_interview_cheat_sheet.phone_screen_first_round_playbook(
                 profile,
@@ -13340,6 +13392,8 @@ def main() -> None:
             ("force-bridge standard cover stays natural", lambda: test_force_bridge_standard_cover_stays_natural(build_cover_letter)),
             ("F5 Randstad cover draft stays natural", lambda: test_f5_randstad_cover_draft_stays_specific_and_natural(build_cover_letter, build_resume)),
             ("cover letter validator blocks internal lane language", lambda: test_cover_letter_validator_blocks_internal_lane_language(build_cover_letter)),
+            ("cover letter validator blocks canned F5 sentences", lambda: test_cover_letter_validator_blocks_canned_f5_sentences(build_cover_letter)),
+            ("cover letter avoids warehouse proof for fintech", lambda: test_cover_letter_avoids_warehouse_proof_for_fintech(build_cover_letter, build_resume)),
             ("cover letter validator blocks generic experience summary", lambda: test_cover_letter_validator_blocks_generic_experience_summary(build_cover_letter)),
             ("cover letter QC rejects lowercase proof paragraph", lambda: test_cover_letter_qc_rejects_lowercase_proof_paragraph(build_cover_letter)),
             ("cover opening names company specific role context", lambda: test_cover_opening_names_company_specific_role_context(build_cover_letter)),
