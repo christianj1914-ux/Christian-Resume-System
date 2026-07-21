@@ -1049,8 +1049,20 @@ def apply_summary_context(positioning: str, context: str) -> str:
     positioning_lower = positioning.lower()
     buyer_context_redundant = "buyer" in context.lower() and re.search(r"\bcustomers?\b|\bbuyers?\b", positioning_lower)
     preposition_pileup = re.search(r"\bfor\b", positioning_lower) and context.lower().strip().startswith("for ")
-    if context_core and context_core not in positioning_lower and not buyer_context_redundant and not preposition_pileup:
-        return f"{positioning}{context}"
+    candidate = f"{positioning}{context}"
+    density_risk = (
+        summary_word_count(candidate) > 34
+        or len(re.findall(r"\band\b", candidate, re.I)) >= 4
+        or len(re.findall(r"\bfor\b", candidate, re.I)) >= 2
+    )
+    if (
+        context_core
+        and context_core not in positioning_lower
+        and not buyer_context_redundant
+        and not preposition_pileup
+        and not density_risk
+    ):
+        return candidate
     return positioning
 
 
@@ -1423,9 +1435,17 @@ def ensure_summary_minimum_words(
     profile: JobProblemProfile,
     job_description: str,
 ) -> str:
-    summary = f"{positioning} {proof} {close}"
+    summary = finalize_three_sentence_summary(positioning, proof, close, profile)
     if PROFESSIONAL_SUMMARY_MIN_WORDS <= summary_word_count(summary) <= PROFESSIONAL_SUMMARY_MAX_WORDS:
         return summary
+    if summary_word_count(summary) > PROFESSIONAL_SUMMARY_MAX_WORDS:
+        compact_close = compact_summary_close(close)
+        compact_summary = finalize_three_sentence_summary(positioning, proof, compact_close, profile)
+        if summary_word_count(compact_summary) <= PROFESSIONAL_SUMMARY_MAX_WORDS:
+            return compact_summary
+        shorter_close = short_summary_close_sentence(profile, job_description)
+        shorter_summary = finalize_three_sentence_summary(positioning, proof, shorter_close, profile)
+        return shorter_summary
 
     extension = summary_minimum_close_extension(profile, job_description)
     close_core = close.rstrip(".")
@@ -1434,7 +1454,7 @@ def ensure_summary_minimum_words(
     else:
         close = f"{close_core}."
 
-    summary = f"{positioning} {proof} {close}"
+    summary = finalize_three_sentence_summary(positioning, proof, close, profile)
     if PROFESSIONAL_SUMMARY_MIN_WORDS <= summary_word_count(summary) <= PROFESSIONAL_SUMMARY_MAX_WORDS:
         return summary
 
@@ -1448,10 +1468,79 @@ def ensure_summary_minimum_words(
         start_count = 2 if len(checklist_items) >= 2 else 1
         for count in range(start_count, len(checklist_items) + 1):
             close_variant = f"{close_base} with {comma_series(checklist_items[:count])}."
-            summary = f"{positioning} {proof} {close_variant}"
+            summary = finalize_three_sentence_summary(positioning, proof, close_variant, profile)
             if PROFESSIONAL_SUMMARY_MIN_WORDS <= summary_word_count(summary) <= PROFESSIONAL_SUMMARY_MAX_WORDS:
                 return summary
     return summary
+
+
+def finish_summary_sentence(text: str) -> str:
+    sentence = re.sub(r"\s+", " ", text or "").strip(" ,;")
+    if not sentence:
+        return ""
+    if sentence[-1] not in ".!?":
+        sentence += "."
+    return sentence
+
+
+def compact_summary_close(close: str) -> str:
+    compact = finish_summary_sentence(close)
+    compact = re.sub(r"\s+with\s+[^.]+(?=\.)", "", compact, flags=re.I)
+    compact = re.sub(r"\s+across\s+[^.]+(?=\.)", "", compact, flags=re.I)
+    compact = compact.replace("durable adoption and fewer operational surprises", "lasting adoption and fewer operational surprises")
+    return finish_summary_sentence(compact)
+
+
+def short_summary_close_sentence(profile: JobProblemProfile, job_description: str) -> str:
+    lane_closes = {
+        "presales_solution": "Best used where discovery, solution design, and delivery judgment need to connect cleanly.",
+        "customer_success": "Best used where adoption planning, account health, and escalation ownership shape retention.",
+        "change_enablement": "Best used where training, workflow clarity, and stakeholder follow-through determine adoption.",
+        "analytics_operations": "Best used where reporting depth and operating judgment improve decision quality.",
+        "corporate_strategy": "Best used where analysis, stakeholder alignment, and execution judgment need to hold together.",
+        "implementation_delivery": "Best used where delivery ownership, testing, and adoption work need to stay connected.",
+    }
+    return lane_closes.get(profile.primary_lane) or (
+        f"Best used where {role_specialty_phrase(job_description, 'cross-functional delivery')} needs clear ownership and measurable follow-through."
+    )
+
+
+def trim_summary_sentence(sentence: str, *, max_words: int = 34) -> str:
+    sentence = finish_summary_sentence(sentence)
+    if summary_word_count(sentence) <= max_words:
+        return sentence
+    trimmed = re.sub(r"\s+for\s+(?:subscription and member-facing customer teams|cloud software and B2B enterprise buyers|B2B enterprise software buyers|manufacturing and supply chain operations)(?=\.)", "", sentence, flags=re.I)
+    trimmed = re.sub(r"\s+from discovery through go-live and post-launch adoption(?=\.)", "", trimmed, flags=re.I)
+    trimmed = re.sub(r"\s+across complex enterprise systems and platforms(?=\.)", " across enterprise systems", trimmed, flags=re.I)
+    if summary_word_count(trimmed) <= max_words:
+        return finish_summary_sentence(trimmed)
+    words = trimmed.rstrip(".").split()
+    while len(words) > max_words and words[-1].lower().strip(",;:.") in {
+        "and", "or", "for", "with", "through", "across", "into", "from", "to", "the", "a", "an",
+    }:
+        words.pop()
+    if len(words) > max_words:
+        words = words[:max_words]
+    return finish_summary_sentence(" ".join(words))
+
+
+def finalize_three_sentence_summary(
+    positioning: str,
+    proof: str,
+    close: str,
+    profile: JobProblemProfile,
+) -> str:
+    sentences = [
+        trim_summary_sentence(positioning),
+        trim_summary_sentence(proof),
+        trim_summary_sentence(close),
+    ]
+    if profile.primary_lane == "implementation_delivery":
+        sentences[0] = sentences[0].replace(
+            "building system and platform setups, migration plans, and go-live execution",
+            "guiding platform setup, migration planning, and go-live execution",
+        )
+    return re.sub(r"\s+", " ", " ".join(sentence for sentence in sentences if sentence)).strip()
 
 
 NAMED_ERP_PLATFORM_REPLACEMENTS = (

@@ -194,6 +194,27 @@ def clean_answer_sentence(text: str) -> str:
     return cleaned
 
 
+WHY_INTERESTED_FRAGMENT_START_RE = re.compile(
+    r"^(?:Adoption|User adoption|Data-trust issues|Platform|Platforms|Reporting|Workflow|Training|Testing|Go-live|Stakeholder|Customer)\b",
+    re.I,
+)
+
+
+def has_mid_list_sentence_fragment(text: str) -> bool:
+    return any(
+        WHY_INTERESTED_FRAGMENT_START_RE.search(sentence.strip())
+        for sentence in split_into_sentences(text)[1:]
+    )
+
+
+def preserves_why_interested_sentence_shape(original: str, repaired: str) -> bool:
+    original_sentences = split_into_sentences(original)
+    repaired_sentences = split_into_sentences(repaired)
+    if len(repaired_sentences) > len(original_sentences):
+        return False
+    return not has_mid_list_sentence_fragment(repaired)
+
+
 def clean_selected_proof_sentence(text: str) -> str:
     sentences = split_into_sentences(text)
     if (
@@ -1710,7 +1731,7 @@ def answer_prompt(prompt: str, job_description: str, snapshot: ResumeSnapshot, r
     )
     if category == "company_interest":
         spoken = prose_engine.spoken_register(finalized)
-        if spoken.converged:
+        if spoken.converged and preserves_why_interested_sentence_shape(finalized, spoken.text):
             finalized = spoken.text
     return QualificationsResponse(response.prompt, finalized, response.warning)
 
