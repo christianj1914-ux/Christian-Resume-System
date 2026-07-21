@@ -202,8 +202,14 @@ def preflight_warnings_from_output(output: str) -> list[str]:
 def review_blocking_artifact_status(output: str) -> str:
     if re.search(r"(?:Final audit:\s*DRAFT|Output DOCX:.*\bDRAFT\b)", output, re.I):
         return "DRAFT"
+    return ""
+
+
+def needs_review_artifact_status(output: str) -> str:
     if re.search(r"(?:Final audit:\s*FAIL|Output DOCX:.*\bFAIL\b)", output, re.I):
         return "FAIL"
+    if re.search(r"(?:Final audit:\s*POOR|Output DOCX:.*\bPOOR\b)", output, re.I):
+        return "POOR"
     return ""
 
 
@@ -582,6 +588,7 @@ def main() -> None:
     cover_preflight_warnings: list[str] = []
     resume_gap_blockers = ""
     review_artifact_status = ""
+    needs_review_status = ""
     for step_name, script_name, can_rebuild_resume in required_steps:
         result = run_with_recovery(step_name, script_name, can_rebuild_resume=can_rebuild_resume)
         if not result.ok:
@@ -600,9 +607,22 @@ def main() -> None:
                 "from downstream builders and tracker updates."
             )
             break
+        step_review_status = needs_review_artifact_status(result.output)
+        if step_review_status and not needs_review_status:
+            needs_review_status = step_review_status
+            print(
+                f"Workflow notice: a {needs_review_status} artifact was created. "
+                "Continuing to build review materials, but tracker auto-add will be skipped."
+            )
     if review_artifact_status:
         raise SystemExit(2)
-    run_tracker_auto_add()
+    if needs_review_status:
+        print(
+            f"\nApplication tracker was not updated automatically because a {needs_review_status} "
+            "artifact needs human review before submission."
+        )
+    else:
+        run_tracker_auto_add()
     if resume_only:
         print("\nDone. Resume-only build complete. Check the output folder and render_check folder.")
         if resume_gap_blockers:

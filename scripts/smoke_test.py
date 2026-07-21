@@ -10882,7 +10882,7 @@ def test_workflow_tracks_after_required_steps_before_optional_failure() -> None:
     )
 
 
-def test_workflow_stops_fail_artifacts_before_tracker() -> None:
+def test_workflow_continues_fail_artifacts_but_skips_tracker() -> None:
     import run_resume_workflow
 
     order: list[str] = []
@@ -10920,13 +10920,74 @@ def test_workflow_stops_fail_artifacts_before_tracker() -> None:
         run_resume_workflow.run_tracker_auto_add = lambda: order.append("tracker")
         stdout = io.StringIO()
         with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(io.StringIO()):
+            run_resume_workflow.main()
+    finally:
+        run_resume_workflow.parse_args = original_parse_args
+        run_resume_workflow.workspace_health.ensure_workspace_health_or_exit = original_workspace_health
+        run_resume_workflow.validate_job_description = original_validate_job_description
+        run_resume_workflow.run_with_recovery = original_run_with_recovery
+        run_resume_workflow.run_tracker_auto_add = original_run_tracker_auto_add
+        run_resume_workflow.job_context_archive.application_question_pairing_issue = original_pairing_issue
+
+    assert_true(
+        order == ["Building resume", "Building cover letter", "Building qualifications statement"],
+        f"Workflow should continue required builders after FAIL and avoid tracker; got {order}",
+    )
+    assert_true(
+        "Continuing to build review materials" in stdout.getvalue()
+        and "tracker was not updated automatically" in stdout.getvalue(),
+        f"Workflow should explain FAIL review handling; got {stdout.getvalue()!r}",
+    )
+
+
+def test_workflow_stops_draft_artifacts_before_downstream() -> None:
+    import run_resume_workflow
+
+    order: list[str] = []
+    original_parse_args = run_resume_workflow.parse_args
+    original_workspace_health = run_resume_workflow.workspace_health.ensure_workspace_health_or_exit
+    original_validate_job_description = run_resume_workflow.validate_job_description
+    original_run_with_recovery = run_resume_workflow.run_with_recovery
+    original_run_tracker_auto_add = run_resume_workflow.run_tracker_auto_add
+    original_pairing_issue = run_resume_workflow.job_context_archive.application_question_pairing_issue
+    try:
+        run_resume_workflow.parse_args = lambda: SimpleNamespace(
+            resume_only=False,
+            include_cheat_sheet=False,
+            include_detailed_guide=False,
+            dry_run=False,
+        )
+        run_resume_workflow.workspace_health.ensure_workspace_health_or_exit = lambda _workflow_name: {}
+        run_resume_workflow.validate_job_description = lambda _path: None
+        run_resume_workflow.job_context_archive.application_question_pairing_issue = lambda *_args: ""
+
+        def fake_run_with_recovery(step_name: str, script_name: str, *, can_rebuild_resume: bool = False):
+            order.append(step_name)
+            output = "Output DOCX: output/Christian Estrada - Acme Resume.docx\nFinal audit: PASS\n"
+            if step_name == "Building cover letter":
+                output = "Output DOCX: output/Christian Estrada - Acme DRAFT Cover Letter.docx\nFinal audit: DRAFT\n"
+            return run_resume_workflow.StepResult(
+                name=step_name,
+                returncode=0,
+                stdout=output,
+                stderr="",
+                log_path=Path("dummy.log"),
+                specificity_warnings=[],
+                cover_warnings=[],
+                preflight_warnings=[],
+            )
+
+        run_resume_workflow.run_with_recovery = fake_run_with_recovery
+        run_resume_workflow.run_tracker_auto_add = lambda: order.append("tracker")
+        stdout = io.StringIO()
+        with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(io.StringIO()):
             try:
                 run_resume_workflow.main()
-                raise SmokeFailure("run_resume_workflow.main() should exit when a FAIL artifact is created")
+                raise SmokeFailure("run_resume_workflow.main() should exit when a DRAFT artifact is created")
             except SystemExit as error:
                 assert_true(
                     error.code == 2,
-                    f"run_resume_workflow.main() should exit with review-required code 2 for FAIL artifacts; got {error.code}",
+                    f"run_resume_workflow.main() should exit with review-required code 2 for DRAFT artifacts; got {error.code}",
                 )
     finally:
         run_resume_workflow.parse_args = original_parse_args
@@ -10937,12 +10998,12 @@ def test_workflow_stops_fail_artifacts_before_tracker() -> None:
         run_resume_workflow.job_context_archive.application_question_pairing_issue = original_pairing_issue
 
     assert_true(
-        order == ["Building resume"],
-        f"Workflow should stop at the FAIL resume and avoid tracker/downstream builders; got {order}",
+        order == ["Building resume", "Building cover letter"],
+        f"Workflow should stop at DRAFT cover and avoid tracker/downstream builders; got {order}",
     )
     assert_true(
-        "FAIL artifact was created" in stdout.getvalue(),
-        f"Workflow should explain FAIL gating; got {stdout.getvalue()!r}",
+        "DRAFT artifact was created" in stdout.getvalue(),
+        f"Workflow should explain DRAFT gating; got {stdout.getvalue()!r}",
     )
 
 
@@ -13335,7 +13396,8 @@ def main() -> None:
             ("tracker refresh warning when output missing", test_tracker_refresh_warning_when_output_missing),
             ("debrief outcome mapping and notes", test_debrief_outcome_mapping_and_notes),
             ("workflow tracks before optional failure", test_workflow_tracks_after_required_steps_before_optional_failure),
-            ("workflow stops fail artifacts before tracker", test_workflow_stops_fail_artifacts_before_tracker),
+            ("workflow continues fail artifacts but skips tracker", test_workflow_continues_fail_artifacts_but_skips_tracker),
+            ("workflow stops draft artifacts before downstream", test_workflow_stops_draft_artifacts_before_downstream),
             ("workflow parses cover warning channels", test_workflow_parses_cover_warning_channels),
             ("tasks auto-archive environment for commercial command", test_tasks_auto_archive_environment_for_commercial_command),
             ("workflow hard-fails docx validation issues", test_workflow_hard_fails_docx_validation_issues),
