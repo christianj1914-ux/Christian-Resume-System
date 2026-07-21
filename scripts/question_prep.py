@@ -98,6 +98,7 @@ APPLICATION_BANNED_PHRASES = (
     "note:",
     "relevant to this role",
     "tailored to this role",
+    "what motivates me is using technology to help people and organizations work better",
 )
 
 MISSION_LED_EMPLOYER_PATTERN = re.compile(
@@ -377,6 +378,8 @@ def motivation_note_line(notes_text: str) -> str:
     )
     for line in note_lines(notes_text):
         if not re.search(r"\b(i|me|my)\b", line, re.I):
+            continue
+        if "what motivates me is using technology to help people and organizations work better" in line.lower():
             continue
         if any(re.search(pattern, line, re.I) for pattern in motivation_patterns):
             cleaned = line.strip().rstrip(".")

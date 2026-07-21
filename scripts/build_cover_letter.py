@@ -247,6 +247,7 @@ def active_cover_profile(
 
 def repair_cover_paragraph(text: str, label: str) -> str:
     cleaned = re.sub(r"\s+", " ", fix_indefinite_articles(text or "")).strip()
+    cleaned = re.sub(r"\bthe and plant controllers\b", "the CFO and plant controllers", cleaned, flags=re.I)
     issues = sentence_splice_issues(cleaned)
     if issues:
         fail(f"{label} contains unresolved grammar fragments: {', '.join(issues)}")

@@ -3212,6 +3212,14 @@ def split_summary_sentences(summary: str) -> list[str]:
     return [part.strip() for part in re.split(r"(?<=[.!?])\s+", summary.strip()) if part.strip()]
 
 
+def summary_weave_candidate_is_safe(candidate: str) -> bool:
+    sentences = split_summary_sentences(candidate)
+    if len(sentences) != 3:
+        return False
+    findings = prose_engine.validate_text(candidate, "summary")
+    return not any(finding.severity == "fail" for finding in findings)
+
+
 def weave_supported_keywords_into_summary(
     summary: str,
     job_description: str,
@@ -3240,12 +3248,18 @@ def weave_supported_keywords_into_summary(
     candidate_first = f"{first}, with emphasis on {focus}."
     if len(candidate_first.split()) <= 34:
         candidate = " ".join([candidate_first, *sentences[1:]])
-        if PROFESSIONAL_SUMMARY_MIN_WORDS <= len(candidate.split()) <= PROFESSIONAL_SUMMARY_MAX_WORDS:
+        if (
+            PROFESSIONAL_SUMMARY_MIN_WORDS <= len(candidate.split()) <= PROFESSIONAL_SUMMARY_MAX_WORDS
+            and summary_weave_candidate_is_safe(candidate)
+        ):
             return candidate
-    focus_verb = "need" if " and " in focus or focus.endswith("plans") else "needs"
-    compact_close = f"Brings the most value when {focus} {focus_verb} measurable execution, training, and adoption follow-through."
+    focus_verb = "connect" if " and " in focus or focus.endswith("s") else "connects"
+    compact_close = f"Brings the most value when {focus} {focus_verb} to measurable execution, training, and adoption follow-through."
     candidate = " ".join([sentences[0], sentences[1], compact_close])
-    if PROFESSIONAL_SUMMARY_MIN_WORDS <= len(candidate.split()) <= PROFESSIONAL_SUMMARY_MAX_WORDS:
+    if (
+        PROFESSIONAL_SUMMARY_MIN_WORDS <= len(candidate.split()) <= PROFESSIONAL_SUMMARY_MAX_WORDS
+        and summary_weave_candidate_is_safe(candidate)
+    ):
         return candidate
     return summary
 

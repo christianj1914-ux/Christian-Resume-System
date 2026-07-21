@@ -3833,6 +3833,32 @@ def test_s3_supported_keyword_weave_targets_priority_summaries(build_resume: obj
         )
 
 
+def test_s3_supported_keyword_weave_keeps_usaa_summary_three_sentences(build_resume: object) -> None:
+    import prose_engine
+
+    snapshot_id = "20260720_173137_USAA_P_C_Product_Management_Analyst_Consultant_0891f506"
+    job_description = (
+        PROJECT_ROOT / "scratch" / "jd_library" / snapshot_id / "job_description.txt"
+    ).read_text(encoding="utf-8-sig")
+    source_text = build_resume.docx_visible_text_from_path(build_resume.choose_resume(job_description))
+    summary = build_resume.build_problem_first_summary(job_description, source_text)
+    woven = build_resume.weave_supported_keywords_into_summary(summary, job_description, source_text)
+    repaired = prose_engine.repair_text(woven, "summary")
+    sentences = build_resume.summary_sentences(repaired.text)
+    assert_true(
+        len(sentences) == 3,
+        f"USAA summary weave/repair should preserve exactly three sentences; got {repaired.text!r}",
+    )
+    assert_true(
+        "workflow questions. Data-trust issues" not in repaired.text,
+        f"USAA summary should not split into the known fragment; got {repaired.text!r}",
+    )
+    assert_true(
+        repaired.converged,
+        f"USAA summary repair should converge without fragmenting; got {repaired.findings!r}",
+    )
+
+
 def test_obvious_choice_positioning(build_resume: object, build_cover_letter: object, build_interview_cheat_sheet: object) -> None:
     job_description = LANE_JOB_DESCRIPTIONS["change_enablement"]
     profile = build_resume.job_problem_profile(job_description)
@@ -7405,6 +7431,24 @@ def test_s5_qualifications_why_company_fixes_archived_defects(
             )
 
 
+def test_qualifications_default_interest_ignores_stale_global_motivation(
+    build_standard_qualifications_statement: object,
+    build_resume: object,
+) -> None:
+    question_prep = build_standard_qualifications_statement.question_prep
+    job_description = (
+        PROJECT_ROOT / "scratch" / "jd_library" / "20260720_170510_CivicPlus_Implementation_Consultant_be631cdc" / "job_description.txt"
+    ).read_text(encoding="utf-8-sig")
+    resume_text = build_resume.docx_visible_text_from_path(build_resume.choose_resume(job_description))
+    answer = question_prep.build_why_company_answer(
+        question_prep.active_positioning_brief(job_description, resume_text)
+    )
+    assert_true(
+        "what motivates me is using technology to help people and organizations work better" not in answer.lower(),
+        f"Why-company answer should not ship the stale global motivation sentence; got {answer!r}",
+    )
+
+
 def test_startup_interview_false_positive_guard(build_interview_cheat_sheet: object) -> None:
     false_positive = build_interview_cheat_sheet.startup_interview_lines(
         "Fortune 500 company seeking someone comfortable in a fast-paced environment.",
@@ -8791,6 +8835,18 @@ def test_cover_letter_validator_blocks_canned_f5_sentences(build_cover_letter: o
         )
         return
     raise SmokeFailure("validate_cover_letter_text() should fail when canned F5 sentences return")
+
+
+def test_cover_proof_paragraph_repairs_plant_controller_fragment(build_cover_letter: object, build_resume: object) -> None:
+    job_description = (
+        PROJECT_ROOT / "scratch" / "jd_library" / "20260720_170510_CivicPlus_Implementation_Consultant_be631cdc" / "job_description.txt"
+    ).read_text(encoding="utf-8-sig")
+    resume_text = build_resume.docx_visible_text_from_path(build_resume.choose_resume(job_description))
+    paragraph = build_cover_letter.proof_paragraph("CivicPlus", job_description, resume_text)
+    assert_true(
+        "the and plant controllers" not in paragraph,
+        f"Cover proof paragraph should repair the plant-controller fragment; got {paragraph!r}",
+    )
 
 
 def test_cover_letter_avoids_warehouse_proof_for_fintech(build_cover_letter: object, build_resume: object) -> None:
@@ -13345,6 +13401,7 @@ def main() -> None:
             ("planned competency trim integrity", lambda: test_resume_integrity_allows_planned_competency_trim(build_resume)),
             ("keyword placement audit", lambda: test_keyword_placement_audit(build_resume)),
             ("S3 supported keyword weave targets priority summaries", lambda: test_s3_supported_keyword_weave_targets_priority_summaries(build_resume)),
+            ("S3 supported keyword weave keeps USAA summary three sentences", lambda: test_s3_supported_keyword_weave_keeps_usaa_summary_three_sentences(build_resume)),
             ("build resume uses selected resume text for profile and alignment", lambda: test_build_resume_uses_selected_resume_text_for_profile_and_alignment_report(build_resume)),
             ("obvious choice positioning", lambda: test_obvious_choice_positioning(build_resume, build_cover_letter, build_interview_cheat_sheet)),
             ("positioning statement output", lambda: test_positioning_statement_output(build_resume, build_interview_cheat_sheet)),
@@ -13453,6 +13510,7 @@ def main() -> None:
             ("standard qualifications recent interviewer scripts resolve factual script", lambda: test_standard_qualifications_recent_interviewer_scripts_resolve_factual_script(build_standard_qualifications_statement)),
             ("Randstad qualifications avoid descriptor subject and bare numbers", lambda: test_randstad_qualifications_answers_avoid_descriptor_subject_and_bare_numbers(build_standard_qualifications_statement, build_resume)),
             ("S5 qualifications why-company fixes archived defects", lambda: test_s5_qualifications_why_company_fixes_archived_defects(build_standard_qualifications_statement, build_resume)),
+            ("qualifications default interest ignores stale global motivation", lambda: test_qualifications_default_interest_ignores_stale_global_motivation(build_standard_qualifications_statement, build_resume)),
             ("startup interview false-positive guard", lambda: test_startup_interview_false_positive_guard(build_interview_cheat_sheet)),
             ("application checklist debrief lookup", lambda: test_application_checklist_debrief_lookup(build_application_checklist)),
             ("application checklist prefers tailored analysis resume", lambda: test_application_checklist_analysis_resume_prefers_tailored_output(build_application_checklist)),
@@ -13487,6 +13545,7 @@ def main() -> None:
             ("F5 Randstad cover draft stays natural", lambda: test_f5_randstad_cover_draft_stays_specific_and_natural(build_cover_letter, build_resume)),
             ("cover letter validator blocks internal lane language", lambda: test_cover_letter_validator_blocks_internal_lane_language(build_cover_letter)),
             ("cover letter validator blocks canned F5 sentences", lambda: test_cover_letter_validator_blocks_canned_f5_sentences(build_cover_letter)),
+            ("cover proof paragraph repairs plant controller fragment", lambda: test_cover_proof_paragraph_repairs_plant_controller_fragment(build_cover_letter, build_resume)),
             ("cover letter avoids warehouse proof for fintech", lambda: test_cover_letter_avoids_warehouse_proof_for_fintech(build_cover_letter, build_resume)),
             ("cover letter validator blocks generic experience summary", lambda: test_cover_letter_validator_blocks_generic_experience_summary(build_cover_letter)),
             ("cover letter QC rejects lowercase proof paragraph", lambda: test_cover_letter_qc_rejects_lowercase_proof_paragraph(build_cover_letter)),
