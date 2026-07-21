@@ -3857,11 +3857,11 @@ def final_fit_audit(
     total_score = int(alignment_report.get("total_score", 0))
     if total_score < ALIGNMENT_FAIL_FLOOR:
         add_fail(
-            f"Alignment score is {total_score}/{ALIGNMENT_MAX_SCORE}, below the automatic fail floor of {ALIGNMENT_FAIL_FLOOR}."
+            f"Final tailored alignment score is {total_score}/{ALIGNMENT_MAX_SCORE}, below the automatic fail floor of {ALIGNMENT_FAIL_FLOOR}."
         )
     elif total_score < ALIGNMENT_TARGET_SCORE:
         notes.append(
-            f"Alignment score is {total_score}/{ALIGNMENT_MAX_SCORE}. This clears the fail floor, but the preferred target is {ALIGNMENT_TARGET_SCORE}+."
+            f"Final tailored alignment score is {total_score}/{ALIGNMENT_MAX_SCORE}. This clears the fail floor, but the preferred target is {ALIGNMENT_TARGET_SCORE}+."
         )
 
     if (
