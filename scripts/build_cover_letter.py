@@ -540,6 +540,8 @@ def synthetic_cover_interest(text: str, company_name: str) -> bool:
         return True
     if "directly shape the work" in lowered or "directly shapes the work" in lowered:
         return True
+    if "appears to need steady work around" in lowered:
+        return True
     if company_name and re.search(rf"\bbecause\s+{re.escape(company_name.lower())}\s+is\b", lowered):
         return True
     return any(re.search(pattern, lowered, re.I) for pattern, _label in COVER_INTERNAL_TOKEN_PATTERNS)

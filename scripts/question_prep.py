@@ -136,7 +136,7 @@ LANE_PROBLEM_NOUN_PHRASES = {
     "analytics_operations": "analytics, reporting, and workflow improvement",
     "change_enablement": "system change and user adoption",
     "process_improvement": "operational friction and process improvement",
-    "corporate_strategy": "cross-functional operating decisions",
+    "corporate_strategy": "cross-functional priorities and operating decisions",
 }
 BARE_NUMERIC_ANCHOR_RE = re.compile(r"^(?:\$[\d,]+(?:\+)?(?:\s*[MK])?|\d+\+?%?)$", re.I)
 ANCHOR_NOUN_RE = re.compile(
@@ -273,10 +273,12 @@ def compact_anchor_phrase(text: str) -> str:
             snippet = normalize_spaces(match.group(0)).rstrip(".,;:")
             snippet = re.sub(r"\s+by\s+\w+ing$", "", snippet, flags=re.I)
             snippet = re.sub(r"\s+(?:that|which|while|by)\b.*$", "", snippet, flags=re.I)
+            snippet = re.sub(r"\s+(?:and|or)$", "", snippet, flags=re.I)
             end_pos = match.end()
             if end_pos < len(text) and text[end_pos : end_pos + 1].isalpha():
                 snippet = re.sub(r"\s+\S+$", "", snippet)
             snippet = re.sub(r"\s+by\s+\w+ing$", "", snippet, flags=re.I)
+            snippet = re.sub(r"\s+(?:and|or)$", "", snippet, flags=re.I)
             if snippet:
                 candidates.append(snippet)
     if candidates:
@@ -285,7 +287,10 @@ def compact_anchor_phrase(text: str) -> str:
 
 
 def noun_bearing_proof_anchor(brief: PositioningBrief) -> str:
-    candidates = [normalize_spaces(anchor).rstrip(".,;:") for anchor in brief.top_proof_anchors]
+    candidates = [
+        re.sub(r"\s+(?:and|or)$", "", normalize_spaces(anchor).rstrip(".,;:"), flags=re.I)
+        for anchor in brief.top_proof_anchors
+    ]
     for anchor in list(candidates):
         if BARE_NUMERIC_ANCHOR_RE.fullmatch(anchor):
             candidates.extend(
@@ -1134,7 +1139,7 @@ def build_why_company_answer(brief: PositioningBrief) -> str:
         ensure_company_named(brief.company_specific_fact, brief.company_name)
         or ensure_company_named(brief.mission_or_context, brief.company_name)
         or clean_answer_sentence(
-            f"{brief.company_name} is the kind of {brief.employer_type} environment where {problem_noun_phrase} directly shape the work."
+            f"{brief.company_name} appears to need steady work around {problem_noun_phrase}."
         )
     )
     motivation = clean_answer_sentence(
@@ -1148,7 +1153,7 @@ def build_why_company_answer(brief: PositioningBrief) -> str:
         else f"The background already includes {brief.strongest_direct_proofs[0]} in complex operating environments."
     )
     role_fit = clean_answer_sentence(
-        f"What stands out about the {brief.role_title} role is the need to solve problems in {problem_noun_phrase}, and that is already visible in the background."
+        f"What stands out about the {brief.role_title} role is the need to improve {problem_noun_phrase}, and that is already visible in the background."
     )
     anchor_phrase = noun_bearing_proof_anchor(brief)
     anchor = clean_answer_sentence(f"A concrete proof point is {anchor_phrase}.") if anchor_phrase else ""

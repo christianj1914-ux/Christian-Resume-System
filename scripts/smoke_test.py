@@ -7315,6 +7315,58 @@ def test_randstad_qualifications_answers_avoid_descriptor_subject_and_bare_numbe
     )
 
 
+def test_s5_qualifications_why_company_fixes_archived_defects(
+    build_standard_qualifications_statement: object,
+    build_resume: object,
+) -> None:
+    question_prep = build_standard_qualifications_statement.question_prep
+    cases = (
+        (
+            "Delta",
+            "20260720_180500_Delta_Senior_Operations_Analyst_Digital_and_Technology_Transformation_5c4f6ffb",
+            ("consulting firm", "cross-functional operating decisions directly shape", "solve problems in cross-functional operating decisions"),
+        ),
+        (
+            "Manhattan Associates",
+            "20260720_223424_Manhattan_Associates_Senior_Enablement_Consultant_20779b99",
+            ("system change. User adoption", "solve problems in system change. User adoption"),
+        ),
+        (
+            "Stord",
+            "20260720_190602_Stord_Sr_Deployment_Technical_Program_Manager_341a9106",
+            ("ERP implementation, go-live. Adoption work", "solve problems in ERP implementation, go-live"),
+        ),
+    )
+    for company_name, snapshot_id, banned_fragments in cases:
+        job_description = (
+            PROJECT_ROOT / "scratch" / "jd_library" / snapshot_id / "job_description.txt"
+        ).read_text(encoding="utf-8-sig")
+        resume_text = build_resume.docx_visible_text_from_path(build_resume.choose_resume(job_description))
+        brief = question_prep.build_positioning_brief(
+            job_description,
+            resume_text,
+            notes_text="I want work where delivery improves how teams operate.",
+        )
+        direct_answer = question_prep.build_why_company_answer(brief)
+        _resume_path, snapshot, approved_text = question_prep.selected_resume_snapshot(job_description)
+        rendered_answer = question_prep.answer_prompt(
+            "Why are you interested in this role?",
+            job_description,
+            snapshot,
+            approved_text,
+        ).answer
+        combined = f"{direct_answer} {rendered_answer}"
+        assert_true(
+            not re.search(r"\b(?:and|or)\.", combined),
+            f"{company_name} why-company answer should not leave a dangling proof conjunction; got {combined!r}",
+        )
+        for banned in banned_fragments:
+            assert_true(
+                banned not in combined,
+                f"{company_name} why-company answer should avoid S5 fragment {banned!r}; got {combined!r}",
+            )
+
+
 def test_startup_interview_false_positive_guard(build_interview_cheat_sheet: object) -> None:
     false_positive = build_interview_cheat_sheet.startup_interview_lines(
         "Fortune 500 company seeking someone comfortable in a fast-paced environment.",
@@ -12940,6 +12992,7 @@ def main() -> None:
             ("qualifications builder removes local shadow answer helpers", None),
             ("standard qualifications answers known questions", None),
             ("Randstad qualifications avoid descriptor subject and bare numbers", None),
+            ("S5 qualifications why-company fixes archived defects", None),
             ("startup interview false-positive guard", None),
             ("application checklist debrief lookup", None),
             ("general advice active job helpers", None),
@@ -13359,6 +13412,7 @@ def main() -> None:
             ("standard qualifications render recent interview prep", lambda: test_standard_qualifications_document_renders_recent_interview_questions(build_standard_qualifications_statement)),
             ("standard qualifications recent interviewer scripts resolve factual script", lambda: test_standard_qualifications_recent_interviewer_scripts_resolve_factual_script(build_standard_qualifications_statement)),
             ("Randstad qualifications avoid descriptor subject and bare numbers", lambda: test_randstad_qualifications_answers_avoid_descriptor_subject_and_bare_numbers(build_standard_qualifications_statement, build_resume)),
+            ("S5 qualifications why-company fixes archived defects", lambda: test_s5_qualifications_why_company_fixes_archived_defects(build_standard_qualifications_statement, build_resume)),
             ("startup interview false-positive guard", lambda: test_startup_interview_false_positive_guard(build_interview_cheat_sheet)),
             ("application checklist debrief lookup", lambda: test_application_checklist_debrief_lookup(build_application_checklist)),
             ("application checklist prefers tailored analysis resume", lambda: test_application_checklist_analysis_resume_prefers_tailored_output(build_application_checklist)),
