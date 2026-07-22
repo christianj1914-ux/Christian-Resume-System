@@ -822,6 +822,7 @@ HEADER_TITLE_NOISE_LINE_RE = re.compile(
     re.I,
 )
 HEADER_SIGNAL_PHRASES: tuple[tuple[str, tuple[str, ...]], ...] = (
+    ("ERP Implementation", ("erp implementation", "enterprise resource planning", "erp consultant", "erp implementations")),
     ("Healthcare AI", ("healthcare ai",)),
     ("Customer Onboarding", ("customer onboarding", "onboard customers", "onboard clients")),
     ("API-Led Integrations", ("api-led integrations", "api led integrations", "api integration", "api integrations")),

@@ -1843,6 +1843,17 @@ def summary_positioning_sentence(
     emphasis: TailoringEmphasis | None = None,
 ) -> str:
     emphasis = emphasis or determine_tailoring_emphasis(job_description)
+    title = (extract_job_title(job_description) or "").lower()
+    erp_implementation_target = jd_explicitly_requires_erp(job_description) and (
+        "erp" in title
+        or re.search(r"\bimplementation\s+(?:consultant|specialist|manager)\b", title)
+        or jd_mentions(job_description, "erp implementation consultant", "erp implementation specialist", "erp implementation manager")
+    )
+    if profile.primary_lane == "implementation_delivery" and erp_implementation_target:
+        return (
+            "ERP implementation consultant with 10+ years turning ambiguous cross-functional delivery into "
+            "structured adoption from both vendor-side client implementations and client-side enterprise system ownership."
+        )
     if (
         profile.primary_lane in {"implementation_delivery", "change_enablement"}
         and (
@@ -2057,6 +2068,21 @@ def obvious_choice_positioning(profile: JobProblemProfile, job_description: str 
 
 
 def generate_positioning_statement(profile: JobProblemProfile, job_description: str = "") -> str:
+    broad_capability = (
+        "Christian is strongest where ambiguous cross-functional problems need to become structured work "
+        "people actually use after handoff"
+    )
+    title = (extract_job_title(job_description) or "").lower()
+    erp_implementation_target = jd_explicitly_requires_erp(job_description) and (
+        "erp" in title
+        or re.search(r"\bimplementation\s+(?:consultant|specialist|manager)\b", title)
+        or jd_mentions(job_description, "erp implementation consultant", "erp implementation specialist", "erp implementation manager")
+    )
+    if profile.primary_lane == "implementation_delivery" and erp_implementation_target:
+        return (
+            broad_capability
+            + ", especially in ERP implementation roles that need vendor-side delivery judgment and client-side system ownership."
+        )
     analytics_statement = "Christian is strongest in analytics and operations roles that need noisy data and workflow issues turned into decisions leaders can trust and teams can use."
     analytics_terms = analytics_priority_terms(job_description)[:4]
     if analytics_terms:
@@ -2066,13 +2092,14 @@ def generate_positioning_statement(profile: JobProblemProfile, job_description: 
             + ", and decision support that holds up inside real operating environments."
         )
     lane_statements = {
-        "presales_solution": "Christian is strongest in pre-sales roles that need sharp discovery, credible solution framing, and implementation realism that holds up after the sale.",
-        "customer_success": "Christian is strongest in customer success roles that need adoption discipline, executive alignment, and practical ownership of renewal risk across complex accounts.",
-        "change_enablement": "Christian is strongest in change roles that need system rollout work translated into stakeholder clarity, role-based adoption, and durable workflow follow-through.",
+        "presales_solution": broad_capability + ", especially in pre-sales roles that need sharp discovery, credible solution framing, and implementation realism that holds up after the sale.",
+        "customer_success": broad_capability + ", especially in customer success roles that need adoption discipline, executive alignment, and practical ownership of renewal risk across complex accounts.",
+        "change_enablement": broad_capability + ", especially in change roles that need system rollout work translated into stakeholder clarity, role-based adoption, and durable workflow follow-through.",
         "analytics_operations": analytics_statement,
-        "corporate_strategy": "Christian is strongest in strategy roles that need ambiguity structured quickly and recommendations tied back to execution, ownership, and measurable next steps.",
+        "corporate_strategy": broad_capability + ", especially in strategy roles that need ambiguity structured quickly and recommendations tied back to execution, ownership, and measurable next steps.",
         "implementation_delivery": (
-            "Christian is strongest in implementation roles that need "
+            broad_capability
+            + ", especially in implementation roles that need "
             + comma_series(implementation_priority_terms(job_description)[:4])
             + ", stakeholder alignment, and adoption work that lasts beyond go-live."
         ),

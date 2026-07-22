@@ -3415,6 +3415,18 @@ def test_dynamic_header_title_line(build_resume: object) -> None:
         f"dynamic_header_title_line() should preserve relevant program context from long titles; got {long_title_line!r}",
     )
 
+    erp_job = """
+    Company: Revive Systems
+    Job Title: Implementation Consultant
+    Responsibilities
+    Lead ERP implementation discovery, requirements, data migration, user acceptance testing, and go-live readiness.
+    """
+    erp_line = build_resume.dynamic_header_title_line(erp_job)
+    assert_true(
+        erp_line.startswith("Implementation Consultant") and "ERP Implementation" in erp_line,
+        f"dynamic_header_title_line() should surface ERP implementation positioning for ERP targets; got {erp_line!r}",
+    )
+
     original_extract_job_title = build_resume.extract_job_title
     try:
         build_resume.extract_job_title = lambda _job_description: None
@@ -3939,6 +3951,56 @@ def test_positioning_statement_output(build_resume: object, build_interview_chea
     assert_true(
         len(variants) == 3 and variants[0].startswith("Direct:") and variants[1].startswith("Conversational:") and variants[2].startswith("Executive:"),
         f"spoken_positioning_variants() should return three short spoken variants; got {variants}",
+    )
+
+    erp_job = """
+    Company: Revive Systems
+    Job Title: Implementation Consultant
+    Responsibilities
+    Lead ERP implementation discovery, requirements, data migration, testing, go-live readiness, and adoption.
+    """
+    erp_profile = build_resume.job_problem_profile(erp_job)
+    erp_statement = build_resume.generate_positioning_statement(erp_profile, erp_job)
+    assert_true(
+        "ambiguous cross-functional problems" in erp_statement
+        and "vendor-side delivery judgment" in erp_statement
+        and "client-side system ownership" in erp_statement,
+        f"generate_positioning_statement() should lead ERP implementation targets with the broad capability and dual-sided ERP proof; got {erp_statement!r}",
+    )
+
+
+def test_s6_confirmed_motivation_and_dual_sided_erp_positioning(build_resume: object) -> None:
+    import question_prep
+
+    confirmed = (
+        "What drives me is stepping into ambiguous, cross-functional problems, the ones without a clear owner, "
+        "and turning them into structured work that people actually use and that holds up after I hand it off. "
+        "I do my best work where business, operations, and technology have to line up, whatever the title, and "
+        "I care most about closing the gap between a plan and something that actually works in practice."
+    )
+    notes_text = (PROJECT_ROOT / "source" / "global_notes.txt").read_text(encoding="utf-8")
+    assert_true(
+        notes_text.splitlines()[0] == confirmed,
+        "source/global_notes.txt should start with Christian's confirmed S6 motivation line.",
+    )
+    assert_true(
+        question_prep.motivation_note_line(notes_text) == confirmed,
+        "question_prep.motivation_note_line() should use the confirmed broad-capability motivation.",
+    )
+
+    erp_job = """
+    Company: Revive Systems
+    Job Title: ERP Implementation Consultant
+    Responsibilities
+    Lead ERP implementation discovery, requirements, data migration, user acceptance testing, go-live readiness,
+    stakeholder alignment, and adoption.
+    """
+    summary = build_resume.build_problem_first_summary(erp_job)
+    assert_true(
+        summary.startswith("ERP implementation consultant")
+        and "vendor-side client implementations" in summary
+        and "client-side enterprise system ownership" in summary,
+        f"ERP implementation summary should lead with dual-sided ERP implementation positioning; got {summary!r}",
     )
 
 
@@ -13094,6 +13156,7 @@ def main() -> None:
         ("build resume uses selected resume text for profile and alignment", None),
         ("obvious choice positioning", None),
         ("positioning statement output", None),
+        ("S6 confirmed motivation and dual-sided ERP positioning", None),
         ("future bridge summary and bullet clause", None),
         ("startup operator summary structure", None),
         ("natural top bullet meta penalty", None),
@@ -13511,6 +13574,7 @@ def main() -> None:
             ("build resume uses selected resume text for profile and alignment", lambda: test_build_resume_uses_selected_resume_text_for_profile_and_alignment_report(build_resume)),
             ("obvious choice positioning", lambda: test_obvious_choice_positioning(build_resume, build_cover_letter, build_interview_cheat_sheet)),
             ("positioning statement output", lambda: test_positioning_statement_output(build_resume, build_interview_cheat_sheet)),
+            ("S6 confirmed motivation and dual-sided ERP positioning", lambda: test_s6_confirmed_motivation_and_dual_sided_erp_positioning(build_resume)),
             ("future bridge summary and bullet clause", lambda: test_future_bridge_summary_and_bullet_clause(build_resume)),
             ("offer blocker logic", lambda: test_offer_blocker_logic(build_resume, build_cover_letter, build_detailed_interview_guide)),
             ("ats plain text validation", lambda: test_ats_plain_text_validation(build_resume)),

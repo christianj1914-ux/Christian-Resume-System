@@ -366,6 +366,8 @@ def motivation_note_line(notes_text: str) -> str:
     motivation_patterns = (
         r"\bdrawn to\b",
         r"\bcare about\b",
+        r"\bdrives me\b",
+        r"\bdo my best work\b",
         r"\bmotivates me\b",
         r"\blove about\b",
         r"\bwhat keeps me\b",

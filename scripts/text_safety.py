@@ -190,11 +190,14 @@ def normalize_bullet_ending(text: str) -> str:
     return cleaned.rstrip(";,:-") + "."
 
 
+HEADER_DISTINCTIVE_SHORT_WORDS = {"ai", "api", "erp"}
+
+
 def dominant_header_words(value: str) -> set[str]:
     return {
         word
         for word in re.findall(r"[a-z0-9]+", value.lower())
-        if len(word) >= 5 and word not in HEADER_STOP_WORDS
+        if (len(word) >= 5 or word in HEADER_DISTINCTIVE_SHORT_WORDS) and word not in HEADER_STOP_WORDS
     }
 
 
@@ -208,7 +211,8 @@ def dedupe_header_segments(segments: Iterable[str]) -> tuple[str, ...]:
         if not cleaned:
             continue
         words = dominant_header_words(cleaned)
-        if words and words & used:
+        new_distinctive_words = (words & HEADER_DISTINCTIVE_SHORT_WORDS) - used
+        if words and words & used and not new_distinctive_words:
             continue
         kept.append(cleaned)
         used |= words
