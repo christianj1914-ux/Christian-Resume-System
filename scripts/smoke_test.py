@@ -3876,9 +3876,9 @@ def test_keyword_placement_audit(build_resume: object) -> None:
     )
     original_audit_keywords = build_resume.audit_keywords
     try:
-        build_resume.audit_keywords = lambda _job_description: {"SQL", "go-live readiness", "data migration"}
+        build_resume.audit_keywords = lambda _job_description: {"SQL", "go-live readiness", "data migration", "automation"}
         report = build_resume.keyword_placement_audit(
-            "SQL SQL go-live readiness data migration",
+            "SQL SQL go-live readiness go-live readiness data migration automation",
             resume_text,
         )
     finally:
@@ -3896,6 +3896,10 @@ def test_keyword_placement_audit(build_resume: object) -> None:
     assert_true(
         not any(isinstance(gap, dict) and gap.get("keyword") == "data migration" for gap in gaps),
         f"keyword_placement_audit() should not flag keywords already visible in the summary; got {gaps}",
+    )
+    assert_true(
+        not any(isinstance(gap, dict) and gap.get("keyword") == "automation" for gap in gaps),
+        f"keyword_placement_audit() should not force low-frequency Skills-satisfiable terms; got {gaps}",
     )
 
 
@@ -3917,6 +3921,24 @@ def test_ats_keyword_mirroring_and_coverage(build_resume: object) -> None:
     assert_true(
         coverage["percent"] == 100 and coverage["present"] == coverage["total"],
         f"ats_coverage() should count high-value exact terms that are present; got {coverage}",
+    )
+    assert_true(
+        isinstance(coverage.get("breadth"), dict) and "percent" in coverage["breadth"],
+        f"ats_coverage() should include an advisory breadth metric; got {coverage}",
+    )
+    adobe_jd = (
+        PROJECT_ROOT / "scratch" / "jd_library" / "20260720_225241_Adobe_Senior_Program_Manager_GSO_d8bcc5f7" / "job_description.txt"
+    ).read_text(encoding="utf-8-sig")
+    blue_jd = (
+        PROJECT_ROOT / "scratch" / "jd_library" / "20260720_222322_Blue_Yonder_Program_Manager_83b35faa" / "job_description.txt"
+    ).read_text(encoding="utf-8-sig")
+    assert_true(
+        len(build_resume.ats_scan_terms(adobe_jd)) >= 10,
+        f"ats_scan_terms() should not collapse the Adobe denominator; got {build_resume.ats_scan_terms(adobe_jd)}",
+    )
+    assert_true(
+        len(build_resume.ats_scan_terms(blue_jd)) >= 10,
+        f"ats_scan_terms() should not collapse the Blue Yonder denominator; got {build_resume.ats_scan_terms(blue_jd)}",
     )
 
 
@@ -3975,6 +3997,51 @@ def test_supported_keyword_weave_removes_stapled_tails(build_resume: object) -> 
         build_resume.natural_keyword_bullet_rewrite(finance_bullet, "automation", "automation automation", "AI-assisted workflow") == "",
         "automation should not be bolted onto the finance-close/CFO bullet.",
     )
+    delivery_bullet = "Delivered enterprise technology projects end to end, translating executive priorities into milestone visibility."
+    assert_true(
+        build_resume.natural_keyword_bullet_rewrite(delivery_bullet, "technical delivery", "technical delivery technical delivery", "technical delivery") == "",
+        "technical delivery should not create same-stem wording such as Delivered technical delivery.",
+    )
+    warehouse_bullet = "Directed system setup for a new warehouse operation, coordinating Amazon Robotics readiness and go-live follow-through."
+    assert_true(
+        build_resume.natural_keyword_bullet_rewrite(warehouse_bullet, "customer-facing", "customer-facing", "client training") == "",
+        "customer-facing should not attach to internal warehouse/system setup evidence.",
+    )
+
+
+def test_resume_notes_print_core_and_breadth_coverage(build_resume: object) -> None:
+    resume_text = "\n".join(
+        [
+            "Professional Summary",
+            "Implementation consultant with process improvement and go-live delivery experience.",
+            "Professional Experience",
+            "ERP Systems Manager    March 2023 - Present",
+            "Known Company | Knoxville, TN",
+            "Improved reporting across five sites.",
+            "Skills",
+            "Implementation and Delivery:  SQL  |  Reporting  |  Process Improvement",
+            "Professional Development",
+            "Certified Scrum Product Owner",
+        ]
+    )
+    original_output_dir = build_resume.OUTPUT_DIR
+    with TemporaryDirectory() as temp_name:
+        build_resume.OUTPUT_DIR = Path(temp_name)
+        try:
+            notes_path = build_resume.write_resume_audit_notes(
+                "Smoke Coverage PASS",
+                "ExampleCo",
+                "Implementation Consultant",
+                "PASS",
+                ["No detailed issues."],
+                "Job Title: Implementation Consultant\nprocess improvement process improvement go-live go-live SQL SQL",
+                resume_text,
+            )
+            notes_text = notes_path.read_text(encoding="utf-8") if notes_path else ""
+        finally:
+            build_resume.OUTPUT_DIR = original_output_dir
+    assert_true("ATS core coverage:" in notes_text, f"Resume notes should print core coverage; got {notes_text}")
+    assert_true("ATS breadth coverage:" in notes_text, f"Resume notes should print breadth coverage; got {notes_text}")
 
 
 def test_s3_supported_keyword_weave_targets_priority_summaries(build_resume: object) -> None:
@@ -13367,6 +13434,7 @@ def main() -> None:
         ("ATS keyword mirroring and coverage", None),
         ("keyword placement demotes filler and boosts phrases", None),
         ("supported keyword weave removes stapled tails", None),
+        ("resume notes print core and breadth coverage", None),
         ("S3 supported keyword weave targets priority summaries", None),
         ("build resume uses selected resume text for profile and alignment", None),
         ("obvious choice positioning", None),
@@ -13789,6 +13857,7 @@ def main() -> None:
             ("ATS keyword mirroring and coverage", lambda: test_ats_keyword_mirroring_and_coverage(build_resume)),
             ("keyword placement demotes filler and boosts phrases", lambda: test_keyword_placement_demotes_filler_and_boosts_phrases(build_resume)),
             ("supported keyword weave removes stapled tails", lambda: test_supported_keyword_weave_removes_stapled_tails(build_resume)),
+            ("resume notes print core and breadth coverage", lambda: test_resume_notes_print_core_and_breadth_coverage(build_resume)),
             ("S3 supported keyword weave targets priority summaries", lambda: test_s3_supported_keyword_weave_targets_priority_summaries(build_resume)),
             ("S3 supported keyword weave keeps USAA summary three sentences", lambda: test_s3_supported_keyword_weave_keeps_usaa_summary_three_sentences(build_resume)),
             ("summary weave safety rejects contract-breaking repairs", lambda: test_summary_weave_safety_rejects_contract_breaking_repairs(build_resume)),

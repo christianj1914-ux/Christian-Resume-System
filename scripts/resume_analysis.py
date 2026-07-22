@@ -1435,6 +1435,145 @@ def high_value_audit_keywords(job_description: str) -> list[str]:
     )
 
 
+def ats_scan_terms(job_description: str, *, limit: int = 25) -> list[str]:
+    """Return a broader advisory ATS surface without widening placement gates."""
+    original_job_description = job_description
+    try:
+        from requirement_engine import parse_commercial_requirements
+
+        parsed_requirements = parse_commercial_requirements(job_description)
+    except Exception:
+        parsed_requirements = ()
+    if parsed_requirements:
+        job_description = "\n".join(element.text for element in parsed_requirements)
+
+    explicit_company = re.search(r"(?im)^\s*company(?:\s+name)?\s*[:\-]\s*(.+?)\s*$", original_job_description)
+    company_name = normalize_compare(explicit_company.group(1) if explicit_company else (extract_company_name(original_job_description) or ""))
+    company_tokens = set(company_name.split())
+    company_tokens |= affiliate_company_tokens(original_job_description)
+    title_phrases = set(title_phrase_candidates(original_job_description))
+
+    candidates: set[str] = set(high_value_audit_keywords(original_job_description))
+    candidates.update(title_phrases)
+    for line in keyword_source_lines(job_description):
+        candidates.update(line_ngram_phrases(line, min_words=2, max_words=2))
+        candidates.update(line_ngram_phrases(line, min_words=3, max_words=3))
+        for word in re.findall(r"[A-Za-z][A-Za-z+.#-]{2,}", line):
+            cleaned = clean_keyword_candidate(word)
+            if cleaned:
+                candidates.add(cleaned)
+    for element in parsed_requirements:
+        candidates.update(element.canonical_terms)
+
+    for resume_forms, jd_forms in JD_TERM_MIRROR:
+        if any(contains_search_term(original_job_description, form) for form in jd_forms):
+            candidates.update(jd_forms)
+        elif any(contains_search_term(original_job_description, form) for form in resume_forms):
+            candidates.update(resume_forms)
+
+    phrase_blockers = {
+        "accordingly",
+        "additional",
+        "all",
+        "avoid",
+        "drive",
+        "early",
+        "employee",
+        "employees",
+        "ensuring",
+        "experience",
+        "including",
+        "identify",
+        "impact",
+        "job",
+        "join",
+        "lead",
+        "leverage",
+        "looking",
+        "not",
+        "organization",
+        "possible",
+        "providing",
+        "role",
+        "state",
+        "taking",
+        "them",
+        "through",
+        "united",
+        "when",
+        "where",
+        "which",
+        "work",
+        "would",
+        "worldwide",
+        "year",
+        "years",
+    }
+
+    def keep(term: str) -> bool:
+        normalized = canonical_audit_keyword(term)
+        if not normalized or len(normalized) < 3:
+            return False
+        if normalized.isdigit() or normalized in STOP_WORDS:
+            return False
+        if normalized in company_tokens or normalized == company_name:
+            return False
+        if " " in normalized and any(part in company_tokens for part in normalized.split()) and normalized not in title_phrases:
+            return False
+        if normalized in BULLET_PLACEMENT_EXCLUDED or normalized in AUDIT_BLOCKED_PHRASES:
+            return False
+        if is_generic_soft_keyword(normalized):
+            return False
+        parts = normalized.split()
+        if any(part in STOP_WORDS for part in parts):
+            return False
+        if any(part in phrase_blockers for part in parts):
+            return False
+        if any(part in AUDIT_NOISE_KEYWORDS for part in parts) and not (
+            normalized in title_phrases
+            or any(part in AUDIT_PRIORITY_KEYWORDS for part in parts)
+            or any(part in SUMMARY_PLACEMENT_TERMS for part in parts)
+        ):
+            return False
+        if " " in normalized and (
+            parts[0] in AUDIT_ACTION_LEAD_WORDS
+            or parts[-1] in AUDIT_LOW_SIGNAL_TRAIL_WORDS
+            or parts[-1] in AUDIT_NOISE_KEYWORDS
+        ):
+            return False
+        if " " in normalized and normalized not in title_phrases:
+            if (
+                keyword_occurrence_count(original_job_description, normalized) < 2
+                and parts[-1] not in AUDIT_PHRASE_TAIL_PRIORITY_WORDS
+                and not any(part in IMPORTANT_SHORT_ATS_TERMS for part in parts)
+            ):
+                return False
+        if " " not in normalized and normalized not in IMPORTANT_SHORT_ATS_TERMS:
+            if (
+                normalized not in AUDIT_PRIORITY_KEYWORDS
+                and normalized not in SUMMARY_PLACEMENT_TERMS
+                and keyword_occurrence_count(original_job_description, normalized) < 2
+            ):
+                return False
+        return contains_search_term(original_job_description, normalized)
+
+    ordered: list[str] = []
+    seen: set[str] = set()
+    for term in sorted(
+        (canonical_audit_keyword(candidate) for candidate in candidates),
+        key=lambda keyword: audit_keyword_sort_key(original_job_description, keyword),
+        reverse=True,
+    ):
+        normalized = normalize_compare(term)
+        if normalized in seen or not keep(term):
+            continue
+        ordered.append(term)
+        seen.add(normalized)
+        if len(ordered) >= limit:
+            break
+    return ordered
+
+
 def ats_coverage(job_description: str, resume_text: str, *, limit: int = 5) -> dict[str, object]:
     keywords = [
         keyword
@@ -1445,11 +1584,34 @@ def ats_coverage(job_description: str, resume_text: str, *, limit: int = 5) -> d
     missing = [keyword for keyword in keywords if keyword not in present]
     total = len(keywords)
     percent = round((len(present) / total) * 100) if total else 100
+    breadth_keywords = [
+        keyword
+        for keyword in ats_scan_terms(job_description)
+        if not is_unsupported_do_not_insert(keyword, resume_text, job_description)
+    ]
+    breadth_present = [keyword for keyword in breadth_keywords if contains_search_term(resume_text, keyword)]
+    breadth_missing = [keyword for keyword in breadth_keywords if keyword not in breadth_present]
+    breadth_total = len(breadth_keywords)
+    breadth_percent = round((len(breadth_present) / breadth_total) * 100) if breadth_total else 100
+    thin_denominator = len(re.findall(r"\b[\w+.#'-]+\b", role_requirement_text(job_description))) > 250 and breadth_total < 10
     return {
         "percent": percent,
         "present": len(present),
         "total": total,
         "missing": missing[:limit],
+        "core": {
+            "percent": percent,
+            "present": len(present),
+            "total": total,
+            "missing": missing[:limit],
+        },
+        "breadth": {
+            "percent": breadth_percent,
+            "present": len(breadth_present),
+            "total": breadth_total,
+            "missing": breadth_missing[:limit],
+            "thin_denominator": thin_denominator,
+        },
     }
 
 def keyword_hits(text: str, keywords: set[str]) -> int:

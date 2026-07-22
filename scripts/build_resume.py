@@ -93,6 +93,7 @@ from text_safety import dedupe_header_segments, normalize_bullet_ending, substit
 
 from resume_analysis import (
     audit_keyword_sort_key,
+    ats_scan_terms,
     ats_coverage,
     BOILERPLATE_LINE_RE,
     BOILERPLATE_SECTION_RE,
@@ -160,6 +161,7 @@ from resume_analysis import (
     story_lens_matches,
     story_lens_sentence,
     text_mentions,
+    title_phrase_candidates,
     unsupported_requirement_hit,
     visible_company_values,
     visible_role_specialties,
@@ -2941,6 +2943,7 @@ def keyword_placement_audit(job_description: str, resume_text: str, limit: int =
             if len(keyword.strip()) >= 3
             and not is_generic_soft_keyword(keyword)
             and not is_bullet_placement_excluded(keyword)
+            and keyword_requires_top_third_placement(keyword, job_description)
         ),
         key=lambda keyword: audit_keyword_sort_key(job_description, keyword),
         reverse=True,
@@ -2993,6 +2996,15 @@ def keyword_placement_audit(job_description: str, resume_text: str, limit: int =
         "top_bullets": top_bullets,
         "core_text": core_text,
     }
+
+
+def keyword_requires_top_third_placement(keyword: str, job_description: str) -> bool:
+    normalized = normalize_compare(keyword)
+    if not normalized:
+        return False
+    if normalized in {normalize_compare(term) for term in title_phrase_candidates(job_description)}:
+        return True
+    return keyword_occurrence_count(job_description, keyword) >= 2
 
 
 UNSUPPORTED_FINANCE_GAP_RE = re.compile(
@@ -3140,6 +3152,7 @@ def supported_keyword_surface_candidates(
             or normalized in seen
             or is_generic_soft_keyword(keyword)
             or is_bullet_placement_excluded(keyword)
+            or not keyword_requires_top_third_placement(keyword, job_description)
         ):
             continue
         if contains_search_term(resume_text, keyword) and any(
@@ -3211,6 +3224,57 @@ def replace_first_ci(text: str, pattern: str, replacement: str) -> str:
     return re.sub(pattern, replacement, text, count=1, flags=re.I)
 
 
+def simple_keyword_stem(word: str) -> str:
+    stem = re.sub(r"[^a-z]", "", word.lower())
+    for suffix in ("ation", "ing", "ment", "tion", "sion", "ed", "es", "s"):
+        if len(stem) > len(suffix) + 3 and stem.endswith(suffix):
+            stem = stem[: -len(suffix)]
+            break
+    if stem.endswith("y") and len(stem) > 5:
+        stem = stem[:-1]
+    if stem.endswith("er") and len(stem) > 5:
+        stem = stem[:-2]
+    return stem
+
+
+def has_same_stem_repetition(text: str) -> bool:
+    stems: dict[str, str] = {}
+    for word in re.findall(r"[A-Za-z][A-Za-z-]+", text):
+        stem = simple_keyword_stem(word)
+        if len(stem) < 5:
+            continue
+        previous = stems.get(stem)
+        if previous and previous.lower() != word.lower():
+            return True
+        stems[stem] = word
+    return False
+
+
+def keyword_evidence_fits_bullet(keyword: str, bullet: str) -> bool:
+    normalized = normalize_compare(keyword)
+    lowered = bullet.lower()
+    if normalized == "customer facing":
+        return bool(
+            re.search(r"\b(customer|customers|client|clients|buyer|buyers|account|accounts|training|workshops?|demos?|presentations?)\b", lowered)
+            and not re.search(r"\bwarehouse operation|system setup|robotics setup|amazon robotics\b", lowered)
+        )
+    if normalized == "automation":
+        return bool(re.search(r"\b(ai-assisted|ai|sms|manual|workflow|automated|automation|robotics|reporting)\b", lowered))
+    if normalized == "technical delivery":
+        return bool(re.search(r"\b(technical|technology|enterprise systems?|projects?|delivery|implementation|go-live|migration)\b", lowered))
+    return True
+
+
+def safe_keyword_bullet_candidate(candidate: str, keyword: str) -> str:
+    if not candidate:
+        return ""
+    if has_same_stem_repetition(candidate):
+        return ""
+    if not keyword_evidence_fits_bullet(keyword, candidate):
+        return ""
+    return normalize_bullet_ending(candidate)
+
+
 def natural_keyword_bullet_rewrite(
     bullet: str,
     keyword: str,
@@ -3221,6 +3285,8 @@ def natural_keyword_bullet_rewrite(
     normalized = normalize_compare(surface)
     if not normalized or is_bullet_placement_excluded(surface) or contains_search_term(bullet, surface):
         return bullet
+    if not keyword_evidence_fits_bullet(surface, bullet):
+        return ""
 
     text = bullet.rstrip(".")
     lowered = text.lower()
@@ -3240,70 +3306,68 @@ def natural_keyword_bullet_rewrite(
     for candidate in replacements.get(normalized, ()):
         if contains_search_term(text, candidate):
             updated = replace_first_ci(text, re.escape(candidate), surface)
-            return normalize_bullet_ending(updated)
+            return safe_keyword_bullet_candidate(updated, surface)
 
     if normalized in {"program management", "project management"}:
         if re.search(r"\brecommendations\b", lowered):
-            return normalize_bullet_ending(replace_first_ci(text, r"\brecommendations\b", f"{surface} recommendations"))
+            return safe_keyword_bullet_candidate(replace_first_ci(text, r"\brecommendations\b", f"{surface} recommendations"), surface)
         if re.search(r"\bworkstreams?\b", lowered):
-            return normalize_bullet_ending(replace_first_ci(text, r"\bworkstreams?\b", f"{surface} workstreams"))
+            return safe_keyword_bullet_candidate(replace_first_ci(text, r"\bworkstreams?\b", f"{surface} workstreams"), surface)
         if re.search(r"\bdelivery plans\b", lowered):
-            return normalize_bullet_ending(replace_first_ci(text, r"\bdelivery plans\b", f"{surface} plans"))
+            return safe_keyword_bullet_candidate(replace_first_ci(text, r"\bdelivery plans\b", f"{surface} plans"), surface)
         if re.search(r"\bprojects\b", lowered):
-            return normalize_bullet_ending(replace_first_ci(text, r"\bprojects\b", f"{surface} projects"))
+            return safe_keyword_bullet_candidate(replace_first_ci(text, r"\bprojects\b", f"{surface} projects"), surface)
 
     if normalized == "process improvement":
         if re.search(r"\bworkflow\b", lowered):
-            return normalize_bullet_ending(replace_first_ci(text, r"\bworkflow\b", f"{surface} workflow"))
+            return safe_keyword_bullet_candidate(replace_first_ci(text, r"\bworkflow\b", f"{surface} workflow"), surface)
         if re.search(r"\breporting\b", lowered):
-            return normalize_bullet_ending(replace_first_ci(text, r"\breporting\b", f"{surface} reporting"))
+            return safe_keyword_bullet_candidate(replace_first_ci(text, r"\breporting\b", f"{surface} reporting"), surface)
         if re.search(r"\bprocess\b", lowered):
-            return normalize_bullet_ending(replace_first_ci(text, r"\bprocess\b", surface))
+            return safe_keyword_bullet_candidate(replace_first_ci(text, r"\bprocess\b", surface), surface)
 
     if normalized == "automation":
         if re.search(r"\b(?:cfo|controllers?|financial close|month-end|year-end)\b", lowered):
             return ""
         if re.search(r"\bworkflow\b", lowered):
-            return normalize_bullet_ending(replace_first_ci(text, r"\bworkflow\b", "automation workflow"))
+            return safe_keyword_bullet_candidate(replace_first_ci(text, r"\bworkflow\b", "automation workflow"), surface)
         if re.search(r"\bprocess improvement reporting\b", lowered):
-            return normalize_bullet_ending(replace_first_ci(text, r"\bprocess improvement reporting\b", "automation and process improvement reporting"))
+            return safe_keyword_bullet_candidate(replace_first_ci(text, r"\bprocess improvement reporting\b", "automation and process improvement reporting"), surface)
         if re.search(r"\breporting\b", lowered):
-            return normalize_bullet_ending(replace_first_ci(text, r"\breporting\b", "automation reporting"))
+            return safe_keyword_bullet_candidate(replace_first_ci(text, r"\breporting\b", "automation reporting"), surface)
         if re.search(r"\bAmazon Robotics program\b", text):
-            return normalize_bullet_ending(replace_first_ci(text, r"\bAmazon Robotics program\b", "Amazon Robotics and automation program"))
+            return safe_keyword_bullet_candidate(replace_first_ci(text, r"\bAmazon Robotics program\b", "Amazon Robotics and automation program"), surface)
         if re.search(r"\brobotics\b", lowered):
-            return normalize_bullet_ending(replace_first_ci(text, r"\brobotics\b", "automation and Robotics"))
+            return safe_keyword_bullet_candidate(replace_first_ci(text, r"\brobotics\b", "automation and Robotics"), surface)
         if re.search(r"\bSMS\b|\bAI-assisted\b|\bmanual\b", text):
-            return normalize_bullet_ending(f"{text} with automation controls")
+            return safe_keyword_bullet_candidate(f"{text} with automation controls", surface)
 
     if normalized == "technical delivery":
         if re.search(r"\benterprise technology projects\b", lowered):
-            return normalize_bullet_ending(replace_first_ci(text, r"\benterprise technology projects\b", "technical delivery projects"))
+            return ""
         if re.search(r"\btechnical improvements\b", lowered):
-            return normalize_bullet_ending(replace_first_ci(text, r"\btechnical improvements\b", "technical delivery improvements"))
+            return safe_keyword_bullet_candidate(replace_first_ci(text, r"\btechnical improvements\b", "technical delivery improvements"), surface)
         if re.search(r"\btechnical\b", lowered):
-            return normalize_bullet_ending(replace_first_ci(text, r"\btechnical\b", "technical delivery"))
+            return safe_keyword_bullet_candidate(replace_first_ci(text, r"\btechnical\b", "technical delivery"), surface)
 
     if normalized == "customer facing" and re.search(r"\bcustomer\b", lowered):
-        return normalize_bullet_ending(replace_first_ci(text, r"\bcustomer\b", "customer-facing"))
+        return safe_keyword_bullet_candidate(replace_first_ci(text, r"\bcustomer\b", "customer-facing"), surface)
     if normalized == "customer facing":
         if re.search(r"\benterprise systems\b", lowered):
-            return normalize_bullet_ending(replace_first_ci(text, r"\benterprise systems\b", "customer-facing enterprise systems"))
-        if re.search(r"\bsystem setup\b", lowered):
-            return normalize_bullet_ending(replace_first_ci(text, r"\bsystem setup\b", "customer-facing system setup"))
+            return safe_keyword_bullet_candidate(replace_first_ci(text, r"\benterprise systems\b", "customer-facing enterprise systems"), surface)
         if re.search(r"\btraining\b", lowered):
-            return normalize_bullet_ending(replace_first_ci(text, r"\btraining\b", "customer-facing training"))
+            return safe_keyword_bullet_candidate(replace_first_ci(text, r"\btraining\b", "customer-facing training"), surface)
 
     if normalized == "cross functional delivery":
         if re.search(r"\bconcurrent program tracks\b", lowered):
-            return normalize_bullet_ending(replace_first_ci(text, r"\bconcurrent program tracks\b", "concurrent cross-functional delivery tracks"))
+            return safe_keyword_bullet_candidate(replace_first_ci(text, r"\bconcurrent program tracks\b", "concurrent cross-functional delivery tracks"), surface)
         if re.search(r"\bproject\b", lowered):
-            return normalize_bullet_ending(replace_first_ci(text, r"\bproject\b", "cross-functional delivery project"))
+            return safe_keyword_bullet_candidate(replace_first_ci(text, r"\bproject\b", "cross-functional delivery project"), surface)
         if re.search(r"\bgo-live\b", lowered):
-            return normalize_bullet_ending(replace_first_ci(text, r"\bgo-live\b", "cross-functional delivery through go-live"))
+            return safe_keyword_bullet_candidate(replace_first_ci(text, r"\bgo-live\b", "cross-functional delivery through go-live"), surface)
 
     if normalized == "roadmap" and re.search(r"\bmilestone", lowered):
-        return normalize_bullet_ending(replace_first_ci(text, r"\bmilestone", "roadmap and milestone"))
+        return safe_keyword_bullet_candidate(replace_first_ci(text, r"\bmilestone", "roadmap and milestone"), surface)
 
     return ""
 
@@ -3359,16 +3423,6 @@ def weave_keyword_into_summary_paragraphs(paragraphs: list[ET.Element], keyword:
         if len(sentences) != 3:
             return False
         first = sentences[0].rstrip(".")
-        if normalize_compare(keyword) == "automation" and re.search(r"\btechnical delivery leader\b", first, re.I):
-            candidate_first = replace_first_ci(
-                first,
-                r"\btechnical delivery leader\b",
-                "automation-focused technical delivery leader",
-            )
-            candidate = " ".join([candidate_first + ".", *sentences[1:]])
-            if summary_weave_candidate_is_safe(candidate):
-                set_paragraph_text(paragraph, candidate)
-                return True
         if len(first.split()) > 28:
             return False
         candidate_first = f"{first}, with {keyword} emphasis."
@@ -3456,19 +3510,6 @@ def weave_supported_keywords_into_summary(
     job_description: str,
     source_resume_text: str,
 ) -> str:
-    if (
-        contains_search_term(job_description, "automation")
-        and classify_keyword_gap_support("automation", source_resume_text, job_problem_profile(job_description, source_resume_text)) != "unsupported-do-not-insert"
-        and not contains_search_term(summary, "automation")
-        and re.search(r"\btechnical delivery leader\b", summary, re.I)
-    ):
-        candidate = replace_first_ci(
-            summary,
-            r"\btechnical delivery leader\b",
-            "automation-focused technical delivery leader",
-        )
-        if summary_weave_candidate_is_safe(candidate):
-            summary = candidate
     current_hits = keyword_hits(
         summary,
         {
@@ -3519,22 +3560,30 @@ def weave_supported_keywords_into_top_bullets(
     top_text = " ".join(role_top_bullet_texts(document_xml, AUDIT_TOP_ROLE_TITLES, limit=5))
     profile = job_problem_profile(job_description, source_resume_text or current_text)
     missing: list[str] = []
+    skills_candidates: list[str] = []
     seen_missing: set[str] = set()
+    seen_skills: set[str] = set()
     for keyword in high_value_audit_keywords(job_description):
         surface = jd_preferred_surface(keyword_surface_piece(keyword), job_description, source_resume_text)
         normalized = normalize_compare(surface)
         if (
             not normalized
-            or normalized in seen_missing
             or is_bullet_placement_excluded(surface)
-            or contains_search_term(top_text, surface)
             or classify_keyword_gap_support(surface, source_resume_text, profile) == "unsupported-do-not-insert"
         ):
             continue
-        missing.append(surface)
-        seen_missing.add(normalized)
-        if len(missing) >= 6:
-            break
+        if not contains_search_term(current_text, surface) and normalized not in seen_skills:
+            skills_candidates.append(surface)
+            seen_skills.add(normalized)
+        if (
+            normalized in seen_missing
+            or contains_search_term(top_text, surface)
+            or not keyword_requires_top_third_placement(surface, job_description)
+        ):
+            continue
+        if len(missing) < 6:
+            missing.append(surface)
+            seen_missing.add(normalized)
     missing.sort(key=lambda keyword: 0 if normalize_compare(keyword) == "automation" else 1)
     if not missing:
         return 0
@@ -3598,7 +3647,16 @@ def weave_supported_keywords_into_top_bullets(
                 changed += 1
     if changed:
         tree.write(document_xml, encoding="utf-8", xml_declaration=True)
-    skills_added = add_targeted_core_competencies(document_xml, missing, job_description, limit=3)
+    current_after_weave = visible_text(document_xml)
+    skill_terms = []
+    seen_skill_terms: set[str] = set()
+    for keyword in (*missing, *skills_candidates):
+        normalized = normalize_compare(keyword)
+        if not normalized or normalized in seen_skill_terms or contains_search_term(current_after_weave, keyword):
+            continue
+        skill_terms.append(keyword)
+        seen_skill_terms.add(normalized)
+    skills_added = add_targeted_core_competencies(document_xml, skill_terms, job_description, limit=3)
     changed += len(skills_added)
     return changed
 
@@ -4128,10 +4186,17 @@ def final_fit_audit(
         AUDIT_TOP_ROLE_TITLES,
         limit=5,
     )
-    support_bullet_hits = keyword_hits(" ".join(keyword_support_bullets), keywords)
-    required_support_hits = min(6, max(3, len(keywords)))
+    placement_keywords = {
+        keyword
+        for keyword in keywords
+        if not is_generic_soft_keyword(keyword)
+        and not is_bullet_placement_excluded(keyword)
+        and keyword_requires_top_third_placement(keyword, job_description)
+    }
+    support_bullet_hits = keyword_hits(" ".join([summary, *keyword_support_bullets]), placement_keywords)
+    required_support_hits = min(6, max(3, len(placement_keywords)))
     if support_bullet_hits < required_support_hits:
-        add_fail(f"Top experience section has weak job-language support ({support_bullet_hits} keyword hits across early bullets).")
+        add_fail(f"Top third has weak job-language support ({support_bullet_hits} keyword hits across the summary and early bullets).")
 
     if not top_bullets:
         add_fail("Could not locate top role bullets for audit; verify role heading matches a known source title.")
@@ -4251,11 +4316,29 @@ def write_resume_audit_notes(
 ) -> Path | None:
     profile = job_problem_profile(job_description, document_text)
     coverage = ats_coverage(job_description, document_text)
+    core = coverage.get("core", coverage)
+    breadth = coverage.get("breadth", {})
+    if not isinstance(core, dict):
+        core = coverage
+    if not isinstance(breadth, dict):
+        breadth = {}
     missing_terms = ", ".join(str(term) for term in coverage.get("missing", [])) or "none"
+    core_missing_terms = ", ".join(str(term) for term in core.get("missing", [])) or "none"
+    breadth_missing_terms = ", ".join(str(term) for term in breadth.get("missing", [])) or "none"
     coverage_line = (
         f"ATS coverage: {coverage.get('percent', 100)}% "
         f"({coverage.get('present', 0)}/{coverage.get('total', 0)} high-value JD terms; "
         f"missing: {missing_terms})"
+    )
+    core_coverage_line = (
+        f"ATS core coverage: {core.get('percent', coverage.get('percent', 100))}% "
+        f"({core.get('present', coverage.get('present', 0))}/{core.get('total', coverage.get('total', 0))} must-have JD terms; "
+        f"missing: {core_missing_terms})"
+    )
+    breadth_coverage_line = (
+        f"ATS breadth coverage: {breadth.get('percent', 100)}% "
+        f"({breadth.get('present', 0)}/{breadth.get('total', 0)} JD terms; "
+        f"missing: {breadth_missing_terms})"
     )
     status_meaning = {
         "PASS": "PASS means the visible resume provides strong supported coverage without a hard evidence blocker.",
@@ -4270,6 +4353,8 @@ def write_resume_audit_notes(
         f"Role: {role_title or 'Unknown role'}",
         f"Fit status: {status}",
         coverage_line,
+        core_coverage_line,
+        breadth_coverage_line,
         status_meaning,
         "",
         "Audit Notes:",
@@ -4278,6 +4363,11 @@ def write_resume_audit_notes(
         notes = [
             *notes,
             "ATS coverage is below a typical first-pass threshold; review targeting before applying.",
+        ]
+    if breadth.get("thin_denominator"):
+        notes = [
+            *notes,
+            "ATS breadth set unexpectedly small; coverage may be understated.",
         ]
     lines.extend(f"- {note}" for note in (notes or ["No detailed audit notes were returned."]))
     lines.extend(
