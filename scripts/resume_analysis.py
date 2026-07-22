@@ -81,6 +81,74 @@ def contains_search_term(text: str, term: str) -> bool:
     )
 
 
+JD_TERM_MIRROR: tuple[tuple[tuple[str, ...], tuple[str, ...]], ...] = (
+    (("stakeholder governance", "stakeholder alignment"), ("stakeholder management",)),
+    (("requirements definition", "requirements translation"), ("requirements gathering",)),
+    (("discovery-to-launch", "discovery-to-delivery"), ("discovery to delivery",)),
+    (("go live",), ("go-live",)),
+    (("cross functional",), ("cross-functional",)),
+    (("continuous improvement",), ("process improvement",)),
+    (("program delivery", "project delivery"), ("program management", "project management")),
+    (("QBR", "executive business review"), ("quarterly business review",)),
+    (("UAT",), ("user acceptance testing",)),
+    (("SOW",), ("statement of work",)),
+    (("presales",), ("pre-sales",)),
+    (("ERP",), ("enterprise resource planning",)),
+    (("SaaS",), ("software as a service",)),
+    (("KPI",), ("key performance indicator",)),
+    (("RFP",), ("request for proposal",)),
+)
+
+BULLET_PLACEMENT_EXCLUDED = {
+    "approach",
+    "briefings training",
+    "business",
+    "corporate",
+    "deliver",
+    "enterprise",
+    "executive",
+    "growth",
+    "international training",
+    "solution",
+    "strategic",
+    "team",
+    "teams delivery",
+    "teams delivery plans",
+}
+
+
+def jd_preferred_surface(concept_term: str, job_description: str, supported_text: str = "") -> str:
+    """Return the JD's literal surface form for a supported equivalent concept."""
+    concept = concept_term.strip()
+    normalized_concept = normalize_compare(concept)
+    if not normalized_concept:
+        return concept
+
+    for resume_forms, jd_forms in JD_TERM_MIRROR:
+        normalized_forms = {normalize_compare(form) for form in (*resume_forms, *jd_forms)}
+        if normalized_concept not in normalized_forms:
+            continue
+        if supported_text:
+            supported = any(contains_search_term(supported_text, form) for form in (*resume_forms, *jd_forms))
+            if not supported:
+                return concept
+        for jd_form in jd_forms:
+            if contains_search_term(job_description, jd_form):
+                return jd_form
+    return concept
+
+
+def is_bullet_placement_excluded(keyword: str) -> bool:
+    normalized = normalize_compare(keyword)
+    if not normalized:
+        return True
+    if normalized in BULLET_PLACEMENT_EXCLUDED:
+        return True
+    if normalized.endswith(" delivery") and normalized.split()[0] in {"team", "teams"}:
+        return True
+    return False
+
+
 def is_valid_job_title(value: str) -> bool:
     stripped = value.strip()
     normalized = normalize_compare(stripped)
@@ -1113,6 +1181,9 @@ def keyword_set(job_description: str) -> set[str]:
             if cleaned and cleaned not in STOP_WORDS:
                 keywords.add(cleaned)
         phrases.update(line_ngram_phrases(line))
+        for phrase in line_ngram_phrases(line, min_words=3, max_words=3):
+            if len(re.findall(re.escape(phrase), job_description, flags=re.I)) >= 2:
+                phrases.add(phrase)
     phrases.update(title_phrase_candidates(job_description))
     return keywords | phrases
 
@@ -1227,6 +1298,7 @@ def audit_keywords(job_description: str) -> set[str]:
         "role title",
         "senior solution",
         "senior solutions",
+        "teams delivery",
         "testing delivery",
         "multiple",
         "impact",
@@ -1329,9 +1401,12 @@ def audit_keyword_sort_key(job_description: str, keyword: str) -> tuple[int, int
             clean_edge = 0
         if parts[-1] in AUDIT_LOW_SIGNAL_TRAIL_WORDS or parts[-1] in AUDIT_NOISE_KEYWORDS:
             clean_edge = 0
+    phrase_signal = 0
+    if " " in normalized:
+        phrase_signal = 2 if keyword_occurrence_count(job_description, keyword) >= 2 and len(parts) <= 3 else 1
     return (
         1 if normalized in title_phrases else 0,
-        1 if " " in normalized else 0,
+        phrase_signal,
         1 if normalized in AUDIT_PRIORITY_KEYWORDS or any(part in AUDIT_PRIORITY_KEYWORDS for part in normalized.split()) else 0,
         clean_edge,
         1 if is_keyword_color_candidate(keyword, job_description) else 0,
@@ -1346,6 +1421,36 @@ def is_generic_soft_keyword(keyword: str) -> bool:
     if normalized in GENERIC_SOFT_KEYWORDS:
         return True
     return any(term in normalized for term in GENERIC_SOFT_KEYWORDS if " " in term)
+
+
+def high_value_audit_keywords(job_description: str) -> list[str]:
+    return sorted(
+        (
+            keyword
+            for keyword in audit_keywords(job_description)
+            if not is_generic_soft_keyword(keyword) and not is_bullet_placement_excluded(keyword)
+        ),
+        key=lambda keyword: audit_keyword_sort_key(job_description, keyword),
+        reverse=True,
+    )
+
+
+def ats_coverage(job_description: str, resume_text: str, *, limit: int = 5) -> dict[str, object]:
+    keywords = [
+        keyword
+        for keyword in high_value_audit_keywords(job_description)
+        if not is_unsupported_do_not_insert(keyword, resume_text, job_description)
+    ]
+    present = [keyword for keyword in keywords if contains_search_term(resume_text, keyword)]
+    missing = [keyword for keyword in keywords if keyword not in present]
+    total = len(keywords)
+    percent = round((len(present) / total) * 100) if total else 100
+    return {
+        "percent": percent,
+        "present": len(present),
+        "total": total,
+        "missing": missing[:limit],
+    }
 
 def keyword_hits(text: str, keywords: set[str]) -> int:
     normalized = text.lower()

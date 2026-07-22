@@ -3363,6 +3363,7 @@ def friendly_direct_proof_phrase(
     phrases: list[str] = []
     for proof in brief.strongest_direct_proofs:
         phrase = phrase_map.get(proof, proof.lower())
+        phrase = re.sub(r"\bai-assisted\b", "AI-assisted", phrase, flags=re.I)
         if not phrase:
             continue
         if job_description and not proof_sentence_matches_job(proof, job_description):
@@ -3376,6 +3377,8 @@ def friendly_direct_proof_phrase(
         return phrases[0]
     if phrases[0] == "client-side ERP ownership with finance partnership":
         return f"client-side ERP ownership, finance partnership, and {phrases[1]}"
+    if " and " in phrases[0]:
+        return f"{phrases[0]}, plus {phrases[1]}"
     return f"{phrases[0]} and {phrases[1]}"
 
 
@@ -3714,6 +3717,26 @@ def proof_first_support_paragraph(brief: question_prep.PositioningBrief, job_des
     )
 
 
+def gerund_phrase_to_action(phrase: str) -> str:
+    rewrites = {
+        "aligning": "align",
+        "building": "build",
+        "delivering": "deliver",
+        "driving": "drive",
+        "guiding": "guide",
+        "keeping": "keep",
+        "moving": "move",
+        "supporting": "support",
+        "translating": "translate",
+        "turning": "turn",
+    }
+    cleaned = phrase.strip(" .")
+    match = re.match(r"^([A-Za-z]+ing)\b(.*)", cleaned)
+    if match and match.group(1).lower() in rewrites:
+        return rewrites[match.group(1).lower()] + match.group(2)
+    return f"support {cleaned}"
+
+
 def proof_first_close_paragraph(
     brief: question_prep.PositioningBrief,
     company_name: str,
@@ -3724,12 +3747,13 @@ def proof_first_close_paragraph(
 ) -> str:
     direct_proof_phrase = friendly_direct_proof_phrase(brief, job_description=job_description)
     core_problem = sentence_safe_role_core_problem(brief.role_problem_phrase)
+    close_action = gerund_phrase_to_action(core_problem)
     sentences = [
         ensure_sentence(
-            f"The practical fit is {direct_proof_phrase} applied to {core_problem}."
+            f"My strongest base for the role is {direct_proof_phrase}, grounded in work that turns ambiguous operating needs into clearer decisions and follow-through."
         ),
         ensure_sentence(
-            f"I would welcome the chance to discuss where it could help {company_name} keep implementations moving with more confidence."
+            f"I would welcome the chance to discuss how that background could help {company_name} {close_action}."
         ),
     ]
     if include_gap and brief.gap_honesty_boundary:

@@ -3899,6 +3899,84 @@ def test_keyword_placement_audit(build_resume: object) -> None:
     )
 
 
+def test_ats_keyword_mirroring_and_coverage(build_resume: object) -> None:
+    job_description = "The role requires stakeholder management, requirements gathering, go-live support, and process improvement."
+    source_text = "Led stakeholder governance, requirements definition, go live support, and continuous improvement."
+    assert_true(
+        build_resume.jd_preferred_surface("stakeholder governance", job_description, source_text) == "stakeholder management",
+        "jd_preferred_surface() should mirror the JD's literal stakeholder term when the source supports the concept.",
+    )
+    assert_true(
+        build_resume.jd_preferred_surface("budget ownership", job_description, source_text) == "budget ownership",
+        "jd_preferred_surface() should not invent mirror terms for unsupported concepts.",
+    )
+    coverage = build_resume.ats_coverage(
+        "Job Title: Implementation Consultant\nprocess improvement process improvement go-live go-live SQL SQL",
+        "Professional Summary\nImplementation Consultant with process improvement, go-live, and SQL reporting experience.",
+    )
+    assert_true(
+        coverage["percent"] == 100 and coverage["present"] == coverage["total"],
+        f"ats_coverage() should count high-value exact terms that are present; got {coverage}",
+    )
+
+
+def test_keyword_placement_demotes_filler_and_boosts_phrases(build_resume: object) -> None:
+    resume_text = "\n".join(
+        [
+            "Professional Summary",
+            "Implementation consultant with process improvement and go-live delivery experience.",
+            "Professional Experience",
+            "ERP Systems Manager    March 2023 - Present",
+            "Known Company | Knoxville, TN",
+            "Improved reporting across five sites.",
+            "Skills",
+            "Implementation and Delivery:  SQL  |  Reporting",
+            "Professional Development",
+            "Certified Scrum Product Owner",
+        ]
+    )
+    original_audit_keywords = build_resume.audit_keywords
+    try:
+        build_resume.audit_keywords = lambda _job_description: {"strategic", "growth", "solution design"}
+        report = build_resume.keyword_placement_audit("strategic growth solution design", resume_text, limit=5)
+    finally:
+        build_resume.audit_keywords = original_audit_keywords
+    gaps = [gap.get("keyword") for gap in report.get("gaps", []) if isinstance(gap, dict)]
+    assert_true(
+        "strategic" not in gaps and "growth" not in gaps,
+        f"keyword_placement_audit() should not create top-third gaps for filler terms; got {gaps}",
+    )
+    phrase_key = build_resume.audit_keyword_sort_key("solution design solution design solution", "solution design")
+    unigram_key = build_resume.audit_keyword_sort_key("solution design solution design solution", "solution")
+    assert_true(
+        phrase_key > unigram_key,
+        f"Recurring multi-word JD phrases should outrank component unigrams; phrase={phrase_key}, unigram={unigram_key}",
+    )
+
+
+def test_supported_keyword_weave_removes_stapled_tails(build_resume: object) -> None:
+    bullet = "Translated CFO and controller workshops into current-state maps, pain points, and recommendations before build work began."
+    updated = build_resume.natural_keyword_bullet_rewrite(
+        bullet,
+        "program management",
+        "This Senior Program Manager role requires program management and stakeholder management.",
+        "Translated workshops into program delivery recommendations and stakeholder governance.",
+    )
+    assert_true(
+        "program management recommendations" in updated,
+        f"natural_keyword_bullet_rewrite() should integrate program management into the sentence body; got {updated!r}",
+    )
+    assert_true(
+        "strengthening" not in updated.lower() and "strengthened" not in updated.lower(),
+        f"natural_keyword_bullet_rewrite() should not append mechanical keyword tails; got {updated!r}",
+    )
+    finance_bullet = "Translated CFO and controller workshops into financial close documentation before build work began."
+    assert_true(
+        build_resume.natural_keyword_bullet_rewrite(finance_bullet, "automation", "automation automation", "AI-assisted workflow") == "",
+        "automation should not be bolted onto the finance-close/CFO bullet.",
+    )
+
+
 def test_s3_supported_keyword_weave_targets_priority_summaries(build_resume: object) -> None:
     cases = (
         (
@@ -9020,6 +9098,32 @@ def test_cover_letter_validator_blocks_canned_f5_sentences(build_cover_letter: o
     raise SmokeFailure("validate_cover_letter_text() should fail when canned F5 sentences return")
 
 
+def test_cover_close_polishes_practical_fit_and_ai_casing(build_cover_letter: object) -> None:
+    brief = SimpleNamespace(
+        strongest_direct_proofs=("Program Delivery", "AI-Assisted Workflow Improvement"),
+        role_problem_phrase="turning cross-functional program ambiguity into visible milestones",
+        gap_honesty_boundary="",
+    )
+    close = build_cover_letter.proof_first_close_paragraph(
+        brief,
+        "Blue Yonder",
+        "Program Manager",
+        job_description="",
+    )
+    assert_true(
+        "The practical fit is" not in close and " applied to " not in close,
+        f"proof_first_close_paragraph() should avoid the templated practical-fit close; got {close!r}",
+    )
+    assert_true(
+        "AI-assisted" in close and "ai-assisted" not in close,
+        f"proof_first_close_paragraph() should preserve AI casing; got {close!r}",
+    )
+    assert_true(
+        "and AI-assisted" not in close,
+        f"proof_first_close_paragraph() should avoid stacked double-and proof phrases; got {close!r}",
+    )
+
+
 def test_cover_proof_paragraph_repairs_plant_controller_fragment(build_cover_letter: object, build_resume: object) -> None:
     job_description = (
         PROJECT_ROOT / "scratch" / "jd_library" / "20260720_170510_CivicPlus_Implementation_Consultant_be631cdc" / "job_description.txt"
@@ -13244,6 +13348,7 @@ def main() -> None:
         ("cover letter synthetic JD cleanup", None),
         ("role title dash not treated as bullet artifact", None),
         ("cover prompt leak pattern catches maps directly to", None),
+        ("cover close polishes practical fit and AI casing", None),
         ("naturalness score and adverb cleanup", None),
         ("ownership language rewrites", None),
         ("build interview review sections", None),
@@ -13259,6 +13364,9 @@ def main() -> None:
         ("XML page estimate word guard", None),
         ("resume non-ERP audit ignores company context", None),
         ("keyword placement audit", None),
+        ("ATS keyword mirroring and coverage", None),
+        ("keyword placement demotes filler and boosts phrases", None),
+        ("supported keyword weave removes stapled tails", None),
         ("S3 supported keyword weave targets priority summaries", None),
         ("build resume uses selected resume text for profile and alignment", None),
         ("obvious choice positioning", None),
@@ -13678,6 +13786,9 @@ def main() -> None:
             ("resume non-ERP audit ignores company context", lambda: test_resume_non_erp_audit_ignores_company_context(build_resume)),
             ("planned competency trim integrity", lambda: test_resume_integrity_allows_planned_competency_trim(build_resume)),
             ("keyword placement audit", lambda: test_keyword_placement_audit(build_resume)),
+            ("ATS keyword mirroring and coverage", lambda: test_ats_keyword_mirroring_and_coverage(build_resume)),
+            ("keyword placement demotes filler and boosts phrases", lambda: test_keyword_placement_demotes_filler_and_boosts_phrases(build_resume)),
+            ("supported keyword weave removes stapled tails", lambda: test_supported_keyword_weave_removes_stapled_tails(build_resume)),
             ("S3 supported keyword weave targets priority summaries", lambda: test_s3_supported_keyword_weave_targets_priority_summaries(build_resume)),
             ("S3 supported keyword weave keeps USAA summary three sentences", lambda: test_s3_supported_keyword_weave_keeps_usaa_summary_three_sentences(build_resume)),
             ("summary weave safety rejects contract-breaking repairs", lambda: test_summary_weave_safety_rejects_contract_breaking_repairs(build_resume)),
@@ -13825,6 +13936,7 @@ def main() -> None:
             ("F5 Randstad cover draft stays natural", lambda: test_f5_randstad_cover_draft_stays_specific_and_natural(build_cover_letter, build_resume)),
             ("cover letter validator blocks internal lane language", lambda: test_cover_letter_validator_blocks_internal_lane_language(build_cover_letter)),
             ("cover letter validator blocks canned F5 sentences", lambda: test_cover_letter_validator_blocks_canned_f5_sentences(build_cover_letter)),
+            ("cover close polishes practical fit and AI casing", lambda: test_cover_close_polishes_practical_fit_and_ai_casing(build_cover_letter)),
             ("cover proof paragraph repairs plant controller fragment", lambda: test_cover_proof_paragraph_repairs_plant_controller_fragment(build_cover_letter, build_resume)),
             ("cover letter avoids warehouse proof for fintech", lambda: test_cover_letter_avoids_warehouse_proof_for_fintech(build_cover_letter, build_resume)),
             ("cover letter avoids finance close proof for program role", lambda: test_cover_letter_avoids_finance_close_proof_for_program_role(build_cover_letter, build_resume)),
