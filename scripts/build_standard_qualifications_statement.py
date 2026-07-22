@@ -135,6 +135,22 @@ def relevant_experience_answer(job_description: str, snapshot: ResumeSnapshot, r
         aptean_sentence = (
             "At Aptean, I delivered 12 full-lifecycle ERP implementations and managed up to four at a time across 80+ international client engagements, leading discovery, requirements definition, data migration, testing, training, and post-go-live support."
         )
+    elif profile.primary_lane == "program_delivery":
+        aptean_sentence = (
+            "My program-delivery proof includes coordinating a five-month EFT/ACH replacement with Truist Bank, supporting warehouse and Amazon Robotics launch workstreams, and keeping cross-functional milestones, owners, and adoption risks visible."
+        )
+    elif profile.primary_lane == "product_ownership":
+        aptean_sentence = (
+            "My product-ownership proof includes de facto ERP platform ownership for 150+ users, requirements translation, Agile product partnership at Aptean, and training that moved stakeholder needs into adopted workflow changes."
+        )
+    elif profile.primary_lane == "process_improvement":
+        aptean_sentence = (
+            "My process-improvement proof includes reducing manual inventory work by 78% and discrepancies by 22% by redesigning ERP workflows, reporting visibility, access controls, and operating standards across five sites."
+        )
+    elif profile.primary_lane == "technical_support_admin":
+        aptean_sentence = (
+            "My technical-support proof includes resolving enterprise application issues across 600 law firm offices at Aderant, spanning Active Directory, SQL Server, third-party integrations, Windows services, and access-administration support."
+        )
     parts = [
         f"I bring approximately {direct_experience_years_label(snapshot)} of related experience across enterprise systems, analytics, customer-facing solution delivery, and cross-functional operational execution.",
         "At East West Manufacturing, I owned a mission-critical enterprise platform across five sites and 150+ users, supported migration planning and cutover work, built 200+ SQL-based KPI dashboards and reporting tools, and led training, testing, and go-live readiness across operations, finance, and engineering.",
@@ -146,6 +162,12 @@ def relevant_experience_answer(job_description: str, snapshot: ResumeSnapshot, r
         parts.append("I also bring adjacent competitive-positioning experience through pre-sales discovery, product demonstrations, solution-fit conversations, and buyer-facing tradeoff discussions.")
     if re.search(r"\b(?:pilot|prototype|innovation|business case|road map|roadmap)\b", job_description, re.I):
         parts.append("The strongest bridge to innovation work is that I have helped move ambiguous ideas into usable pilots and operational rollouts, including a zero-to-one internal SMS support channel and a new warehouse and robotics ERP launch.")
+    if profile.primary_lane == "program_delivery":
+        parts.append("For program roles, I would lead with milestone visibility, dependency tracking, governance habits, and PMP-in-progress discipline without claiming unsupported formal PMO ownership.")
+    if profile.primary_lane == "product_ownership":
+        parts.append("For product roles, I would lead with supported ownership of requirements, backlog-ready user feedback, prioritization conversations, and adoption follow-through rather than claiming a formal product-title history.")
+    if profile.primary_lane == "technical_support_admin":
+        parts.append("For support and administration roles, I would lead with enterprise application support, ITIL 4 training, ServiceNow exposure, Active Directory, SQL troubleshooting, and access-administration proof.")
     parts.append(
         f"Overall, the strongest match to this role is experience in {profile.core_problem}, backed by reporting, solution development, stakeholder facilitation, and practical follow-through."
     )

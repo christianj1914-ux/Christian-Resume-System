@@ -1487,12 +1487,32 @@ def job_problem_profile(job_description: str, resume_text: str = "") -> JobProbl
     if is_general_management_consulting_role(original_job_description):
         lane = CORPORATE_STRATEGY_PROFILE
     else:
+        title_text = extract_job_title(original_job_description) or ""
+        title_priority_lanes = {"program_delivery", "product_ownership", "process_improvement", "technical_support_admin"}
         lane_scores = [
-            (signal_hits(job_description, tuple(lane["signals"])), lane)
+            (
+                signal_hits(job_description, tuple(lane["signals"]))
+                + (signal_hits(title_text, tuple(lane["signals"])) * 8 if str(lane["key"]) in title_priority_lanes else 0),
+                lane,
+            )
             for lane in TARGETING_LANES
         ]
         lane_scores.sort(key=lambda item: item[0], reverse=True)
         score, lane = lane_scores[0]
+        if (
+            str(lane["key"]) == "technical_support_admin"
+            and signal_hits(title_text, tuple(lane["signals"])) == 0
+            and signal_hits(job_description, tuple(lane["signals"])) < 4
+        ):
+            score, lane = next(
+                item for item in lane_scores if str(item[1]["key"]) != "technical_support_admin"
+            )
+        if (
+            str(lane["key"]) == "process_improvement"
+            and not signal_hits(title_text, tuple(lane["signals"]))
+            and text_mentions(original_job_description, "assessment", "measurement", "learning", "academic content")
+        ):
+            lane = next(item for item in TARGETING_LANES if item["key"] == "analytics_operations")
         if score == 0:
             lane = next(item for item in TARGETING_LANES if item["key"] == "implementation_delivery")
 
@@ -1532,6 +1552,10 @@ def job_problem_profile(job_description: str, resume_text: str = "") -> JobProbl
 
 def natural_problem_phrase(profile: JobProblemProfile) -> str:
     return {
+        "program_delivery": "turning cross-functional program ambiguity into visible milestones, risks, and delivery decisions",
+        "product_ownership": "turning stakeholder needs into prioritized product work people can actually adopt",
+        "process_improvement": "turning operational friction into measurable workflow improvement",
+        "technical_support_admin": "turning application issues, access needs, and incidents into stable technical support",
         "implementation_delivery": "getting complex implementations to go-live without losing adoption",
         "customer_success": "turning adoption and renewal risk into retained, growing accounts",
         "analytics_operations": "turning reporting gaps into decisions leaders can act on",

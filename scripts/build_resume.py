@@ -442,7 +442,7 @@ OBJECTIVE_CONTEXT_PATTERNS = (
     r"\d",
     r"%",
     r"\b(?:b2b|b2c|saas|crm|erp|sql|power bi|tableau|salesforce|liveperson|serviceNow|jira|azure devops)\b",
-    r"\b(?:manufacturing|supply chain|finance|ecommerce|operations|warehouse|implementation|go-live|uat|migration|integration|renewal|retention|forecast|churn|mitigation|onboarding)\b",
+    r"\b(?:manufacturing|supply chain|finance|ecommerce|operations|warehouse|implementation|go-live|uat|migration|integration|requirements|documentation|workstream|workstreams|user stories|renewal|retention|forecast|churn|mitigation|onboarding)\b",
     r"\b(?:education(?:al)?|school|k-12|assessment|learning|learner(?:-facing)?|student|measurement|validation|accessibility|fairness|standards)\b",
     r"\b(?:clients|accounts|users|sites|dashboards|reports|workshops|qbrs|revenue|portfolio|platform|systems|global|international)\b",
 )
@@ -3675,6 +3675,35 @@ def hiring_manager_skim_issues(
         issues.append("Professional Summary opens with a constructed problem phrase instead of a direct role-fit sentence.")
 
     role_terms_by_lane = {
+        "program_delivery": (
+            "program",
+            "program manager",
+            "milestone",
+            "dependency",
+            "governance",
+            "stakeholder",
+            "risk",
+            "delivery",
+        ),
+        "product_ownership": (
+            "product",
+            "product owner",
+            "product manager",
+            "requirements",
+            "backlog",
+            "roadmap",
+            "prioritization",
+            "adoption",
+        ),
+        "technical_support_admin": (
+            "support",
+            "application",
+            "incident",
+            "troubleshooting",
+            "access",
+            "technical",
+            "systems administrator",
+        ),
         "presales_solution": ("solutions consultant", "solution consulting", "pre-sales", "product demonstrations", "discovery"),
         "customer_success": ("customer success", "adoption", "renewal", "account", "post-go-live"),
         "implementation_delivery": (

@@ -122,6 +122,9 @@ DATE_RANGE_PATTERN = re.compile(
     re.I,
 )
 LANE_PROBLEM_PHRASES = {
+    "program_delivery": "cross-functional program work turning into visible milestones, risks, and adopted delivery",
+    "product_ownership": "stakeholder needs turning into prioritized product work and adopted workflow changes",
+    "technical_support_admin": "application issues, access needs, and incidents turning into stable technical support",
     "implementation_delivery": "complex ERP implementations moving cleanly from discovery through go-live and adoption",
     "customer_success": "customer adoption, risk, and renewal work staying steady under pressure",
     "presales_solution": "buyer questions turning into workable solution decisions",
@@ -131,6 +134,9 @@ LANE_PROBLEM_PHRASES = {
     "corporate_strategy": "complex cross-functional questions turning into decisions people can act on",
 }
 LANE_PROBLEM_NOUN_PHRASES = {
+    "program_delivery": "program milestones, dependencies, governance, and delivery risk",
+    "product_ownership": "product discovery, backlog priorities, requirements, and adoption",
+    "technical_support_admin": "application support, access administration, and technical troubleshooting",
     "implementation_delivery": "ERP implementation, go-live, and adoption work",
     "customer_success": "customer adoption, risk, and renewal work",
     "presales_solution": "buyer questions and solution decisions",
@@ -398,6 +404,15 @@ def lane_default_human_motivation_sentence(profile: build_resume.JobProblemProfi
         "implementation_delivery": (
             "The part I keep coming back to is when a system stops being a project plan and starts working for the people who have to live in the workflow every day."
         ),
+        "program_delivery": (
+            "What keeps me engaged is turning unclear cross-functional work into a plan people can trust, track, and actually execute."
+        ),
+        "product_ownership": (
+            "What keeps me engaged is turning scattered stakeholder needs into product work clear enough for teams to build and users to adopt."
+        ),
+        "technical_support_admin": (
+            "What keeps me engaged is making technical issues less chaotic for the people depending on the application to do their work."
+        ),
         "customer_success": (
             "What matters to me in customer work is the shift from a customer managing issues to a customer feeling confident enough to get real value from the platform."
         ),
@@ -548,6 +563,33 @@ def canonical_lane_terms(profile: build_resume.JobProblemProfile) -> tuple[str, 
             "root cause",
             "improvement",
             "auditable",
+        ),
+        "program_delivery": (
+            "program",
+            "milestone",
+            "dependency",
+            "governance",
+            "stakeholder",
+            "risk",
+            "delivery",
+        ),
+        "product_ownership": (
+            "product",
+            "backlog",
+            "requirements",
+            "roadmap",
+            "user stories",
+            "stakeholder",
+            "adoption",
+        ),
+        "technical_support_admin": (
+            "support",
+            "application",
+            "incident",
+            "troubleshooting",
+            "active directory",
+            "servicenow",
+            "access",
         ),
     }.get(profile.primary_lane, ())
 
@@ -1216,7 +1258,7 @@ def build_relevant_experience_answer(brief: PositioningBrief) -> str:
         if bridge_theme_sentence.lower() not in {item.lower() for item in supporting_sentences}:
             supporting_sentences.append(bridge_theme_sentence)
     bridge = clean_answer_sentence(
-        f"Taken together, the combination supports the role because it keeps {problem_phrase} grounded in execution, visibility, and follow-through."
+        f"Taken together, the combination supports the role because it keeps {problem_phrase} grounded in practical execution, visibility, and follow-through."
     )
     lead = " ".join(part for part in (sentence_one, sentence_two) if part)
     deduped_support = [

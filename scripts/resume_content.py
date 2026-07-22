@@ -1111,6 +1111,10 @@ def summary_anchor_phrase(
     if anchor:
         return anchor
     return {
+        "program_delivery": "five-month EFT/ACH replacement and warehouse launch coordination",
+        "product_ownership": "de facto ERP product ownership for 150+ users",
+        "process_improvement": "a 78% manual-work reduction and 22% discrepancy reduction",
+        "technical_support_admin": "enterprise application support across 600 law firm offices",
         "presales_solution": "80+ international client engagements",
         "customer_success": "$1M+ in at-risk annual revenue",
         "analytics_operations": "200+ dashboards and KPI tools",
@@ -1142,6 +1146,30 @@ def summary_proof_sentence(
     """Lane-aware supported proof with a small amount of theme-based variation."""
     emphasis = emphasis or determine_tailoring_emphasis(job_description)
     proof = ""
+    if profile.primary_lane == "program_delivery":
+        proof = (
+            "Coordinated a 5-month EFT/ACH replacement with Truist Bank while keeping owners and adoption risks "
+            "visible across functions and supporting warehouse and Amazon Robotics launch readiness."
+        )
+        return ensure_summary_proof_anchor(proof, profile, emphasis)
+    if profile.primary_lane == "product_ownership":
+        proof = (
+            "Owned de facto ERP product decisions for 150+ users, translating stakeholder needs into requirements, "
+            "workflow changes, Agile feedback, training, and adoption follow-through."
+        )
+        return ensure_summary_proof_anchor(proof, profile, emphasis)
+    if profile.primary_lane == "process_improvement":
+        proof = (
+            "Reduced manual inventory work 78% and discrepancies 22% by redesigning ERP workflows, access controls, "
+            "reporting visibility, and operating standards across five sites."
+        )
+        return ensure_summary_proof_anchor(proof, profile, emphasis)
+    if profile.primary_lane == "technical_support_admin":
+        proof = (
+            "Resolved enterprise application issues across 600 law firm offices while supporting Active Directory, "
+            "SQL Server, integrations, Windows services, and access-administration needs."
+        )
+        return ensure_summary_proof_anchor(proof, profile, emphasis)
     if emphasis.proof_anchor == "launch":
         proof = (
             "Owned Aptean Intuitive across five sites for 150+ users, launched warehouse and Amazon Robotics setup, "
@@ -1176,6 +1204,26 @@ def summary_proof_sentence(
         proof = (
             "Managed 80+ client engagements within a $6M+ book of business and helped protect $1M+ in at-risk "
             "annual revenue through QBRs, recovery work, and reporting."
+        )
+    elif profile.primary_lane == "program_delivery":
+        proof = (
+            "Coordinated a 5-month EFT/ACH replacement with Truist Bank while keeping owners and adoption risks "
+            "visible across functions and supporting warehouse and Amazon Robotics launch readiness."
+        )
+    elif profile.primary_lane == "product_ownership":
+        proof = (
+            "Owned de facto ERP product decisions for 150+ users, translating stakeholder needs into requirements, "
+            "workflow changes, Agile feedback, training, and adoption follow-through."
+        )
+    elif profile.primary_lane == "process_improvement":
+        proof = (
+            "Reduced manual inventory work 78% and discrepancies 22% by redesigning ERP workflows, access controls, "
+            "reporting visibility, and operating standards across five sites."
+        )
+    elif profile.primary_lane == "technical_support_admin":
+        proof = (
+            "Resolved enterprise application issues across 600 law firm offices while supporting Active Directory, "
+            "SQL Server, integrations, Windows services, and access-administration needs."
         )
     else:
         include_erp = summary_requires_erp_proof(job_description)
@@ -1374,6 +1422,26 @@ def summary_fit_close_sentence(
                 "measurable follow-through."
             )
 
+    if profile.primary_lane == "program_delivery":
+        return (
+            "Best used where milestones, dependencies, stakeholder decisions, and adoption risks need visible ownership."
+        )
+
+    if profile.primary_lane == "product_ownership":
+        return (
+            "Best used where discovery, backlog priorities, business requirements, and adoption need to stay connected."
+        )
+
+    if profile.primary_lane == "process_improvement":
+        return (
+            "Best used where root-cause analysis, standard work, and measurable workflow gains need to survive handoff."
+        )
+
+    if profile.primary_lane == "technical_support_admin":
+        return (
+            "Best used where application support, access administration, troubleshooting, and escalation need reliable ownership."
+        )
+
     if profile.primary_lane == "corporate_strategy":
         return (
             "Best used where ambiguous operating problems need practical decisions, clearer owners, and measurable next "
@@ -1423,6 +1491,14 @@ def summary_minimum_close_extension(profile: JobProblemProfile, job_description:
         if jd_mentions(job_description, "supply chain", "network", "logistics", "transportation", "manufacturing"):
             return " across supply chain, reporting, and cross-functional operating environments"
         return " across reporting, workflow, and cross-functional operating environments"
+    if profile.primary_lane == "program_delivery":
+        return " across program milestones, delivery risks, and stakeholder decisions"
+    if profile.primary_lane == "product_ownership":
+        return " across product requirements, prioritization, and adoption follow-through"
+    if profile.primary_lane == "process_improvement":
+        return " across workflow redesign, standardization, and measurable process improvement"
+    if profile.primary_lane == "technical_support_admin":
+        return " across application support, access administration, and technical troubleshooting"
     if profile.primary_lane == "corporate_strategy":
         return " across client teams, operating tradeoffs, and practical execution paths"
     return " across customer teams, launch pressure, and post-go-live adoption work"
@@ -1493,6 +1569,10 @@ def compact_summary_close(close: str) -> str:
 
 def short_summary_close_sentence(profile: JobProblemProfile, job_description: str) -> str:
     lane_closes = {
+        "program_delivery": "Best used where milestones, dependencies, and stakeholder decisions need visible ownership.",
+        "product_ownership": "Best used where requirements, prioritization, and adoption need to stay connected.",
+        "process_improvement": "Best used where root causes, standard work, and measurable gains need to survive handoff.",
+        "technical_support_admin": "Best used where application support, access, and escalation need reliable ownership.",
         "presales_solution": "Best used where discovery, solution design, and delivery judgment need to connect cleanly.",
         "customer_success": "Best used where adoption planning, account health, and escalation ownership shape retention.",
         "change_enablement": "Best used where training, workflow clarity, and stakeholder follow-through determine adoption.",
@@ -1920,7 +2000,7 @@ def summary_positioning_sentence(
             )
         return (
             "Pre-sales solutions consultant with 10+ years leading technical discovery, solution design, and product "
-            "demonstrations for enterprise software evaluations built to stay credible once implementation began."
+            "demonstrations for enterprise software buyers, with implementation judgment keeping recommendations credible."
         )
     if profile.primary_lane == "customer_success":
         if emphasis.proof_anchor == "revenue":
@@ -2001,6 +2081,26 @@ def summary_positioning_sentence(
             "Enterprise systems and analytics consultant with 10+ years turning operational data, reporting gaps, "
             "and workflow issues into clearer decisions and measurable process improvements for customer-facing teams."
         )
+    if profile.primary_lane == "program_delivery":
+        return (
+            "Program management and technical delivery leader with 10+ years turning ambiguous cross-functional and "
+            "customer-facing work into milestone visibility, stakeholder governance, and adopted process changes."
+        )
+    if profile.primary_lane == "product_ownership":
+        return (
+            "Product ownership and enterprise systems consultant with 10+ years translating stakeholder needs into "
+            "prioritized requirements, workflow decisions, and adopted product improvements."
+        )
+    if profile.primary_lane == "process_improvement":
+        return (
+            "Business process and continuous-improvement consultant with 10+ years turning workflow friction, "
+            "root-cause findings, and operating data into measurable process change."
+        )
+    if profile.primary_lane == "technical_support_admin":
+        return (
+            "Enterprise application support and systems administration professional with 10+ years resolving technical "
+            "issues, access needs, and workflow interruptions across complex user environments."
+        )
     if profile.primary_lane == "corporate_strategy":
         return (
             "Client-facing strategy and operations consultant with 10+ years turning ambiguous business problems, "
@@ -2036,6 +2136,18 @@ def summary_positioning_sentence(
 
 def obvious_choice_positioning(profile: JobProblemProfile, job_description: str = "") -> dict[str, str]:
     lane_sentences = {
+        "program_delivery": (
+            "For this kind of program role, the obvious choice is someone who can make ambiguous cross-functional work visible, governed, and adopted without losing delivery pace."
+        ),
+        "product_ownership": (
+            "For this kind of product role, the obvious choice is someone who can translate stakeholder needs into prioritized work, practical requirements, and adoption follow-through."
+        ),
+        "process_improvement": (
+            "For this kind of process role, the obvious choice is someone who can find workflow friction, prove the root cause, and turn the fix into measurable adoption."
+        ),
+        "technical_support_admin": (
+            "For this kind of support and administration role, the obvious choice is someone who can stabilize enterprise applications, troubleshoot cleanly, and keep access and escalation work reliable."
+        ),
         "presales_solution": (
             "For this kind of pre-sales role, the obvious choice is someone who can turn messy buyer requirements into credible solution proof, executive confidence, and a cleaner path to decision."
         ),
@@ -2092,6 +2204,10 @@ def generate_positioning_statement(profile: JobProblemProfile, job_description: 
             + ", and decision support that holds up inside real operating environments."
         )
     lane_statements = {
+        "program_delivery": broad_capability + ", especially in program roles that need milestone visibility, dependency management, governance, and delivery risk reduction.",
+        "product_ownership": broad_capability + ", especially in product roles that need stakeholder discovery, backlog-ready requirements, prioritization, and adopted workflow changes.",
+        "process_improvement": broad_capability + ", especially in process roles that need root-cause analysis, standardization, measurable improvement, and user adoption discipline.",
+        "technical_support_admin": broad_capability + ", especially in support and administration roles that need enterprise application troubleshooting, access reliability, and clear escalation.",
         "presales_solution": broad_capability + ", especially in pre-sales roles that need sharp discovery, credible solution framing, and implementation realism that holds up after the sale.",
         "customer_success": broad_capability + ", especially in customer success roles that need adoption discipline, executive alignment, and practical ownership of renewal risk across complex accounts.",
         "change_enablement": broad_capability + ", especially in change roles that need system rollout work translated into stakeholder clarity, role-based adoption, and durable workflow follow-through.",

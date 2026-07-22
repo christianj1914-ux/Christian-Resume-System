@@ -103,6 +103,16 @@ CANONICAL_EVIDENCE: tuple[CanonicalEvidence, ...] = (
         support_terms=("Amazon Robotics",),
     ),
     CanonicalEvidence(
+        id="eft_ach_replacement",
+        employer="East West Manufacturing",
+        role="Enterprise Systems Manager",
+        source_text="Led a five-month cross-functional initiative to replace a years-outdated EFT/ACH file integration, coordinating across internal IT, global finance, Aptean, and Truist Bank to design, validate, and deploy a compliant payment workflow that resolved a long-standing financial infrastructure gap and restored payment process integrity.",
+        claim="coordinated a five-month EFT/ACH replacement with Truist Bank across IT, finance, vendor, and bank stakeholders",
+        metrics=("five-month", "EFT/ACH"),
+        lane_signals=("program", "milestone", "stakeholder", "risk", "governance", "delivery"),
+        support_terms=("EFT/ACH", "Truist"),
+    ),
+    CanonicalEvidence(
         id="migration_readiness",
         employer="East West Manufacturing",
         role="Enterprise Systems Manager",
@@ -151,6 +161,16 @@ CANONICAL_EVIDENCE: tuple[CanonicalEvidence, ...] = (
         metrics=("Salesforce",),
         lane_signals=("product", "agile", "salesforce", "requirements", "prioritization"),
         support_terms=("Salesforce",),
+    ),
+    CanonicalEvidence(
+        id="aderant_application_support",
+        employer="Aderant",
+        role="Technical Support Engineer",
+        source_text="Provided technical product support for enterprise legal case management software across 600+ law firm offices, diagnosing and resolving issues spanning Active Directory, Microsoft SQL Server, third-party integrations, and Windows services; developed documentation and training that reduced escalation frequency and improved knowledge continuity.",
+        claim="resolved enterprise application issues across 600+ law firm offices spanning Active Directory, SQL Server, integrations, Windows services, and access support",
+        metrics=("600+",),
+        lane_signals=("support", "application", "incident", "troubleshooting", "active directory", "sql server", "access"),
+        support_terms=("600", "Active Directory", "SQL Server"),
     ),
     CanonicalEvidence(
         id="livengage_workflows",

@@ -603,7 +603,9 @@ def build_cover_response_bank(
     }
     evidence_items = safe_selected_evidence_items_ordered(job_description, resume_text)
     proof_bullets = tuple(
-        safe_sentence(proof_text.sanitize_proof_sentence(item.text, max_words=24))
+        safe_sentence(
+            (cleaned[:1].upper() + cleaned[1:]) if (cleaned := proof_text.sanitize_proof_sentence(item.text, max_words=24)) else ""
+        )
         for item in evidence_items
     )
     return CoverResponseBank(
@@ -643,6 +645,10 @@ def sentence_starts_with_lowercase_fragment(text: str) -> bool:
 
 def cover_lane_terms(lane_key: str) -> tuple[str, ...]:
     return {
+        "program_delivery": ("program", "milestone", "dependency", "governance", "stakeholder", "risk", "delivery", "pmp"),
+        "product_ownership": ("product", "backlog", "roadmap", "requirements", "user stories", "prioritization", "adoption"),
+        "process_improvement": ("process", "workflow", "root cause", "standardization", "efficiency", "improvement", "automation"),
+        "technical_support_admin": ("support", "application", "incident", "troubleshooting", "active directory", "servicenow", "access"),
         "presales_solution": ("discovery", "solution", "buyer", "demo", "requirements", "stakeholder", "presentation"),
         "customer_success": ("account", "retention", "adoption", "customer", "qbr", "renewal", "risk"),
         "implementation_delivery": ("implementation", "migration", "go-live", "testing", "training", "integration", "delivery"),
@@ -685,6 +691,10 @@ def opening_support_candidates(bank: CoverResponseBank) -> list[CoverSentenceCan
 
 def opening_support_fallback_sentence(lane_key: str) -> str:
     fallback_by_lane = {
+        "program_delivery": "I have spent much of my career making cross-functional work visible through milestones, owners, risks, and delivery follow-through.",
+        "product_ownership": "I have spent much of my career turning stakeholder needs into practical requirements, priorities, and adopted workflow changes.",
+        "process_improvement": "I have spent much of my career finding workflow friction, proving the root cause, and helping teams adopt cleaner operating standards.",
+        "technical_support_admin": "I have spent much of my career helping users and teams resolve technical issues, stabilize access, and keep enterprise applications usable.",
         "presales_solution": "I have spent much of my career making complex system work easier to scope, explain, and hand off cleanly.",
         "customer_success": "I have spent much of my career helping customer-facing work stay clear, accountable, and usable once the pressure rises.",
         "implementation_delivery": "I have spent much of my career keeping implementation work clear across scope, testing, training, and go-live readiness.",
@@ -962,6 +972,10 @@ def proof_selection_score(text: str, lane_key: str, job_description: str) -> int
 
 def proof_fallback_sentences(lane_key: str) -> list[str]:
     fallback_by_lane = {
+        "program_delivery": "I coordinated a five-month EFT/ACH replacement, warehouse launch workstreams, and cross-functional milestone tracking where owners, risks, and adoption all had to stay visible.",
+        "product_ownership": "I owned de facto ERP platform decisions for 150+ users, translating stakeholder needs into requirements, workflow changes, training, and adoption follow-through.",
+        "process_improvement": "I reduced manual inventory work 78% and discrepancies 22% by redesigning ERP workflows, reporting visibility, access controls, and operating standards.",
+        "technical_support_admin": "I resolved enterprise application issues across 600 law firm offices, spanning Active Directory, SQL Server, integrations, Windows services, and access support.",
         "presales_solution": "I have led 60+ executive workshops and QBRs, supported 80+ client engagements, and kept discovery, stakeholder communication, and handoff quality grounded in delivery reality.",
         "customer_success": "I have led 60+ executive workshops and QBRs and helped stabilize $1M+ in at-risk annual revenue while keeping adoption, executive communication, and escalation clarity visible.",
         "implementation_delivery": "I have owned five-site operations and built 200+ reporting tools that made status, workflow gaps, and next-step decisions easier to track through delivery.",
@@ -1589,7 +1603,7 @@ _GENERIC_COVER_TERM_PATTERNS: tuple[tuple[str, str], ...] = (
 
 APPROVED_COVER_ACRONYMS = {
     "ERP", "CRM", "SQL", "API", "SOW", "KPI", "QBR", "NLP", "SMS", "BI", "EAC", "ETC",
-    "CPQ", "PMI", "SDLC", "SFDC", "UAT",
+    "CPQ", "PMI", "SDLC", "SFDC", "UAT", "EFT", "ACH",
 }
 WEAK_OPENER_SIGNALS = (
     "stands out because",
@@ -3329,6 +3343,10 @@ def friendly_direct_proof_phrase(
     job_description: str = "",
 ) -> str:
     phrase_map = {
+        "Program Delivery": "program delivery and stakeholder governance",
+        "Product Ownership": "product ownership and requirements translation",
+        "Process Improvement": "process improvement and measurable workflow change",
+        "Technical Support and Application Administration": "enterprise application support and access administration",
         "Change Adoption and Enablement": "stakeholder enablement and adoption follow-through",
         "Client-Side ERP Ownership and Finance Partnership": "client-side ERP ownership with finance partnership",
         "Implementation Delivery": "implementation delivery",
@@ -3519,6 +3537,10 @@ def role_specific_cover_work_sentence(
     job_description: str,
 ) -> str:
     lane_focus = {
+        "program_delivery": "milestones, dependencies, governance, and delivery risk",
+        "product_ownership": "requirements, prioritization, backlog clarity, and adoption",
+        "process_improvement": "workflow diagnosis, standardization, measurement, and adoption",
+        "technical_support_admin": "application support, troubleshooting, access, and escalation",
         "analytics_operations": "reporting, recommendations, and stakeholder decisions",
         "change_enablement": "training, adoption, and stakeholder follow-through",
         "corporate_strategy": "analysis, tradeoffs, and execution planning",
@@ -3939,6 +3961,10 @@ def _select_from_candidates(
             supported = non_erp_supported
     lane_key = build_resume.job_problem_profile(job_description, resume_text).primary_lane
     lane_signal = {
+        "program_delivery": {"program", "milestone", "dependency", "governance", "risk", "delivery"},
+        "product_ownership": {"product", "backlog", "roadmap", "requirements", "user stories", "adoption"},
+        "process_improvement": {"process", "workflow", "root cause", "standardization", "improvement", "automation"},
+        "technical_support_admin": {"support", "application", "incident", "troubleshooting", "active directory", "access"},
         "implementation_delivery": {"implementation", "go-live", "requirements", "configuration", "migration"},
         "customer_success": {"retention", "renewal", "risk", "customer success", "qbr"},
         "presales_solution": {"discovery", "solution", "pre-sales", "demo"},
@@ -3947,7 +3973,8 @@ def _select_from_candidates(
     }.get(lane_key, set())
 
     def lane_bonus(item: EvidenceBullet) -> int:
-        return 3 if set(signal.lower() for signal in item.signals) & lane_signal else 0
+        overlap = set(signal.lower() for signal in item.signals) & lane_signal
+        return 12 + (len(overlap) * 3) if overlap else 0
 
     supported.sort(
         key=lambda item: (
@@ -3977,7 +4004,10 @@ def canonical_cover_candidates() -> tuple[EvidenceBullet, ...]:
 
 
 def evidence_bullets(job_description: str, resume_text: str) -> list[str]:
-    return [item.text for item in _select_from_candidates(canonical_cover_candidates(), job_description, resume_text, 3, False)]
+    return [
+        safe_sentence(item.text[:1].upper() + item.text[1:])
+        for item in _select_from_candidates(canonical_cover_candidates(), job_description, resume_text, 3, False)
+    ]
 
 
 def selected_evidence_items(job_description: str, resume_text: str) -> list[EvidenceBullet]:
@@ -5471,17 +5501,22 @@ def cover_sentence_has_context(sentence: str, company_name: str, role_title: str
     return any(term in sentence_lower for term in lane_terms.get(profile.primary_lane, ()))
 
 
+COVER_GENERIC_SENTENCE_RE = re.compile(
+    r"\b(?:"
+    r"I am also a deliberate learner|"
+    r"This is familiar territory|"
+    r"That mix helps|"
+    r"My background fits|"
+    r"I am strongest where|"
+    r"I build structure around complex work|"
+    r"I translate technical work into operating decisions"
+    r")\b",
+    re.I,
+)
+
+
 def cover_sentence_is_generic(sentence: str, company_name: str, role_title: str, job_description: str) -> bool:
-    generic_patterns = (
-        r"\bI am also a deliberate learner\b",
-        r"\bThis is familiar territory\b",
-        r"\bThat mix helps\b",
-        r"\bMy background fits\b",
-        r"\bI am strongest where\b",
-        r"\bI build structure around complex work\b",
-        r"\bI translate technical work into operating decisions\b",
-    )
-    if any(re.search(pattern, sentence, re.I) for pattern in generic_patterns):
+    if COVER_GENERIC_SENTENCE_RE.search(sentence):
         return True
     return not (
         paragraph_has_fast_proof(sentence)
@@ -6519,6 +6554,8 @@ def cover_letter_body_paragraphs(text: str) -> list[str]:
 
 def paragraph_has_fast_proof(paragraph: str) -> bool:
     if re.search(r"\d|%|\$", paragraph):
+        return True
+    if re.search(r"\b(?:eft/ach|truist|five-month|six-month|month)\b", paragraph, re.I):
         return True
     has_named_scope = bool(
         re.search(

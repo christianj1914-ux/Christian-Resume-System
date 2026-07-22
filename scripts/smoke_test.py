@@ -148,6 +148,30 @@ The role owns implementation, go-live, configuration, data migration, integratio
 hypercare, project management, scope, deliverables, timeline, requirements, UAT,
 customer onboarding, and launch readiness.
 """,
+    "program_delivery": """
+Role: Senior Program Manager
+The role owns program management, milestones, dependencies, roadmap governance,
+cross-functional program delivery, stakeholder management, risk register, agile
+execution, waterfall planning, PMO reporting, and delivery leadership.
+""",
+    "product_ownership": """
+Role: Product Owner
+The role owns product management, product owner responsibilities, backlog,
+user stories, roadmap prioritization, sprint planning, stakeholder requirements,
+feature discovery, and adoption of product improvements.
+""",
+    "process_improvement": """
+Role: Continuous Improvement Analyst
+The role owns continuous improvement, process improvement, business process
+redesign, lean methods, root cause analysis, workflow optimization,
+standardization, operational excellence, efficiency, and measurable process gains.
+""",
+    "technical_support_admin": """
+Role: Application Support Analyst
+The role owns application support, technical support, incident triage,
+troubleshooting, ITIL practices, ServiceNow tickets, Active Directory,
+user provisioning, access support, and systems administration.
+""",
     "analytics_operations": """
 Role: Analytics Operations Analyst
 The role focuses on analytics, data analysis, dashboards, KPI reporting, forecast
@@ -1576,6 +1600,73 @@ def test_strategy_transformation_consultant_prefers_corporate_strategy(build_res
     assert_true(
         any(term in strategy_summary.lower() for term in ("strategy", "consult", "recommendation", "client")),
         f"strategy/transformation consulting summaries should stay in strategy/consulting language; got {strategy_summary}",
+    )
+
+
+def test_s7_lane_expansion_routes_and_specializes_content(build_resume: object, build_cover_letter: object) -> None:
+    resume_text = build_resume.docx_visible_text_from_path(build_resume.IMPLEMENTATION_RESUME)
+    program_paths = (
+        PROJECT_ROOT / "scratch" / "jd_library" / "20260720_225241_Adobe_Senior_Program_Manager_GSO_d8bcc5f7" / "job_description.txt",
+        PROJECT_ROOT / "scratch" / "jd_library" / "20260720_222322_Blue_Yonder_Program_Manager_83b35faa" / "job_description.txt",
+    )
+    for path in program_paths:
+        job_description = path.read_text(encoding="utf-8-sig")
+        profile = build_resume.job_problem_profile(job_description, resume_text)
+        assert_true(
+            profile.primary_lane == "program_delivery",
+            f"{path.parent.name} should route to program_delivery by title priority; got {profile.primary_lane!r}",
+        )
+        summary = build_resume.build_problem_first_summary(job_description, resume_text)
+        assert_true(
+            "program" in summary.lower()
+            and any(term in summary.lower() for term in ("milestone", "dependency", "governance", "risk"))
+            and "eft/ach" in summary.lower(),
+            f"{path.parent.name} summary should use program-delivery language and proof; got {summary!r}",
+        )
+        plan = build_cover_letter.build_cover_letter_plan(
+            "Adobe" if "Adobe" in path.parent.name else "Blue Yonder",
+            "Senior Program Manager, GSO" if "Adobe" in path.parent.name else "Program Manager",
+            job_description,
+            resume_text,
+            mode=build_cover_letter.STANDARD_COVER_MODE,
+        )
+        cover_text = " ".join(plan.body_paragraphs).lower()
+        assert_true(
+            any(term in cover_text for term in ("program", "milestone", "governance", "dependency"))
+            and "eft/ach" in cover_text,
+            f"{path.parent.name} cover should use program-delivery proof, not generic fallback prose; got {cover_text!r}",
+        )
+
+    product_job = """
+Company: ProductCo
+Job Title: Product Owner
+Responsibilities
+Own product backlog, roadmap prioritization, stakeholder requirements, sprint planning, user stories, feature discovery, and adoption.
+"""
+    product_summary = build_resume.build_problem_first_summary(product_job, resume_text)
+    assert_true(
+        build_resume.job_problem_profile(product_job, resume_text).primary_lane == "product_ownership"
+        and "product" in product_summary.lower()
+        and "backlog" in product_summary.lower(),
+        f"Product-owner roles should route to product_ownership and surface product language; got {product_summary!r}",
+    )
+
+    process_job = LANE_JOB_DESCRIPTIONS["process_improvement"]
+    process_summary = build_resume.build_problem_first_summary(process_job, resume_text)
+    assert_true(
+        build_resume.job_problem_profile(process_job, resume_text).primary_lane == "process_improvement"
+        and "78%" in process_summary
+        and "22%" in process_summary,
+        f"Process roles should route to process_improvement and lead with the 78/22 proof; got {process_summary!r}",
+    )
+
+    support_job = LANE_JOB_DESCRIPTIONS["technical_support_admin"]
+    support_summary = build_resume.build_problem_first_summary(support_job, resume_text)
+    assert_true(
+        build_resume.job_problem_profile(support_job, resume_text).primary_lane == "technical_support_admin"
+        and "application support" in support_summary.lower()
+        and "active directory" in support_summary.lower(),
+        f"Support/admin roles should route to technical_support_admin and lead with Aderant-style proof; got {support_summary!r}",
     )
 
 
@@ -13107,6 +13198,7 @@ def main() -> None:
         ("customer success portfolio scope", None),
         ("general consulting lane isolation", None),
         ("strategy transformation consultant lane override", None),
+        ("S7 lane expansion routes and specializes content", None),
         ("consulting audit keyword cleanup", None),
         ("audit keywords filter company affiliates and weak fragments", None),
         ("audit keywords filter boilerplate adjectives and normalize es plurals", None),
@@ -13488,6 +13580,7 @@ def main() -> None:
             ("customer success portfolio scope", lambda: test_customer_success_summary_clarifies_portfolio_scope(build_resume)),
             ("general consulting lane isolation", lambda: test_general_consulting_lane_isolated_from_other_consultant_roles(build_resume)),
             ("strategy transformation consultant lane override", lambda: test_strategy_transformation_consultant_prefers_corporate_strategy(build_resume)),
+            ("S7 lane expansion routes and specializes content", lambda: test_s7_lane_expansion_routes_and_specializes_content(build_resume, build_cover_letter)),
             ("consulting audit keyword cleanup", lambda: test_consulting_audit_keywords_filter_recruiting_fluff(build_resume)),
             ("audit keywords filter company affiliates and weak fragments", lambda: test_audit_keywords_filter_company_affiliates_and_weak_fragments(build_resume)),
             ("audit keywords filter boilerplate adjectives and normalize es plurals", lambda: test_audit_keywords_filter_boilerplate_adjectives_and_normalize_es_plurals(build_resume)),
