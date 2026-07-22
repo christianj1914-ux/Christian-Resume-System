@@ -3859,6 +3859,32 @@ def test_s3_supported_keyword_weave_keeps_usaa_summary_three_sentences(build_res
     )
 
 
+def test_summary_weave_safety_rejects_contract_breaking_repairs(build_resume: object) -> None:
+    unsafe = (
+        "Enterprise systems and analytics consultant with 10+ years turning AI-assisted workflow questions and "
+        "data-trust issues into clearer decisions, measurable process improvement, and usable reporting, with "
+        "emphasis on dashboards reporting and strategy. Built 200+ dashboards and KPI tools, supported 80+ client "
+        "engagements, and led 60+ executive workshops across international client environments. Best used where "
+        "reporting depth and operating judgment improve retention analysis, curated reporting, and follow-through "
+        "for customer-facing teams."
+    )
+    safe = (
+        "Enterprise systems and analytics consultant with 10+ years turning AI-assisted workflow questions and "
+        "data-trust issues into clearer decisions, measurable process improvement, and usable reporting. Built "
+        "200+ dashboards and KPI tools, supported 80+ client engagements, and led 60+ executive workshops across "
+        "international client environments. Brings the most value when dashboards reporting and strategy connect "
+        "to measurable execution, training, and adoption follow-through."
+    )
+    assert_true(
+        not build_resume.summary_weave_candidate_is_safe(unsafe),
+        f"Summary weave safety should reject candidates whose repair would split the summary; got {unsafe!r}",
+    )
+    assert_true(
+        build_resume.summary_weave_candidate_is_safe(safe),
+        f"Summary weave safety should accept fully compliant three-sentence candidates; got {safe!r}",
+    )
+
+
 def test_obvious_choice_positioning(build_resume: object, build_cover_letter: object, build_interview_cheat_sheet: object) -> None:
     job_description = LANE_JOB_DESCRIPTIONS["change_enablement"]
     profile = build_resume.job_problem_profile(job_description)
@@ -13402,6 +13428,7 @@ def main() -> None:
             ("keyword placement audit", lambda: test_keyword_placement_audit(build_resume)),
             ("S3 supported keyword weave targets priority summaries", lambda: test_s3_supported_keyword_weave_targets_priority_summaries(build_resume)),
             ("S3 supported keyword weave keeps USAA summary three sentences", lambda: test_s3_supported_keyword_weave_keeps_usaa_summary_three_sentences(build_resume)),
+            ("summary weave safety rejects contract-breaking repairs", lambda: test_summary_weave_safety_rejects_contract_breaking_repairs(build_resume)),
             ("build resume uses selected resume text for profile and alignment", lambda: test_build_resume_uses_selected_resume_text_for_profile_and_alignment_report(build_resume)),
             ("obvious choice positioning", lambda: test_obvious_choice_positioning(build_resume, build_cover_letter, build_interview_cheat_sheet)),
             ("positioning statement output", lambda: test_positioning_statement_output(build_resume, build_interview_cheat_sheet)),

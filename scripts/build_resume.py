@@ -3212,12 +3212,71 @@ def split_summary_sentences(summary: str) -> list[str]:
     return [part.strip() for part in re.split(r"(?<=[.!?])\s+", summary.strip()) if part.strip()]
 
 
-def summary_weave_candidate_is_safe(candidate: str) -> bool:
-    sentences = split_summary_sentences(candidate)
+def summary_word_count(summary: str) -> int:
+    return len(re.findall(r"\b[\w+.#'-]+\b", summary))
+
+
+def summary_contract_issues(summary: str) -> list[str]:
+    sentences = summary_sentences(summary)
+    issues: list[str] = []
+    word_count = summary_word_count(summary)
     if len(sentences) != 3:
+        issues.append(f"sentence_count={len(sentences)}")
+    if word_count < PROFESSIONAL_SUMMARY_MIN_WORDS:
+        issues.append(f"word_count={word_count}<min")
+    if word_count > PROFESSIONAL_SUMMARY_MAX_WORDS:
+        issues.append(f"word_count={word_count}>max")
+    long_sentences = [summary_word_count(sentence) for sentence in sentences if summary_word_count(sentence) > 34]
+    if long_sentences:
+        issues.append("sentence_over_34")
+    hard_rules = [
+        finding.rule_id
+        for finding in prose_engine.validate_text(summary, "summary")
+        if finding.severity == "fail"
+    ]
+    issues.extend(hard_rules)
+    return issues
+
+
+def summary_contract_is_safe(summary: str) -> bool:
+    return not summary_contract_issues(summary)
+
+
+def summary_weave_candidate_is_safe(candidate: str) -> bool:
+    if not summary_contract_is_safe(candidate):
         return False
-    findings = prose_engine.validate_text(candidate, "summary")
-    return not any(finding.severity == "fail" for finding in findings)
+    before_sentence_count = len(summary_sentences(candidate))
+    repair = prose_engine.repair_text(candidate, "summary")
+    if not repair.converged:
+        return False
+    if len(summary_sentences(repair.text)) != before_sentence_count:
+        return False
+    return summary_contract_is_safe(repair.text)
+
+
+def repair_summary_preserving_contract(summary: str, *, fallback: str | None = None, label: str = "summary") -> str:
+    candidates = [summary]
+    if fallback and fallback != summary:
+        candidates.append(fallback)
+    failure_notes: list[str] = []
+    for candidate in candidates:
+        before_sentence_count = len(summary_sentences(candidate))
+        repair = prose_engine.repair_text(candidate, "summary")
+        if not repair.converged:
+            rule_ids = ", ".join(
+                finding.rule_id for finding in repair.findings if finding.severity == "fail"
+            ) or "UNKNOWN"
+            failure_notes.append(f"{label}: repair did not converge ({rule_ids})")
+            continue
+        if len(summary_sentences(repair.text)) != before_sentence_count:
+            failure_notes.append(f"{label}: repair changed sentence count")
+            continue
+        issues = summary_contract_issues(repair.text)
+        if issues:
+            failure_notes.append(f"{label}: {'; '.join(issues)}")
+            continue
+        return repair.text
+    fail(f"Commercial model summary repair did not preserve the summary contract. {' | '.join(failure_notes) or 'No usable summary candidate.'}")
 
 
 def weave_supported_keywords_into_summary(
@@ -3249,7 +3308,7 @@ def weave_supported_keywords_into_summary(
     if len(candidate_first.split()) <= 34:
         candidate = " ".join([candidate_first, *sentences[1:]])
         if (
-            PROFESSIONAL_SUMMARY_MIN_WORDS <= len(candidate.split()) <= PROFESSIONAL_SUMMARY_MAX_WORDS
+            PROFESSIONAL_SUMMARY_MIN_WORDS <= summary_word_count(candidate) <= PROFESSIONAL_SUMMARY_MAX_WORDS
             and summary_weave_candidate_is_safe(candidate)
         ):
             return candidate
@@ -3257,7 +3316,7 @@ def weave_supported_keywords_into_summary(
     compact_close = f"Brings the most value when {focus} {focus_verb} to measurable execution, training, and adoption follow-through."
     candidate = " ".join([sentences[0], sentences[1], compact_close])
     if (
-        PROFESSIONAL_SUMMARY_MIN_WORDS <= len(candidate.split()) <= PROFESSIONAL_SUMMARY_MAX_WORDS
+        PROFESSIONAL_SUMMARY_MIN_WORDS <= summary_word_count(candidate) <= PROFESSIONAL_SUMMARY_MAX_WORDS
         and summary_weave_candidate_is_safe(candidate)
     ):
         return candidate
@@ -4692,25 +4751,32 @@ def build_resume() -> BuildResult:
                 provenance_source_xml,
                 document_xml,
             )
-            composed_summary = build_problem_first_summary(
+            base_summary = build_problem_first_summary(
                 job_description,
                 selected_resume_text,
                 variant_index=variant_index,
             )
             composed_summary = weave_supported_keywords_into_summary(
-                composed_summary,
+                base_summary,
                 job_description,
                 selected_resume_text,
             )
-            summary_outcome = prose_engine.repair_text(composed_summary, "summary")
-            if not summary_outcome.converged:
-                rule_ids = ", ".join(
-                    finding.rule_id for finding in summary_outcome.findings if finding.severity == "fail"
-                )
-                fail(f"Commercial model summary repair did not converge. Rule IDs: {rule_ids or 'UNKNOWN'}")
-            composed_summary = scrub_erp_language_for_non_erp_text(summary_outcome.text, job_description)
+            composed_summary = repair_summary_preserving_contract(
+                composed_summary,
+                fallback=base_summary,
+                label="commercial model summary",
+            )
+            composed_summary = scrub_erp_language_for_non_erp_text(composed_summary, job_description)
             if not jd_explicitly_requires_erp(job_description):
                 composed_summary = scrub_named_erp_platforms_for_summary(composed_summary)
+            if not summary_contract_is_safe(composed_summary):
+                fallback_summary = scrub_erp_language_for_non_erp_text(base_summary, job_description)
+                if not jd_explicitly_requires_erp(job_description):
+                    fallback_summary = scrub_named_erp_platforms_for_summary(fallback_summary)
+                composed_summary = repair_summary_preserving_contract(
+                    fallback_summary,
+                    label="commercial model scrubbed summary fallback",
+                )
             role_summary_map: dict[str, str] = {}
             for role_model in content_model.roles:
                 if not role_model.summaries:
