@@ -3437,7 +3437,8 @@ def test_final_alignment_fail_reason_names_score_floor(build_resume: object) -> 
         "FAIL reason:" in message
         and f"{build_resume.ALIGNMENT_FAIL_FLOOR + 1}/{build_resume.ALIGNMENT_MAX_SCORE}" in message
         and "clears the score floor" in message
-        and "sendability checks" in message,
+        and "keyword-placement" in message
+        and "job-language" in message,
         f"final_alignment_fail_reason() should explain score-vs-sendability mismatch; got {message!r}",
     )
 
@@ -10200,6 +10201,20 @@ def test_source_resumes_pass_docx_aware_source_lint(build_resume: object) -> Non
     )
 
 
+def test_source_lint_flags_stale_global_notes_motivation(build_resume: object) -> None:
+    with TemporaryDirectory() as temp_dir:
+        path = Path(temp_dir) / "global_notes.txt"
+        path.write_text(
+            "What motivates me is using technology to help people and organizations work better.\n",
+            encoding="utf-8",
+        )
+        findings = build_resume.source_global_notes_lint_findings(path)
+    assert_true(
+        any(finding.rule_id == "SOURCE_STALE_GLOBAL_MOTIVATION" for finding in findings),
+        f"source lint should flag the retired generic global motivation line; got {findings!r}",
+    )
+
+
 def test_bullet_overload_validation_warns_without_repairing() -> None:
     import prose_engine
 
@@ -11471,7 +11486,7 @@ def test_workflow_parses_cover_warning_channels() -> None:
             [
                 "SPECIFICITY WARNING: company appears only once",
                 "COVER LETTER WARNING: abrupt first-person switch detected",
-                "COVER LETTER PREFLIGHT: Low-overlap cover DRAFT policy: cover letter has fewer than 4 job-description keyword hits; keep as review-only instead of padding unsupported claims.",
+                "COVER LETTER PREFLIGHT: Low-overlap cover DRAFT policy: fewer than 4 job-description keyword hits; keep as review-only instead of padding unsupported proof.",
             ]
         )
     )
@@ -11484,7 +11499,7 @@ def test_workflow_parses_cover_warning_channels() -> None:
         f"Workflow warning parsing should preserve cover warnings; got {cover_warnings}",
     )
     assert_true(
-        preflight_warnings == ["Low-overlap cover DRAFT policy: cover letter has fewer than 4 job-description keyword hits; keep as review-only instead of padding unsupported claims."],
+        preflight_warnings == ["Low-overlap cover DRAFT policy: fewer than 4 job-description keyword hits; keep as review-only instead of padding unsupported proof."],
         f"Workflow warning parsing should preserve preflight warnings; got {preflight_warnings}",
     )
 
@@ -13296,6 +13311,7 @@ def main() -> None:
         ("expansion source resumes and reference docs are durable", None),
         ("source lint uses docx bullets without context false positives", None),
         ("source resumes pass docx-aware source lint", None),
+        ("source lint flags stale global notes motivation", None),
         ("fail severity prose rules have convergent repairs", None),
         ("bullet overload validation warns without repairing", None),
         ("resume notes report overloaded bullets without failing", None),
@@ -13602,6 +13618,7 @@ def main() -> None:
             ("expansion source resumes and reference docs are durable", lambda: test_expansion_source_resumes_and_reference_docs_are_durable(build_resume)),
             ("source lint uses docx bullets without context false positives", lambda: test_source_lint_uses_docx_bullets_without_context_false_positives(build_resume)),
             ("source resumes pass docx-aware source lint", lambda: test_source_resumes_pass_docx_aware_source_lint(build_resume)),
+            ("source lint flags stale global notes motivation", lambda: test_source_lint_flags_stale_global_notes_motivation(build_resume)),
             ("fail severity prose rules have convergent repairs", test_fail_severity_prose_rules_have_convergent_repairs),
             ("bullet overload validation warns without repairing", test_bullet_overload_validation_warns_without_repairing),
             ("resume notes report overloaded bullets without failing", lambda: test_resume_notes_report_overloaded_bullets_without_failing(build_resume)),

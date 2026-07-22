@@ -4009,7 +4009,7 @@ def final_fit_audit(
 def final_alignment_fail_reason(total_score: int) -> str:
     return (
         f"FAIL reason: final alignment clears the score floor at {total_score}/{ALIGNMENT_MAX_SCORE}, "
-        "but one or more sendability checks still failed. Review the specific audit notes above rather than treating the score as a pass."
+        "but keyword-placement, job-language, or other sendability checks did not pass. Review the specific audit notes above rather than treating the score as a pass."
     )
 
 
@@ -4086,6 +4086,14 @@ SOURCE_RESUME_PATHS = (
     PRESALES_CSM_RESUME,
 )
 
+STALE_GLOBAL_NOTES_PATTERNS = (
+    (
+        re.compile(r"\bwhat motivates me is using technology to help people and organizations work better\b", re.I),
+        "SOURCE_STALE_GLOBAL_MOTIVATION",
+        "source/global_notes.txt contains the retired generic motivation line.",
+    ),
+)
+
 
 def source_lint_findings_for_paragraphs(source_name: str, paragraphs: list[ParagraphInfo]) -> list[SourceLintFinding]:
     findings: list[SourceLintFinding] = []
@@ -4127,10 +4135,26 @@ def source_lint_findings_for_paragraphs(source_name: str, paragraphs: list[Parag
     return findings
 
 
+def source_global_notes_lint_findings(path: Path = SOURCE_DIR / "global_notes.txt") -> list[SourceLintFinding]:
+    if not path.exists():
+        return []
+    text = path.read_text(encoding="utf-8")
+    findings: list[SourceLintFinding] = []
+    for pattern, rule_id, message in STALE_GLOBAL_NOTES_PATTERNS:
+        match = pattern.search(text)
+        if not match:
+            continue
+        line = next((line.strip() for line in text.splitlines() if pattern.search(line)), match.group(0))
+        excerpt = line if len(line) <= 160 else line[:157].rstrip() + "..."
+        findings.append(SourceLintFinding(path.name, rule_id, message, excerpt))
+    return findings
+
+
 def source_resume_lint_findings(paths: tuple[Path, ...] = SOURCE_RESUME_PATHS) -> list[SourceLintFinding]:
     findings: list[SourceLintFinding] = []
     for path in paths:
         findings.extend(source_lint_findings_for_paragraphs(path.name, docx_paragraph_infos_from_path(path)))
+    findings.extend(source_global_notes_lint_findings())
     return findings
 
 

@@ -1341,8 +1341,7 @@ def summary_fit_close_sentence(
                 "credible in the same conversation."
             )
         return (
-            "Best used in solution work where discovery, solution design, and implementation realism need to connect "
-            "cleanly to business value before the deal closes."
+            "Best used where discovery, solution design, business value, and implementation realism need to connect cleanly."
         )
 
     if profile.primary_lane == "customer_success":

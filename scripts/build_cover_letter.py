@@ -1605,6 +1605,10 @@ APPROVED_COVER_ACRONYMS = {
     "ERP", "CRM", "SQL", "API", "SOW", "KPI", "QBR", "NLP", "SMS", "BI", "EAC", "ETC",
     "CPQ", "PMI", "SDLC", "SFDC", "UAT", "EFT", "ACH",
 }
+LOW_OVERLAP_DRAFT_POLICY_MESSAGE = (
+    "Low-overlap cover DRAFT policy: fewer than 4 job-description keyword hits; keep as review-only "
+    "instead of padding unsupported proof."
+)
 WEAK_OPENER_SIGNALS = (
     "stands out because",
     "this role",
@@ -6723,9 +6727,7 @@ def cover_letter_preflight(
     if re.search(r"(?:^|\n)[•\-\*]\s+\w", "\n".join(body_paragraphs), re.I):
         issues.append("Bullet characters found in cover letter body.")
     if build_resume.keyword_hits(text, build_resume.audit_keywords(job_description)) < 4:
-        issues.append(
-            "Low-overlap cover DRAFT policy: cover letter has fewer than 4 job-description keyword hits; keep as review-only instead of padding unsupported claims."
-        )
+        issues.append(LOW_OVERLAP_DRAFT_POLICY_MESSAGE)
     return dedupe_warnings(issues)
 
 
