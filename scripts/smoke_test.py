@@ -8759,7 +8759,10 @@ def test_f5_randstad_cover_draft_stays_specific_and_natural(build_cover_letter: 
         f"Randstad proof paragraph should carry a concrete metric or scope marker; got {draft.body_paragraphs[1]!r}",
     )
     assert_true(
-        "systems, reporting, and stakeholder background" in draft.body_paragraphs[-1]
+        (
+            "systems, reporting, and stakeholder background" in draft.body_paragraphs[-1]
+            or "systems and stakeholder-alignment background" in draft.body_paragraphs[-1]
+        )
         and "reporting and workflow priorities" in draft.body_paragraphs[-1],
         f"Randstad close should use a natural work-focus ask instead of raw JD terms; got {draft.body_paragraphs[-1]!r}",
     )
@@ -8894,6 +8897,81 @@ def test_cover_letter_avoids_warehouse_proof_for_fintech(build_cover_letter: obj
     assert_true(
         build_cover_letter.paragraph_has_fast_proof(proof),
         f"Fintech proof paragraph should still carry concrete supported proof; got {proof!r}",
+    )
+
+
+def test_cover_letter_avoids_finance_close_proof_for_program_role(build_cover_letter: object, build_resume: object) -> None:
+    jd_path = (
+        PROJECT_ROOT
+        / "scratch"
+        / "jd_library"
+        / "20260720_225241_Adobe_Senior_Program_Manager_GSO_d8bcc5f7"
+        / "job_description.txt"
+    )
+    job_description = jd_path.read_text(encoding="utf-8-sig")
+    resume_text = build_resume.docx_visible_text_from_path(build_resume.choose_resume(job_description))
+    draft = build_cover_letter.compose_cover_letter_draft(
+        "Adobe",
+        "Senior Program Manager, GSO",
+        job_description,
+        resume_text,
+        mode=build_cover_letter.STANDARD_COVER_MODE,
+    )
+    letter_text = "\n".join(draft.body_paragraphs)
+    assert_true(
+        len(draft.body_paragraphs) >= 3
+        and len(build_cover_letter.sentence_list(draft.body_paragraphs[1]) or [draft.body_paragraphs[1]]) == 1,
+        f"Standard cover should keep one primary proof sentence instead of packing proofs together; got {draft.body_paragraphs!r}",
+    )
+    assert_true(
+        not re.search(r"\b(?:CFO|plant controllers?|financial close)\b", letter_text, re.I),
+        f"Adobe program-manager cover should not use finance-close/plant-controller proof; got {letter_text}",
+    )
+    assert_true(
+        all(
+            banned not in letter_text.lower()
+            for banned in (
+                "role calls for",
+                "configuration choices, and follow-through stay aligned through go-live",
+                "what motivates me is using technology to help people and organizations work better",
+                "the and plant controllers",
+            )
+        ),
+        f"Adobe program-manager cover should not leak canned or broken cover prose; got {letter_text}",
+    )
+
+
+def test_proof_first_program_cover_avoids_plant_controller_mismatch(build_cover_letter: object, build_resume: object) -> None:
+    import question_prep
+
+    jd_path = (
+        PROJECT_ROOT
+        / "scratch"
+        / "jd_library"
+        / "20260720_222322_Blue_Yonder_Program_Manager_83b35faa"
+        / "job_description.txt"
+    )
+    job_description = jd_path.read_text(encoding="utf-8-sig")
+    resume_text = build_resume.docx_visible_text_from_path(build_resume.choose_resume(job_description))
+    brief = question_prep.active_positioning_brief(job_description, resume_text)
+    plan = build_cover_letter.build_cover_letter_proof_first(
+        brief=brief,
+        mode=build_cover_letter.STANDARD_COVER_MODE,
+        company_name="Blue Yonder",
+        role_title="Program Manager",
+        resume_audit_state="PASS",
+        output_docx=PROJECT_ROOT / "output" / "smoke.docx",
+        job_description=job_description,
+    )
+    draft = build_cover_letter.compose_cover_letter_proof_first_from_brief(plan)
+    letter_text = "\n".join(draft.body_paragraphs)
+    assert_true(
+        not re.search(r"\b(?:CFO|plant controllers?|financial close|the and plant controllers)\b", letter_text, re.I),
+        f"Blue Yonder proof-first cover should not use plant-controller/financial-close proof; got {letter_text}",
+    )
+    assert_true(
+        "finance partnership" not in letter_text.lower(),
+        f"Blue Yonder proof-first close should not use unsupported finance-partnership language; got {letter_text}",
     )
 
 
@@ -9558,7 +9636,7 @@ def test_cover_letter_trace_records_snapshot_and_selection_debug(build_cover_let
         f"write_cover_letter_trace() should repeat the snapshot ID in the trace summary; got {payload['trace_summary']}",
     )
     assert_true(
-        payload["plan"]["selection_debug"]["paragraph_purposes"][1]["purpose"] == "proof",
+        payload["plan"]["selection_debug"]["paragraph_purposes"][1]["purpose"] in {"proof", "primary_proof"},
         f"write_cover_letter_trace() should preserve paragraph-purpose metadata; got {payload['plan']['selection_debug']}",
     )
     assert_true(
@@ -10087,6 +10165,7 @@ def test_proof_first_close_uses_discuss_and_has_no_first_person_switch(build_cov
     close = build_cover_letter.proof_first_close_paragraph(brief, "Bitwarden", "Customer Success Manager")
     assert_true("discuss" in close.lower(), f"close must use 'discuss' for first-person-switch exemption; got {close!r}")
     assert_true("talk through" not in close.lower(), f"old 'talk through' phrasing must be gone; got {close!r}")
+    assert_true("role calls for" not in close.lower(), f"proof-first close should not use lane-token phrasing; got {close!r}")
     bitwarden_jd = (
         "Company: Bitwarden\n\nJob Title: Customer Success Manager\n\n"
         "Bitwarden is looking for a Customer Success Manager to drive product adoption, "
@@ -13574,6 +13653,8 @@ def main() -> None:
             ("cover letter validator blocks canned F5 sentences", lambda: test_cover_letter_validator_blocks_canned_f5_sentences(build_cover_letter)),
             ("cover proof paragraph repairs plant controller fragment", lambda: test_cover_proof_paragraph_repairs_plant_controller_fragment(build_cover_letter, build_resume)),
             ("cover letter avoids warehouse proof for fintech", lambda: test_cover_letter_avoids_warehouse_proof_for_fintech(build_cover_letter, build_resume)),
+            ("cover letter avoids finance close proof for program role", lambda: test_cover_letter_avoids_finance_close_proof_for_program_role(build_cover_letter, build_resume)),
+            ("proof first program cover avoids plant controller mismatch", lambda: test_proof_first_program_cover_avoids_plant_controller_mismatch(build_cover_letter, build_resume)),
             ("cover letter validator blocks generic experience summary", lambda: test_cover_letter_validator_blocks_generic_experience_summary(build_cover_letter)),
             ("cover letter QC rejects lowercase proof paragraph", lambda: test_cover_letter_qc_rejects_lowercase_proof_paragraph(build_cover_letter)),
             ("cover opening names company specific role context", lambda: test_cover_opening_names_company_specific_role_context(build_cover_letter)),

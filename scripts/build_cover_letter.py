@@ -731,6 +731,8 @@ def select_opening_support_sentence(
             row["rejection_reason"] = "proof_scope_marker_not_opening_support"
         elif re.search(r"\d|\$|%", cleaned):
             row["rejection_reason"] = "metric_proof_not_opening_support"
+        elif not proof_sentence_matches_job(cleaned, job_description):
+            row["rejection_reason"] = "opening_context_mismatch"
         elif cover_sentence_is_generic(cleaned, company_name, role_title, job_description):
             row["rejection_reason"] = "generic_opening_support"
         elif re.match(r"^I bring approximately\b", cleaned, re.I):
@@ -970,6 +972,17 @@ def proof_fallback_sentences(lane_key: str) -> list[str]:
     return [safe_sentence(fallback_by_lane.get(lane_key, fallback_by_lane["implementation_delivery"]))]
 
 
+def proof_fallback_sentences_for_job(lane_key: str, job_description: str) -> list[str]:
+    matched = [
+        sentence
+        for sentence in proof_fallback_sentences(lane_key)
+        if proof_sentence_matches_job(sentence, job_description)
+    ]
+    return matched or [
+        safe_sentence("Built 200+ SQL-based reporting tools that converted operational data into clearer decisions.")
+    ]
+
+
 def select_proof_sentences(
     candidates: list[CoverSentenceCandidate],
     *,
@@ -1044,7 +1057,7 @@ def select_proof_sentences(
         if len(selected) >= limit:
             break
     if selected and not any(paragraph_has_fast_proof(sentence) for sentence in selected):
-        for fallback in proof_fallback_sentences(lane_key):
+        for fallback in proof_fallback_sentences_for_job(lane_key, job_description):
             if any(cover_sentences_near_duplicate(fallback, existing) for existing in selected):
                 continue
             selected = [fallback]
@@ -1064,7 +1077,7 @@ def select_proof_sentences(
     if selected:
         return selected, debug_rows
 
-    fallback = proof_fallback_sentences(lane_key)
+    fallback = proof_fallback_sentences_for_job(lane_key, job_description)
     debug_rows.append(
         {
             "purpose": "proof",
@@ -1213,7 +1226,7 @@ def compose_question_driven_standard_paragraphs(
             (
                 sentence
                 for sentence in [*proof_fallback_sentences(profile.primary_lane), *response_sentences(bank.relevant_experience), *response_sentences(bank.communication)]
-                if re.search(r"\d|\$|%", sentence)
+                if re.search(r"\d|\$|%", sentence) and proof_sentence_matches_job(sentence, job_description)
             ),
             "",
         )
@@ -1311,16 +1324,23 @@ def compose_question_driven_standard_paragraphs(
             {"paragraph": 5, "purpose": "bridge_and_close", "sentences": list(closing_sentences)},
         ]
     else:
+        primary_proof = proof_sentences[:1]
+        supporting_close_sentences = [*proof_sentences[1:2], *closing_sentences]
         paragraphs = (
             " ".join(opening_sentences).strip(),
-            " ".join(proof_sentences).strip(),
-            " ".join(sentence for sentence in closing_sentences if sentence).strip(),
+            " ".join(primary_proof).strip(),
+            " ".join(sentence for sentence in supporting_close_sentences if sentence).strip(),
         )
         paragraph_purposes = [
             {"paragraph": 1, "purpose": "company_and_role_opening", "sentences": list(opening_sentences)},
-            {"paragraph": 2, "purpose": "proof", "sentences": list(proof_sentences)},
-            {"paragraph": 3, "purpose": "bridge_and_close", "sentences": list(closing_sentences)},
+            {"paragraph": 2, "purpose": "primary_proof", "sentences": list(primary_proof)},
+            {"paragraph": 3, "purpose": "supporting_proof_and_close", "sentences": list(supporting_close_sentences)},
         ]
+    paragraphs = tuple(
+        repair_cover_paragraph(paragraph, "standard cover paragraph")
+        for paragraph in paragraphs
+        if paragraph
+    )
     proof_terms = tuple(term for term in signals.jd_skill_terms if any(term.lower() in paragraph.lower() for paragraph in paragraphs[:2]))
     close_terms = tuple(term for term in signals.jd_skill_terms if term.lower() in close_sentence.lower())
     selection_debug = {
@@ -1331,7 +1351,7 @@ def compose_question_driven_standard_paragraphs(
         "selected_proof_sentences": list(proof_sentences),
         "selected_closing_sentences": list(closing_sentences),
     }
-    return tuple(paragraph for paragraph in paragraphs if paragraph), proof_terms[:4], close_terms[:4], selection_debug
+    return paragraphs, proof_terms[:4], close_terms[:4], selection_debug
 
 
 def require_file(path: Path, label: str) -> None:
@@ -3303,7 +3323,11 @@ def proof_first_gap_sentence(brief: question_prep.PositioningBrief) -> str:
     )
 
 
-def friendly_direct_proof_phrase(brief: question_prep.PositioningBrief) -> str:
+def friendly_direct_proof_phrase(
+    brief: question_prep.PositioningBrief,
+    *,
+    job_description: str = "",
+) -> str:
     phrase_map = {
         "Change Adoption and Enablement": "stakeholder enablement and adoption follow-through",
         "Client-Side ERP Ownership and Finance Partnership": "client-side ERP ownership with finance partnership",
@@ -3314,11 +3338,16 @@ def friendly_direct_proof_phrase(brief: question_prep.PositioningBrief) -> str:
         "Customer Success and Retention": "customer success and retention work",
         "Analytics and Decision Support": "analytics and decision-support work",
     }
-    phrases = [
-        phrase_map.get(proof, proof.lower())
-        for proof in brief.strongest_direct_proofs[:2]
-        if phrase_map.get(proof, proof.lower())
-    ]
+    phrases: list[str] = []
+    for proof in brief.strongest_direct_proofs:
+        phrase = phrase_map.get(proof, proof.lower())
+        if not phrase:
+            continue
+        if job_description and not proof_sentence_matches_job(proof, job_description):
+            continue
+        phrases.append(phrase)
+        if len(phrases) >= 2:
+            break
     if not phrases:
         return "direct implementation proof"
     if len(phrases) == 1:
@@ -3518,10 +3547,18 @@ def role_specific_cover_work_sentence(
 def proof_sentence_matches_job(sentence: str, job_description: str) -> bool:
     lowered = sentence.lower()
     jd_lower = job_description.lower()
+
+    def contains_term(text: str, term: str) -> bool:
+        pattern = r"\b" + re.sub(r"\\\s+", r"\\s+", re.escape(term.lower())) + r"\b"
+        return bool(re.search(pattern, text))
+
+    def contains_any(text: str, terms: tuple[str, ...]) -> bool:
+        return any(contains_term(text, term) for term in terms)
+
     warehouse_terms = ("warehouse", "amazon robotics", "robotics", "inventory", "supply chain", "manufacturing")
-    if any(term in lowered for term in warehouse_terms) and not any(
-        term in jd_lower
-        for term in (
+    if contains_any(lowered, warehouse_terms) and not contains_any(
+        jd_lower,
+        (
             "warehouse",
             "robotics",
             "inventory",
@@ -3530,6 +3567,60 @@ def proof_sentence_matches_job(sentence: str, job_description: str) -> bool:
             "logistics",
             "erp",
             "wms",
+        )
+    ):
+        return False
+    finance_close_terms = (
+        "cfo",
+        "controller",
+        "controllers",
+        "finance partnership",
+        "financial partnership",
+        "financial close",
+        "month-end",
+        "accounting close",
+        "audit readiness",
+    )
+    plant_controller_terms = ("cfo", "controller", "controllers", "plant controller", "plant controllers")
+    plant_controller_context_terms = (
+        "controller",
+        "cfo",
+        "plant",
+    )
+    close_story_context_terms = (
+        "financial close",
+        "month-end",
+        "year-end",
+        "close process",
+        "accounting close",
+        "controller",
+        "cfo",
+        "plant",
+    )
+    finance_partnership_context_terms = (
+        "financial close",
+        "month-end",
+        "close process",
+        "controller",
+        "cfo",
+        "erp",
+    )
+    if contains_any(lowered, plant_controller_terms) and not contains_any(jd_lower, plant_controller_context_terms):
+        return False
+    if contains_term(lowered, "financial close") and not contains_any(jd_lower, close_story_context_terms):
+        return False
+    if contains_term(lowered, "finance partnership") and not contains_any(jd_lower, finance_partnership_context_terms):
+        return False
+    if contains_any(lowered, finance_close_terms) and not contains_any(
+        jd_lower,
+        (
+            "finance",
+            "financial",
+            "accounting",
+            "audit",
+            "erp",
+            "implementation",
+            "procurement",
         )
     ):
         return False
@@ -3603,11 +3694,13 @@ def proof_first_close_paragraph(
     role_title: str,
     *,
     include_gap: bool = False,
+    job_description: str = "",
 ) -> str:
-    direct_proof_phrase = friendly_direct_proof_phrase(brief)
+    direct_proof_phrase = friendly_direct_proof_phrase(brief, job_description=job_description)
+    core_problem = sentence_safe_role_core_problem(brief.role_problem_phrase)
     sentences = [
         ensure_sentence(
-            f"My background lines up directly with the {direct_proof_phrase} this {role_title} role calls for."
+            f"The practical fit is {direct_proof_phrase} applied to {core_problem}."
         ),
         ensure_sentence(
             f"I would welcome the chance to discuss where it could help {company_name} keep implementations moving with more confidence."
@@ -3638,6 +3731,7 @@ def build_cover_letter_proof_first(
         company_name,
         role_title,
         include_gap=force_bridge or resume_audit_state in {"BRIDGE", "FAIL", "POOR"},
+        job_description=job_description,
     )
     body_paragraphs = (opening, proof, support, close) if normalized_mode == LONG_COVER_MODE else (opening, proof, close)
     letter_text = "\n".join(body_paragraphs)
@@ -5039,6 +5133,12 @@ def smooth_cover_letter_text(
         flags=re.I,
     )
     cleaned = re.sub(r"\bthe and plant controllers\b", "the CFO and plant controllers", cleaned, flags=re.I)
+    cleaned = re.sub(
+        r"\bmy systems,\s+and stakeholder background\b",
+        "my systems and stakeholder-alignment background",
+        cleaned,
+        flags=re.I,
+    )
     cleaned = re.sub(
         r"\b([A-Z][A-Za-z]{2,40}):\s+",
         lambda match: f"{match.group(1)}. ",
