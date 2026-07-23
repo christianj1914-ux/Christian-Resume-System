@@ -1,0 +1,148 @@
+"""Supported keyword evidence ledger for commercial resume targeting."""
+
+EVIDENCE_TERMS = [
+    {
+        "concept": "project management",
+        "variants": ["project management", "program management", "technical program management", "complex project management", "project delivery"],
+        "anchor": "PMP (in progress); 5-month EFT/ACH program across IT, finance, Aptean, Truist; warehouse + Amazon Robotics launch; five-site coordination",
+        "strength": "strong",
+    },
+    {
+        "concept": "product ownership",
+        "variants": ["product owner", "product ownership", "technical product management"],
+        "anchor": "De facto product owner of Aptean Intuitive ERP; requirements to backlog to adoption",
+        "strength": "strong",
+    },
+    {
+        "concept": "vendor management",
+        "variants": ["vendor management", "vendor partner", "vendor coordination", "partner relationship"],
+        "anchor": "Coordinated Aptean vendor, Truist Bank, India dev team; vendor/cost/timeline tradeoffs",
+        "strength": "strong",
+    },
+    {
+        "concept": "uat",
+        "variants": ["UAT", "user acceptance testing", "acceptance testing"],
+        "anchor": "Epicor Kinetic cutover sandbox testing and UAT validation",
+        "strength": "strong",
+    },
+    {
+        "concept": "change management",
+        "variants": ["change management"],
+        "anchor": "Migration readiness, adoption, training programs reducing resistance to system change",
+        "strength": "strong",
+    },
+    {
+        "concept": "incident management",
+        "variants": ["incident management"],
+        "anchor": "ITIL 4 Foundation; Aderant enterprise application support (application, SQL Server, AD, integration issues)",
+        "strength": "strong",
+    },
+    {
+        "concept": "crm",
+        "variants": ["CRM", "CRM system", "CRM tool"],
+        "anchor": "Salesforce Service Cloud, Marketing Cloud, AppExchange (Aptean); Salesforce CRM + LivePerson (Home Depot)",
+        "strength": "strong",
+    },
+    {
+        "concept": "client onboarding",
+        "variants": ["client onboarding", "customer onboarding"],
+        "anchor": "Aptean customer enablement, go-live, hypercare, onboarding guides",
+        "strength": "strong",
+    },
+    {
+        "concept": "professional services",
+        "variants": ["professional services", "professional service"],
+        "anchor": "Aptean consultant across 80+ client engagements, discovery to delivery",
+        "strength": "strong",
+    },
+    {
+        "concept": "system configuration",
+        "variants": ["system configuration", "configuration"],
+        "anchor": "ERP configuration across five sites; Aptean implementation configuration",
+        "strength": "strong",
+    },
+    {
+        "concept": "business process",
+        "variants": ["business process", "business process improvement"],
+        "anchor": "78% manual-work reduction, 22% discrepancy reduction, process redesign standardized across five sites",
+        "strength": "strong",
+    },
+    {
+        "concept": "end-to-end delivery",
+        "variants": ["end-to-end delivery", "end-to-end", "end to end"],
+        "anchor": "Discovery-to-go-live ownership; delivered enterprise technology projects end to end",
+        "strength": "strong",
+    },
+    {
+        "concept": "saas",
+        "variants": ["SaaS", "software as a service"],
+        "anchor": "Enterprise SaaS platforms (Aptean cloud ERP); already in Adobe header",
+        "strength": "strong",
+    },
+    {
+        "concept": "technology adoption",
+        "variants": ["technology adoption", "feature adoption", "user adoption", "platform adoption"],
+        "anchor": "Drove technology adoption across operations/finance/engineering; training, onboarding, release comms",
+        "strength": "strong",
+    },
+    {
+        "concept": "requirements",
+        "variants": ["requirements gathering", "requirements definition", "requirements management"],
+        "anchor": "SOW/FRD; backlog-ready requirements and user stories",
+        "strength": "strong",
+    },
+    {
+        "concept": "stakeholder management",
+        "variants": ["stakeholder management", "stakeholder alignment"],
+        "anchor": "VP/director decisions; 60+ executive workshops; cross-functional alignment without authority",
+        "strength": "strong",
+    },
+    {
+        "concept": "data migration",
+        "variants": ["data migration"],
+        "anchor": "ETL/SQL validation checks, cutover coordination",
+        "strength": "strong",
+    },
+    {
+        "concept": "integration",
+        "variants": ["integration", "integration coordination", "api configuration"],
+        "anchor": "Third-party integration diagnostics (Aderant); EFT/ACH file integration; India dev deployment coordination",
+        "strength": "strong",
+    },
+    {
+        "concept": "reporting",
+        "variants": ["reporting", "dashboards", "KPI"],
+        "anchor": "200+ SQL KPI dashboards, Crystal Reports, Power BI",
+        "strength": "strong",
+    },
+    {
+        "concept": "pre-sales",
+        "variants": ["pre-sales", "presales"],
+        "anchor": "Pre-sales product demonstrations and discovery for prospective clients",
+        "strength": "strong",
+    },
+    {
+        "concept": "agile",
+        "variants": ["agile", "agile delivery"],
+        "anchor": "Partnered with Product Management/Ownership on an Agile development team",
+        "strength": "strong",
+    },
+    {
+        "concept": "digital transformation",
+        "variants": ["digital transformation", "transformation"],
+        "anchor": "ERP migration/modernization; AI-assisted workflow modernization",
+        "strength": "moderate",
+    },
+    {
+        "concept": "ai adoption",
+        "variants": ["ai adoption", "ai pilot", "ai-assisted"],
+        "anchor": "AI-assisted tooling (Claude); SMS chatbot logic pilot at Home Depot",
+        "strength": "moderate",
+    },
+    {
+        "concept": "global program",
+        "variants": ["global program"],
+        "anchor": "Five-site global manufacturing footprint; cross-site program coordination",
+        "strength": "moderate",
+    },
+]

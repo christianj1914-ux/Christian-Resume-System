@@ -4006,6 +4006,71 @@ def test_ats_scan_terms_denominator_hygiene(build_resume: object) -> None:
     )
 
 
+def test_supported_evidence_ledger_terms_and_context(build_resume: object) -> None:
+    jd = (
+        "Job Title: Senior Project Manager\n"
+        "This professional services role requires project management, CRM system work, "
+        "system configuration, UAT, stakeholder management, and client onboarding."
+    )
+    surfaces = set(build_resume.evidence_supported_surfaces(jd))
+    expected = {"project management", "crm system", "system configuration", "uat", "stakeholder management", "client onboarding", "professional services"}
+    normalized_surfaces = {build_resume.normalize_compare(surface) for surface in surfaces}
+    assert_true(
+        expected <= normalized_surfaces,
+        f"evidence_supported_surfaces() should expose ledger-backed JD literals; missing {expected - normalized_surfaces} from {surfaces}",
+    )
+    for term in expected:
+        anchor = build_resume.evidence_anchor_for_term(term)
+        assert_true(anchor, f"{term!r} should trace to a ledger anchor.")
+    sparse_jd = "Job Title: Program Coordinator\nCoordinate meetings and support documentation."
+    assert_true(
+        "global program" not in set(build_resume.evidence_supported_surfaces(sparse_jd)),
+        "Moderate ledger terms should require their explicit context gate.",
+    )
+    gap_jd = "This role requires duty drawback and space management experience."
+    gap_surfaces = set(build_resume.evidence_supported_surfaces(gap_jd))
+    assert_true(
+        not {"duty drawback", "space management"} & gap_surfaces,
+        f"Non-ledger gaps must stay honestly missing; got {gap_surfaces}",
+    )
+
+
+def test_supported_evidence_ledger_natural_rewrites(build_resume: object) -> None:
+    crm_bullet = "Owned Salesforce Service Cloud workflows, release communications, and AppExchange partner coordination."
+    crm_updated = build_resume.natural_keyword_bullet_rewrite(
+        crm_bullet,
+        "crm system",
+        "The role requires CRM system ownership and CRM system configuration.",
+        "Salesforce Service Cloud and Salesforce CRM evidence.",
+    )
+    assert_true(
+        "CRM system" in crm_updated and "strengthen" not in crm_updated.lower(),
+        f"CRM system should weave naturally into a Salesforce-supported bullet; got {crm_updated!r}",
+    )
+    uat_bullet = "Coordinated sandbox testing and SQL validation during the Epicor Kinetic cutover."
+    uat_updated = build_resume.natural_keyword_bullet_rewrite(
+        uat_bullet,
+        "user acceptance testing",
+        "The role requires user acceptance testing and cutover readiness.",
+        "Epicor Kinetic sandbox testing and UAT validation.",
+    )
+    assert_true(
+        "user acceptance testing" in uat_updated,
+        f"User acceptance testing should integrate into testing/validation evidence; got {uat_updated!r}",
+    )
+    delivery_bullet = "Delivered enterprise technology projects end to end, translating executive priorities into milestone visibility."
+    delivery_updated = build_resume.natural_keyword_bullet_rewrite(
+        delivery_bullet,
+        "end-to-end delivery",
+        "The role requires end-to-end delivery and project management.",
+        "Delivered enterprise technology projects end to end.",
+    )
+    assert_true(
+        "end-to-end delivery" in delivery_updated and "Delivered technical delivery" not in delivery_updated,
+        f"End-to-end delivery should replace the existing phrase without creating delivery repetition; got {delivery_updated!r}",
+    )
+
+
 def test_keyword_placement_demotes_filler_and_boosts_phrases(build_resume: object) -> None:
     resume_text = "\n".join(
         [
@@ -13921,6 +13986,8 @@ def main() -> None:
             ("keyword placement audit", lambda: test_keyword_placement_audit(build_resume)),
             ("ATS keyword mirroring and coverage", lambda: test_ats_keyword_mirroring_and_coverage(build_resume)),
             ("ATS scan terms denominator hygiene", lambda: test_ats_scan_terms_denominator_hygiene(build_resume)),
+            ("supported evidence ledger terms and context", lambda: test_supported_evidence_ledger_terms_and_context(build_resume)),
+            ("supported evidence ledger natural rewrites", lambda: test_supported_evidence_ledger_natural_rewrites(build_resume)),
             ("keyword placement demotes filler and boosts phrases", lambda: test_keyword_placement_demotes_filler_and_boosts_phrases(build_resume)),
             ("supported keyword weave removes stapled tails", lambda: test_supported_keyword_weave_removes_stapled_tails(build_resume)),
             ("resume notes print core and breadth coverage", lambda: test_resume_notes_print_core_and_breadth_coverage(build_resume)),

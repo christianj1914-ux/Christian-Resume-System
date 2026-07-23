@@ -121,6 +121,8 @@ from resume_analysis import (
     extract_job_title,
     extract_output_name,
     extract_output_target_name,
+    evidence_anchor_for_term,
+    evidence_supported_surfaces,
     fit_status,
     high_value_audit_keywords,
     is_consulting_job_description,
@@ -3141,6 +3143,9 @@ def supported_keyword_surface_candidates(
     for keyword in high_value_audit_keywords(job_description):
         if keyword not in ordered:
             ordered.append(keyword)
+    for keyword in evidence_supported_surfaces(job_description):
+        if keyword not in ordered:
+            ordered.append(keyword)
 
     selected: list[str] = []
     seen: set[str] = set()
@@ -3262,6 +3267,42 @@ def keyword_evidence_fits_bullet(keyword: str, bullet: str) -> bool:
         return bool(re.search(r"\b(ai-assisted|ai|sms|manual|workflow|automated|automation|robotics|reporting)\b", lowered))
     if normalized == "technical delivery":
         return bool(re.search(r"\b(technical|technology|enterprise systems?|projects?|delivery|implementation|go-live|migration)\b", lowered))
+    if normalized in {"crm", "crm system", "crm tool"}:
+        return bool(re.search(r"\b(salesforce|liveperson|service cloud|marketing cloud|app.?exchange|crm|customer)\b", lowered))
+    if normalized in {"system configuration", "configuration"}:
+        return bool(re.search(r"\b(configur|setup|set up|workflow|erp|platform|system)\b", lowered))
+    if normalized in {"business process", "business process improvement"}:
+        return bool(re.search(r"\b(process|workflow|manual|discrepanc|standardiz|improvement)\b", lowered))
+    if normalized in {"uat", "user acceptance testing", "acceptance testing"}:
+        return bool(re.search(r"\b(uat|test|testing|validation|sandbox|cutover)\b", lowered))
+    if normalized in {"saas", "software as a service"}:
+        return bool(re.search(r"\b(saas|cloud|platform|erp|enterprise systems?)\b", lowered))
+    if normalized in {"vendor management", "vendor partner", "vendor coordination", "partner relationship"}:
+        return bool(re.search(r"\b(vendor|aptean|truist|partner|cost|timeline|coordination)\b", lowered))
+    if normalized in {"professional services", "professional service"}:
+        return bool(re.search(r"\b(client|customer|consultant|consulting|engagement|implementation|delivery)\b", lowered))
+    if normalized in {"client onboarding", "customer onboarding"}:
+        return bool(re.search(r"\b(onboarding|go-live|hypercare|enablement|training|client|customer)\b", lowered))
+    if normalized == "change management":
+        return bool(re.search(r"\b(change|readiness|adoption|training|migration|resistance|enablement)\b", lowered))
+    if normalized in {"end to end delivery", "end to end"}:
+        return bool(re.search(r"\b(end to end|end-to-end|delivery|go-live|cutover|implementation|project)\b", lowered))
+    if normalized in {"technology adoption", "feature adoption", "user adoption", "platform adoption"}:
+        return bool(re.search(r"\b(adoption|training|release|enablement|platform|technology|user)\b", lowered))
+    if normalized in {"requirements gathering", "requirements definition", "requirements management"}:
+        return bool(re.search(r"\b(requirements?|sow|frd|user stor|backlog|discovery)\b", lowered))
+    if normalized == "stakeholder management":
+        return bool(re.search(r"\b(stakeholder|executive|vp|director|alignment|governance|workshop)\b", lowered))
+    if normalized == "data migration":
+        return bool(re.search(r"\b(data|migration|etl|sql|validation|cutover)\b", lowered))
+    if normalized in {"integration", "integration coordination", "api configuration"}:
+        return bool(re.search(r"\b(integration|api|eft|ach|file|deployment|diagnostic)\b", lowered))
+    if normalized in {"reporting", "dashboards", "kpi"}:
+        return bool(re.search(r"\b(report|dashboard|kpi|sql|power bi|crystal)\b", lowered))
+    if normalized in {"pre-sales", "presales"}:
+        return bool(re.search(r"\b(pre-?sales|demo|discovery|prospective|customer|client)\b", lowered))
+    if normalized in {"agile", "agile delivery"}:
+        return bool(re.search(r"\b(agile|backlog|sprint|product management|development team)\b", lowered))
     return True
 
 
@@ -3293,15 +3334,39 @@ def natural_keyword_bullet_rewrite(
     replacements: dict[str, tuple[str, ...]] = {
         "stakeholder management": ("stakeholder governance", "stakeholder alignment", "stakeholder enablement"),
         "requirements gathering": ("requirements definition", "requirements translation"),
+        "requirements management": ("requirements definition", "requirements translation"),
         "go live": ("go live",),
+        "go-live": ("go live",),
         "cross functional": ("cross functional",),
         "pre sales": ("presales",),
+        "pre-sales": ("presales",),
         "quarterly business review": ("executive business review", "QBR"),
         "user acceptance testing": ("UAT",),
+        "acceptance testing": ("UAT",),
         "statement of work": ("SOW",),
         "process improvement": ("continuous improvement", "operational improvement", "operational improvements"),
+        "business process improvement": ("continuous improvement", "operational improvement", "operational improvements"),
+        "business process": ("process redesign", "business processes", "processes"),
         "program management": ("program delivery", "project delivery"),
         "project management": ("project delivery", "program delivery"),
+        "vendor management": ("vendor coordination", "vendor/cost/timeline", "vendor, cost, and timeline"),
+        "vendor partner": ("vendor coordination",),
+        "vendor coordination": ("vendor/cost/timeline", "vendor, cost, and timeline"),
+        "crm system": ("Salesforce Service Cloud", "Salesforce CRM", "LivePerson"),
+        "crm": ("Salesforce Service Cloud", "Salesforce CRM", "LivePerson"),
+        "system configuration": ("system setup", "setup", "configuration"),
+        "client onboarding": ("onboarding", "go-live", "hypercare"),
+        "customer onboarding": ("onboarding", "go-live", "hypercare"),
+        "change management": ("migration readiness", "adoption", "training"),
+        "technology adoption": ("adoption", "release communications", "training"),
+        "feature adoption": ("adoption", "release communications", "training"),
+        "user adoption": ("adoption", "release communications", "training"),
+        "data migration": ("ETL", "SQL validation", "cutover"),
+        "integration": ("third-party integration", "file integration", "deployment coordination"),
+        "integration coordination": ("third-party integration", "file integration", "deployment coordination"),
+        "reporting": ("dashboards", "Crystal Reports", "Power BI"),
+        "kpi": ("dashboards", "Crystal Reports", "Power BI"),
+        "agile delivery": ("Agile development", "Agile development team"),
     }
     for candidate in replacements.get(normalized, ()):
         if contains_search_term(text, candidate):
@@ -3317,6 +3382,65 @@ def natural_keyword_bullet_rewrite(
             return safe_keyword_bullet_candidate(replace_first_ci(text, r"\bdelivery plans\b", f"{surface} plans"), surface)
         if re.search(r"\bprojects\b", lowered):
             return safe_keyword_bullet_candidate(replace_first_ci(text, r"\bprojects\b", f"{surface} projects"), surface)
+
+    if normalized in {"end to end delivery", "end to end"}:
+        if re.search(r"\benterprise technology projects end to end\b", lowered):
+            return safe_keyword_bullet_candidate(
+                replace_first_ci(text, r"\bDelivered enterprise technology projects end to end\b", "Managed end-to-end delivery across enterprise technology projects"),
+                surface,
+            )
+        if re.search(r"\bprojects end to end\b", lowered):
+            return safe_keyword_bullet_candidate(replace_first_ci(text, r"\bprojects end to end\b", "end-to-end delivery projects"), surface)
+        if re.search(r"\bdiscovery-to-go-live\b", lowered):
+            return safe_keyword_bullet_candidate(replace_first_ci(text, r"\bdiscovery-to-go-live\b", "end-to-end delivery"), surface)
+
+    if normalized in {"crm", "crm system", "crm tool"}:
+        if re.search(r"\bSalesforce Service Cloud\b", text):
+            replacement = "Salesforce CRM system" if normalized == "crm system" else "Salesforce CRM Service Cloud"
+            return safe_keyword_bullet_candidate(replace_first_ci(text, r"\bSalesforce Service Cloud\b", replacement), surface)
+        if re.search(r"\bSalesforce CRM\b", text):
+            return safe_keyword_bullet_candidate(text, surface)
+        if re.search(r"\bLivePerson\b", text):
+            replacement = "LivePerson CRM system" if normalized == "crm system" else "LivePerson CRM"
+            return safe_keyword_bullet_candidate(replace_first_ci(text, r"\bLivePerson\b", replacement), surface)
+
+    if normalized in {"system configuration", "configuration"}:
+        if re.search(r"\bsystem setup\b", lowered):
+            return safe_keyword_bullet_candidate(replace_first_ci(text, r"\bsystem setup\b", "system configuration"), surface)
+        if re.search(r"\bsetup\b", lowered):
+            return safe_keyword_bullet_candidate(replace_first_ci(text, r"\bsetup\b", "configuration setup"), surface)
+        if re.search(r"\bworkflow\b", lowered):
+            return safe_keyword_bullet_candidate(replace_first_ci(text, r"\bworkflow\b", "configuration workflow"), surface)
+
+    if normalized in {"uat", "user acceptance testing", "acceptance testing"}:
+        if re.search(r"\bvalidation\b", lowered):
+            return safe_keyword_bullet_candidate(replace_first_ci(text, r"\bvalidation\b", f"{surface} validation"), surface)
+        if re.search(r"\bsandbox testing\b", lowered):
+            return safe_keyword_bullet_candidate(replace_first_ci(text, r"\bsandbox testing\b", f"{surface} sandbox testing"), surface)
+        if re.search(r"\btesting\b", lowered):
+            return safe_keyword_bullet_candidate(replace_first_ci(text, r"\btesting\b", f"{surface} testing"), surface)
+
+    if normalized in {"vendor management", "vendor partner", "vendor coordination", "partner relationship"}:
+        if re.search(r"\bvendor/cost/timeline\b", lowered):
+            return safe_keyword_bullet_candidate(replace_first_ci(text, r"\bvendor/cost/timeline\b", f"{surface}/cost/timeline"), surface)
+        if re.search(r"\bvendor, cost, and timeline\b", lowered):
+            return safe_keyword_bullet_candidate(replace_first_ci(text, r"\bvendor, cost, and timeline\b", f"{surface}, cost, and timeline"), surface)
+        if re.search(r"\bvendor coordination\b", lowered):
+            return safe_keyword_bullet_candidate(replace_first_ci(text, r"\bvendor coordination\b", surface), surface)
+
+    if normalized in {"professional services", "professional service"}:
+        if re.search(r"\bclient engagements\b", lowered):
+            return safe_keyword_bullet_candidate(replace_first_ci(text, r"\bclient engagements\b", f"{surface} engagements"), surface)
+        if re.search(r"\bconsultant\b", lowered):
+            return safe_keyword_bullet_candidate(replace_first_ci(text, r"\bconsultant\b", f"{surface} consultant"), surface)
+
+    if normalized in {"saas", "software as a service"}:
+        if re.search(r"\benterprise systems\b", lowered):
+            return safe_keyword_bullet_candidate(replace_first_ci(text, r"\benterprise systems\b", f"{surface} enterprise systems"), surface)
+        if re.search(r"\bplatform\b", lowered):
+            return safe_keyword_bullet_candidate(replace_first_ci(text, r"\bplatform\b", f"{surface} platform"), surface)
+        if re.search(r"\bcloud ERP\b", text):
+            return safe_keyword_bullet_candidate(replace_first_ci(text, r"\bcloud ERP\b", f"{surface} cloud ERP"), surface)
 
     if normalized == "process improvement":
         if re.search(r"\bworkflow\b", lowered):
@@ -3563,7 +3687,15 @@ def weave_supported_keywords_into_top_bullets(
     skills_candidates: list[str] = []
     seen_missing: set[str] = set()
     seen_skills: set[str] = set()
-    for keyword in high_value_audit_keywords(job_description):
+    candidate_keywords: list[str] = []
+    seen_candidate_keywords: set[str] = set()
+    for keyword in (*high_value_audit_keywords(job_description), *evidence_supported_surfaces(job_description)):
+        normalized_keyword = normalize_compare(keyword)
+        if not normalized_keyword or normalized_keyword in seen_candidate_keywords:
+            continue
+        candidate_keywords.append(keyword)
+        seen_candidate_keywords.add(normalized_keyword)
+    for keyword in candidate_keywords:
         surface = jd_preferred_surface(keyword_surface_piece(keyword), job_description, source_resume_text)
         normalized = normalize_compare(surface)
         if (
@@ -3584,7 +3716,7 @@ def weave_supported_keywords_into_top_bullets(
         if len(missing) < 6:
             missing.append(surface)
             seen_missing.add(normalized)
-    missing.sort(key=lambda keyword: 0 if normalize_compare(keyword) == "automation" else 1)
+    missing.sort(key=lambda keyword: (0 if evidence_anchor_for_term(keyword) else 1, 0 if normalize_compare(keyword) == "automation" else 1))
     if not missing:
         return 0
     tree = ET.parse(document_xml)
@@ -3634,6 +3766,8 @@ def weave_supported_keywords_into_top_bullets(
                 score += 4
             if normalize_compare(keyword) == "process improvement" and re.search(r"\b(?:workflow|process|reporting|improvement)\b", text, re.I):
                 score += 4
+            if evidence_anchor_for_term(keyword) and keyword_evidence_fits_bullet(keyword, text):
+                score += 3
             best_matches.append((score, paragraph, text))
         for _score, paragraph, text in sorted(best_matches, key=lambda item: item[0], reverse=True):
             updated = natural_keyword_bullet_rewrite(text, keyword, job_description, source_resume_text)
@@ -3656,7 +3790,7 @@ def weave_supported_keywords_into_top_bullets(
             continue
         skill_terms.append(keyword)
         seen_skill_terms.add(normalized)
-    skills_added = add_targeted_core_competencies(document_xml, skill_terms, job_description, limit=3)
+    skills_added = add_targeted_core_competencies(document_xml, skill_terms, job_description, limit=5)
     changed += len(skills_added)
     return changed
 

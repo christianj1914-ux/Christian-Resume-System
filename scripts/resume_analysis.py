@@ -4,7 +4,9 @@
 from __future__ import annotations
 
 import re
+import importlib.util
 from dataclasses import dataclass
+from functools import lru_cache
 from pathlib import Path
 
 import business_context
@@ -117,12 +119,113 @@ BULLET_PLACEMENT_EXCLUDED = {
 }
 
 
+@lru_cache(maxsize=1)
+def evidence_terms() -> tuple[dict[str, object], ...]:
+    path = SOURCE_DIR / "evidence_terms.py"
+    if not path.exists():
+        return ()
+    spec = importlib.util.spec_from_file_location("source_evidence_terms", path)
+    if spec is None or spec.loader is None:
+        return ()
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    raw_terms = getattr(module, "EVIDENCE_TERMS", ())
+    terms: list[dict[str, object]] = []
+    for item in raw_terms:
+        if not isinstance(item, dict):
+            continue
+        concept = str(item.get("concept", "")).strip()
+        variants = tuple(str(value).strip() for value in item.get("variants", ()) if str(value).strip())
+        anchor = str(item.get("anchor", "")).strip()
+        strength = str(item.get("strength", "strong")).strip().lower() or "strong"
+        if concept and variants and anchor:
+            terms.append({"concept": concept, "variants": variants, "anchor": anchor, "strength": strength})
+    return tuple(terms)
+
+
+def evidence_term_for_variant(term: str) -> dict[str, object] | None:
+    normalized = normalize_compare(term)
+    if not normalized:
+        return None
+    for entry in evidence_terms():
+        forms = (str(entry.get("concept", "")), *tuple(str(value) for value in entry.get("variants", ())))
+        if normalized in {normalize_compare(form) for form in forms}:
+            return entry
+    return None
+
+
+def evidence_entry_context_supported(entry: dict[str, object], job_description: str) -> bool:
+    variants = tuple(str(value) for value in entry.get("variants", ()))
+    if not any(contains_search_term(job_description, variant) for variant in variants):
+        return False
+    if str(entry.get("strength", "strong")).lower() == "strong":
+        return True
+    concept = normalize_compare(str(entry.get("concept", "")))
+    if concept == "digital transformation":
+        return jd_mentions(
+            job_description,
+            "digital transformation",
+            "technology transformation",
+            "ai transformation",
+            "workflow modernization",
+            "modernization",
+        )
+    if concept == "ai adoption":
+        return jd_mentions(job_description, "ai adoption", "ai pilot", "ai-assisted", "ai-enabled", "automation", "robotics")
+    if concept == "global program":
+        return jd_mentions(job_description, "global program", "global programs", "global scale", "worldwide", "cross-site")
+    return False
+
+
+def evidence_preferred_surface(concept_term: str, job_description: str) -> str:
+    entry = evidence_term_for_variant(concept_term)
+    if not entry or not evidence_entry_context_supported(entry, job_description):
+        return concept_term
+    supported_variants = [
+        str(value)
+        for value in entry.get("variants", ())
+        if contains_search_term(job_description, str(value))
+    ]
+    if supported_variants:
+        return sorted(supported_variants, key=lambda value: (len(normalize_compare(value).split()), len(value)), reverse=True)[0]
+    return concept_term
+
+
+def evidence_supported_surfaces(job_description: str) -> tuple[str, ...]:
+    surfaces: list[str] = []
+    seen: set[str] = set()
+    for entry in evidence_terms():
+        if not evidence_entry_context_supported(entry, job_description):
+            continue
+        supported_variants = [
+            str(value)
+            for value in entry.get("variants", ())
+            if contains_search_term(job_description, str(value))
+        ]
+        for variant in sorted(supported_variants, key=lambda value: (len(normalize_compare(value).split()), len(value)), reverse=True):
+            normalized = normalize_compare(variant)
+            if normalized and normalized not in seen:
+                surfaces.append(variant)
+                seen.add(normalized)
+            break
+    return tuple(surfaces)
+
+
+def evidence_anchor_for_term(term: str) -> str:
+    entry = evidence_term_for_variant(term)
+    return str(entry.get("anchor", "")) if entry else ""
+
+
 def jd_preferred_surface(concept_term: str, job_description: str, supported_text: str = "") -> str:
     """Return the JD's literal surface form for a supported equivalent concept."""
     concept = concept_term.strip()
     normalized_concept = normalize_compare(concept)
     if not normalized_concept:
         return concept
+
+    evidence_surface = evidence_preferred_surface(concept, job_description)
+    if evidence_surface != concept:
+        return evidence_surface
 
     for resume_forms, jd_forms in JD_TERM_MIRROR:
         normalized_forms = {normalize_compare(form) for form in (*resume_forms, *jd_forms)}
@@ -1424,10 +1527,15 @@ def is_generic_soft_keyword(keyword: str) -> bool:
 
 
 def high_value_audit_keywords(job_description: str) -> list[str]:
+    universal_core = {
+        surface
+        for surface in evidence_supported_surfaces(job_description)
+        if normalize_compare(surface) in {"project management", "professional services"}
+    }
     return sorted(
         (
             keyword
-            for keyword in audit_keywords(job_description)
+            for keyword in set(audit_keywords(job_description)) | universal_core
             if not is_generic_soft_keyword(keyword) and not is_bullet_placement_excluded(keyword)
         ),
         key=lambda keyword: audit_keyword_sort_key(job_description, keyword),
@@ -1470,6 +1578,7 @@ def ats_scan_terms(job_description: str, *, limit: int = 25) -> list[str]:
             candidates.update(jd_forms)
         elif any(contains_search_term(original_job_description, form) for form in resume_forms):
             candidates.update(resume_forms)
+    candidates.update(evidence_supported_surfaces(original_job_description))
 
     phrase_blockers = {
         "accordingly",
