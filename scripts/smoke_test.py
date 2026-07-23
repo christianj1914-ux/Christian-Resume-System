@@ -4093,6 +4093,58 @@ def test_supported_evidence_ledger_natural_rewrites(build_resume: object) -> Non
     )
 
 
+def test_targeted_competencies_replace_weak_item_when_capped(build_resume: object) -> None:
+    items = [
+        "Structured Discovery",
+        "Requirements Definition",
+        "Solution Design",
+        "SOW and FRD Development",
+        "Go-Live Readiness",
+        "Multi-Workstream Coordination",
+        "Process Management",
+        "Renewal Risk Management",
+        "Executive Business Reviews and QBRs",
+        "Success Planning",
+        "SQL",
+        "ETL and Data Validation",
+        "KPI Dashboards",
+        "Power BI",
+        "Excel Power Query",
+        "Epicor Kinetic",
+        "Microsoft Dynamics 365",
+        "Salesforce",
+        "LivePerson LiveEngage",
+        "ServiceNow",
+        "Jira",
+        "LLM-based Data Cleaning",
+        "Workflow Automation",
+    ]
+    job_description = "This role requires project management and professional services delivery."
+    with TemporaryDirectory(prefix="resume_smoke_") as temp_name:
+        document_xml = Path(temp_name) / "document.xml"
+        document_xml.write_text(resume_with_competencies_xml("Summary", items), encoding="utf-8")
+        before_items = build_resume.extract_competency_items(build_resume.paragraph_infos(document_xml))
+        added = build_resume.add_targeted_core_competencies(
+            document_xml,
+            ["Project Management", "Professional Services"],
+            job_description,
+            limit=2,
+        )
+        after_items = build_resume.extract_competency_items(build_resume.paragraph_infos(document_xml))
+    assert_true(
+        {"Project Management", "Professional Services"} <= set(added),
+        f"add_targeted_core_competencies() should replace weak capped items with supported JD terms; got {added}",
+    )
+    assert_true(
+        len(after_items) == len(before_items),
+        f"Skills fallback should not bloat the capped Skills section; before={len(before_items)} after={len(after_items)}",
+    )
+    assert_true(
+        {"project management", "professional services"} <= after_items,
+        f"Replacement should leave supported JD terms countable in Skills; got {after_items}",
+    )
+
+
 def test_keyword_placement_demotes_filler_and_boosts_phrases(build_resume: object) -> None:
     resume_text = "\n".join(
         [
@@ -14012,6 +14064,7 @@ def main() -> None:
             ("ATS scan terms denominator hygiene", lambda: test_ats_scan_terms_denominator_hygiene(build_resume)),
             ("supported evidence ledger terms and context", lambda: test_supported_evidence_ledger_terms_and_context(build_resume)),
             ("supported evidence ledger natural rewrites", lambda: test_supported_evidence_ledger_natural_rewrites(build_resume)),
+            ("targeted competencies replace weak item when capped", lambda: test_targeted_competencies_replace_weak_item_when_capped(build_resume)),
             ("keyword placement demotes filler and boosts phrases", lambda: test_keyword_placement_demotes_filler_and_boosts_phrases(build_resume)),
             ("supported keyword weave removes stapled tails", lambda: test_supported_keyword_weave_removes_stapled_tails(build_resume)),
             ("resume notes print core and breadth coverage", lambda: test_resume_notes_print_core_and_breadth_coverage(build_resume)),

@@ -3851,6 +3851,30 @@ def add_targeted_core_competencies(
     inserted: list[str] = []
 
     if available_slots == 0:
+        replacement_candidates = [
+            (skill_relevance_score(item, job_description), index, item)
+            for index, item in enumerate(items)
+            if normalize_compare(item) not in {normalize_compare(candidate) for candidate in candidates}
+        ]
+        replacement_candidates.sort(key=lambda value: (value[0], value[1]))
+        for skill in candidates[:limit]:
+            normalized_skill = normalize_compare(skill)
+            if not replacement_candidates or normalized_skill in existing_normalized:
+                continue
+            _score, item_index, old_item = replacement_candidates.pop(0)
+            previous_items = list(items)
+            items[item_index] = skill
+            set_paragraph_text(target, f"{label}:  " + "  |  ".join(items))
+            tree.write(document_xml, encoding="utf-8", xml_declaration=True)
+            page_count = estimate_page_count_from_xml(document_xml)
+            if page_count and baseline_page_count and page_count > baseline_page_count:
+                items = previous_items
+                set_paragraph_text(target, f"{label}:  " + "  |  ".join(items))
+                tree.write(document_xml, encoding="utf-8", xml_declaration=True)
+                continue
+            inserted.append(skill)
+            existing_normalized.discard(normalize_compare(old_item))
+            existing_normalized.add(normalized_skill)
         return inserted
 
     for skill in candidates[: min(limit, available_slots)]:
