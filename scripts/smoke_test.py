@@ -4118,6 +4118,8 @@ def test_targeted_competencies_replace_weak_item_when_capped(build_resume: objec
         "Jira",
         "LLM-based Data Cleaning",
         "Workflow Automation",
+        "Obscure Legacy Tool",
+        "Legacy Admin Utility",
     ]
     job_description = "This role requires project management and professional services delivery."
     with TemporaryDirectory(prefix="resume_smoke_") as temp_name:

@@ -3851,10 +3851,12 @@ def add_targeted_core_competencies(
     inserted: list[str] = []
 
     if available_slots == 0:
+        retained_existing = retained_competency_items(job_description, existing_normalized)
         replacement_candidates = [
             (skill_relevance_score(item, job_description), index, item)
             for index, item in enumerate(items)
             if normalize_compare(item) not in {normalize_compare(candidate) for candidate in candidates}
+            and normalize_compare(item) not in retained_existing
         ]
         replacement_candidates.sort(key=lambda value: (value[0], value[1]))
         for skill in candidates[:limit]:
