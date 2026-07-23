@@ -4193,6 +4193,39 @@ def test_targeted_competencies_can_grow_for_ledger_fallback(build_resume: object
     )
 
 
+def test_ledger_skill_display_labels_preserve_exact_terms(build_resume: object) -> None:
+    items = [
+        "Structured Discovery",
+        "Requirements Definition",
+        "Solution Design",
+        "SOW and FRD Development",
+    ]
+    terms = ["implementation project", "global program", "vendor partner", "AI pilot"]
+    expected_labels = {
+        "Implementation Project Delivery",
+        "Global Program Management",
+        "Vendor Partner Management",
+        "AI Pilot Programs",
+    }
+    with TemporaryDirectory(prefix="resume_smoke_") as temp_name:
+        document_xml = Path(temp_name) / "document.xml"
+        document_xml.write_text(resume_with_competencies_xml("Summary", items), encoding="utf-8")
+        added = build_resume.add_targeted_core_competencies(
+            document_xml,
+            terms,
+            "This role requires implementation project, global program, vendor partner, and AI pilot work.",
+            limit=4,
+            allow_over_target=True,
+        )
+        final_text = build_resume.visible_text(document_xml)
+    assert_true(set(added) == expected_labels, f"Ledger skill labels should be polished; got {added}")
+    for term in terms:
+        assert_true(
+            build_resume.contains_search_term(final_text, term),
+            f"Polished skill label should preserve exact ATS term {term!r}; got {final_text}",
+        )
+
+
 def test_ledger_core_promotion_requires_placement(build_resume: object) -> None:
     job_description = "Job Title: Program Manager\nThis role mentions project management and professional services once."
     missing_resume = "Professional Summary\nProgram leader with implementation delivery experience."
@@ -14234,6 +14267,7 @@ def main() -> None:
             ("supported evidence ledger natural rewrites", lambda: test_supported_evidence_ledger_natural_rewrites(build_resume)),
             ("targeted competencies replace weak item when capped", lambda: test_targeted_competencies_replace_weak_item_when_capped(build_resume)),
             ("targeted competencies can grow for ledger fallback", lambda: test_targeted_competencies_can_grow_for_ledger_fallback(build_resume)),
+            ("ledger skill display labels preserve exact terms", lambda: test_ledger_skill_display_labels_preserve_exact_terms(build_resume)),
             ("ledger core promotion requires placement", lambda: test_ledger_core_promotion_requires_placement(build_resume)),
             ("ledger placement survives render boundary surface", lambda: test_ledger_placement_survives_render_boundary_surface(build_resume)),
             ("priority ledger assertion reports missing terms", lambda: test_priority_ledger_assertion_reports_missing_terms(build_resume)),

@@ -453,6 +453,22 @@ def title_case_skill_phrase(value: str) -> str:
     normalized = re.sub(r"\bNLP-Based\b", "NLP-based", normalized)
     return normalized
 
+
+SKILL_DISPLAY_LABEL_OVERRIDES = {
+    "implementation project": "Implementation Project Delivery",
+    "global program": "Global Program Management",
+    "vendor partner": "Vendor Partner Management",
+    "ai pilot": "AI Pilot Programs",
+}
+
+
+def skill_display_label(value: str) -> str:
+    normalized = normalize_compare(value)
+    if normalized in SKILL_DISPLAY_LABEL_OVERRIDES:
+        return SKILL_DISPLAY_LABEL_OVERRIDES[normalized]
+    return title_case_skill_phrase(value)
+
+
 def professional_summary_text(document_xml: Path) -> str | None:
     paragraphs = paragraph_infos(document_xml)
     start = section_index(paragraphs, "Professional Summary")
@@ -3788,7 +3804,7 @@ def add_targeted_core_competencies(
     allow_over_target: bool = False,
 ) -> list[str]:
     normalized_targets = [
-        title_case_skill_phrase(keyword)
+        skill_display_label(keyword)
         for keyword in target_keywords
         if normalize_compare(keyword)
     ]
