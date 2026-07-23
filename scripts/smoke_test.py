@@ -3942,6 +3942,70 @@ def test_ats_keyword_mirroring_and_coverage(build_resume: object) -> None:
     )
 
 
+def test_ats_scan_terms_denominator_hygiene(build_resume: object) -> None:
+    fixtures = {
+        "delta": "20260720_180500_Delta_Senior_Operations_Analyst_Digital_and_Technology_Transformation_5c4f6ffb",
+        "hd_supply_eproc": "20260720_192553_HD_Supply_Senior_Manager_eProcurement_and_Strategy_889ab349",
+        "blue_yonder_architect": "20260720_193540_Blue_Yonder_Functional_Solution_Architect_Supply_Chain_20e668f3",
+        "manhattan_delivery": "20260720_222949_Manhattan_Associates_Senior_IT_Delivery_Manager_Financial_Systems_143bdd1e",
+    }
+    terms_by_fixture = {
+        name: build_resume.ats_scan_terms(
+            (PROJECT_ROOT / "scratch" / "jd_library" / folder / "job_description.txt").read_text(encoding="utf-8-sig")
+        )
+        for name, folder in fixtures.items()
+    }
+    combined = {term for terms in terms_by_fixture.values() for term in terms}
+    blocked = {
+        "school diploma",
+        "school equivalency",
+        "may",
+        "what",
+        "such",
+        "its",
+        "help",
+        "nature scope",
+        "ideal candidate",
+        "highly preferred",
+        "leading edge",
+        "directly influence",
+        "independently manage",
+        "embraces diverse",
+        "approaches throughout",
+        "solutions across",
+        "agreement training",
+        "trade agreement training",
+        "orientation training",
+        "conduct orientation training",
+        "development technical training",
+        "virtual client training",
+        "executive briefings training",
+        "planning uat",
+        "test planning uat",
+    }
+    assert_true(
+        not (blocked & combined),
+        f"ats_scan_terms() should remove known denominator noise; got {blocked & combined}",
+    )
+    hd_integration_terms = [
+        term for term in terms_by_fixture["hd_supply_eproc"]
+        if term == "integration" or term.endswith(" integration")
+    ]
+    assert_true(
+        len(hd_integration_terms) <= 2,
+        f"ats_scan_terms() should collapse integration duplicate families; got {hd_integration_terms}",
+    )
+    coverage = build_resume.ats_coverage(
+        "Job Title: Technical Program Manager\nThe role requires project management, UAT, and professional services.",
+        "Professional Summary\nTechnical Program Manager with project management, UAT, and professional services experience.",
+    )
+    missing = set(coverage["breadth"]["missing"])
+    assert_true(
+        not {"project management", "uat", "professional services"} & missing,
+        f"Written breadth terms should never be listed missing; got {coverage}",
+    )
+
+
 def test_keyword_placement_demotes_filler_and_boosts_phrases(build_resume: object) -> None:
     resume_text = "\n".join(
         [
@@ -13432,6 +13496,7 @@ def main() -> None:
         ("resume non-ERP audit ignores company context", None),
         ("keyword placement audit", None),
         ("ATS keyword mirroring and coverage", None),
+        ("ATS scan terms denominator hygiene", None),
         ("keyword placement demotes filler and boosts phrases", None),
         ("supported keyword weave removes stapled tails", None),
         ("resume notes print core and breadth coverage", None),
@@ -13855,6 +13920,7 @@ def main() -> None:
             ("planned competency trim integrity", lambda: test_resume_integrity_allows_planned_competency_trim(build_resume)),
             ("keyword placement audit", lambda: test_keyword_placement_audit(build_resume)),
             ("ATS keyword mirroring and coverage", lambda: test_ats_keyword_mirroring_and_coverage(build_resume)),
+            ("ATS scan terms denominator hygiene", lambda: test_ats_scan_terms_denominator_hygiene(build_resume)),
             ("keyword placement demotes filler and boosts phrases", lambda: test_keyword_placement_demotes_filler_and_boosts_phrases(build_resume)),
             ("supported keyword weave removes stapled tails", lambda: test_supported_keyword_weave_removes_stapled_tails(build_resume)),
             ("resume notes print core and breadth coverage", lambda: test_resume_notes_print_core_and_breadth_coverage(build_resume)),

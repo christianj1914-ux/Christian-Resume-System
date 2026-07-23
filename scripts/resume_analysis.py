@@ -1476,30 +1476,41 @@ def ats_scan_terms(job_description: str, *, limit: int = 25) -> list[str]:
         "additional",
         "all",
         "avoid",
+        "conduct",
         "drive",
+        "drives",
         "early",
+        "end",
         "employee",
         "employees",
         "ensuring",
         "experience",
+        "help",
         "including",
         "identify",
         "impact",
+        "its",
         "job",
         "join",
         "lead",
         "leverage",
         "looking",
+        "may",
         "not",
         "organization",
         "possible",
+        "promote",
         "providing",
+        "report",
         "role",
         "state",
+        "such",
         "taking",
         "them",
+        "total",
         "through",
         "united",
+        "what",
         "when",
         "where",
         "which",
@@ -1521,6 +1532,8 @@ def ats_scan_terms(job_description: str, *, limit: int = 25) -> list[str]:
         if " " in normalized and any(part in company_tokens for part in normalized.split()) and normalized not in title_phrases:
             return False
         if normalized in BULLET_PLACEMENT_EXCLUDED or normalized in AUDIT_BLOCKED_PHRASES:
+            return False
+        if breadth_term_is_noise(normalized):
             return False
         if is_generic_soft_keyword(normalized):
             return False
@@ -1569,9 +1582,7 @@ def ats_scan_terms(job_description: str, *, limit: int = 25) -> list[str]:
             continue
         ordered.append(term)
         seen.add(normalized)
-        if len(ordered) >= limit:
-            break
-    return ordered
+    return collapse_breadth_compound_families(ordered, original_job_description)[:limit]
 
 
 def ats_coverage(job_description: str, resume_text: str, *, limit: int = 5) -> dict[str, object]:
@@ -1657,6 +1668,111 @@ def jd_priority_phrases(job_description: str) -> tuple[str, ...]:
     ]
     keywords.sort(key=lambda keyword: (keyword_hits(job_description, {keyword}), len(keyword)), reverse=True)
     return tuple(keywords[:5])
+
+
+ATS_BREADTH_BLOCKED_TERMS = {
+    "agreement training",
+    "approaches throughout",
+    "conduct orientation training",
+    "development technical training",
+    "directly influence",
+    "embraces diverse",
+    "excellent time management",
+    "executive briefings training",
+    "ged",
+    "growth solution consultant",
+    "high school",
+    "highly preferred",
+    "ideal candidate",
+    "improve approach",
+    "independently manage",
+    "initiative quality",
+    "leading edge",
+    "long-term",
+    "long-term platform stability",
+    "may",
+    "nature scope",
+    "orientation training",
+    "planning uat",
+    "prioritizations skill",
+    "quality delivery",
+    "research emerging ai",
+    "school diploma",
+    "school equivalency",
+    "solutions across",
+    "subordinate management",
+    "such",
+    "test planning uat",
+    "trade agreement training",
+    "translate high-level",
+    "translate physical",
+    "virtual client training",
+}
+
+ATS_BREADTH_EDGE_PREPOSITIONS = {
+    "across",
+    "for",
+    "into",
+    "of",
+    "on",
+    "throughout",
+    "to",
+    "with",
+}
+
+ATS_BREADTH_COMPOUND_COLLAPSE_TAILS = {"adoption", "delivery", "integration", "service"}
+
+
+def breadth_term_is_noise(term: str) -> bool:
+    normalized = normalize_compare(term)
+    if not normalized:
+        return True
+    if normalized in ATS_BREADTH_BLOCKED_TERMS:
+        return True
+    parts = normalized.split()
+    if not parts:
+        return True
+    if parts[0] in ATS_BREADTH_EDGE_PREPOSITIONS or parts[-1] in ATS_BREADTH_EDGE_PREPOSITIONS:
+        return True
+    if len(parts) > 1 and parts[0].endswith("ing") and parts[0] not in AUDIT_PRIORITY_KEYWORDS:
+        return True
+    if len(parts) > 1 and parts[-1] == "training":
+        return True
+    return False
+
+
+def collapse_breadth_compound_families(terms: list[str], job_description: str) -> list[str]:
+    grouped: dict[str, list[str]] = {}
+    passthrough: list[str] = []
+    for term in terms:
+        parts = normalize_compare(term).split()
+        if len(parts) > 1 and parts[-1] in ATS_BREADTH_COMPOUND_COLLAPSE_TAILS:
+            grouped.setdefault(parts[-1], []).append(term)
+        else:
+            passthrough.append(term)
+
+    collapsed = list(passthrough)
+    seen = {normalize_compare(term) for term in collapsed}
+    for tail, family in grouped.items():
+        sorted_family = sorted(
+            family,
+            key=lambda keyword: (
+                keyword_occurrence_count(job_description, keyword),
+                *audit_keyword_sort_key(job_description, keyword),
+            ),
+            reverse=True,
+        )
+        keep: list[str] = []
+        if any(normalize_compare(term) == tail for term in terms):
+            keep.append(tail)
+        keep.extend(term for term in sorted_family if normalize_compare(term) != tail)
+        for term in keep[:2]:
+            normalized = normalize_compare(term)
+            if normalized and normalized not in seen:
+                collapsed.append(term)
+                seen.add(normalized)
+    return sorted(collapsed, key=lambda keyword: audit_keyword_sort_key(job_description, keyword), reverse=True)
+
 
 def jd_explicitly_requires_erp(job_description: str) -> bool:
     return jd_mentions(
