@@ -3889,7 +3889,7 @@ def weave_supported_keywords_into_top_bullets(
             continue
         skill_terms.append(keyword)
         seen_skill_terms.add(normalized)
-    skills_added = add_targeted_core_competencies(document_xml, skill_terms, job_description, limit=8, allow_over_target=True)
+    skills_added = add_targeted_core_competencies(document_xml, skill_terms, job_description, limit=8)
     changed += len(skills_added)
     return changed
 
@@ -5593,6 +5593,35 @@ def build_resume() -> BuildResult:
                 visible_text(document_xml),
                 required_terms=priority_ledger_assertion_terms(job_description),
             )
+            required_source_skills = retained_competency_items(
+                job_description,
+                source_snapshot.competency_items,
+                emphasis=emphasis,
+            )
+            if not jd_explicitly_requires_erp(job_description):
+                scrubbed_required_source_skills: set[str] = set()
+                for item in required_source_skills:
+                    cleaned_item = normalize_compare(scrub_erp_language_for_non_erp_text(item, job_description))
+                    if cleaned_item:
+                        scrubbed_required_source_skills.add(cleaned_item)
+                required_source_skills = scrubbed_required_source_skills
+            current_source_skill_check = resume_snapshot(document_xml)
+            missing_source_skills = sorted(
+                required_source_skills - current_source_skill_check.competency_items,
+                key=lambda item: (skill_relevance_score(item, job_description, emphasis), item),
+                reverse=True,
+            )
+            if missing_source_skills:
+                competency_items_added += len(
+                    add_targeted_core_competencies(
+                        document_xml,
+                        missing_source_skills,
+                        job_description,
+                        limit=len(missing_source_skills),
+                        source_required=True,
+                        protected_existing=required_source_skills,
+                    )
+                )
 
             final_snapshot = resume_snapshot(document_xml)
             validate_resume_integrity(source_snapshot, final_snapshot, job_description, emphasis)

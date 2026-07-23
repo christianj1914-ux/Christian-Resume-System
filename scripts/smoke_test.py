@@ -4156,22 +4156,6 @@ def test_targeted_competencies_can_grow_for_ledger_fallback(build_resume: object
         "Go-Live Readiness",
         "Multi-Workstream Coordination",
         "Process Management",
-        "Renewal Risk Management",
-        "Executive Business Reviews and QBRs",
-        "Success Planning",
-        "SQL",
-        "ETL and Data Validation",
-        "KPI Dashboards",
-        "Power BI",
-        "Excel Power Query",
-        "Epicor Kinetic",
-        "Microsoft Dynamics 365",
-        "Salesforce",
-        "LivePerson LiveEngage",
-        "ServiceNow",
-        "Jira",
-        "LLM-based Data Cleaning",
-        "Workflow Automation",
     ]
     job_description = "This role requires SaaS and project management."
     with TemporaryDirectory(prefix="resume_smoke_") as temp_name:
@@ -4186,10 +4170,173 @@ def test_targeted_competencies_can_grow_for_ledger_fallback(build_resume: object
             allow_over_target=True,
         )
         after_items = build_resume.extract_competency_items(build_resume.paragraph_infos(document_xml))
+        final_text = build_resume.visible_text(document_xml)
     assert_true(added == ["SaaS"], f"Ledger Skills fallback should allow page-safe append; got {added}")
     assert_true(
         len(after_items) == len(before_items) + 1 and "saas" in after_items,
         f"Ledger Skills fallback should grow only by the supported term; before={len(before_items)} after={len(after_items)}",
+    )
+    target_line = next(line for line in final_text.splitlines() if "Implementation and Delivery:" in line)
+    assert_true(
+        len([item for item in re.split(r"\s+\|\s+", target_line.split(":", 1)[1].strip()) if item]) <= 8,
+        f"Ledger Skills fallback should keep the target group capped at 8 items; got {target_line!r}",
+    )
+
+
+def test_targeted_competency_guardrail_rejects_titles_and_bare_nouns(build_resume: object) -> None:
+    items = [
+        "Structured Discovery",
+        "Requirements Definition",
+        "Solution Design",
+        "SOW and FRD Development",
+    ]
+    targets = [
+        "Senior Delivery Manager",
+        "Quality",
+        "Accounting",
+        "Business Process",
+        "Business Process Improvement",
+        "Service Delivery",
+    ]
+    job_description = (
+        "Job Title: Senior Delivery Manager, Financial Systems\n"
+        "This role requires business process improvement, service delivery, quality, accounting, "
+        "and senior delivery manager experience."
+    )
+    with TemporaryDirectory(prefix="resume_smoke_") as temp_name:
+        document_xml = Path(temp_name) / "document.xml"
+        document_xml.write_text(resume_with_competencies_xml("Summary", items), encoding="utf-8")
+        added = build_resume.add_targeted_core_competencies(document_xml, targets, job_description, limit=5)
+        final_text = build_resume.visible_text(document_xml)
+    assert_true(
+        "Business Process Improvement" in added and "Service Delivery" in added,
+        f"Guardrail should allow skill-shaped multi-word phrases even when they start with denied bare nouns; got {added}",
+    )
+    final_skill_items = build_resume.extract_competency_items(
+        build_resume.paragraph_infos_from_text(final_text)
+        if hasattr(build_resume, "paragraph_infos_from_text")
+        else []
+    )
+    if not final_skill_items:
+        final_skill_items = {
+            build_resume.normalize_compare(item)
+            for line in final_text.splitlines()
+            if line.startswith("Implementation and Delivery:")
+            for item in re.split(r"\s+\|\s+", line.split(":", 1)[1].strip())
+            if item.strip()
+        }
+    for blocked in ("Senior Delivery Manager", "Quality", "Accounting", "Business Process"):
+        assert_true(
+            build_resume.normalize_compare(blocked) not in final_skill_items,
+            f"Guardrail should reject title/vague noun Skills candidates such as {blocked!r}; got {final_text}",
+        )
+    target_line = next(line for line in final_text.splitlines() if line.startswith("Implementation and Delivery:"))
+    assert_true(
+        len([item for item in re.split(r"\s+\|\s+", target_line.split(":", 1)[1].strip()) if item]) <= 8,
+        f"Target Skills group should stay capped at 8 items; got {target_line!r}",
+    )
+
+
+def test_retained_competencies_preserve_jd_required_source_skill(build_resume: object) -> None:
+    items = {"data migration", *(f"skill {index}" for index in range(1, 28))}
+    job_description = "Lead implementation role requiring data migration, testing, training, and go-live readiness."
+    retained = build_resume.retained_competency_items(
+        job_description,
+        items,
+        max_items=23,
+    )
+    assert_true(
+        "data migration" in retained and len(retained) == 23,
+        f"Overflow trimming should preserve JD-required source skills such as data migration; got {retained}",
+    )
+    with TemporaryDirectory(prefix="resume_smoke_") as temp_name:
+        document_xml = Path(temp_name) / "document.xml"
+        document_xml.write_text(
+            resume_with_competencies_xml(
+                "Implementation consultant with data migration delivery experience.",
+                ["Data Migration", *(f"Skill {index}" for index in range(1, 28))],
+            ),
+            encoding="utf-8",
+        )
+        build_resume.remove_irrelevant_core_competencies(document_xml, job_description)
+        after_items = build_resume.extract_competency_items(build_resume.paragraph_infos(document_xml))
+    assert_true(
+        "data migration" in after_items,
+        f"XML Skills overflow trim should preserve JD-required source skills such as data migration; got {after_items}",
+    )
+    with TemporaryDirectory(prefix="resume_smoke_") as temp_name:
+        document_xml = Path(temp_name) / "simple_add.xml"
+        document_xml.write_text(
+            resume_with_competencies_xml(
+                "Implementation consultant with data migration delivery experience.",
+                [
+                    "Data Migration",
+                    "Structured Discovery",
+                    "Requirements Definition",
+                    "Solution Design",
+                    "SOW and FRD Development",
+                    "Go-Live Readiness",
+                    "Multi-Workstream Coordination",
+                    "Process Management",
+                    "Renewal Risk Management",
+                    "Executive Business Reviews and QBRs",
+                    "Success Planning",
+                    "SQL",
+                    "ETL and Data Validation",
+                    "KPI Dashboards",
+                    "Power BI",
+                    "Excel Power Query",
+                    "Epicor Kinetic",
+                    "Microsoft Dynamics 365",
+                    "Salesforce",
+                    "LivePerson LiveEngage",
+                    "ServiceNow",
+                    "Jira",
+                    "Workflow Automation",
+                ],
+            ),
+            encoding="utf-8",
+        )
+        build_resume.add_simple_core_competencies(
+            document_xml,
+            "This role requires service delivery, presentation, scope, and implementation readiness.",
+        )
+        after_simple_items = build_resume.extract_competency_items(build_resume.paragraph_infos(document_xml))
+    assert_true(
+        "data migration" in after_simple_items,
+        f"Simple competency replacement should not remove retained source skills; got {after_simple_items}",
+    )
+    with TemporaryDirectory(prefix="resume_smoke_") as temp_name:
+        document_xml = Path(temp_name) / "source_required.xml"
+        document_xml.write_text(
+            resume_with_competencies_xml(
+                "Implementation consultant with data migration delivery experience.",
+                [
+                    "Structured Discovery",
+                    "Requirements Definition",
+                    "Solution Design",
+                    "SOW and FRD Development",
+                    "Go-Live Readiness",
+                    "Multi-Workstream Coordination",
+                    "Process Management",
+                    "Customer Service",
+                ],
+            ),
+            encoding="utf-8",
+        )
+        added = build_resume.add_targeted_core_competencies(
+            document_xml,
+            ["Data Migration", "Expansion Discovery", "Quality", "Senior Delivery Manager"],
+            "This role requires service delivery and implementation readiness.",
+            limit=4,
+            source_required=True,
+            protected_existing={"structured discovery", "requirements definition"},
+        )
+        after_required_items = build_resume.extract_competency_items(build_resume.paragraph_infos(document_xml))
+    assert_true(
+        set(added) == {"Data Migration", "Expansion Discovery"}
+        and {"data migration", "expansion discovery"} <= after_required_items,
+        f"Source-required restore should recover skill-shaped source Skills without allowing junk; added={added}, items={after_required_items}",
     )
 
 

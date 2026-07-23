@@ -25,12 +25,17 @@ import prose_engine
 from resume_analysis import (
     IMPORTANT_SHORT_ATS_TERMS,
     JobProblemProfile,
+    clean_job_title,
+    contains_search_term,
     employer_context_matches,
     extract_job_title,
+    evidence_anchor_for_term,
     jd_explicitly_requires_erp,
     jd_mentions,
     job_problem_profile,
+    keyword_occurrence_count,
     is_consulting_job_description,
+    is_valid_job_title,
     normalize_compare,
     normalize_title,
     primary_employer_context,
@@ -42,6 +47,7 @@ from resume_analysis import (
     story_lens_identity,
     story_lens_sentence,
     text_mentions,
+    title_phrase_candidates,
     visible_role_specialties,
 )
 from resume_format import (
@@ -123,6 +129,7 @@ SPECIAL_SKILL_WORDS = {
     "wms": "WMS",
 }
 CORE_COMPETENCY_TARGET_ITEMS = 23
+TARGETED_COMPETENCY_GROUP_CAP = 8
 
 @dataclass(frozen=True)
 class ParagraphInfo:
@@ -459,6 +466,7 @@ SKILL_DISPLAY_LABEL_OVERRIDES = {
     "global program": "Global Program Management",
     "vendor partner": "Vendor Partner Management",
     "ai pilot": "AI Pilot Programs",
+    "professional service": "Professional Services",
 }
 
 
@@ -3641,10 +3649,24 @@ def irrelevant_competency_items(job_description: str, items: set[str]) -> set[st
     """
     irrelevant: set[str] = set()
     for item in items:
+        if (
+            item in BARE_VAGUE_SKILL_NOUNS
+            and item not in SINGLE_WORD_SKILL_ALLOWLIST
+        ):
+            irrelevant.add(item)
+            continue
         triggers = CONDITIONAL_COMPETENCY_ITEMS.get(item)
         if triggers and not jd_mentions(job_description, *triggers):
             irrelevant.add(item)
     return irrelevant
+
+
+def protected_jd_competency_items(job_description: str) -> set[str]:
+    protected = {normalize_compare(term) for term in implementation_priority_terms(job_description)}
+    for skill, triggers in SIMPLE_COMPETENCY_KEYWORDS:
+        if jd_mentions(job_description, *triggers):
+            protected.add(normalize_compare(skill))
+    return {item for item in protected if item}
 
 
 def retained_competency_items(
@@ -3665,16 +3687,159 @@ def retained_competency_items(
     if len(retained) <= max_items:
         return retained
 
+    protected = protected_jd_competency_items(job_description) & retained
     removable = sorted(
         (
             (skill_relevance_score(item, job_description, emphasis), normalize_compare(item), item)
             for item in retained
+            if item not in protected
         ),
         key=lambda row: (row[0], row[1]),
     )
     extras_to_remove = len(retained) - max_items
     overflow = {item for _score, _normalized, item in removable[:extras_to_remove]}
     return retained - overflow
+
+
+BARE_VAGUE_SKILL_NOUNS = {
+    "accounting",
+    "business",
+    "corporate",
+    "growth",
+    "innovation",
+    "operations",
+    "quality",
+    "service",
+    "strategy",
+    "transformation",
+}
+
+JOB_TITLE_SKILL_SUFFIXES = {
+    "advisor",
+    "analyst",
+    "architect",
+    "consultant",
+    "director",
+    "engineer",
+    "lead",
+    "manager",
+    "owner",
+    "principal",
+    "specialist",
+}
+
+SINGLE_WORD_SKILL_ALLOWLIST = {
+    *IMPORTANT_SHORT_ATS_TERMS,
+    *SPECIAL_SKILL_WORDS,
+    "excel",
+    "jira",
+    "liveengage",
+    "liveperson",
+    "salesforce",
+    "saas",
+    "servicenow",
+}
+
+MULTI_WORD_SKILL_SIGNALS = {
+    "adoption",
+    "analysis",
+    "analytics",
+    "automation",
+    "communication",
+    "configuration",
+    "coordination",
+    "delivery",
+    "design",
+    "development",
+    "discovery",
+    "documentation",
+    "enablement",
+    "framework",
+    "gathering",
+    "governance",
+    "implementation",
+    "improvement",
+    "management",
+    "migration",
+    "planning",
+    "process",
+    "program",
+    "project",
+    "qbr",
+    "readiness",
+    "reporting",
+    "requirements",
+    "reviews",
+    "roadmap",
+    "sow",
+    "stakeholder",
+    "testing",
+    "uat",
+    "validation",
+    "workflow",
+    "workstream",
+}
+
+
+def is_job_title_skill_candidate(keyword: str, job_description: str) -> bool:
+    normalized = normalize_compare(keyword)
+    if not normalized:
+        return True
+    title = clean_job_title(extract_job_title(job_description) or "")
+    normalized_title = normalize_compare(title)
+    title_phrases = {normalize_compare(phrase) for phrase in title_phrase_candidates(job_description)}
+    if normalized_title and normalized == normalized_title:
+        return True
+    if normalized in title_phrases:
+        return True
+    words = normalized.split()
+    if len(words) >= 2 and words[-1] in JOB_TITLE_SKILL_SUFFIXES:
+        return True
+    return bool(is_valid_job_title(keyword) and len(words) >= 3 and words[-1] in JOB_TITLE_SKILL_SUFFIXES)
+
+
+def targeted_skill_candidate_is_allowed(
+    keyword: str,
+    job_description: str,
+    *,
+    require_jd_presence: bool = True,
+) -> bool:
+    normalized = normalize_compare(keyword)
+    if not normalized:
+        return False
+    if is_job_title_skill_candidate(keyword, job_description):
+        return False
+    words = normalized.split()
+    if len(words) == 1 and normalized in BARE_VAGUE_SKILL_NOUNS:
+        return False
+    if normalized == "business process":
+        return False
+    if normalized in SKILL_DISPLAY_LABEL_OVERRIDES:
+        return True
+    if evidence_anchor_for_term(keyword):
+        return True
+    if len(words) == 1:
+        return normalized in SINGLE_WORD_SKILL_ALLOWLIST and normalized not in BARE_VAGUE_SKILL_NOUNS
+    if len(words) > 5:
+        return False
+    if words[0] in {"the", "this", "our", "your"}:
+        return False
+    if words[-1] in JOB_TITLE_SKILL_SUFFIXES:
+        return False
+    if require_jd_presence and not contains_search_term(job_description, keyword):
+        return False
+    return any(signal in words for signal in MULTI_WORD_SKILL_SIGNALS)
+
+
+def targeted_skill_sort_key(job_description: str, keyword: str, original_index: int) -> tuple[int, int, int, int]:
+    normalized = normalize_compare(keyword)
+    return (
+        skill_relevance_score(keyword, job_description),
+        keyword_occurrence_count(job_description, keyword),
+        len(normalized.split()),
+        -original_index,
+    )
+
 
 def add_simple_core_competencies(
     document_xml: Path,
@@ -3742,10 +3907,12 @@ def add_simple_core_competencies(
     added = 0
 
     if available_slots == 0:
+        retained_existing = retained_competency_items(job_description, existing_normalized, emphasis=emphasis)
         ranked_existing = sorted(
             (
                 (skill_relevance_score(item, job_description, emphasis), index, item)
                 for index, item in enumerate(items)
+                if normalize_compare(item) not in retained_existing
             ),
             key=lambda row: (row[0], normalize_compare(row[2])),
         )
@@ -3802,17 +3969,42 @@ def add_targeted_core_competencies(
     *,
     limit: int = 3,
     allow_over_target: bool = False,
+    source_required: bool = False,
+    protected_existing: set[str] | None = None,
 ) -> list[str]:
-    normalized_targets = [
-        skill_display_label(keyword)
-        for keyword in target_keywords
-        if normalize_compare(keyword)
+    allowed_targets: list[tuple[int, str]] = []
+    seen_targets: set[str] = set()
+    for index, keyword in enumerate(target_keywords):
+        normalized = normalize_compare(keyword)
+        if not normalized or normalized in seen_targets:
+            continue
+        if not targeted_skill_candidate_is_allowed(
+            keyword,
+            job_description,
+            require_jd_presence=not source_required,
+        ):
+            continue
+        allowed_targets.append((index, keyword))
+        seen_targets.add(normalized)
+    ranked_targets = [
+        keyword
+        for _index, keyword in sorted(
+            allowed_targets,
+            key=lambda item: targeted_skill_sort_key(job_description, item[1], item[0]),
+            reverse=True,
+        )
     ]
-    if not normalized_targets:
+    if not ranked_targets:
         return []
+    normalized_targets = [skill_display_label(keyword) for keyword in ranked_targets]
 
     snapshot = resume_snapshot(document_xml)
     existing_normalized = set(snapshot.competency_items)
+    protected_existing_normalized = {
+        normalize_compare(item)
+        for item in (protected_existing or set())
+        if normalize_compare(item)
+    }
     candidates = [
         keyword
         for keyword in normalized_targets
@@ -3821,7 +4013,6 @@ def add_targeted_core_competencies(
     if not candidates:
         return []
 
-    max_items = CORE_COMPETENCY_TARGET_ITEMS
     tree = ET.parse(document_xml)
     paragraphs = tree.getroot().findall(f".//{W}p")
     in_core = False
@@ -3835,6 +4026,7 @@ def add_targeted_core_competencies(
         "Implementation and Delivery",
     )
     candidates_by_label: dict[str, ET.Element] = {}
+    rows_by_label: dict[str, tuple[str, ET.Element, list[str]]] = {}
 
     for paragraph in paragraphs:
         text = re.sub(r"\s+", " ", paragraph_text(paragraph)).strip()
@@ -3847,86 +4039,82 @@ def add_targeted_core_competencies(
             continue
         label = text.split(":", 1)[0].strip()
         candidates_by_label[label] = paragraph
+        _label, items_text = text.split(":", 1)
+        rows_by_label[label] = (
+            label,
+            paragraph,
+            [item.strip() for item in re.split(r"\s+\|\s+", items_text.strip()) if item.strip()],
+        )
 
-    target: ET.Element | None = None
+    ordered_rows: list[tuple[str, ET.Element, list[str]]] = []
+    seen_labels: set[str] = set()
     for label in preferred_labels:
-        if label in candidates_by_label:
-            target = candidates_by_label[label]
-            break
-    if target is None and candidates_by_label:
-        target = next(reversed(candidates_by_label.values()))
-    if target is None:
+        row = rows_by_label.get(label)
+        if row:
+            ordered_rows.append(row)
+            seen_labels.add(label)
+    for label, row in rows_by_label.items():
+        if label not in seen_labels:
+            ordered_rows.append(row)
+    if not ordered_rows:
         return []
 
-    text = re.sub(r"\s+", " ", paragraph_text(target)).strip()
-    if ":" not in text:
-        return []
-    label, items_text = text.split(":", 1)
-    items = [item.strip() for item in re.split(r"\s+\|\s+", items_text.strip()) if item.strip()]
-    available_slots = max(0, max_items - len(existing_normalized))
     baseline_page_count = estimate_page_count_from_xml(document_xml)
     inserted: list[str] = []
+    retained_existing = retained_competency_items(job_description, existing_normalized)
 
-    if available_slots == 0:
-        retained_existing = retained_competency_items(job_description, existing_normalized)
-        replacement_candidates = [
-            (skill_relevance_score(item, job_description), index, item)
-            for index, item in enumerate(items)
-            if normalize_compare(item) not in {normalize_compare(candidate) for candidate in candidates}
-            and normalize_compare(item) not in retained_existing
-        ]
-        replacement_candidates.sort(key=lambda value: (value[0], value[1]))
-        for skill in candidates[:limit]:
-            normalized_skill = normalize_compare(skill)
-            if not replacement_candidates or normalized_skill in existing_normalized:
+    def write_row(label: str, paragraph: ET.Element, items: list[str]) -> None:
+        set_paragraph_text(paragraph, f"{label}:  " + "  |  ".join(items))
+        tree.write(document_xml, encoding="utf-8", xml_declaration=True)
+
+    for skill in candidates[:limit]:
+        normalized_skill = normalize_compare(skill)
+        if normalized_skill in existing_normalized:
+            continue
+        placed = False
+        for label, paragraph, items in ordered_rows:
+            if len(items) >= TARGETED_COMPETENCY_GROUP_CAP:
                 continue
-            _score, item_index, old_item = replacement_candidates.pop(0)
             previous_items = list(items)
-            items[item_index] = skill
-            set_paragraph_text(target, f"{label}:  " + "  |  ".join(items))
-            tree.write(document_xml, encoding="utf-8", xml_declaration=True)
+            items.append(skill)
+            write_row(label, paragraph, items)
             page_count = estimate_page_count_from_xml(document_xml)
             if page_count and baseline_page_count and page_count > baseline_page_count:
-                items = previous_items
-                set_paragraph_text(target, f"{label}:  " + "  |  ".join(items))
-                tree.write(document_xml, encoding="utf-8", xml_declaration=True)
+                items[:] = previous_items
+                write_row(label, paragraph, items)
                 continue
             inserted.append(skill)
-            existing_normalized.discard(normalize_compare(old_item))
             existing_normalized.add(normalized_skill)
-        if allow_over_target and len(inserted) < limit:
-            for skill in candidates:
-                normalized_skill = normalize_compare(skill)
-                if normalized_skill in existing_normalized or skill in inserted:
-                    continue
-                previous_items = list(items)
-                items.append(skill)
-                set_paragraph_text(target, f"{label}:  " + "  |  ".join(items))
-                tree.write(document_xml, encoding="utf-8", xml_declaration=True)
-                page_count = estimate_page_count_from_xml(document_xml)
-                if page_count and baseline_page_count and page_count > baseline_page_count:
-                    items = previous_items
-                    set_paragraph_text(target, f"{label}:  " + "  |  ".join(items))
-                    tree.write(document_xml, encoding="utf-8", xml_declaration=True)
-                    break
-                inserted.append(skill)
-                existing_normalized.add(normalized_skill)
-                if len(inserted) >= limit:
-                    break
-        return inserted
+            placed = True
+            break
+        if placed:
+            continue
 
-    for skill in candidates[: min(limit, available_slots)]:
+        retained_existing = protected_existing_normalized or retained_competency_items(job_description, existing_normalized)
+        replacement_candidates: list[tuple[int, int, tuple[str, ET.Element, list[str]]]] = []
+        for label, paragraph, items in ordered_rows:
+            replacement_candidates.extend(
+                (skill_relevance_score(item, job_description), index, (label, paragraph, items))
+                for index, item in enumerate(items)
+                if normalize_compare(item) not in {normalize_compare(candidate) for candidate in candidates}
+                and normalize_compare(item) not in retained_existing
+            )
+        replacement_candidates.sort(key=lambda value: (value[0], value[1]))
+        if not replacement_candidates:
+            continue
+        _score, item_index, (label, paragraph, items) = replacement_candidates[0]
+        old_item = items[item_index]
         previous_items = list(items)
-        items.append(skill)
-        set_paragraph_text(target, f"{label}:  " + "  |  ".join(items))
-        tree.write(document_xml, encoding="utf-8", xml_declaration=True)
+        items[item_index] = skill
+        write_row(label, paragraph, items)
         page_count = estimate_page_count_from_xml(document_xml)
         if page_count and baseline_page_count and page_count > baseline_page_count:
-            items = previous_items
-            set_paragraph_text(target, f"{label}:  " + "  |  ".join(items))
-            tree.write(document_xml, encoding="utf-8", xml_declaration=True)
-            break
+            items[:] = previous_items
+            write_row(label, paragraph, items)
+            continue
         inserted.append(skill)
+        existing_normalized.discard(normalize_compare(old_item))
+        existing_normalized.add(normalized_skill)
 
     return inserted
 
@@ -3972,11 +4160,13 @@ def remove_irrelevant_core_competencies(
     total_items = sum(len(items) for _paragraph, _label, items in current_rows)
 
     if total_items > 25:
+        protected = protected_jd_competency_items(job_description)
         removable = sorted(
             (
                 (skill_relevance_score(item, job_description, emphasis), normalize_compare(item), item)
                 for _paragraph, _label, items in current_rows
                 for item in items
+                if normalize_compare(item) not in protected
             ),
             key=lambda row: (row[0], row[1]),
         )
