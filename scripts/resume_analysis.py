@@ -1084,7 +1084,7 @@ def is_valid_filename_piece(value: str) -> bool:
 def looks_like_job_title(value: str) -> bool:
     return bool(
         re.search(
-            r"\b(consultant|engineer|manager|director|analyst|specialist|architect|lead|principal|senior|role|job|apply)\b",
+            r"\b(advisor|analyst|architect|consultant|director|engineer|lead|manager|owner|principal|product|role|senior|specialist|job|apply)\b",
             value,
             re.I,
         )

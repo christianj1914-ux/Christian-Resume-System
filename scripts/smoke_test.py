@@ -439,6 +439,28 @@ This role supports digital analytics, Adobe Analytics, journey analysis, and cus
     assert_true("State Farm" in candidates, "output_name_candidates() should keep the company-only fallback for older files")
 
 
+def test_output_target_name_disambiguates_same_company_roles(build_resume: object) -> None:
+    fixtures = {
+        "20260720_221257_Blue_Yonder_Solutions_Advisor_a4c673d0": "Blue Yonder - Solutions Advisor",
+        "20260720_221904_Blue_Yonder_Services_Advisor_Services_Pre-Sales_7ac20bbe": "Blue Yonder - Services Advisor (Services Pre-Sales)",
+        "20260720_181441_Delta_Crew_Technology_Product_Owner_9505d36a": "Delta - Crew Technology Product Owner",
+    }
+    for folder, expected in fixtures.items():
+        job_description = (
+            PROJECT_ROOT / "scratch" / "jd_library" / folder / "job_description.txt"
+        ).read_text(encoding="utf-8-sig")
+        target_name = build_resume.extract_output_target_name(job_description)
+        assert_true(
+            target_name == expected,
+            f"extract_output_target_name() should include parsed role for {folder}; got {target_name!r}",
+        )
+        candidates = build_resume.output_name_candidates(job_description)
+        assert_true(
+            candidates[0] == expected and (build_resume.extract_company_name(job_description) or "") in candidates,
+            f"output_name_candidates() should prefer role-disambiguated name and keep company fallback; got {candidates}",
+        )
+
+
 def test_choose_resume(build_resume: object) -> None:
     presales_job = "Pre-sales solution consulting role with demos, discovery, ROI, and executive buyers."
     implementation_job = "Implementation delivery role with configuration, data migration, go-live, scope, and requirements."
@@ -13838,6 +13860,8 @@ def main() -> None:
             ("validate dummy inputs", lambda: test_validate_inputs(build_resume)),
             ("LinkedIn boilerplate cleanup", lambda: test_validate_inputs_strips_linkedin_boilerplate(build_resume)),
             ("role requirement text resumes after about-us sections", lambda: test_role_requirement_text_resumes_after_about_us_sections(build_resume)),
+            ("output target name prefers company and role", lambda: test_output_target_name_prefers_company_and_role(build_resume)),
+            ("output target name disambiguates same-company roles", lambda: test_output_target_name_disambiguates_same_company_roles(build_resume)),
             ("choose resume", lambda: test_choose_resume(build_resume)),
             ("lane profiles and summaries", lambda: test_lane_profiles_and_summaries(build_resume)),
             ("first person detector ignores role level i", lambda: test_first_person_detector_ignores_role_level_i(build_resume)),
