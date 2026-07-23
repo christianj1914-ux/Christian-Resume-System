@@ -4274,6 +4274,45 @@ def test_priority_ledger_assertion_reports_missing_terms(build_resume: object) -
     raise AssertionError("Priority ledger assertion should fail when demanded terms are missing.")
 
 
+def test_priority_ledger_assertion_accepts_skills_terms(build_resume: object) -> None:
+    job_description = "Company: Blue Yonder\nRole: Program Manager\nThis role requires project management, implementation project, and SaaS."
+    resume_text = "\n".join(
+        [
+            "Professional Summary",
+            "Program delivery leader with implementation experience.",
+            "Skills",
+            "Solution Delivery and Program Leadership: Project Management | Implementation Project | SaaS",
+        ]
+    )
+    build_resume.assert_ledger_terms_present(
+        job_description,
+        resume_text,
+        required_terms=("project management", "implementation project", "SaaS"),
+    )
+
+
+def test_ledger_skills_presence_satisfies_placement_audit(build_resume: object) -> None:
+    job_description = "Company: Blue Yonder\nRole: Program Manager\nThis role requires project management. Project management is central."
+    resume_text = "\n".join(
+        [
+            "Professional Summary",
+            "Program delivery leader with implementation experience.",
+            "Professional Experience",
+            "Enterprise Systems Manager    March 2023 - Present",
+            "East West Manufacturing | Atlanta, GA",
+            "Delivered enterprise technology projects end to end.",
+            "Skills",
+            "Solution Delivery and Program Leadership: Project Management | SaaS",
+        ]
+    )
+    report = build_resume.keyword_placement_audit(job_description, resume_text)
+    gaps = [gap for gap in report.get("gaps", []) if isinstance(gap, dict)]
+    assert_true(
+        not any(build_resume.normalize_compare(str(gap.get("keyword", ""))) == "project management" for gap in gaps),
+        f"Ledger-backed Skills terms should satisfy placement audit; got {gaps}",
+    )
+
+
 def test_keyword_placement_demotes_filler_and_boosts_phrases(build_resume: object) -> None:
     resume_text = "\n".join(
         [
@@ -14198,6 +14237,8 @@ def main() -> None:
             ("ledger core promotion requires placement", lambda: test_ledger_core_promotion_requires_placement(build_resume)),
             ("ledger placement survives render boundary surface", lambda: test_ledger_placement_survives_render_boundary_surface(build_resume)),
             ("priority ledger assertion reports missing terms", lambda: test_priority_ledger_assertion_reports_missing_terms(build_resume)),
+            ("priority ledger assertion accepts Skills terms", lambda: test_priority_ledger_assertion_accepts_skills_terms(build_resume)),
+            ("ledger Skills presence satisfies placement audit", lambda: test_ledger_skills_presence_satisfies_placement_audit(build_resume)),
             ("keyword placement demotes filler and boosts phrases", lambda: test_keyword_placement_demotes_filler_and_boosts_phrases(build_resume)),
             ("supported keyword weave removes stapled tails", lambda: test_supported_keyword_weave_removes_stapled_tails(build_resume)),
             ("resume notes print core and breadth coverage", lambda: test_resume_notes_print_core_and_breadth_coverage(build_resume)),

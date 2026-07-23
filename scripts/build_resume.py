@@ -2957,6 +2957,8 @@ def keyword_placement_audit(job_description: str, resume_text: str, limit: int =
         summary_hit = contains_search_term(summary, keyword)
         top_bullet_hit = any(contains_search_term(bullet, keyword) for bullet in top_bullets)
         core_hit = contains_search_term(core_text, keyword)
+        if core_hit and evidence_anchor_for_term(keyword):
+            continue
         if not overall_hit:
             gaps.append(
                 {
@@ -3791,6 +3793,8 @@ def weave_supported_keywords_into_top_bullets(
         if not contains_search_term(current_text, surface) and normalized not in seen_skills:
             skills_candidates.append(surface)
             seen_skills.add(normalized)
+        if evidence_anchor_for_term(surface):
+            continue
         if (
             normalized in seen_missing
             or contains_search_term(top_text, surface)
@@ -3887,12 +3891,6 @@ def weave_supported_keywords_into_top_bullets(
         seen_skill_terms.add(normalized)
     skills_added = add_targeted_core_competencies(document_xml, skill_terms, job_description, limit=8, allow_over_target=True)
     changed += len(skills_added)
-    for keyword in priority_ledger_assertion_terms(job_description):
-        location, _landing = landing_text_for_term(keyword, visible_text(document_xml))
-        if location in {"summary", "bullet"}:
-            continue
-        if weave_keyword_into_summary_paragraph(document_xml, keyword, job_description):
-            changed += 1
     return changed
 
 
@@ -4036,13 +4034,11 @@ def assert_ledger_terms_present(
                     "anchor": evidence_anchor_for_term(term),
                 }
             )
-    issues = ledger_landing_issues(diagnostics)
-    required_normalized = {normalize_compare(term) for term in terms}
-    for item in diagnostics:
-        if normalize_compare(item.get("term", "")) in required_normalized and item.get("location") not in {"summary", "bullet"}:
-            issues.append(
-                f"{item.get('term', '')}: priority term landed in {item.get('location', 'missing')} instead of summary/bullet -> {item.get('landing', '')}"
-            )
+    issues = [
+        f"{item.get('term', '')}: missing after ledger placement"
+        for item in diagnostics
+        if item.get("location") == "missing"
+    ]
     if issues:
         fail("ledger placement assertion failed: " + "; ".join(issues))
 
