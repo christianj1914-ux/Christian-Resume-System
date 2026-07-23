@@ -91,6 +91,7 @@ COVER_INTERNAL_TOKEN_PATTERNS: tuple[tuple[str, str], ...] = (
     (r"\bconfiguration choices, and follow-through stay aligned through go-live\b", "configuration choices ... through go-live"),
     (r"\bWhat motivates me is using technology to help people and organizations work better\b", "generic motivation sentence"),
     (r"\bthe and plant controllers\b", "the and plant controllers"),
+    (r"\bthe and plant\b", "the and plant"),
     (r"\bkind of [a-z, ]+ environment where\b", "kind of ... environment where"),
 )
 
@@ -245,9 +246,16 @@ def active_cover_profile(
     return None
 
 
+def repair_cover_text_fragments(text: str) -> str:
+    cleaned = text or ""
+    cleaned = re.sub(r"\bthe\s+and\s+plant controllers\b", "the CFO and plant controllers", cleaned, flags=re.I)
+    cleaned = re.sub(r"\bpartnering with\s+the\s+and\s+plant controllers\b", "partnering with the CFO and plant controllers", cleaned, flags=re.I)
+    return cleaned
+
+
 def repair_cover_paragraph(text: str, label: str) -> str:
     cleaned = re.sub(r"\s+", " ", fix_indefinite_articles(text or "")).strip()
-    cleaned = re.sub(r"\bthe and plant controllers\b", "the CFO and plant controllers", cleaned, flags=re.I)
+    cleaned = repair_cover_text_fragments(cleaned)
     issues = sentence_splice_issues(cleaned)
     if issues:
         fail(f"{label} contains unresolved grammar fragments: {', '.join(issues)}")
@@ -5190,7 +5198,7 @@ def smooth_cover_letter_text(
         cleaned,
         flags=re.I,
     )
-    cleaned = re.sub(r"\bthe and plant controllers\b", "the CFO and plant controllers", cleaned, flags=re.I)
+    cleaned = repair_cover_text_fragments(cleaned)
     cleaned = re.sub(
         r"\bmy systems,\s+and stakeholder background\b",
         "my systems and stakeholder-alignment background",
@@ -6376,6 +6384,10 @@ def build_document(
                 cleaned = question_prep.scrub_cover_answer_for_job(job_description, run.text)
                 if cleaned != run.text:
                     run.text = cleaned
+    for paragraph in document.paragraphs:
+        cleaned = repair_cover_text_fragments(paragraph.text)
+        if cleaned != paragraph.text:
+            paragraph.text = cleaned
     body_text = "\n".join(paragraph.text for paragraph in document.paragraphs)
     prose_check_body = cover_letter_prose_check_text(body_text)
     specificity_warnings: list[str] = []

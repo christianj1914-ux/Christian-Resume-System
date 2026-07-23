@@ -9605,6 +9605,13 @@ def test_cover_proof_paragraph_repairs_plant_controller_fragment(build_cover_let
         "the and plant controllers" not in paragraph,
         f"Cover proof paragraph should repair the plant-controller fragment; got {paragraph!r}",
     )
+    repaired = build_cover_letter.repair_cover_text_fragments(
+        "Owned financial close documentation while partnering with the and plant controllers on financial close."
+    )
+    assert_true(
+        "the and plant" not in repaired.lower() and "the CFO and plant controllers" in repaired,
+        f"Late cover repair should catch the broader plant-controller fragment; got {repaired!r}",
+    )
 
 
 def test_cover_letter_avoids_warehouse_proof_for_fintech(build_cover_letter: object, build_resume: object) -> None:
