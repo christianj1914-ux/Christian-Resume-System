@@ -716,6 +716,12 @@ def rewrite_supported_text(text: str, job_description: str) -> str:
         updated,
         flags=re.I,
     )
+    updated = re.sub(
+        r"\bStrengthened sales and renewal cycles\b",
+        "Improved sales and renewal cycles",
+        updated,
+        flags=re.I,
+    )
 
     if profile.primary_lane == "change_enablement":
         updated = re.sub(
