@@ -3,7 +3,7 @@
 EVIDENCE_TERMS = [
     {
         "concept": "project management",
-        "variants": ["project management", "program management", "technical program management", "complex project management", "project delivery"],
+        "variants": ["project management", "program management", "technical program management", "complex project management", "implementation project", "project delivery"],
         "anchor": "PMP (in progress); 5-month EFT/ACH program across IT, finance, Aptean, Truist; warehouse + Amazon Robotics launch; five-site coordination",
         "strength": "strong",
     },
@@ -135,7 +135,7 @@ EVIDENCE_TERMS = [
     },
     {
         "concept": "ai adoption",
-        "variants": ["ai adoption", "ai pilot", "ai-assisted"],
+        "variants": ["ai adoption", "AI pilot", "ai-assisted"],
         "anchor": "AI-assisted tooling (Claude); SMS chatbot logic pilot at Home Depot",
         "strength": "moderate",
     },

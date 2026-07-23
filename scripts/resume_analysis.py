@@ -181,6 +181,11 @@ def evidence_preferred_surface(concept_term: str, job_description: str) -> str:
     entry = evidence_term_for_variant(concept_term)
     if not entry or not evidence_entry_context_supported(entry, job_description):
         return concept_term
+    if contains_search_term(job_description, concept_term):
+        for variant in tuple(str(value) for value in entry.get("variants", ())):
+            if normalize_compare(variant) == normalize_compare(concept_term) and contains_search_term(job_description, variant):
+                return variant
+        return concept_term
     supported_variants = [
         str(value)
         for value in entry.get("variants", ())
@@ -207,7 +212,6 @@ def evidence_supported_surfaces(job_description: str) -> tuple[str, ...]:
             if normalized and normalized not in seen:
                 surfaces.append(variant)
                 seen.add(normalized)
-            break
     return tuple(surfaces)
 
 
@@ -1527,15 +1531,10 @@ def is_generic_soft_keyword(keyword: str) -> bool:
 
 
 def high_value_audit_keywords(job_description: str) -> list[str]:
-    universal_core = {
-        surface
-        for surface in evidence_supported_surfaces(job_description)
-        if normalize_compare(surface) in {"project management", "professional services"}
-    }
     return sorted(
         (
             keyword
-            for keyword in set(audit_keywords(job_description)) | universal_core
+            for keyword in audit_keywords(job_description)
             if not is_generic_soft_keyword(keyword) and not is_bullet_placement_excluded(keyword)
         ),
         key=lambda keyword: audit_keyword_sort_key(job_description, keyword),
@@ -1695,10 +1694,25 @@ def ats_scan_terms(job_description: str, *, limit: int = 25) -> list[str]:
 
 
 def ats_coverage(job_description: str, resume_text: str, *, limit: int = 5) -> dict[str, object]:
+    promoted_core_terms = {"project management", "professional services", "professional service"}
+    title_phrases = set(title_phrase_candidates(job_description))
+    placed_promoted_core = {
+        surface
+        for surface in evidence_supported_surfaces(job_description)
+        if normalize_compare(surface) in promoted_core_terms
+        and contains_search_term(resume_text, surface)
+    }
+    raw_keywords = set(high_value_audit_keywords(job_description)) | placed_promoted_core
     keywords = [
         keyword
-        for keyword in high_value_audit_keywords(job_description)
+        for keyword in raw_keywords
         if not is_unsupported_do_not_insert(keyword, resume_text, job_description)
+        and not (
+            normalize_compare(keyword) in promoted_core_terms
+            and not contains_search_term(resume_text, keyword)
+            and normalize_compare(keyword) not in title_phrases
+            and keyword_occurrence_count(job_description, keyword) < 2
+        )
     ]
     present = [keyword for keyword in keywords if contains_search_term(resume_text, keyword)]
     missing = [keyword for keyword in keywords if keyword not in present]

@@ -3303,6 +3303,12 @@ def keyword_evidence_fits_bullet(keyword: str, bullet: str) -> bool:
         return bool(re.search(r"\b(pre-?sales|demo|discovery|prospective|customer|client)\b", lowered))
     if normalized in {"agile", "agile delivery"}:
         return bool(re.search(r"\b(agile|backlog|sprint|product management|development team)\b", lowered))
+    if normalized == "implementation project":
+        return bool(re.search(r"\b(implementation|project|delivery|go-live|scope|milestone|workstream)\b", lowered))
+    if normalized == "global program":
+        return bool(re.search(r"\b(global|five-site|cross-site|program|workstream|site)\b", lowered))
+    if normalized == "ai pilot":
+        return bool(re.search(r"\b(ai|ai-assisted|sms|chatbot|pilot|workflow|manual|automation)\b", lowered))
     return True
 
 
@@ -3310,6 +3316,10 @@ def safe_keyword_bullet_candidate(candidate: str, keyword: str) -> str:
     if not candidate:
         return ""
     if has_same_stem_repetition(candidate):
+        return ""
+    if re.search(r"\bproject management implementation project\b", candidate, re.I):
+        return ""
+    if re.search(r"\bimplementation project project management\b", candidate, re.I):
         return ""
     if not keyword_evidence_fits_bullet(keyword, candidate):
         return ""
@@ -3331,6 +3341,12 @@ def natural_keyword_bullet_rewrite(
 
     text = bullet.rstrip(".")
     lowered = text.lower()
+    if normalized == "implementation project" and re.search(r"\bimplementation paths\b", lowered):
+        return safe_keyword_bullet_candidate(replace_first_ci(text, r"\bimplementation paths\b", "implementation project paths"), surface)
+    if normalized == "implementation project" and contains_search_term(text, "project management"):
+        return ""
+    if normalized == "ai pilot" and re.search(r"\bchatbot logic\b", lowered):
+        return safe_keyword_bullet_candidate(replace_first_ci(text, r"\bchatbot logic\b", "AI pilot chatbot logic"), surface)
     replacements: dict[str, tuple[str, ...]] = {
         "stakeholder management": ("stakeholder governance", "stakeholder alignment", "stakeholder enablement"),
         "requirements gathering": ("requirements definition", "requirements translation"),
@@ -3349,6 +3365,8 @@ def natural_keyword_bullet_rewrite(
         "business process": ("process redesign", "business processes", "processes"),
         "program management": ("program delivery", "project delivery"),
         "project management": ("project delivery", "program delivery"),
+        "implementation project": ("implementation workstreams", "implementation paths", "implementation", "project delivery"),
+        "global program": ("cross-site program", "concurrent program", "five-site", "global footprint"),
         "vendor management": ("vendor coordination", "vendor/cost/timeline", "vendor, cost, and timeline"),
         "vendor partner": ("vendor coordination",),
         "vendor coordination": ("vendor/cost/timeline", "vendor, cost, and timeline"),
@@ -3367,6 +3385,7 @@ def natural_keyword_bullet_rewrite(
         "reporting": ("dashboards", "Crystal Reports", "Power BI"),
         "kpi": ("dashboards", "Crystal Reports", "Power BI"),
         "agile delivery": ("Agile development", "Agile development team"),
+        "ai pilot": ("AI-assisted tools", "AI-assisted", "chatbot logic", "founding pilot"),
     }
     for candidate in replacements.get(normalized, ()):
         if contains_search_term(text, candidate):
@@ -3374,6 +3393,8 @@ def natural_keyword_bullet_rewrite(
             return safe_keyword_bullet_candidate(updated, surface)
 
     if normalized in {"program management", "project management"}:
+        if re.search(r"\bconcurrent program tracks\b", lowered):
+            return safe_keyword_bullet_candidate(replace_first_ci(text, r"\bconcurrent program tracks\b", f"concurrent {surface} tracks"), surface)
         if re.search(r"\brecommendations\b", lowered):
             return safe_keyword_bullet_candidate(replace_first_ci(text, r"\brecommendations\b", f"{surface} recommendations"), surface)
         if re.search(r"\bworkstreams?\b", lowered):
@@ -3382,6 +3403,31 @@ def natural_keyword_bullet_rewrite(
             return safe_keyword_bullet_candidate(replace_first_ci(text, r"\bdelivery plans\b", f"{surface} plans"), surface)
         if re.search(r"\bprojects\b", lowered):
             return safe_keyword_bullet_candidate(replace_first_ci(text, r"\bprojects\b", f"{surface} projects"), surface)
+    if normalized == "implementation project":
+        if re.search(r"\bimplementation paths\b", lowered):
+            return safe_keyword_bullet_candidate(replace_first_ci(text, r"\bimplementation paths\b", f"{surface} paths"), surface)
+        if re.search(r"\bimplementation workstreams?\b", lowered):
+            return safe_keyword_bullet_candidate(replace_first_ci(text, r"\bimplementation workstreams?\b", f"{surface} workstreams"), surface)
+        if normalized == "implementation project" and re.search(r"\bimplementation\b", lowered):
+            return safe_keyword_bullet_candidate(replace_first_ci(text, r"\bimplementation\b", surface), surface)
+
+    if normalized == "global program":
+        if re.search(r"\bfive-site\b", lowered):
+            return safe_keyword_bullet_candidate(replace_first_ci(text, r"\bfive-site\b", f"{surface} across a five-site"), surface)
+        if re.search(r"\bconcurrent program tracks\b", lowered):
+            return safe_keyword_bullet_candidate(replace_first_ci(text, r"\bconcurrent program tracks\b", f"{surface} tracks"), surface)
+        if re.search(r"\bcross-site training\b", lowered):
+            return safe_keyword_bullet_candidate(replace_first_ci(text, r"\bcross-site training\b", f"cross-site training across a {surface}"), surface)
+        if re.search(r"\bcross-site\b", lowered):
+            return safe_keyword_bullet_candidate(replace_first_ci(text, r"\bcross-site\b", f"{surface} cross-site"), surface)
+
+    if normalized == "ai pilot":
+        if re.search(r"\bfounding pilot team member\b", lowered):
+            return safe_keyword_bullet_candidate(replace_first_ci(text, r"\bfounding pilot team member\b", f"founding {surface} team member"), surface)
+        if re.search(r"\bchatbot logic\b", lowered):
+            return safe_keyword_bullet_candidate(replace_first_ci(text, r"\bchatbot logic\b", f"{surface} chatbot logic"), surface)
+        if re.search(r"\bAI-assisted tools\b", text):
+            return safe_keyword_bullet_candidate(replace_first_ci(text, r"\bAI-assisted tools\b", f"{surface} and AI-assisted tools"), surface)
 
     if normalized in {"end to end delivery", "end to end"}:
         if re.search(r"\benterprise technology projects end to end\b", lowered):
@@ -3496,6 +3542,15 @@ def natural_keyword_bullet_rewrite(
     return ""
 
 
+def strip_summary_emphasis_tail(text: str) -> str:
+    return re.sub(
+        r",?\s+with\s+(?:emphasis on\s+)?[^.]+?\s+emphasis$",
+        "",
+        text,
+        flags=re.I,
+    )
+
+
 def weave_keyword_into_summary_paragraph(document_xml: Path, keyword: str, job_description: str) -> bool:
     tree = ET.parse(document_xml)
     paragraphs = tree.getroot().findall(f".//{W}p")
@@ -3516,9 +3571,21 @@ def weave_keyword_into_summary_paragraph(document_xml: Path, keyword: str, job_d
         sentences = split_summary_sentences(text)
         if len(sentences) != 3:
             return False
-        first = sentences[0].rstrip(".")
+        first = strip_summary_emphasis_tail(sentences[0].rstrip("."))
         if len(first.split()) <= 28:
-            candidate_first = f"{first}, with {keyword} emphasis."
+            normalized = normalize_compare(keyword)
+            if normalized == "ai pilot" and re.search(r"\badopted process changes\b", first, re.I):
+                candidate_first = replace_first_ci(
+                    first,
+                    r"\badopted process changes\b",
+                    "adopted AI pilot workflow improvements",
+                )
+            elif normalized in {"saas", "software as a service"} and re.search(r"\bwith 10\+ years\b", first, re.I):
+                candidate_first = replace_first_ci(first, r"\bwith 10\+ years\b", "with enterprise SaaS experience and 10+ years")
+            else:
+                candidate_first = f"{first}, with {keyword} emphasis."
+            candidate_first = strip_summary_emphasis_tail(candidate_first)
+            candidate_first = candidate_first.rstrip(".") + "."
             candidate = " ".join([candidate_first, *sentences[1:]])
             if summary_weave_candidate_is_safe(candidate):
                 set_paragraph_text(paragraph, candidate)
@@ -3546,10 +3613,22 @@ def weave_keyword_into_summary_paragraphs(paragraphs: list[ET.Element], keyword:
         sentences = split_summary_sentences(text)
         if len(sentences) != 3:
             return False
-        first = sentences[0].rstrip(".")
+        first = strip_summary_emphasis_tail(sentences[0].rstrip("."))
         if len(first.split()) > 28:
             return False
-        candidate_first = f"{first}, with {keyword} emphasis."
+        normalized = normalize_compare(keyword)
+        if normalized == "ai pilot" and re.search(r"\badopted process changes\b", first, re.I):
+            candidate_first = replace_first_ci(
+                first,
+                r"\badopted process changes\b",
+                "adopted AI pilot workflow improvements",
+            )
+        elif normalized in {"saas", "software as a service"} and re.search(r"\bwith 10\+ years\b", first, re.I):
+            candidate_first = replace_first_ci(first, r"\bwith 10\+ years\b", "with enterprise SaaS experience and 10+ years")
+        else:
+            candidate_first = f"{first}, with {keyword} emphasis."
+        candidate_first = strip_summary_emphasis_tail(candidate_first)
+        candidate_first = candidate_first.rstrip(".") + "."
         candidate = " ".join([candidate_first, *sentences[1:]])
         if not summary_weave_candidate_is_safe(candidate):
             return False
@@ -3689,7 +3768,11 @@ def weave_supported_keywords_into_top_bullets(
     seen_skills: set[str] = set()
     candidate_keywords: list[str] = []
     seen_candidate_keywords: set[str] = set()
-    for keyword in (*high_value_audit_keywords(job_description), *evidence_supported_surfaces(job_description)):
+    for keyword in (
+        *priority_ledger_assertion_terms(job_description),
+        *high_value_audit_keywords(job_description),
+        *evidence_supported_surfaces(job_description),
+    ):
         normalized_keyword = normalize_compare(keyword)
         if not normalized_keyword or normalized_keyword in seen_candidate_keywords:
             continue
@@ -3698,10 +3781,11 @@ def weave_supported_keywords_into_top_bullets(
     for keyword in candidate_keywords:
         surface = jd_preferred_surface(keyword_surface_piece(keyword), job_description, source_resume_text)
         normalized = normalize_compare(surface)
+        if not normalized or is_bullet_placement_excluded(surface):
+            continue
         if (
-            not normalized
-            or is_bullet_placement_excluded(surface)
-            or classify_keyword_gap_support(surface, source_resume_text, profile) == "unsupported-do-not-insert"
+            classify_keyword_gap_support(surface, source_resume_text, profile) == "unsupported-do-not-insert"
+            and not evidence_anchor_for_term(surface)
         ):
             continue
         if not contains_search_term(current_text, surface) and normalized not in seen_skills:
@@ -3710,77 +3794,88 @@ def weave_supported_keywords_into_top_bullets(
         if (
             normalized in seen_missing
             or contains_search_term(top_text, surface)
-            or not keyword_requires_top_third_placement(surface, job_description)
+            or (
+                not keyword_requires_top_third_placement(surface, job_description)
+                and not evidence_anchor_for_term(surface)
+            )
         ):
             continue
-        if len(missing) < 6:
+        if len(missing) < 8:
             missing.append(surface)
             seen_missing.add(normalized)
-    missing.sort(key=lambda keyword: (0 if evidence_anchor_for_term(keyword) else 1, 0 if normalize_compare(keyword) == "automation" else 1))
-    if not missing:
-        return 0
-    tree = ET.parse(document_xml)
-    paragraphs = tree.getroot().findall(f".//{W}p")
-    normalized_titles = {normalize_compare(title) for title in AUDIT_TOP_ROLE_TITLES}
-    active = False
     changed = 0
-    top_bullet_paragraphs: list[ET.Element] = []
-    for paragraph in paragraphs:
-        text = re.sub(r"\s+", " ", paragraph_text(paragraph)).strip()
-        if not text:
-            continue
-        if text.startswith(AUDIT_TOP_ROLE_TITLES) or normalize_compare(normalize_title(text)) in normalized_titles:
-            active = True
-            continue
-        if active and is_role_heading(text):
-            active = False
-        if active and is_bullet(paragraph):
-            top_bullet_paragraphs.append(paragraph)
-            if len(top_bullet_paragraphs) >= 5:
-                break
-
-    for keyword in missing:
-        if changed >= max_bullets:
-            break
-        if contains_search_term(" ".join(paragraph_text(item) for item in top_bullet_paragraphs), keyword):
-            continue
-        if normalize_compare(keyword) == "automation" and weave_keyword_into_summary_paragraphs(paragraphs, keyword):
-            changed += 1
-            continue
-        best_matches: list[tuple[int, ET.Element, str]] = []
-        keyword_tokens = {
-            token
-            for token in normalize_compare(keyword).split()
-            if token not in {"and", "the", "with", "for"}
-        }
-        for paragraph in top_bullet_paragraphs:
+    missing.sort(key=lambda keyword: (0 if evidence_anchor_for_term(keyword) else 1, 0 if normalize_compare(keyword) == "automation" else 1))
+    if missing:
+        tree = ET.parse(document_xml)
+        paragraphs = tree.getroot().findall(f".//{W}p")
+        normalized_titles = {normalize_compare(title) for title in AUDIT_TOP_ROLE_TITLES}
+        active = False
+        top_bullet_paragraphs: list[ET.Element] = []
+        all_bullet_paragraphs: list[ET.Element] = []
+        for paragraph in paragraphs:
             text = re.sub(r"\s+", " ", paragraph_text(paragraph)).strip()
-            if contains_search_term(text, keyword):
+            if not text:
                 continue
-            normalized_text = normalize_compare(text)
-            overlap = sum(1 for token in keyword_tokens if token in normalized_text)
-            score = overlap
-            if normalize_compare(keyword) == "automation" and re.search(r"\b(?:ai|sms|manual|workflow|reporting|automated)\b", text, re.I):
-                score += 4
-            if normalize_compare(keyword) in {"program management", "project management"} and re.search(r"\b(?:workstreams?|milestones?|projects?|recommendations|delivery)\b", text, re.I):
-                score += 4
-            if normalize_compare(keyword) == "process improvement" and re.search(r"\b(?:workflow|process|reporting|improvement)\b", text, re.I):
-                score += 4
-            if evidence_anchor_for_term(keyword) and keyword_evidence_fits_bullet(keyword, text):
-                score += 3
-            best_matches.append((score, paragraph, text))
-        for _score, paragraph, text in sorted(best_matches, key=lambda item: item[0], reverse=True):
-            updated = natural_keyword_bullet_rewrite(text, keyword, job_description, source_resume_text)
-            if not updated or updated == text or not contains_search_term(updated, keyword):
+            if is_bullet(paragraph):
+                all_bullet_paragraphs.append(paragraph)
+            if text.startswith(AUDIT_TOP_ROLE_TITLES) or normalize_compare(normalize_title(text)) in normalized_titles:
+                active = True
                 continue
-            set_paragraph_text(paragraph, updated)
-            changed += 1
-            break
-        else:
-            if weave_keyword_into_summary_paragraphs(paragraphs, keyword):
+            if active and is_role_heading(text):
+                active = False
+            if active and is_bullet(paragraph):
+                top_bullet_paragraphs.append(paragraph)
+                if len(top_bullet_paragraphs) >= 5:
+                    break
+
+        for keyword in missing:
+            if changed >= max_bullets:
+                break
+            if contains_search_term(" ".join(paragraph_text(item) for item in top_bullet_paragraphs), keyword):
+                continue
+            if normalize_compare(keyword) == "automation" and weave_keyword_into_summary_paragraphs(paragraphs, keyword):
                 changed += 1
-    if changed:
-        tree.write(document_xml, encoding="utf-8", xml_declaration=True)
+                continue
+            best_matches: list[tuple[int, ET.Element, str]] = []
+            keyword_tokens = {
+                token
+                for token in normalize_compare(keyword).split()
+                if token not in {"and", "the", "with", "for"}
+            }
+            candidate_paragraphs = list(top_bullet_paragraphs)
+            if evidence_anchor_for_term(keyword):
+                top_ids = {id(paragraph) for paragraph in candidate_paragraphs}
+                candidate_paragraphs.extend(
+                    paragraph for paragraph in all_bullet_paragraphs if id(paragraph) not in top_ids
+                )
+            for paragraph in candidate_paragraphs:
+                text = re.sub(r"\s+", " ", paragraph_text(paragraph)).strip()
+                if contains_search_term(text, keyword):
+                    continue
+                normalized_text = normalize_compare(text)
+                overlap = sum(1 for token in keyword_tokens if token in normalized_text)
+                score = overlap
+                if normalize_compare(keyword) == "automation" and re.search(r"\b(?:ai|sms|manual|workflow|reporting|automated)\b", text, re.I):
+                    score += 4
+                if normalize_compare(keyword) in {"program management", "project management", "implementation project"} and re.search(r"\b(?:workstreams?|milestones?|projects?|delivery|implementation)\b", text, re.I):
+                    score += 4
+                if normalize_compare(keyword) == "process improvement" and re.search(r"\b(?:workflow|process|reporting|improvement)\b", text, re.I):
+                    score += 4
+                if evidence_anchor_for_term(keyword) and keyword_evidence_fits_bullet(keyword, text):
+                    score += 3
+                best_matches.append((score, paragraph, text))
+            for _score, paragraph, text in sorted(best_matches, key=lambda item: item[0], reverse=True):
+                updated = natural_keyword_bullet_rewrite(text, keyword, job_description, source_resume_text)
+                if not updated or updated == text or not contains_search_term(updated, keyword):
+                    continue
+                set_paragraph_text(paragraph, updated)
+                changed += 1
+                break
+            else:
+                if weave_keyword_into_summary_paragraphs(paragraphs, keyword):
+                    changed += 1
+        if changed:
+            tree.write(document_xml, encoding="utf-8", xml_declaration=True)
     current_after_weave = visible_text(document_xml)
     skill_terms = []
     seen_skill_terms: set[str] = set()
@@ -3790,8 +3885,14 @@ def weave_supported_keywords_into_top_bullets(
             continue
         skill_terms.append(keyword)
         seen_skill_terms.add(normalized)
-    skills_added = add_targeted_core_competencies(document_xml, skill_terms, job_description, limit=5)
+    skills_added = add_targeted_core_competencies(document_xml, skill_terms, job_description, limit=8, allow_over_target=True)
     changed += len(skills_added)
+    for keyword in priority_ledger_assertion_terms(job_description):
+        location, _landing = landing_text_for_term(keyword, visible_text(document_xml))
+        if location in {"summary", "bullet"}:
+            continue
+        if weave_keyword_into_summary_paragraph(document_xml, keyword, job_description):
+            changed += 1
     return changed
 
 
@@ -3819,6 +3920,131 @@ def aggressively_close_supported_keyword_gaps(
     if not candidates:
         return []
     return add_targeted_core_competencies(document_xml, candidates, job_description, limit=limit)
+
+
+def ledger_terms_for_placement(job_description: str) -> list[str]:
+    ordered: list[str] = []
+    seen: set[str] = set()
+    for term in (*evidence_supported_surfaces(job_description), *ats_scan_terms(job_description)):
+        if not evidence_anchor_for_term(term):
+            continue
+        normalized = normalize_compare(term)
+        if not normalized or normalized in seen:
+            continue
+        ordered.append(term)
+        seen.add(normalized)
+    return ordered
+
+
+def landing_text_for_term(term: str, resume_text: str) -> tuple[str, str]:
+    summary = professional_summary_text_from_text(resume_text)
+    for sentence in split_summary_sentences(summary):
+        if contains_search_term(sentence, term):
+            return "summary", sentence
+    for bullet in experience_bullet_texts_from_text(resume_text):
+        if contains_search_term(bullet, term):
+            return "bullet", bullet
+    skills_text = core_competencies_text_from_text(resume_text)
+    for line in skills_text.splitlines():
+        if contains_search_term(line, term):
+            return "skills", line
+    if contains_search_term(skills_text, term):
+        return "skills", skills_text
+    for line in resume_text.splitlines():
+        if contains_search_term(line, term):
+            return "other", line
+    return "missing", ""
+
+
+def ledger_placement_diagnostics(job_description: str, resume_text: str) -> list[dict[str, str]]:
+    diagnostics: list[dict[str, str]] = []
+    for term in ledger_terms_for_placement(job_description):
+        location, landing = landing_text_for_term(term, resume_text)
+        diagnostics.append(
+            {
+                "term": term,
+                "location": location,
+                "landing": landing,
+                "anchor": evidence_anchor_for_term(term),
+            }
+        )
+    return diagnostics
+
+
+def ledger_landing_issues(diagnostics: list[dict[str, str]]) -> list[str]:
+    issues: list[str] = []
+    bad_patterns = (
+        "Delivered technical delivery",
+        "automation-focused",
+        "strengthening",
+        "strengthened",
+        "teams delivery plans",
+        "customer-facing system setup",
+        "with AI pilot emphasis",
+        "with SaaS emphasis",
+        "project management implementation project",
+        "implementation project project management",
+    )
+    for item in diagnostics:
+        term = item.get("term", "")
+        location = item.get("location", "")
+        landing = item.get("landing", "")
+        if location == "missing":
+            issues.append(f"{term}: missing after ledger placement")
+            continue
+        if location in {"summary", "bullet"}:
+            if any(pattern.lower() in landing.lower() for pattern in bad_patterns):
+                issues.append(f"{term}: known-bad landing phrase -> {landing}")
+            if re.search(r"\bwith\s+(?:emphasis on\s+)?[A-Za-z0-9 /&+-]+ emphasis\b", landing, re.I):
+                issues.append(f"{term}: emphasis-tail landing phrase -> {landing}")
+            if has_same_stem_repetition(landing):
+                issues.append(f"{term}: repeated word stem in landing -> {landing}")
+    return issues
+
+
+def priority_ledger_assertion_terms(job_description: str) -> tuple[str, ...]:
+    target = normalize_compare(extract_output_target_name(job_description))
+    if target == "blue yonder program manager":
+        return ("project management", "implementation project", "SaaS")
+    if target == "adobe senior program manager gso":
+        return ("global program", "vendor partner", "ai pilot")
+    return ()
+
+
+def assert_ledger_terms_present(
+    job_description: str,
+    resume_text: str,
+    *,
+    required_terms: tuple[str, ...] | None = None,
+) -> None:
+    terms = required_terms if required_terms is not None else tuple(ledger_terms_for_placement(job_description))
+    if not terms:
+        return
+    diagnostics = [
+        item
+        for item in ledger_placement_diagnostics(job_description, resume_text)
+        if normalize_compare(item.get("term", "")) in {normalize_compare(term) for term in terms}
+    ]
+    found = {normalize_compare(item.get("term", "")) for item in diagnostics}
+    for term in terms:
+        if normalize_compare(term) not in found:
+            diagnostics.append(
+                {
+                    "term": term,
+                    "location": "missing",
+                    "landing": "",
+                    "anchor": evidence_anchor_for_term(term),
+                }
+            )
+    issues = ledger_landing_issues(diagnostics)
+    required_normalized = {normalize_compare(term) for term in terms}
+    for item in diagnostics:
+        if normalize_compare(item.get("term", "")) in required_normalized and item.get("location") not in {"summary", "bullet"}:
+            issues.append(
+                f"{item.get('term', '')}: priority term landed in {item.get('location', 'missing')} instead of summary/bullet -> {item.get('landing', '')}"
+            )
+    if issues:
+        fail("ledger placement assertion failed: " + "; ".join(issues))
 
 
 def resume_readiness_report(
@@ -4480,6 +4706,8 @@ def write_resume_audit_notes(
         "FAIL": "FAIL means the resume needs human review before submission because targeting, evidence, or quality checks found fixable issues.",
         "POOR": "POOR means the role appears to be a weak strategic fit or includes important requirements the resume cannot honestly support.",
     }.get(status, f"{status} means the build needs human review.")
+    ledger_diagnostics = ledger_placement_diagnostics(job_description, document_text)
+    ledger_issues = ledger_landing_issues(ledger_diagnostics)
     status_suffix = "" if status == "PASS" else f" {status}"
     output_path = OUTPUT_DIR / f"Christian Estrada - {output_target_name}{status_suffix} Resume Notes.txt"
     lines = [
@@ -4503,6 +4731,8 @@ def write_resume_audit_notes(
             *notes,
             "ATS breadth set unexpectedly small; coverage may be understated.",
         ]
+    if ledger_issues:
+        notes = [*notes, *[f"Ledger placement issue: {issue}" for issue in ledger_issues]]
     lines.extend(f"- {note}" for note in (notes or ["No detailed audit notes were returned."]))
     lines.extend(
         [
@@ -4516,6 +4746,14 @@ def write_resume_audit_notes(
             f"- Unsupported requirements: {', '.join(profile.unsupported_requirements) if profile.unsupported_requirements else 'No unsupported requirements detected'}",
         ]
     )
+    if ledger_diagnostics:
+        lines.extend(["", "Ledger Placement Diagnostics:"])
+        for item in ledger_diagnostics[:12]:
+            landing = item.get("landing", "") or "missing"
+            lines.append(
+                f"- {item.get('term', '')}: {item.get('location', '')}; "
+                f"anchor: {item.get('anchor', '')}; landing: {landing}"
+            )
     requirement_coverage = requirement_engine.commercial_requirement_coverage(job_description, document_text)
     if requirement_coverage:
         lines.extend(["", "Requirement Coverage:"])
@@ -5255,11 +5493,6 @@ def build_resume() -> BuildResult:
             paragraphs_rewritten += limit_cutover_mentions(document_xml)
             paragraphs_rewritten += scrub_non_erp_resume_language(document_xml, job_description)
             paragraphs_rewritten += normalize_role_bullet_endings(document_xml)
-            paragraphs_rewritten += weave_supported_keywords_into_top_bullets(
-                document_xml,
-                job_description,
-                selected_resume_text,
-            )
 
             # Phase 6 content boundary: candidate mutations stop here. Summary,
             # role-summary, and bullet content becomes a provenance-bearing
@@ -5325,9 +5558,28 @@ def build_resume() -> BuildResult:
             )
             paragraphs_rewritten += 1 + len(role_summary_map)
             commercial_resume_model.render_content_model(document_xml, content_model)
+            ledger_visible_before = visible_text(document_xml)
+            paragraphs_rewritten += weave_supported_keywords_into_top_bullets(
+                document_xml,
+                job_description,
+                selected_resume_text,
+            )
+            ledger_visible_after = visible_text(document_xml)
+            ledger_terms_placed = tuple(
+                term
+                for term in ledger_terms_for_placement(job_description)
+                if not contains_search_term(ledger_visible_before, term)
+                and contains_search_term(ledger_visible_after, term)
+            )
+            auto_closed_keywords = tuple(dict.fromkeys((*auto_closed_keywords, *ledger_terms_placed)))
             manifest_name = re.sub(r"[^A-Za-z0-9._-]+", "_", output_target_name).strip("_")
+            final_content_model = commercial_resume_model.build_content_model(
+                selected_resume,
+                provenance_source_xml,
+                document_xml,
+            )
             commercial_resume_model.write_manifest(
-                content_model,
+                final_content_model,
                 SCRATCH_DIR / "provenance_models" / f"{manifest_name}_variant_{variant_index}.json",
             )
 
@@ -5340,6 +5592,11 @@ def build_resume() -> BuildResult:
             ensure_header_gap_after_contact(document_xml)
             apply_spacing_and_layout_pass(document_xml)
             remove_linkedin_hyperlinks(work_dir)
+            assert_ledger_terms_present(
+                job_description,
+                visible_text(document_xml),
+                required_terms=priority_ledger_assertion_terms(job_description),
+            )
 
             final_snapshot = resume_snapshot(document_xml)
             validate_resume_integrity(source_snapshot, final_snapshot, job_description, emphasis)
@@ -5373,6 +5630,10 @@ def build_resume() -> BuildResult:
                 *bullet_prose_audit_notes(document_xml),
             ]
             audit_document_text = visible_text(document_xml)
+            audit_notes.extend(
+                f"Ledger placement issue: {issue}"
+                for issue in ledger_landing_issues(ledger_placement_diagnostics(job_description, audit_document_text))
+            )
             readiness = resume_readiness_report(
                 job_description,
                 audit_document_text,

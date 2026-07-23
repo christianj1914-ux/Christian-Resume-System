@@ -3785,6 +3785,7 @@ def add_targeted_core_competencies(
     job_description: str,
     *,
     limit: int = 3,
+    allow_over_target: bool = False,
 ) -> list[str]:
     normalized_targets = [
         title_case_skill_phrase(keyword)
@@ -3877,6 +3878,25 @@ def add_targeted_core_competencies(
             inserted.append(skill)
             existing_normalized.discard(normalize_compare(old_item))
             existing_normalized.add(normalized_skill)
+        if allow_over_target and len(inserted) < limit:
+            for skill in candidates:
+                normalized_skill = normalize_compare(skill)
+                if normalized_skill in existing_normalized or skill in inserted:
+                    continue
+                previous_items = list(items)
+                items.append(skill)
+                set_paragraph_text(target, f"{label}:  " + "  |  ".join(items))
+                tree.write(document_xml, encoding="utf-8", xml_declaration=True)
+                page_count = estimate_page_count_from_xml(document_xml)
+                if page_count and baseline_page_count and page_count > baseline_page_count:
+                    items = previous_items
+                    set_paragraph_text(target, f"{label}:  " + "  |  ".join(items))
+                    tree.write(document_xml, encoding="utf-8", xml_declaration=True)
+                    break
+                inserted.append(skill)
+                existing_normalized.add(normalized_skill)
+                if len(inserted) >= limit:
+                    break
         return inserted
 
     for skill in candidates[: min(limit, available_slots)]:

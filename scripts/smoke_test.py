@@ -4147,6 +4147,133 @@ def test_targeted_competencies_replace_weak_item_when_capped(build_resume: objec
     )
 
 
+def test_targeted_competencies_can_grow_for_ledger_fallback(build_resume: object) -> None:
+    items = [
+        "Structured Discovery",
+        "Requirements Definition",
+        "Solution Design",
+        "SOW and FRD Development",
+        "Go-Live Readiness",
+        "Multi-Workstream Coordination",
+        "Process Management",
+        "Renewal Risk Management",
+        "Executive Business Reviews and QBRs",
+        "Success Planning",
+        "SQL",
+        "ETL and Data Validation",
+        "KPI Dashboards",
+        "Power BI",
+        "Excel Power Query",
+        "Epicor Kinetic",
+        "Microsoft Dynamics 365",
+        "Salesforce",
+        "LivePerson LiveEngage",
+        "ServiceNow",
+        "Jira",
+        "LLM-based Data Cleaning",
+        "Workflow Automation",
+    ]
+    job_description = "This role requires SaaS and project management."
+    with TemporaryDirectory(prefix="resume_smoke_") as temp_name:
+        document_xml = Path(temp_name) / "document.xml"
+        document_xml.write_text(resume_with_competencies_xml("Summary", items), encoding="utf-8")
+        before_items = build_resume.extract_competency_items(build_resume.paragraph_infos(document_xml))
+        added = build_resume.add_targeted_core_competencies(
+            document_xml,
+            ["SaaS"],
+            job_description,
+            limit=1,
+            allow_over_target=True,
+        )
+        after_items = build_resume.extract_competency_items(build_resume.paragraph_infos(document_xml))
+    assert_true(added == ["SaaS"], f"Ledger Skills fallback should allow page-safe append; got {added}")
+    assert_true(
+        len(after_items) == len(before_items) + 1 and "saas" in after_items,
+        f"Ledger Skills fallback should grow only by the supported term; before={len(before_items)} after={len(after_items)}",
+    )
+
+
+def test_ledger_core_promotion_requires_placement(build_resume: object) -> None:
+    job_description = "Job Title: Program Manager\nThis role mentions project management and professional services once."
+    missing_resume = "Professional Summary\nProgram leader with implementation delivery experience."
+    missing_coverage = build_resume.ats_coverage(job_description, missing_resume)
+    missing_core = set(missing_coverage["core"]["missing"])
+    assert_true(
+        not {"project management", "professional services"} & missing_core,
+        f"Promoted core terms should not count as missing until placed; got {missing_coverage}",
+    )
+    placed_resume = "Professional Summary\nProgram leader with project management and professional services experience."
+    placed_coverage = build_resume.ats_coverage(job_description, placed_resume)
+    assert_true(
+        placed_coverage["core"]["present"] >= missing_coverage["core"]["present"] + 2,
+        f"Placed promoted terms should count positively in core coverage; got {placed_coverage}",
+    )
+
+
+def test_ledger_placement_survives_render_boundary_surface(build_resume: object) -> None:
+    job_description = (
+        "Company: Blue Yonder\nRole: Program Manager\n"
+        "This role requires project management, implementation project leadership, SaaS, "
+        "global program coordination, vendor partner alignment, and AI pilot delivery."
+    )
+    source_text = (
+        "PMP in progress; five-site global program work; vendor coordination; "
+        "AI-assisted tools and chatbot logic pilot; enterprise SaaS platforms."
+    )
+    bullets = [
+        "Improved VP and director decisions by turning ambiguous needs into scoped recommendations before build work began.",
+        "Turned discovery findings and delivery risk into clearer implementation paths and executive-ready tradeoffs.",
+        "Coordinated vendor coordination, cost, and timeline tradeoffs across internal IT and finance.",
+        "Protected migration stability across concurrent program tracks and five-site readiness.",
+        "Helped launch a zero-to-one internal SMS support channel as a founding pilot team member, configuring chatbot logic.",
+    ]
+    bullet_xml = "".join(
+        "<w:p><w:pPr><w:numPr><w:ilvl w:val=\"0\"/><w:numId w:val=\"1\"/></w:numPr></w:pPr>"
+        f"<w:r><w:t>{escape(bullet)}</w:t></w:r></w:p>"
+        for bullet in bullets
+    )
+    document_xml_text = f'''<?xml version="1.0" encoding="UTF-8"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>
+<w:p><w:r><w:t>Professional Summary</w:t></w:r></w:p>
+<w:p><w:r><w:t>Program delivery leader with manufacturing systems experience.</w:t></w:r></w:p>
+<w:p><w:r><w:t>Professional Experience</w:t></w:r></w:p>
+<w:p><w:r><w:t>Enterprise Systems Manager    March 2023 - Present</w:t></w:r></w:p>
+<w:p><w:r><w:t>East West Manufacturing | Atlanta, GA</w:t></w:r></w:p>
+{bullet_xml}
+<w:p><w:r><w:t>Skills</w:t></w:r></w:p>
+<w:p><w:r><w:t>Implementation and Delivery:  SQL  |  Reporting</w:t></w:r></w:p>
+<w:p><w:r><w:t>Professional Development</w:t></w:r></w:p>
+<w:p><w:r><w:t>PMP (in progress)</w:t></w:r></w:p>
+</w:body></w:document>'''
+    with TemporaryDirectory(prefix="resume_smoke_") as temp_name:
+        document_xml = Path(temp_name) / "document.xml"
+        document_xml.write_text(document_xml_text, encoding="utf-8")
+        changed = build_resume.weave_supported_keywords_into_top_bullets(document_xml, job_description, source_text, max_bullets=5)
+        final_text = build_resume.visible_text(document_xml)
+    for term in ("project management", "implementation project", "SaaS", "global program", "vendor partner", "ai pilot"):
+        assert_true(build_resume.contains_search_term(final_text, term), f"{term!r} should survive final placement; got {final_text}")
+    diagnostics = build_resume.ledger_placement_diagnostics(job_description, final_text)
+    assert_true(changed >= 6, f"Ledger placement should report bullet and Skills changes; got changed={changed}")
+    assert_true(
+        not build_resume.ledger_landing_issues(diagnostics),
+        f"Ledger landing diagnostics should be natural; got {diagnostics}",
+    )
+
+
+def test_priority_ledger_assertion_reports_missing_terms(build_resume: object) -> None:
+    job_description = "Company: Blue Yonder\nRole: Program Manager\nThis role requires project management, implementation project, and SaaS."
+    resume_text = "Professional Summary\nProgram delivery leader."
+    try:
+        build_resume.assert_ledger_terms_present(
+            job_description,
+            resume_text,
+            required_terms=("project management", "implementation project", "SaaS"),
+        )
+    except SystemExit:
+        return
+    raise AssertionError("Priority ledger assertion should fail when demanded terms are missing.")
+
+
 def test_keyword_placement_demotes_filler_and_boosts_phrases(build_resume: object) -> None:
     resume_text = "\n".join(
         [
@@ -14067,6 +14194,10 @@ def main() -> None:
             ("supported evidence ledger terms and context", lambda: test_supported_evidence_ledger_terms_and_context(build_resume)),
             ("supported evidence ledger natural rewrites", lambda: test_supported_evidence_ledger_natural_rewrites(build_resume)),
             ("targeted competencies replace weak item when capped", lambda: test_targeted_competencies_replace_weak_item_when_capped(build_resume)),
+            ("targeted competencies can grow for ledger fallback", lambda: test_targeted_competencies_can_grow_for_ledger_fallback(build_resume)),
+            ("ledger core promotion requires placement", lambda: test_ledger_core_promotion_requires_placement(build_resume)),
+            ("ledger placement survives render boundary surface", lambda: test_ledger_placement_survives_render_boundary_surface(build_resume)),
+            ("priority ledger assertion reports missing terms", lambda: test_priority_ledger_assertion_reports_missing_terms(build_resume)),
             ("keyword placement demotes filler and boosts phrases", lambda: test_keyword_placement_demotes_filler_and_boosts_phrases(build_resume)),
             ("supported keyword weave removes stapled tails", lambda: test_supported_keyword_weave_removes_stapled_tails(build_resume)),
             ("resume notes print core and breadth coverage", lambda: test_resume_notes_print_core_and_breadth_coverage(build_resume)),
