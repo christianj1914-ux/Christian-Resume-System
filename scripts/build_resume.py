@@ -3586,6 +3586,12 @@ def weave_keyword_into_summary_paragraph(document_xml: Path, keyword: str, job_d
                 candidate_first = replace_first_ci(first, r"\bwith 10\+ years\b", "with enterprise SaaS experience and 10+ years")
             elif normalized == "document" and re.search(r"\bsolution design\b", first, re.I):
                 candidate_first = replace_first_ci(first, r"\bsolution design\b", "document workflow analysis, solution design")
+            elif normalized == "document" and re.search(r"\benterprise software decisions\b", first, re.I):
+                candidate_first = replace_first_ci(
+                    first,
+                    r"\benterprise software decisions\b",
+                    "enterprise document workflow and software decisions",
+                )
             else:
                 candidate_first = f"{first}, with {keyword} emphasis."
             candidate_first = strip_summary_emphasis_tail(candidate_first)
@@ -3631,6 +3637,12 @@ def weave_keyword_into_summary_paragraphs(paragraphs: list[ET.Element], keyword:
             candidate_first = replace_first_ci(first, r"\bwith 10\+ years\b", "with enterprise SaaS experience and 10+ years")
         elif normalized == "document" and re.search(r"\bsolution design\b", first, re.I):
             candidate_first = replace_first_ci(first, r"\bsolution design\b", "document workflow analysis, solution design")
+        elif normalized == "document" and re.search(r"\benterprise software decisions\b", first, re.I):
+            candidate_first = replace_first_ci(
+                first,
+                r"\benterprise software decisions\b",
+                "enterprise document workflow and software decisions",
+            )
         else:
             candidate_first = f"{first}, with {keyword} emphasis."
         candidate_first = strip_summary_emphasis_tail(candidate_first)

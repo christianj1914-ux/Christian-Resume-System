@@ -4379,8 +4379,8 @@ def test_ledger_skill_display_labels_preserve_exact_terms(build_resume: object) 
 
 def test_document_keyword_summary_weave_uses_natural_phrase(build_resume: object) -> None:
     summary = (
-        "Pre-sales solutions consultant with 10+ years leading strategic discovery, solution design, "
-        "and product demonstrations for enterprise software evaluations. "
+        "Pre-sales solutions consultant with 10+ years leading strategic discovery, customer-value positioning, "
+        "and product demonstrations for enterprise software decisions. "
         "Built dashboards and executive workshops that turned ambiguous needs into scoped recommendations, "
         "implementation plans, and adoption follow-through. "
         "Best used where discovery, business value, and implementation realism need to connect cleanly."
@@ -4396,7 +4396,7 @@ def test_document_keyword_summary_weave_uses_natural_phrase(build_resume: object
         final_text = build_resume.visible_text(document_xml)
     assert_true(changed, f"Document keyword should weave into the summary; got {final_text}")
     assert_true(
-        "document workflow analysis, solution design" in final_text
+        "enterprise document workflow and software decisions" in final_text
         and "document emphasis" not in final_text,
         f"Document keyword should use natural summary phrasing; got {final_text}",
     )
