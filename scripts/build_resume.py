@@ -3889,7 +3889,7 @@ def weave_supported_keywords_into_top_bullets(
             continue
         skill_terms.append(keyword)
         seen_skill_terms.add(normalized)
-    skills_added = add_targeted_core_competencies(document_xml, skill_terms, job_description, limit=8)
+    skills_added = add_targeted_core_competencies(document_xml, skill_terms, job_description, limit=len(skill_terms))
     changed += len(skills_added)
     return changed
 
