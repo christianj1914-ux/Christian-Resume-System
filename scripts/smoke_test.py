@@ -4349,12 +4349,14 @@ def test_ledger_skill_display_labels_preserve_exact_terms(build_resume: object) 
         "Solution Design",
         "SOW and FRD Development",
     ]
-    terms = ["implementation project", "global program", "vendor partner", "AI pilot"]
+    terms = ["implementation project", "global program", "vendor partner", "AI pilot", "document", "advisory"]
     expected_labels = {
         "Implementation Project Delivery",
         "Global Program Management",
         "Vendor Partner Management",
         "AI Pilot Programs",
+        "Document Workflow Analysis",
+        "Advisory Discovery",
     }
     with TemporaryDirectory(prefix="resume_smoke_") as temp_name:
         document_xml = Path(temp_name) / "document.xml"
@@ -4362,8 +4364,8 @@ def test_ledger_skill_display_labels_preserve_exact_terms(build_resume: object) 
         added = build_resume.add_targeted_core_competencies(
             document_xml,
             terms,
-            "This role requires implementation project, global program, vendor partner, and AI pilot work.",
-            limit=4,
+            "This role requires implementation project, global program, vendor partner, AI pilot, document, and advisory work.",
+            limit=6,
             allow_over_target=True,
         )
         final_text = build_resume.visible_text(document_xml)

@@ -469,6 +469,8 @@ SKILL_DISPLAY_LABEL_OVERRIDES = {
     "vendor partner": "Vendor Partner Management",
     "ai pilot": "AI Pilot Programs",
     "professional service": "Professional Services",
+    "document": "Document Workflow Analysis",
+    "advisory": "Advisory Discovery",
 }
 
 
