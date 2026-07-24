@@ -3546,7 +3546,7 @@ def natural_keyword_bullet_rewrite(
 
 def strip_summary_emphasis_tail(text: str) -> str:
     return re.sub(
-        r",?\s+with\s+(?:emphasis on\s+)?[^.]+?\s+emphasis$",
+        r",\s+with\s+(?:emphasis on\s+)?[^.]+?\s+emphasis$",
         "",
         text,
         flags=re.I,
