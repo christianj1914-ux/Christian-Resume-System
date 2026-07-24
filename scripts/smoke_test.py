@@ -4093,7 +4093,7 @@ def test_supported_evidence_ledger_natural_rewrites(build_resume: object) -> Non
     )
 
 
-def test_targeted_competencies_replace_weak_item_when_capped(build_resume: object) -> None:
+def test_targeted_competencies_preserve_supported_soft_cap_overage(build_resume: object) -> None:
     items = [
         "Structured Discovery",
         "Requirements Definition",
@@ -4135,11 +4135,11 @@ def test_targeted_competencies_replace_weak_item_when_capped(build_resume: objec
         after_items = build_resume.extract_competency_items(build_resume.paragraph_infos(document_xml))
     assert_true(
         {"Project Management", "Professional Services"} <= set(added),
-        f"add_targeted_core_competencies() should replace weak capped items with supported JD terms; got {added}",
+        f"add_targeted_core_competencies() should add supported JD terms; got {added}",
     )
     assert_true(
-        len(after_items) == len(before_items),
-        f"Skills fallback should not bloat the capped Skills section; before={len(before_items)} after={len(after_items)}",
+        len(after_items) >= len(before_items),
+        f"Soft Skills cap should not drop existing source-like Skills just for count; before={len(before_items)} after={len(after_items)}",
     )
     assert_true(
         {"project management", "professional services"} <= after_items,
@@ -4178,8 +4178,8 @@ def test_targeted_competencies_can_grow_for_ledger_fallback(build_resume: object
     )
     target_line = next(line for line in final_text.splitlines() if "Implementation and Delivery:" in line)
     assert_true(
-        len([item for item in re.split(r"\s+\|\s+", target_line.split(":", 1)[1].strip()) if item]) <= 8,
-        f"Ledger Skills fallback should keep the target group capped at 8 items; got {target_line!r}",
+        len([item for item in re.split(r"\s+\|\s+", target_line.split(":", 1)[1].strip()) if item]) <= 11,
+        f"Ledger Skills fallback should keep normal target groups at or under the soft threshold; got {target_line!r}",
     )
 
 
@@ -4194,13 +4194,14 @@ def test_targeted_competency_guardrail_rejects_titles_and_bare_nouns(build_resum
         "Senior Delivery Manager",
         "Quality",
         "Accounting",
+        "Business",
         "Business Process",
         "Business Process Improvement",
         "Service Delivery",
     ]
     job_description = (
         "Job Title: Senior Delivery Manager, Financial Systems\n"
-        "This role requires business process improvement, service delivery, quality, accounting, "
+        "This role requires business process, business process improvement, service delivery, quality, accounting, "
         "and senior delivery manager experience."
     )
     with TemporaryDirectory(prefix="resume_smoke_") as temp_name:
@@ -4209,7 +4210,7 @@ def test_targeted_competency_guardrail_rejects_titles_and_bare_nouns(build_resum
         added = build_resume.add_targeted_core_competencies(document_xml, targets, job_description, limit=5)
         final_text = build_resume.visible_text(document_xml)
     assert_true(
-        "Business Process Improvement" in added and "Service Delivery" in added,
+        {"Business Process", "Business Process Improvement", "Service Delivery"} <= set(added),
         f"Guardrail should allow skill-shaped multi-word phrases even when they start with denied bare nouns; got {added}",
     )
     final_skill_items = build_resume.extract_competency_items(
@@ -4225,15 +4226,15 @@ def test_targeted_competency_guardrail_rejects_titles_and_bare_nouns(build_resum
             for item in re.split(r"\s+\|\s+", line.split(":", 1)[1].strip())
             if item.strip()
         }
-    for blocked in ("Senior Delivery Manager", "Quality", "Accounting", "Business Process"):
+    for blocked in ("Senior Delivery Manager", "Quality", "Accounting", "Business"):
         assert_true(
             build_resume.normalize_compare(blocked) not in final_skill_items,
             f"Guardrail should reject title/vague noun Skills candidates such as {blocked!r}; got {final_text}",
         )
     target_line = next(line for line in final_text.splitlines() if line.startswith("Implementation and Delivery:"))
     assert_true(
-        len([item for item in re.split(r"\s+\|\s+", target_line.split(":", 1)[1].strip()) if item]) <= 8,
-        f"Target Skills group should stay capped at 8 items; got {target_line!r}",
+        len([item for item in re.split(r"\s+\|\s+", target_line.split(":", 1)[1].strip()) if item]) <= 11,
+        f"Target Skills group should stay within the normal soft threshold; got {target_line!r}",
     )
 
 
@@ -14419,7 +14420,7 @@ def main() -> None:
             ("ATS scan terms denominator hygiene", lambda: test_ats_scan_terms_denominator_hygiene(build_resume)),
             ("supported evidence ledger terms and context", lambda: test_supported_evidence_ledger_terms_and_context(build_resume)),
             ("supported evidence ledger natural rewrites", lambda: test_supported_evidence_ledger_natural_rewrites(build_resume)),
-            ("targeted competencies replace weak item when capped", lambda: test_targeted_competencies_replace_weak_item_when_capped(build_resume)),
+            ("targeted competencies preserve supported soft cap overage", lambda: test_targeted_competencies_preserve_supported_soft_cap_overage(build_resume)),
             ("targeted competencies can grow for ledger fallback", lambda: test_targeted_competencies_can_grow_for_ledger_fallback(build_resume)),
             ("ledger skill display labels preserve exact terms", lambda: test_ledger_skill_display_labels_preserve_exact_terms(build_resume)),
             ("ledger core promotion requires placement", lambda: test_ledger_core_promotion_requires_placement(build_resume)),
