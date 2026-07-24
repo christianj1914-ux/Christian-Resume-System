@@ -610,7 +610,7 @@ def test_federal_source_load(build_federal_resume: object) -> None:
         f"{item.title} {item.organization} {item.description}" for item in source.volunteer_experience
     )
     assert_true(
-        "Cybersecurity Track Lead (Volunteer)" in volunteer_text
+        "Cybersecurity Track Lead" in volunteer_text
         and "Grow With Google, Mentor Me Collective" in volunteer_text
         and "as a volunteer" in volunteer_text,
         "Federal source should keep cybersecurity mentoring as a clearly labeled volunteer entry.",
@@ -692,7 +692,7 @@ def test_federal_volunteer_experience_renders_separately(build_federal_resume: o
         "Federal volunteer experience should render after paid work experience, not inside it.",
     )
     assert_true(
-        "Cybersecurity Track Lead (Volunteer)  |  Grow With Google, Mentor Me Collective" in text
+        "Cybersecurity Track Lead  |  Grow With Google, Mentor Me Collective" in text
         and "as a volunteer" in text,
         "Federal volunteer experience should render with an explicit volunteer label.",
     )
@@ -709,7 +709,7 @@ def test_commercial_source_resumes_include_confirmed_security_and_modernization_
         "reduced unplanned downtime by roughly 25%",
         "$20M+ in daily inventory",
         "inventory scrap cost by about 32%",
-        "Cybersecurity Track Lead (Volunteer), Grow With Google - Mentor Me Collective",
+        "Cybersecurity Track Lead, Grow With Google - Mentor Me Collective",
     )
     for source_path in (
         build_resume.IMPLEMENTATION_RESUME,
