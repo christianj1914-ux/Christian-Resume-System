@@ -56,8 +56,9 @@
         "Led full IT program management lifecycle for enterprise platform migration, overseeing requirements analysis, vendor evaluation, data extraction and transformation, ETL validation, user access reviews, internal control testing, go-live readiness planning, and cross-site cutover coordination across concurrent workstreams spanning operations, finance, and engineering.",
         "Directed procurement and acquisition support activities including development of Statements of Work, Functional Requirements Documents, and vendor agreements for platform enhancements, system integrations, and technology acquisitions; documented scope baselines, milestone schedules, and risk assumptions prior to contract execution.",
         "Established enterprise business intelligence infrastructure by designing and deploying 200+ SQL-based KPI dashboards, Crystal Reports, and Power BI tools that replaced manual exports with near real-time performance visibility for manufacturing, supply chain, finance, and engineering leadership.",
+        "Led enterprise systems modernization that improved reliability and reduced unplanned downtime by roughly 25%, supported reporting and decisions affecting $20M+ in daily inventory, and cut inventory scrap cost by about 32% through inventory automation and tracking designed for warehouse operations.",
         "Improved data quality and reduced spreadsheet-driven status chasing by using Salesforce and SQL-backed performance reporting to track requests, owners, and next steps during migration and post-go-live support.",
-        "Developed and enforced enterprise IT governance policies including least-privilege security models, role-based access controls, and dynamic permission frameworks for sensitive financial and inventory transactions, improving audit readiness, internal control documentation, and compliance posture.",
+        "Applied zero-trust-aligned least-privilege access, role-based access controls, and dynamic permission frameworks for sensitive financial and inventory transactions, and supported incident-response readiness and access validation for the global IT team supporting Aptean Intuitive.",
         "Directed cross-functional program setup for a new warehouse operation and enterprise robotics program, driving scope definition, master data configuration, cross-site training, and production go-live across concurrent workstreams in operations, finance, and engineering.",
         "Reduced manual inventory processing by 78% and discrepancy rate by 22% through root-cause analysis and deployment of an automated, auditable corrective workflow.",
         "Accelerated documentation, reporting, SQL troubleshooting, and operational analysis through Codex, Claude, and AI-assisted tools that reduced manual effort across recurring systems and implementation processes.",
@@ -151,7 +152,7 @@
       "company_summary": "Aderant is a B2B legal technology company providing enterprise case management and practice management software to 3,000+ law firms and legal departments globally.",
       "job_summary": "Provided interim internal IT support under the Corporate IT Manager during an organizational transition while core enterprise systems ownership stabilized.",
       "bullets": [
-        "Supported corporate IT administration under the Corporate IT Manager, assisting with performance monitoring, hardware and software maintenance, network configuration, and disaster recovery architecture planning to strengthen organizational resilience and business continuity."
+        "Performed disaster-recovery planning, backup and restore, and recovery testing supporting incident-response readiness during an organizational transition."
       ]
     }
   ],
@@ -182,10 +183,28 @@
       "employer": "East West Manufacturing",
       "role": "Enterprise Systems Manager",
       "claim": "Personally created SQL views, stored procedures, functions, and reporting data models as part of the 200+ SQL-based reporting and business-intelligence portfolio.",
-      "rewrite_templates": ["Designed and deployed 200+ SQL-based reporting and business-intelligence tools, personally creating views, stored procedures, functions, and reporting data models that improved operational visibility for manufacturing, supply chain, finance, and engineering leaders."],
+      "rewrite_templates": [
+        "Designed and deployed 200+ SQL-based reporting and business-intelligence tools, personally creating views, stored procedures, functions, and reporting data models that improved operational visibility for manufacturing, supply chain, finance, and engineering leaders."
+      ],
       "ownership_ceiling": "created",
-      "allowed_terminology": ["views", "stored procedures", "functions", "data models", "reporting data models", "SQL queries", "business intelligence"],
-      "never_claim": ["SQL Server instance administration", "configured SQL Server instances", "monitored SQL Server instances", "tuned SQL Server instances", "clustering", "replication", "failover"]
+      "allowed_terminology": [
+        "views",
+        "stored procedures",
+        "functions",
+        "data models",
+        "reporting data models",
+        "SQL queries",
+        "business intelligence"
+      ],
+      "never_claim": [
+        "SQL Server instance administration",
+        "configured SQL Server instances",
+        "monitored SQL Server instances",
+        "tuned SQL Server instances",
+        "clustering",
+        "replication",
+        "failover"
+      ]
     },
     {
       "id": "aderant-backup-recovery",
@@ -194,10 +213,25 @@
       "employer": "Aderant",
       "role": "Interim Systems Administrator",
       "claim": "Supported backup and restore tasks and performed recovery testing alongside disaster-recovery planning; these activities were limited hands-on duties rather than infrastructure ownership.",
-      "rewrite_templates": ["Supported backup and restore tasks and performed recovery testing alongside disaster-recovery planning, documenting dependencies and operational risks without owning backup or high-availability infrastructure."],
+      "rewrite_templates": [
+        "Supported backup and restore tasks and performed recovery testing alongside disaster-recovery planning, documenting dependencies and operational risks without owning backup or high-availability infrastructure."
+      ],
       "ownership_ceiling": "performed",
-      "allowed_terminology": ["backup", "restore", "recovery testing", "disaster recovery planning"],
-      "never_claim": ["owned backup infrastructure", "administered backup infrastructure", "led backup infrastructure", "HA/DR architecture ownership", "clustering", "replication", "failover"]
+      "allowed_terminology": [
+        "backup",
+        "restore",
+        "recovery testing",
+        "disaster recovery planning"
+      ],
+      "never_claim": [
+        "owned backup infrastructure",
+        "administered backup infrastructure",
+        "led backup infrastructure",
+        "HA/DR architecture ownership",
+        "clustering",
+        "replication",
+        "failover"
+      ]
     },
     {
       "id": "aptean-version-control",
@@ -206,10 +240,26 @@
       "employer": "Aptean",
       "role": "Customer Success Consultant",
       "claim": "Used Azure DevOps/TFS and Git/GitHub directly for work items, repositories, release tracking, and delivery change-management practices.",
-      "rewrite_templates": ["Used Azure DevOps/TFS and Git/GitHub directly for work items, repositories, release tracking, and delivery change-management practices across customer implementation work."],
+      "rewrite_templates": [
+        "Used Azure DevOps/TFS and Git/GitHub directly for work items, repositories, release tracking, and delivery change-management practices across customer implementation work."
+      ],
       "ownership_ceiling": "used",
-      "allowed_terminology": ["Azure DevOps", "TFS", "Git", "GitHub", "version control", "work items", "repositories", "release tracking", "change management"],
-      "never_claim": ["owned CI/CD pipelines", "administered CI/CD pipelines", "DevSecOps program ownership"]
+      "allowed_terminology": [
+        "Azure DevOps",
+        "TFS",
+        "Git",
+        "GitHub",
+        "version control",
+        "work items",
+        "repositories",
+        "release tracking",
+        "change management"
+      ],
+      "never_claim": [
+        "owned CI/CD pipelines",
+        "administered CI/CD pipelines",
+        "DevSecOps program ownership"
+      ]
     },
     {
       "id": "home-depot-contact-center",
@@ -218,11 +268,33 @@
       "employer": "The Home Depot",
       "role": "Support Operations Analyst",
       "claim": "Analyzed LivePerson chat and SMS customer interaction data for contact center operations, including service-level, interaction-volume, trend, and forecasting reporting.",
-      "rewrite_templates": ["Analyzed LivePerson chat and SMS customer interaction data for contact center operations, producing service level reporting, interaction-volume trend analysis, and forecasting that supported workload and staffing decisions."],
+      "rewrite_templates": [
+        "Analyzed LivePerson chat and SMS customer interaction data for contact center operations, producing service level reporting, interaction-volume trend analysis, and forecasting that supported workload and staffing decisions."
+      ],
       "ownership_ceiling": "analyzed",
-      "allowed_terminology": ["contact center operations", "service level reporting", "customer interaction data", "interaction-volume trend analysis", "forecasting"],
-      "adjacent_terminology": ["workforce management", "staffing decisions", "workload decisions"],
-      "never_claim": ["owned workforce management", "administered workforce management"]
+      "allowed_terminology": [
+        "contact center operations",
+        "service level reporting",
+        "customer interaction data",
+        "interaction-volume trend analysis",
+        "forecasting"
+      ],
+      "adjacent_terminology": [
+        "workforce management",
+        "staffing decisions",
+        "workload decisions"
+      ],
+      "never_claim": [
+        "owned workforce management",
+        "administered workforce management"
+      ]
+    }
+  ],
+  "volunteer_experience": [
+    {
+      "title": "Cybersecurity Track Lead (Volunteer)",
+      "organization": "Grow With Google, Mentor Me Collective",
+      "description": "Led and mentored participants in the cybersecurity track as a volunteer, helping learners connect cybersecurity concepts to practical career development."
     }
   ]
 }

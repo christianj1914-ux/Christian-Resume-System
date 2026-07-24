@@ -588,8 +588,32 @@ def test_federal_source_load(build_federal_resume: object) -> None:
     )
     assert_true(
         "recovery testing" in blocks["Aderant|Interim Systems Administrator"]
+        and "incident-response readiness" in blocks["Aderant|Interim Systems Administrator"]
         and not re.search(r"\b(?:owned|administered|led)\b[^.]{0,80}\b(?:backup|restore|recovery)\b", blocks["Aderant|Interim Systems Administrator"], re.I),
         "Aderant recovery evidence must stay capped at supported/performed language.",
+    )
+    east_west = blocks["East West Manufacturing|Enterprise Systems Manager"]
+    assert_true(
+        all(
+            term in east_west
+            for term in (
+                "zero-trust-aligned least-privilege access",
+                "incident-response readiness",
+                "reduced unplanned downtime by roughly 25%",
+                "$20M+ in daily inventory",
+                "inventory scrap cost by about 32%",
+            )
+        ),
+        "Federal source should carry the confirmed East West security and modernization evidence.",
+    )
+    volunteer_text = "\n".join(
+        f"{item.title} {item.organization} {item.description}" for item in source.volunteer_experience
+    )
+    assert_true(
+        "Cybersecurity Track Lead (Volunteer)" in volunteer_text
+        and "Grow With Google, Mentor Me Collective" in volunteer_text
+        and "as a volunteer" in volunteer_text,
+        "Federal source should keep cybersecurity mentoring as a clearly labeled volunteer entry.",
     )
 
 
@@ -621,9 +645,82 @@ def test_federal_standard_essay_responses(build_federal_resume: object) -> None:
         "Federal essay section should carry forward the stored Executive Order response",
     )
     assert_true(
+        "inventory scrap cost by about 32 percent" in text
+        and "lowered operational costs by 30 percent" not in text,
+        "Federal essays should scope the corrected cost metric to inventory scrap, not general operational cost.",
+    )
+    assert_true(
+        "volunteer Cybersecurity Track Lead" in text
+        and "volunteer mentoring of cybersecurity learners" in text,
+        "Federal essays should label cybersecurity mentoring as volunteer experience.",
+    )
+    assert_true(
         "AI-enabled workflows" in text or "secure modernization" in text,
         "Federal essay responses should add role-specific federal tailoring language",
     )
+
+
+def test_federal_volunteer_experience_renders_separately(build_federal_resume: object) -> None:
+    source = build_federal_resume.load_federal_source()
+    audit = build_federal_resume.federal_requirement_audit(source, FEDERAL_DUMMY_JOB_DESCRIPTION)
+    profile = build_federal_resume.job_problem_profile(
+        FEDERAL_DUMMY_JOB_DESCRIPTION,
+        build_federal_resume.source_visible_text(source),
+    )
+    bullet_groups = build_federal_resume.selected_bullet_candidates_by_role(
+        source,
+        FEDERAL_DUMMY_JOB_DESCRIPTION,
+        profile.primary_lane,
+        build_federal_resume.keyword_set(FEDERAL_DUMMY_JOB_DESCRIPTION),
+        build_federal_resume.FEDERAL_LAYOUT_PROFILES[-1],
+        audit,
+    )
+    document = build_federal_resume.build_document(
+        source,
+        FEDERAL_DUMMY_JOB_DESCRIPTION,
+        build_federal_resume.FEDERAL_LAYOUT_PROFILES[-1],
+        build_federal_resume.build_gs14_summary(source, FEDERAL_DUMMY_JOB_DESCRIPTION, audit),
+        bullet_groups,
+        audit,
+    )
+    lines = [paragraph.text.strip() for paragraph in document.paragraphs if paragraph.text.strip()]
+    text = "\n".join(lines)
+    work_index = lines.index("WORK EXPERIENCE")
+    volunteer_index = lines.index("VOLUNTEER EXPERIENCE")
+    assert_true(
+        work_index < volunteer_index,
+        "Federal volunteer experience should render after paid work experience, not inside it.",
+    )
+    assert_true(
+        "Cybersecurity Track Lead (Volunteer)  |  Grow With Google, Mentor Me Collective" in text
+        and "as a volunteer" in text,
+        "Federal volunteer experience should render with an explicit volunteer label.",
+    )
+    assert_true(
+        "Supervisor:" not in "\n".join(lines[volunteer_index:]),
+        "Federal volunteer experience should not render like a paid role with a supervisor line.",
+    )
+
+
+def test_commercial_source_resumes_include_confirmed_security_and_modernization_evidence(build_resume: object) -> None:
+    required_terms = (
+        "zero-trust-aligned least-privilege access",
+        "incident-response readiness",
+        "reduced unplanned downtime by roughly 25%",
+        "$20M+ in daily inventory",
+        "inventory scrap cost by about 32%",
+        "Cybersecurity Track Lead (Volunteer), Grow With Google - Mentor Me Collective",
+    )
+    for source_path in (
+        build_resume.IMPLEMENTATION_RESUME,
+        build_resume.PRESALES_CSM_RESUME,
+        build_resume.EDFIX_RESUME,
+    ):
+        text = build_resume.docx_visible_text_from_path(source_path)
+        assert_true(
+            all(term in text for term in required_terms),
+            f"Commercial source resume {source_path.name} should contain the confirmed Phase 1 evidence.",
+        )
 
 
 def test_federal_qualifications_append_additional_questions_and_recent_interview_prep(
@@ -699,6 +796,11 @@ def test_federal_summary_structure(build_federal_resume: object) -> None:
     )
     assert_true(len(sentences) == 3, f"Federal summary should have 3 sentences; found {len(sentences)}: {summary}")
     assert_true("VP-" in summary or "director-level" in summary, "Federal summary should surface senior-scope evidence")
+    assert_true(
+        "Federal enterprise technology leader" not in summary
+        and summary.startswith("Enterprise technology leader"),
+        f"Federal summary should not imply prior federal service; got {summary}",
+    )
     assert_true("--" not in summary, "Federal summary should not contain double dashes")
 
 
@@ -14481,6 +14583,7 @@ def main() -> None:
             ("federal requirement audit and keywords", lambda: test_federal_requirement_audit_and_keywords(build_federal_resume)),
             ("federal layouts stay at ten point", lambda: test_federal_layouts_stay_at_ten_point(build_federal_resume)),
             ("federal visibility report tracks selected requirements", lambda: test_federal_visibility_report_tracks_selected_requirements(build_federal_resume)),
+            ("federal volunteer experience renders separately", lambda: test_federal_volunteer_experience_renders_separately(build_federal_resume)),
             ("federal standalone agency output name", lambda: test_federal_output_name_with_standalone_agency(build_federal_resume)),
             ("federal supporting doc resolution", lambda: test_federal_supporting_doc_resolution(build_federal_resume, federal_supporting_docs)),
             ("federal ATS plain-text blockers include hours and salary", lambda: test_federal_plain_text_validation_blocks_missing_hours_and_salary(build_federal_resume)),
@@ -14556,6 +14659,7 @@ def main() -> None:
             ("expansion source resumes and reference docs are durable", lambda: test_expansion_source_resumes_and_reference_docs_are_durable(build_resume)),
             ("source lint uses docx bullets without context false positives", lambda: test_source_lint_uses_docx_bullets_without_context_false_positives(build_resume)),
             ("source resumes pass docx-aware source lint", lambda: test_source_resumes_pass_docx_aware_source_lint(build_resume)),
+            ("commercial source resumes include confirmed security and modernization evidence", lambda: test_commercial_source_resumes_include_confirmed_security_and_modernization_evidence(build_resume)),
             ("source lint flags stale global notes motivation", lambda: test_source_lint_flags_stale_global_notes_motivation(build_resume)),
             ("fail severity prose rules have convergent repairs", test_fail_severity_prose_rules_have_convergent_repairs),
             ("bullet overload validation warns without repairing", test_bullet_overload_validation_warns_without_repairing),

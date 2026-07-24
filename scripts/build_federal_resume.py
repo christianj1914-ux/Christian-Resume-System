@@ -95,6 +95,13 @@ class FederalEducation:
 
 
 @dataclass(frozen=True)
+class FederalVolunteerExperience:
+    title: str
+    organization: str
+    description: str
+
+
+@dataclass(frozen=True)
 class FederalContact:
     name: str
     location: str
@@ -113,6 +120,7 @@ class FederalSource:
     roles: tuple[FederalRole, ...]
     education: tuple[FederalEducation, ...]
     professional_development: tuple[str, ...]
+    volunteer_experience: tuple[FederalVolunteerExperience, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -816,12 +824,21 @@ def load_federal_source() -> FederalSource:
         )
         for item in payload["education"]
     )
+    volunteer_experience = tuple(
+        FederalVolunteerExperience(
+            title=item["title"],
+            organization=item["organization"],
+            description=item["description"],
+        )
+        for item in payload.get("volunteer_experience", ())
+    )
     source = FederalSource(
         contact=contact,
         technical_skills=tuple(payload["technical_skills"]),
         roles=roles,
         education=education,
         professional_development=tuple(payload["professional_development"]),
+        volunteer_experience=volunteer_experience,
     )
     validate_federal_source(source)
     return source
@@ -1009,6 +1026,8 @@ def source_visible_text(source: FederalSource) -> str:
     for item in source.education:
         parts.extend((item.degree, item.school, item.details))
     parts.extend(source.professional_development)
+    for item in source.volunteer_experience:
+        parts.extend((item.title, item.organization, item.description))
     return "\n".join(parts)
 
 
@@ -1641,7 +1660,7 @@ def build_gs14_summary(source: FederalSource, job_description: str, audit: Feder
     profile = job_problem_profile(job_description, source_visible_text(source))
     active_audit = audit or federal_requirement_audit(source, job_description)
     sentence_one = prose_engine.sentence(
-        f"Federal enterprise technology leader with {federal_experience_year_range(source)} years successfully modernizing complex enterprise systems "
+        f"Enterprise technology leader with {federal_experience_year_range(source)} years successfully modernizing complex enterprise systems "
         f"across {federal_environment_list(source)} environments"
     )
     sentence_two = prose_engine.sentence(
@@ -2161,6 +2180,17 @@ def build_document(
 
     add_section_heading(document, "Professional Development", font_size=SECTION_FONT_SIZE)
     add_body_paragraph(document, "  |  ".join(source.professional_development), size=layout.font_size)
+    if source.volunteer_experience:
+        maybe_add_blank_paragraph(document, size=layout.font_size, enabled=layout.blank_after_sections)
+        add_section_heading(document, "Volunteer Experience", font_size=SECTION_FONT_SIZE)
+        for item in source.volunteer_experience:
+            add_body_paragraph(
+                document,
+                f"{item.title}  |  {item.organization}",
+                size=layout.font_size,
+                bold=True,
+            )
+            add_body_paragraph(document, item.description, size=layout.font_size)
     return document
 
 
