@@ -3592,6 +3592,8 @@ def weave_keyword_into_summary_paragraph(document_xml: Path, keyword: str, job_d
                     r"\benterprise software decisions\b",
                     "enterprise document workflow and software decisions",
                 )
+            elif normalized == "customer facing" and re.search(r"\bstrategic discovery\b", first, re.I):
+                candidate_first = replace_first_ci(first, r"\bstrategic discovery\b", "customer-facing strategic discovery")
             else:
                 candidate_first = f"{first}, with {keyword} emphasis."
             candidate_first = strip_summary_emphasis_tail(candidate_first)
@@ -3643,6 +3645,8 @@ def weave_keyword_into_summary_paragraphs(paragraphs: list[ET.Element], keyword:
                 r"\benterprise software decisions\b",
                 "enterprise document workflow and software decisions",
             )
+        elif normalized == "customer facing" and re.search(r"\bstrategic discovery\b", first, re.I):
+            candidate_first = replace_first_ci(first, r"\bstrategic discovery\b", "customer-facing strategic discovery")
         else:
             candidate_first = f"{first}, with {keyword} emphasis."
         candidate_first = strip_summary_emphasis_tail(candidate_first)
