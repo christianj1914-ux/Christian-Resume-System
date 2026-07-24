@@ -831,37 +831,172 @@ def test_federal_supporting_doc_resolution(build_federal_resume: object, federal
             federal_supporting_docs.OUTPUT_DIR = original_output_dir
 
 
-def test_federal_plain_text_validation_splits_hours_and_salary_warnings(build_federal_resume: object) -> None:
+def test_federal_plain_text_validation_blocks_missing_hours_and_salary(build_federal_resume: object) -> None:
     from docx import Document
 
-    with TemporaryDirectory(prefix="federal_plain_text_") as temp_name:
-        docx_path = Path(temp_name) / "federal_resume.docx"
+    def write_federal_docx(docx_path: Path, role_lines: list[tuple[str, str]], extra_line: str = "") -> None:
         document = Document()
         for section in build_federal_resume.FEDERAL_REQUIRED_SECTIONS:
             document.add_paragraph(section)
         document.add_paragraph("christian@example.com")
-        document.add_paragraph("Known Agency")
-        document.add_paragraph("Implementation Program Manager")
-        document.add_paragraph("January 2020 - Present")
-        document.add_paragraph("Supervisor: Jane Doe")
-        document.add_paragraph(
-            "Supported implementation governance, reporting, and adoption work across a multi-site program."
-        )
+        for header, supervisor_line in role_lines:
+            document.add_paragraph(header)
+            document.add_paragraph(supervisor_line)
+            document.add_paragraph(
+                "Supported implementation governance, reporting, and adoption work across a multi-site program."
+            )
+        if extra_line:
+            document.add_paragraph(extra_line)
         document.save(str(docx_path))
-        report = build_federal_resume.federal_plain_text_validation(docx_path)
 
-    warnings = report["warnings"]
+    with TemporaryDirectory(prefix="federal_plain_text_") as temp_name:
+        missing_hours_docx = Path(temp_name) / "missing_hours.docx"
+        write_federal_docx(
+            missing_hours_docx,
+            [
+                (
+                    "Implementation Program Manager  |  January 2020 - Present  |  $120,000",
+                    "Known Agency, Atlanta, GA  |  Supervisor: Jane Doe, 555-0100",
+                )
+            ],
+        )
+        missing_hours_report = build_federal_resume.federal_plain_text_validation(missing_hours_docx)
+
+        missing_salary_docx = Path(temp_name) / "missing_salary.docx"
+        write_federal_docx(
+            missing_salary_docx,
+            [
+                (
+                    "Implementation Program Manager  |  January 2020 - Present  |  40 Hours Per Week",
+                    "Known Agency, Atlanta, GA  |  Supervisor: Jane Doe, 555-0100",
+                )
+            ],
+        )
+        missing_salary_report = build_federal_resume.federal_plain_text_validation(missing_salary_docx)
+
+        bare_dollar_docx = Path(temp_name) / "bare_dollar.docx"
+        write_federal_docx(
+            bare_dollar_docx,
+            [
+                (
+                    "Implementation Program Manager  |  January 2020 - Present  |  40 Hours Per Week",
+                    "Known Agency, Atlanta, GA  |  Supervisor: Jane Doe, 555-0100",
+                )
+            ],
+            "This paragraph contains a standalone $ symbol, not a salary figure.",
+        )
+        bare_dollar_report = build_federal_resume.federal_plain_text_validation(bare_dollar_docx)
+
+        complete_docx = Path(temp_name) / "complete.docx"
+        write_federal_docx(
+            complete_docx,
+            [
+                (
+                    "Implementation Program Manager  |  January 2020 - Present  |  40 Hours Per Week  |  $120,000",
+                    "Known Agency, Atlanta, GA  |  Supervisor: Jane Doe, 555-0100",
+                ),
+                (
+                    "Customer Success Consultant  |  January 2017 - December 2019  |  40 Hours Per Week  |  $95,000",
+                    "Second Agency, Atlanta, GA  |  Supervisor: John Smith, 555-0200",
+                ),
+            ],
+        )
+        complete_report = build_federal_resume.federal_plain_text_validation(complete_docx)
+
+    missing_hours_blockers = missing_hours_report["blockers"]
+    missing_salary_blockers = missing_salary_report["blockers"]
+    bare_dollar_blockers = bare_dollar_report["blockers"]
+    complete_blockers = complete_report["blockers"]
     assert_true(
-        any("Hours Per Week" in warning for warning in warnings),
-        f"federal_plain_text_validation() should warn separately when Hours Per Week is missing; got {warnings}",
+        any("Known Agency" in blocker and "Hours Per Week" in blocker for blocker in missing_hours_blockers),
+        f"federal_plain_text_validation() should block per employer when Hours Per Week is missing; got {missing_hours_blockers}",
     )
     assert_true(
-        any("Salary details" in warning for warning in warnings),
-        f"federal_plain_text_validation() should warn separately when salary data is missing; got {warnings}",
+        any("Known Agency" in blocker and "salary" in blocker for blocker in missing_salary_blockers),
+        f"federal_plain_text_validation() should block per employer when salary is missing; got {missing_salary_blockers}",
     )
     assert_true(
-        not any("Hours Per Week" in warning and "Salary" in warning for warning in warnings),
-        f"federal_plain_text_validation() should split the Hours Per Week and salary warnings instead of merging them; got {warnings}",
+        any("Known Agency" in blocker and "salary" in blocker for blocker in bare_dollar_blockers),
+        f"federal_plain_text_validation() should reject a bare $ as salary evidence; got {bare_dollar_blockers}",
+    )
+    assert_true(
+        not any("Hours Per Week" in blocker or "salary" in blocker for blocker in complete_blockers),
+        f"federal_plain_text_validation() should pass rendered roles with hours and salary; got {complete_blockers}",
+    )
+
+
+def test_federal_salary_value_uses_overlapping_same_employer_source_salary(build_federal_resume: object) -> None:
+    primary_role = build_federal_resume.FederalRole(
+        title="Product Support Specialist",
+        start="October 2014",
+        end="March 2015",
+        hours_per_week="40",
+        salary="$36,000",
+        company="Aderant",
+        location="Atlanta, GA USA",
+        supervisor="Jeff Flowers",
+        supervisor_phone="404-975-4601",
+        company_summary="Enterprise legal technology provider.",
+        job_summary="Provided technical product support.",
+        bullets=("Supported enterprise legal software customers.",),
+    )
+    concurrent_role = build_federal_resume.FederalRole(
+        title="Interim Systems Administrator",
+        start="December 2014",
+        end="February 2015",
+        hours_per_week="20",
+        salary="",
+        company="Aderant",
+        location="Atlanta, GA USA",
+        supervisor="Jim Reynolds",
+        supervisor_phone="850-224-2200",
+        company_summary="Enterprise legal technology provider.",
+        job_summary="Provided interim internal IT support.",
+        bullets=("Supported internal systems administration tasks.",),
+    )
+    unrelated_role = build_federal_resume.FederalRole(
+        title="Support Operations Analyst",
+        start="November 2015",
+        end="November 2019",
+        hours_per_week="40",
+        salary="$40,560",
+        company="The Home Depot",
+        location="Marietta, GA USA",
+        supervisor="Timmy Johnson",
+        supervisor_phone="1-800-466-3337",
+        company_summary="Retailer.",
+        job_summary="Delivered analytics and process support.",
+        bullets=("Supported reporting and customer engagement workflows.",),
+    )
+    assert_true(
+        build_federal_resume.federal_salary_value(concurrent_role, (primary_role, concurrent_role, unrelated_role))
+        == "$36,000",
+        "Concurrent same-employer federal role should reuse the source-backed salary from the overlapping role.",
+    )
+    assert_true(
+        build_federal_resume.federal_salary_value(
+            concurrent_role,
+            (
+                build_federal_resume.FederalRole(
+                    title=primary_role.title,
+                    start=primary_role.start,
+                    end=primary_role.end,
+                    hours_per_week=primary_role.hours_per_week,
+                    salary=primary_role.salary,
+                    company="Different Company",
+                    location=primary_role.location,
+                    supervisor=primary_role.supervisor,
+                    supervisor_phone=primary_role.supervisor_phone,
+                    company_summary=primary_role.company_summary,
+                    job_summary=primary_role.job_summary,
+                    bullets=primary_role.bullets,
+                ),
+                concurrent_role,
+                unrelated_role,
+            ),
+        )
+        == "",
+        "Federal salary fallback should not borrow salary from a different employer.",
     )
 
 
@@ -14348,7 +14483,8 @@ def main() -> None:
             ("federal visibility report tracks selected requirements", lambda: test_federal_visibility_report_tracks_selected_requirements(build_federal_resume)),
             ("federal standalone agency output name", lambda: test_federal_output_name_with_standalone_agency(build_federal_resume)),
             ("federal supporting doc resolution", lambda: test_federal_supporting_doc_resolution(build_federal_resume, federal_supporting_docs)),
-            ("federal ATS plain-text warnings split hours and salary", lambda: test_federal_plain_text_validation_splits_hours_and_salary_warnings(build_federal_resume)),
+            ("federal ATS plain-text blockers include hours and salary", lambda: test_federal_plain_text_validation_blocks_missing_hours_and_salary(build_federal_resume)),
+            ("federal concurrent role salary fallback", lambda: test_federal_salary_value_uses_overlapping_same_employer_source_salary(build_federal_resume)),
             ("federal resume plan warns on unverified page count", lambda: test_federal_resume_plan_warns_when_page_count_is_unverified(build_federal_resume)),
             (
                 "commercial builder entrypoints delegate to helpers",

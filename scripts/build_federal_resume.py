@@ -12,6 +12,7 @@ import json
 import re
 import shutil
 import uuid
+from collections.abc import Sequence
 from dataclasses import dataclass, replace
 from datetime import date
 from pathlib import Path
@@ -853,6 +854,58 @@ def load_federal_standard_essays() -> tuple[FederalEssayPrompt, ...]:
 
 
 FEDERAL_MONTH_YEAR_PATTERN = re.compile(r"^[A-Za-z]+\.?\s+\d{4}$")
+FEDERAL_MONTHS = {
+    "january": 1,
+    "february": 2,
+    "march": 3,
+    "april": 4,
+    "may": 5,
+    "june": 6,
+    "july": 7,
+    "august": 8,
+    "september": 9,
+    "october": 10,
+    "november": 11,
+    "december": 12,
+}
+
+
+def federal_month_ordinal(value: str, *, present_as: int | None = None) -> int | None:
+    normalized = value.strip().lower().replace(".", "")
+    if normalized == "present":
+        return present_as
+    parts = normalized.split()
+    if len(parts) != 2 or not parts[1].isdigit():
+        return None
+    month = FEDERAL_MONTHS.get(parts[0])
+    if month is None:
+        return None
+    return int(parts[1]) * 12 + month
+
+
+def federal_roles_overlap(left: FederalRole, right: FederalRole) -> bool:
+    left_start = federal_month_ordinal(left.start)
+    left_end = federal_month_ordinal(left.end, present_as=9999 * 12)
+    right_start = federal_month_ordinal(right.start)
+    right_end = federal_month_ordinal(right.end, present_as=9999 * 12)
+    if None in (left_start, left_end, right_start, right_end):
+        return False
+    return left_start <= right_end and right_start <= left_end
+
+
+def federal_salary_value(role: FederalRole, roles: Sequence[FederalRole]) -> str:
+    if SALARY_FIGURE_PATTERN.search(role.salary or ""):
+        return role.salary.strip()
+    for candidate in roles:
+        if candidate is role:
+            continue
+        if candidate.company != role.company:
+            continue
+        if not federal_roles_overlap(role, candidate):
+            continue
+        if SALARY_FIGURE_PATTERN.search(candidate.salary or ""):
+            return candidate.salary.strip()
+    return role.salary.strip()
 
 
 def validate_federal_source(source: FederalSource) -> None:
@@ -2065,8 +2118,9 @@ def build_document(
     active_clusters = tuple(cluster for cluster, _weight in audit.cluster_weights)
     for role_index, role in enumerate(source.roles):
         title_parts = [role.title, f"{role.start} - {role.end}", f"{role.hours_per_week} Hours Per Week"]
-        if role.salary and role.salary != "$0":
-            title_parts.append(role.salary)
+        salary_value = federal_salary_value(role, source.roles)
+        if salary_value and salary_value != "$0":
+            title_parts.append(salary_value)
         title_line = "  |  ".join(title_parts)
         add_body_paragraph(document, title_line, size=ROLE_FONT_SIZE, bold=True)
         company_line = f"{role.company}, {role.location}  |  Supervisor: {role.supervisor}, {role.supervisor_phone}"
@@ -2576,6 +2630,31 @@ def federal_page_count_label(page_count: int | None) -> str:
     return "unverified (renderer unavailable)" if page_count is None else str(page_count)
 
 
+SALARY_FIGURE_PATTERN = re.compile(r"\$\d[\d,]*(?:\.\d{2})?")
+HOURS_PER_WEEK_PATTERN = re.compile(r"\b\d{1,3}\s+Hours Per Week\b", re.I)
+
+
+def federal_rendered_position_blocks(visible: str) -> list[dict[str, str]]:
+    lines = [line.strip() for line in visible.splitlines() if line.strip()]
+    positions: list[dict[str, str]] = []
+    for index, line in enumerate(lines):
+        if "Supervisor:" not in line:
+            continue
+        header = lines[index - 1] if index > 0 else ""
+        employer = line.split(",", 1)[0].strip() or "Rendered position"
+        title = header.split("|", 1)[0].strip() or employer
+        positions.append(
+            {
+                "employer": employer,
+                "title": title,
+                "header": header,
+                "supervisor": line,
+                "text": f"{header}\n{line}",
+            }
+        )
+    return positions
+
+
 def federal_plain_text_validation(docx_path: Path) -> dict[str, object]:
     visible = docx_visible_text_from_path(docx_path)
     blockers: list[str] = []
@@ -2589,10 +2668,15 @@ def federal_plain_text_validation(docx_path: Path) -> dict[str, object]:
         blockers.append("No role date ranges detected in federal ATS plain text.")
     if "Supervisor:" not in visible:
         blockers.append("No supervisor lines detected in federal ATS plain text.")
-    if "Hours Per Week" not in visible:
-        warnings.append("Hours Per Week details may be missing from federal ATS plain text.")
-    if "$" not in visible:
-        warnings.append("Salary details may be missing from federal ATS plain text.")
+    for position in federal_rendered_position_blocks(visible):
+        if not HOURS_PER_WEEK_PATTERN.search(position["text"]):
+            blockers.append(
+                f"Federal eligibility blocker: {position['employer']} is missing Hours Per Week in the rendered resume."
+            )
+        if not SALARY_FIGURE_PATTERN.search(position["text"]):
+            blockers.append(
+                f"Federal eligibility blocker: {position['employer']} is missing salary in the rendered resume."
+            )
     word_count = len(re.findall(r"\b[\w+.#'-]+\b", visible))
     if word_count < 450 or word_count > 1800:
         warnings.append(f"Federal ATS plain-text word count looks unusual ({word_count} words).")
