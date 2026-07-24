@@ -4198,11 +4198,12 @@ def test_targeted_competency_guardrail_rejects_titles_and_bare_nouns(build_resum
         "Business Process",
         "Business Process Improvement",
         "Service Delivery",
+        "Transformation",
     ]
     job_description = (
         "Job Title: Senior Delivery Manager, Financial Systems\n"
-        "This role requires business process, business process improvement, service delivery, quality, accounting, "
-        "and senior delivery manager experience."
+        "This role requires business process, business process improvement, service delivery, transformation, "
+        "quality, accounting, and senior delivery manager experience."
     )
     with TemporaryDirectory(prefix="resume_smoke_") as temp_name:
         document_xml = Path(temp_name) / "document.xml"
@@ -4210,7 +4211,7 @@ def test_targeted_competency_guardrail_rejects_titles_and_bare_nouns(build_resum
         added = build_resume.add_targeted_core_competencies(document_xml, targets, job_description, limit=5)
         final_text = build_resume.visible_text(document_xml)
     assert_true(
-        {"Business Process", "Business Process Improvement", "Service Delivery"} <= set(added),
+        {"Business Process", "Business Process Improvement", "Service Delivery", "Transformation"} <= set(added),
         f"Guardrail should allow skill-shaped multi-word phrases even when they start with denied bare nouns; got {added}",
     )
     final_skill_items = build_resume.extract_competency_items(

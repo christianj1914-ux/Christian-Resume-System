@@ -3812,12 +3812,12 @@ def targeted_skill_candidate_is_allowed(
     if is_job_title_skill_candidate(keyword, job_description):
         return False
     words = normalized.split()
-    if len(words) == 1 and normalized in BARE_VAGUE_SKILL_NOUNS:
-        return False
     if normalized in SKILL_DISPLAY_LABEL_OVERRIDES:
         return True
     if evidence_anchor_for_term(keyword):
         return True
+    if len(words) == 1 and normalized in BARE_VAGUE_SKILL_NOUNS:
+        return False
     if len(words) == 1:
         return normalized in SINGLE_WORD_SKILL_ALLOWLIST and normalized not in BARE_VAGUE_SKILL_NOUNS
     if len(words) > 5:
