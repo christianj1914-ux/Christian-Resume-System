@@ -404,16 +404,107 @@ FEDERAL_BUCKET_STOP_PHRASES = (
 
 FEDERAL_COMPETENCY_PREFIXES = (
     "attention to detail:",
+    "attention to detail -",
     "customer service:",
+    "customer service -",
+    "decision making:",
+    "decision making -",
+    "information management:",
+    "information management -",
+    "interpersonal skills:",
+    "interpersonal skills -",
     "oral communication:",
+    "oral communication -",
     "problem solving:",
+    "problem solving -",
+    "teamwork:",
+    "teamwork -",
+    "technical competence:",
+    "technical competence -",
+    "technical competence â€“",
 )
 
 FEDERAL_COMPETENCY_NAMES = (
     "Attention to Detail",
     "Customer Service",
+    "Decision Making",
+    "Information Management",
+    "Interpersonal Skills",
     "Oral Communication",
     "Problem Solving",
+    "Teamwork",
+    "Technical Competence",
+)
+
+FEDERAL_COMPETENCY_NAME_RE = re.compile(
+    r"^("
+    + "|".join(re.escape(name) for name in FEDERAL_COMPETENCY_NAMES)
+    + r")\s*(?:[-:\u2013\u2014]|â€“)\s*(.+)$",
+    re.I,
+)
+
+FEDERAL_SPECIALIZED_DUTY_MARKERS: tuple[tuple[str, tuple[str, ...]], ...] = (
+    (
+        "Duty 1",
+        (
+            "cross-functional project",
+            "agile",
+            "risk",
+            "issues",
+            "contracts",
+            "change requests",
+            "schedule",
+            "budget",
+            "organizational policies",
+            "incremental software",
+            "system enhancements",
+            "statements of work",
+            "functional requirements documents",
+            "vendor agreements",
+            "milestone schedules",
+            "scope baselines",
+        ),
+    ),
+    (
+        "Duty 2",
+        (
+            "technical integration",
+            "system modernization",
+            "continuous improvement",
+            "architecture",
+            "cloud",
+            "system interfaces",
+            "cybersecurity",
+            "technical debt",
+            "release predictability",
+            "zero-trust",
+            "least-privilege",
+            "access controls",
+            "incident-response readiness",
+            "etl validation",
+            "user access reviews",
+            "unplanned downtime",
+            "inventory scrap",
+        ),
+    ),
+    (
+        "Duty 3",
+        (
+            "risk and issue",
+            "risk assumptions",
+            "blockers",
+            "escalated",
+            "change-control",
+            "agile release",
+            "program timelines",
+            "deliverables",
+            "internal control testing",
+            "go-live readiness",
+            "recovery testing",
+            "defect triage",
+            "validate resolutions",
+        ),
+    ),
 )
 
 FEDERAL_KSA_PREFIXES = (
@@ -1160,7 +1251,7 @@ def extract_it_competencies(job_description: str) -> tuple[FederalCompetencyProm
         line = normalize_spaces(strip_bullet_prefix(raw_line))
         if not line:
             continue
-        match = re.match(r"^(Attention to Detail|Customer Service|Oral Communication|Problem Solving)\s*[-:]\s*(.+)$", line, re.I)
+        match = FEDERAL_COMPETENCY_NAME_RE.match(line)
         if not match:
             continue
         name = canonical_names.get(match.group(1).lower(), normalize_spaces(match.group(1)))
@@ -1721,6 +1812,7 @@ def score_text(text: str, keywords: set[str], profile_key: str, role_index: int,
         score += 4
     lane_defaults = FEDERAL_DEFAULT_CLUSTERS_BY_LANE.get(profile_key, ())
     score += sum(2 for cluster in lane_defaults if candidate_cluster_strength(text, cluster))
+    score += federal_specialized_duty_bonus(text)
     score += max(0, 5 - role_index)
     return score
 
@@ -1749,6 +1841,25 @@ def supplemental_question_bonus(text: str, job_description: str) -> int:
         if re.search(pattern, lowered, re.I):
             score += points
     return score
+
+
+def federal_specialized_duty_hits(text: str) -> tuple[str, ...]:
+    lowered = text.lower()
+    hits: list[str] = []
+    for duty_label, markers in FEDERAL_SPECIALIZED_DUTY_MARKERS:
+        if any(marker.lower() in lowered for marker in markers):
+            hits.append(duty_label)
+    return tuple(hits)
+
+
+def federal_specialized_duty_bonus(text: str) -> int:
+    hits = federal_specialized_duty_hits(text)
+    if not hits:
+        return 0
+    bonus = len(hits) * 90
+    if "Duty 2" in hits:
+        bonus += 35
+    return bonus
 
 
 def tailor_text(text: str, job_description: str, active_clusters: tuple[str, ...] | None = None) -> str:
@@ -1817,6 +1928,7 @@ def selected_bullet_candidates_by_role(
                 score += 6
             if re.search(r"\b(?:vp|director|executive|dashboard|sql|go-live|access|audit|workshop|risk|chatbot|training|migration)\b", tailored, re.I):
                 score += 4
+            score += federal_specialized_duty_bonus(tailored)
             if bullet in required_confirmed_text:
                 score += 1000
             scored_candidates.append(
@@ -1844,6 +1956,38 @@ def selected_bullet_candidates_by_role(
         selected_by_role.append([chosen])
         selected_keys.add((chosen.role_index, chosen.bullet_index))
         covered_clusters.update(chosen.matched_clusters)
+
+    covered_duties = {
+        duty
+        for group in selected_by_role
+        for candidate in group
+        for duty in federal_specialized_duty_hits(candidate.text)
+    }
+    for duty_label, _markers in FEDERAL_SPECIALIZED_DUTY_MARKERS:
+        if duty_label in covered_duties:
+            continue
+        best_candidate: FederalBulletCandidate | None = None
+        for role_index, candidates in enumerate(candidates_by_role):
+            max_for_role = layout.max_bullets_by_role[min(role_index, len(layout.max_bullets_by_role) - 1)]
+            if len(selected_by_role[role_index]) >= max_for_role:
+                continue
+            for candidate in candidates:
+                if (candidate.role_index, candidate.bullet_index) in selected_keys:
+                    continue
+                if duty_label not in federal_specialized_duty_hits(candidate.text):
+                    continue
+                if best_candidate is None or (candidate.score, -candidate.role_index, -candidate.bullet_index) > (
+                    best_candidate.score,
+                    -best_candidate.role_index,
+                    -best_candidate.bullet_index,
+                ):
+                    best_candidate = candidate
+        if best_candidate is None:
+            continue
+        selected_by_role[best_candidate.role_index].append(best_candidate)
+        selected_keys.add((best_candidate.role_index, best_candidate.bullet_index))
+        covered_clusters.update(best_candidate.matched_clusters)
+        covered_duties.update(federal_specialized_duty_hits(best_candidate.text))
 
     cluster_priority = [cluster for cluster, _weight in active_audit.cluster_weights]
     for cluster_key in cluster_priority:
@@ -2223,37 +2367,32 @@ def specialized_experience_paragraphs(job_description: str) -> tuple[str, ...]:
         (
             "In my recent role as Enterprise Systems Manager at East West Manufacturing, I served as the senior "
             "enterprise systems subject matter expert for a global five-site manufacturing operation supporting 150+ users "
-            "across operations, finance, engineering, and supply chain. I advised VP- and director-level stakeholders on "
-            "technology investment decisions, modernization priorities, vendor tradeoffs, and implementation risk, then led "
-            "the work needed to turn those decisions into executable plans, including requirements analysis, vendor evaluation, "
-            "data extraction and transformation, ETL validation, user access reviews, internal control testing, go-live "
-            "readiness, and cross-site cutover coordination."
+            "across operations, finance, engineering, and supply chain. I advised VP- and director-level leaders on "
+            "modernization priorities, vendor tradeoffs, and implementation risk, then led requirements analysis, vendor "
+            "evaluation, ETL validation, user access reviews, control testing, go-live readiness, and cross-site cutover "
+            "coordination. For this GS-14 posting, that role demonstrates at least GS-13-equivalent specialized experience "
+            "across two of the three duty areas: cross-functional implementation leadership and technical integration/system "
+            "modernization, with risk and change-control work supporting the third."
         ),
         (
-            "That role also required me to align business needs to technology solutions and produce acquisition-ready "
+            "The same role required me to align business needs to technology solutions and produce acquisition-ready "
             "documentation. I developed Statements of Work, Functional Requirements Documents, vendor agreements, milestone "
-            "schedules, and risk assumptions for platform enhancements, system integrations, and technology acquisitions, and "
-            "I used Codex, Claude, and other AI-assisted tools to accelerate documentation, reporting, SQL troubleshooting, "
-            "and operational analysis."
-        ),
-        (
-            "Previously, as a Customer Success Consultant at Aptean, I owned full-lifecycle delivery for 80+ international "
-            "manufacturing clients and facilitated 60+ executive workshops and quarterly business reviews with C-suite and "
-            "director-level stakeholders. I wrote SOWs and FRDs for implementations, data migrations, integrations, and "
-            "customizations, aligned customer needs to realistic delivery plans, and coordinated cross-functional teams across "
-            "product, development, implementation, and support to stabilize risk, protect scope, and improve adoption."
+            "schedules, and risk assumptions for platform enhancements, integrations, and technology acquisitions. At Aptean, "
+            "I owned full-lifecycle delivery for 80+ international manufacturing clients, facilitated 60+ executive workshops "
+            "and QBRs, wrote SOWs and FRDs, and coordinated product, development, implementation, and support teams to "
+            "stabilize risk, protect scope, and improve adoption."
         ),
     ]
     if federal_ai_focus(job_description):
         paragraphs = list(paragraphs)
         paragraphs[1] = (
-            "That role also required me to align business needs to technology solutions and produce acquisition-ready "
+            "The same role required me to align business needs to technology solutions and produce acquisition-ready "
             "documentation. I developed Statements of Work, Functional Requirements Documents, vendor agreements, milestone "
             "schedules, and risk assumptions for platform enhancements, system integrations, and technology acquisitions, and "
             "I used Codex, Claude, and other AI-assisted tools to accelerate documentation, reporting, SQL troubleshooting, "
-            "and operational analysis. My closest equivalent to white-paper or acquisition-document writing has been these "
-            "executive-ready scoping, recommendation, and requirements documents used to justify, govern, and communicate "
-            "technology initiatives."
+            "and operational analysis. At Aptean, I owned full-lifecycle delivery for 80+ international manufacturing clients, "
+            "facilitated 60+ executive workshops and QBRs, wrote SOWs and FRDs, and coordinated product, development, "
+            "implementation, and support teams to stabilize risk and improve adoption."
         )
     return tuple(paragraphs)
 
@@ -2262,29 +2401,49 @@ def competency_response(name: str) -> str:
     normalized = name.lower()
     if normalized == "attention to detail":
         return (
-            "My work has required close review of requirements, ETL results, testing outcomes, access controls, and risk "
-            "documentation before go-live or contract execution. I also stay current through hands-on use of AI-assisted "
-            "tools and professional development including ITIL 4 Foundation, ServiceNow NextGen System Administrator training, "
-            "and the McKinsey Forward Program."
+            "I review requirements, ETL results, testing outcomes, access controls, and risk documentation before go-live "
+            "or contract execution, supported by ITIL 4 and ServiceNow NextGen training."
         )
     if normalized == "customer service":
         return (
             "At Aptean and The Home Depot, I worked directly with customers and internal users, balancing technical "
-            "constraints with service quality, adoption, and business outcomes. That included stabilizing high-risk accounts, "
-            "leading recovery conversations, and building workflow and reporting improvements that reduced friction for users "
-            "and stakeholders."
+            "constraints with service quality, adoption, and business outcomes while stabilizing high-risk accounts and "
+            "improving support workflows."
+        )
+    if normalized == "decision making":
+        return (
+            "At East West, I advised VP- and director-level stakeholders on modernization priorities, vendor tradeoffs, "
+            "implementation risk, and platform decisions affecting five sites and 150+ users."
+        )
+    if normalized == "information management":
+        return (
+            "I built and maintained information-management systems through 200+ SQL-based dashboards, reporting data models, "
+            "Crystal Reports, Power BI tools, and inventory reporting used for decisions affecting $20M+ in daily inventory."
+        )
+    if normalized == "interpersonal skills":
+        return (
+            "I have worked across executives, customers, end users, vendors, and technical teams, including 60+ executive "
+            "workshops and QBRs at Aptean and cross-functional coordination at East West."
         )
     if normalized == "oral communication":
         return (
-            "I regularly translated technical issues into plain business language for executives, facilitated workshops and "
-            "QBRs, delivered training, and aligned stakeholders around scope, risk, and next steps."
+            "I translated technical issues into plain business language for executives, facilitated workshops and QBRs, "
+            "delivered training, and aligned stakeholders around scope, risk, and next steps."
         )
     if normalized == "problem solving":
         return (
-            "Across East West, Aptean, and The Home Depot, I analyzed process gaps, customer trends, operational risks, and "
-            "system constraints, then turned that analysis into corrective workflows, implementation plans, reporting tools, "
-            "or support-channel improvements, including a 78% reduction in manual inventory processing and a 22% drop in "
-            "discrepancy rates."
+            "Across East West, Aptean, and The Home Depot, I turned process gaps, customer trends, operational risks, and "
+            "system constraints into corrective workflows, plans, reporting tools, and support-channel improvements."
+        )
+    if normalized == "teamwork":
+        return (
+            "I coordinated East West vendors and business users, partnered with Aptean product, development, implementation, "
+            "and support teams, and helped a Home Depot pilot team launch a new SMS support channel."
+        )
+    if normalized == "technical competence":
+        return (
+            "My technical experience includes ERP modernization, SQL and BI reporting, ETL validation, access-control "
+            "governance, recovery testing, Azure DevOps/TFS, Jira, ServiceNow, Salesforce, Power BI, and LivePerson workflows."
         )
     return (
         "My resume shows repeated experience translating complex technical work into practical decisions, documentation, and "
@@ -2879,6 +3038,24 @@ def selected_bullet_reference_lines(source: FederalSource, bullet_groups: tuple[
     for role_index, group in enumerate(bullet_groups):
         refs = ", ".join(bullet_reference(source, candidate.role_index, candidate.bullet_index) for candidate in group)
         lines.append(f"{source.roles[role_index].company}: {refs or 'none'}")
+    return tuple(lines)
+
+
+def selected_duty_visibility_lines(source: FederalSource, bullet_groups: tuple[tuple[FederalBulletCandidate, ...], ...]) -> tuple[str, ...]:
+    references_by_duty: dict[str, list[str]] = {label: [] for label, _markers in FEDERAL_SPECIALIZED_DUTY_MARKERS}
+    for group in bullet_groups:
+        for candidate in group:
+            ref = bullet_reference(source, candidate.role_index, candidate.bullet_index)
+            for duty in federal_specialized_duty_hits(candidate.text):
+                if ref not in references_by_duty[duty]:
+                    references_by_duty[duty].append(ref)
+    lines: list[str] = []
+    for duty_label, _markers in FEDERAL_SPECIALIZED_DUTY_MARKERS:
+        refs = references_by_duty[duty_label]
+        if refs:
+            lines.append(f"{duty_label}: surfaced via {', '.join(refs[:4])}")
+        else:
+            lines.append(f"{duty_label}: not surfaced in selected two-page bullets")
     return tuple(lines)
 
 

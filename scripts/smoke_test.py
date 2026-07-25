@@ -247,6 +247,35 @@ during sprint planning or execution.
 GS-12: Assisting in designing, developing, testing, or deploying AI models and prototypes.
 """
 
+FEDERAL_DEPT_ED_JOB_DESCRIPTION = """
+IT Project Manager
+Department of Education
+Federal Student Aid
+
+As a IT Project Manager, GS-2210-14, you will be responsible for:
+- Managing project, time, resource, budget, scope, schedule, risk, contracts, and change requests.
+- Managing technical activities of project teams in an iterative, incremental, parallel, and time-boxed manner.
+- Identifying technical resource requirements for projects and onboarding qualified resources.
+
+Specialized Experience for the GS-14
+One year of experience in either federal or non-federal service that is equivalent to at least a GS-13 performing two (2) out of three (3) of the following duties or work assignments:
+1. Experience leading cross-functional project teams utilizing agile methodologies and practices while identifying and managing associated risks, issues, contracts, and change requests to meet schedule, budget, and organizational policies and objectives to facilitate the delivery of incremental software or system enhancements.
+2. Experience in applying agile methods to support technical integration, system modernization, and continuous improvement initiatives to ensure IT systems are compatible with architecture, cloud platforms, system interfaces, and cybersecurity requirements to reduce technical debt and improve release predictability.
+3. Experience implementing risk and issue management processes, ensuring potential blockers are identified early, escalated appropriately, resolved and aligned with established change-control processes within agile release frameworks to adhere to program timelines and deliverables.
+
+Basic Experience Requirements
+You must possess IT related experience demonstrating each of the nine competencies listed below.
+1. Attention to Detail - Is thorough when performing work and conscientious about attending to detail.
+2. Customer Service - Works with clients and customers to assess their needs, provide information or assistance, resolve their problems, or satisfy their expectations.
+3. Decision Making - Makes sound, well-informed, and objective decisions.
+4. Information Management - Identifies a need for and knows where or how to gather information; organizes and maintains information or information management systems.
+5. Interpersonal Skills - Shows understanding, friendliness, courtesy, tact, empathy, concern, and politeness to others.
+6. Oral Communication - Expresses information to individuals or groups effectively.
+7. Problem Solving - Identifies problems and uses sound judgment to generate and evaluate alternatives.
+8. Teamwork - Encourages and facilitates cooperation, pride, trust, and group identity.
+9. Technical Competence – Uses knowledge acquired through formal training or on-the-job experience to perform the job.
+"""
+
 FEDERAL_STANDALONE_AGENCY_DESCRIPTION = """
 Position: IT Specialist (Customer Support Systems Analysis)
 Department of Veterans Affairs
@@ -802,6 +831,82 @@ def test_federal_summary_structure(build_federal_resume: object) -> None:
         f"Federal summary should not imply prior federal service; got {summary}",
     )
     assert_true("--" not in summary, "Federal summary should not contain double dashes")
+
+
+def test_federal_all_nine_competencies_have_supported_responses(build_federal_resume: object) -> None:
+    source = build_federal_resume.load_federal_source()
+    profile = build_federal_resume.job_problem_profile(
+        FEDERAL_DEPT_ED_JOB_DESCRIPTION,
+        build_federal_resume.source_visible_text(source),
+    )
+    questions = build_federal_resume.federal_application_questions(FEDERAL_DEPT_ED_JOB_DESCRIPTION, profile.primary_lane)
+    extracted_names = tuple(prompt.name for prompt in questions.competencies)
+    assert_true(
+        extracted_names == build_federal_resume.FEDERAL_COMPETENCY_NAMES,
+        f"Federal competency extraction should capture all nine names in order; got {extracted_names}",
+    )
+
+    paragraphs, labeled_items, _length = build_federal_resume.build_question_one_answer(
+        questions,
+        FEDERAL_DEPT_ED_JOB_DESCRIPTION,
+    )
+    answer_text = "\n".join((*paragraphs, *(f"{label}: {text}" for label, text in labeled_items)))
+    for name in build_federal_resume.FEDERAL_COMPETENCY_NAMES:
+        assert_true(f"{name}:" in answer_text, f"Federal qualifications should label {name}.")
+    assert_true(
+        "My resume shows repeated experience translating complex technical work into practical decisions" not in answer_text,
+        "Federal competency responses should not use the old generic fallback for the five expanded competencies.",
+    )
+    assert_true(
+        all(
+            term in answer_text
+            for term in (
+                "vendor tradeoffs",
+                "200+ SQL-based dashboards",
+                "$20M+ in daily inventory",
+                "60+ executive workshops",
+                "Home Depot pilot team",
+                "access-control governance",
+            )
+        ),
+        f"Federal expanded competency responses should use specific source evidence; got {answer_text}",
+    )
+
+
+def test_federal_grade_match_and_duty_visibility_reporting(build_federal_resume: object) -> None:
+    source = build_federal_resume.load_federal_source()
+    paragraphs = build_federal_resume.specialized_experience_paragraphs(FEDERAL_DEPT_ED_JOB_DESCRIPTION)
+    specialized_text = "\n".join(paragraphs)
+    assert_true(
+        "GS-13-equivalent specialized experience" in specialized_text
+        and "two of the three duty areas" in specialized_text,
+        f"Federal specialized-experience response should state GS-13 equivalence and 2-of-3 duty framing; got {specialized_text}",
+    )
+
+    audit = build_federal_resume.federal_requirement_audit(source, FEDERAL_DEPT_ED_JOB_DESCRIPTION)
+    profile = build_federal_resume.job_problem_profile(
+        FEDERAL_DEPT_ED_JOB_DESCRIPTION,
+        build_federal_resume.source_visible_text(source),
+    )
+    bullet_groups = build_federal_resume.selected_bullet_candidates_by_role(
+        source,
+        FEDERAL_DEPT_ED_JOB_DESCRIPTION,
+        profile.primary_lane,
+        build_federal_resume.keyword_set(FEDERAL_DEPT_ED_JOB_DESCRIPTION),
+        build_federal_resume.FEDERAL_LAYOUT_PROFILES[0],
+        audit,
+    )
+    duty_lines = build_federal_resume.selected_duty_visibility_lines(source, bullet_groups)
+    selected_text = "\n".join(candidate.text for group in bullet_groups for candidate in group)
+    assert_true(
+        all("surfaced via" in line for line in duty_lines),
+        f"Federal duty visibility report should show surfaced references for Duty 1, 2, and 3; got {duty_lines}",
+    )
+    assert_true(
+        "Duty 2" in "\n".join(duty_lines)
+        and any(term in selected_text for term in ("zero-trust", "system modernization", "unplanned downtime", "inventory scrap")),
+        f"Federal two-page selection should prefer Duty 2 security or modernization evidence when available; lines={duty_lines}; selected={selected_text}",
+    )
 
 
 def test_federal_ai_summary_and_selection(build_federal_resume: object) -> None:
@@ -12818,6 +12923,7 @@ def test_run_federal_workflow_dry_run_labels_unverified_page_counts() -> None:
                 ),
                 requirement_report_lines=lambda _audit: ("Selective Factor [Direct] -> Example requirement",),
                 selected_bullet_reference_lines=lambda _source, _groups: ("Department of Veterans Affairs: none",),
+                selected_duty_visibility_lines=lambda _source, _groups: ("Duty 1: not surfaced in selected two-page bullets",),
                 federal_page_count_label=lambda page_count: "unverified (renderer unavailable)" if page_count is None else str(page_count),
             )
 
@@ -14467,6 +14573,8 @@ def main() -> None:
         ("federal source load", None),
         ("federal standard essay responses", None),
         ("federal summary structure", None),
+        ("federal all nine competencies supported", None),
+        ("federal grade match and duty visibility", None),
         ("federal requirement audit and keywords", None),
         ("federal layouts stay at ten point", None),
         ("federal visibility report tracks selected requirements", None),
@@ -14579,6 +14687,8 @@ def main() -> None:
             ("federal standard essay responses", lambda: test_federal_standard_essay_responses(build_federal_resume)),
             ("federal qualifications append shared question prep", lambda: test_federal_qualifications_append_additional_questions_and_recent_interview_prep(build_federal_resume)),
             ("federal summary structure", lambda: test_federal_summary_structure(build_federal_resume)),
+            ("federal all nine competencies supported", lambda: test_federal_all_nine_competencies_have_supported_responses(build_federal_resume)),
+            ("federal grade match and duty visibility", lambda: test_federal_grade_match_and_duty_visibility_reporting(build_federal_resume)),
             ("federal ai summary and selection", lambda: test_federal_ai_summary_and_selection(build_federal_resume)),
             ("federal requirement audit and keywords", lambda: test_federal_requirement_audit_and_keywords(build_federal_resume)),
             ("federal layouts stay at ten point", lambda: test_federal_layouts_stay_at_ten_point(build_federal_resume)),

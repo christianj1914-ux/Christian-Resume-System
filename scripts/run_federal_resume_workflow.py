@@ -255,6 +255,10 @@ def run_dry_run() -> int:
     for line in build_federal_resume.selected_bullet_reference_lines(source, plan.bullet_groups):
         print(f"  {line}")
 
+    print("\nSpecialized duty visibility:")
+    for line in build_federal_resume.selected_duty_visibility_lines(source, plan.bullet_groups):
+        print(f"  {line}")
+
     print("\nFederal layout readiness:")
     print(
         f"  Resume layout: {plan.resume_layout.name} | Body font: {plan.resume_layout.font_size:.1f}pt | "
