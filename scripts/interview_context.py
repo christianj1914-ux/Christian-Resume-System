@@ -266,6 +266,43 @@ def _split_lines(value: object) -> list[str]:
     return [cleaned] if cleaned else []
 
 
+def _normalize_answer_rating_items(value: object) -> list[dict[str, str]]:
+    items: Sequence[object]
+    if isinstance(value, str):
+        items = _split_lines(value)
+    elif isinstance(value, Sequence) and not isinstance(value, (str, bytes)):
+        items = value
+    else:
+        items = ()
+    normalized: list[dict[str, str]] = []
+    seen: set[tuple[str, str, str, str]] = set()
+    for item in items:
+        if isinstance(item, Mapping):
+            prompt = _clean_scalar(item.get("prompt"))
+            competency = _clean_scalar(item.get("competency"))
+            rating = _clean_scalar(item.get("rating")).lower()
+            note = _clean_scalar(item.get("note"))
+        else:
+            parts = [part.strip() for part in str(item).split("|")]
+            if len(parts) >= 4:
+                prompt, competency, rating, note = parts[0], parts[1], parts[2].lower(), " | ".join(parts[3:])
+            elif len(parts) == 3:
+                prompt, competency, rating, note = parts[0], parts[1], parts[2].lower(), ""
+            else:
+                continue
+            prompt = _clean_scalar(prompt)
+            competency = _clean_scalar(competency)
+            note = _clean_scalar(note)
+        if rating not in {"landed", "rambled", "missed"}:
+            continue
+        key = (prompt.lower(), competency.lower(), rating, note.lower())
+        if key in seen:
+            continue
+        normalized.append({"prompt": prompt, "competency": competency, "rating": rating, "note": note})
+        seen.add(key)
+    return normalized
+
+
 def _clean_raw_notes_text(value: object) -> str:
     cleaned = clean_source_text(str(value or "")).strip()
     if not cleaned:
@@ -1082,6 +1119,12 @@ def normalize_round_record(data: Mapping[str, object]) -> dict[str, object]:
         "role_language": _split_lines(data.get("role_language", [])),
         "feedback_received": _split_lines(data.get("feedback_received", [])),
         "company_intelligence": _split_lines(data.get("company_intelligence", [])),
+        "competencies_probed": _split_lines(data.get("competencies_probed", [])),
+        "answer_ratings": _normalize_answer_rating_items(data.get("answer_ratings", [])),
+        "hedge_observations": _split_lines(data.get("hedge_observations", [])),
+        "new_story_candidates": _split_lines(data.get("new_story_candidates", [])),
+        "development_area_signals": _split_lines(data.get("development_area_signals", [])),
+        "job_description_text": _clean_scalar(data.get("job_description_text")),
         "performance_review": performance_review,
         "review_analysis": review_analysis,
         "imported_review_text": imported_review_text,
@@ -1121,6 +1164,16 @@ def merge_round_records(base: Mapping[str, object], incoming: Mapping[str, objec
         "role_language": _unique_strings([*_split_lines(left.get("role_language", [])), *_split_lines(right.get("role_language", []))]),
         "feedback_received": _unique_strings([*_split_lines(left.get("feedback_received", [])), *_split_lines(right.get("feedback_received", []))]),
         "company_intelligence": _unique_strings([*_split_lines(left.get("company_intelligence", [])), *_split_lines(right.get("company_intelligence", []))]),
+        "competencies_probed": _unique_strings([*_split_lines(left.get("competencies_probed", [])), *_split_lines(right.get("competencies_probed", []))]),
+        "answer_ratings": _normalize_answer_rating_items([*left.get("answer_ratings", []), *right.get("answer_ratings", [])]),
+        "hedge_observations": _unique_strings([*_split_lines(left.get("hedge_observations", [])), *_split_lines(right.get("hedge_observations", []))]),
+        "new_story_candidates": _unique_strings([*_split_lines(left.get("new_story_candidates", [])), *_split_lines(right.get("new_story_candidates", []))]),
+        "development_area_signals": _unique_strings([*_split_lines(left.get("development_area_signals", [])), *_split_lines(right.get("development_area_signals", []))]),
+        "job_description_text": _first_non_empty(
+            left.get("job_description_text") if len(_clean_scalar(left.get("job_description_text"))) >= len(_clean_scalar(right.get("job_description_text"))) else "",
+            right.get("job_description_text"),
+            left.get("job_description_text"),
+        ),
         "imported_review_text": _first_non_empty(
             left.get("imported_review_text") if len(_clean_scalar(left.get("imported_review_text"))) >= len(_clean_scalar(right.get("imported_review_text"))) else "",
             right.get("imported_review_text"),
@@ -1350,6 +1403,34 @@ def record_to_debrief_entry(record: Mapping[str, object]) -> str:
         "Insider company intelligence learned:",
         _format_section_lines(normalized.get("company_intelligence", [])),
         "",
+        "Competencies probed:",
+        _format_section_lines(normalized.get("competencies_probed", [])),
+        "",
+        "Answer ratings:",
+        _format_section_lines(
+            [
+                " | ".join(
+                    (
+                        _clean_scalar(item.get("prompt")),
+                        _clean_scalar(item.get("competency")),
+                        _clean_scalar(item.get("rating")),
+                        _clean_scalar(item.get("note")),
+                    )
+                ).strip(" |")
+                for item in normalized.get("answer_ratings", [])
+                if isinstance(item, Mapping)
+            ]
+        ),
+        "",
+        "Hedge observations:",
+        _format_section_lines(normalized.get("hedge_observations", [])),
+        "",
+        "New story candidates:",
+        _format_section_lines(normalized.get("new_story_candidates", [])),
+        "",
+        "Development area signals:",
+        _format_section_lines(normalized.get("development_area_signals", [])),
+        "",
         "Performance summary:",
         _clean_scalar(review.get("summary")) or "None supplied.",
         "",
@@ -1518,6 +1599,18 @@ def _record_to_dossier_markdown(record: Mapping[str, object]) -> str:
         _dossier_section("Weakest Answers", "\n".join(f"- {line}" for line in _split_lines(review.get("weakest_answers", [])))),
         _dossier_section("Company Intelligence", "\n".join(f"- {line}" for line in _split_lines(normalized.get("company_intelligence", [])))),
         _dossier_section("Feedback Received", "\n".join(f"- {line}" for line in _split_lines(normalized.get("feedback_received", [])))),
+        _dossier_section("Competencies Probed", "\n".join(f"- {line}" for line in _split_lines(normalized.get("competencies_probed", [])))),
+        _dossier_section(
+            "Answer Ratings",
+            "\n".join(
+                f"- {_clean_scalar(item.get('prompt'))}: {_clean_scalar(item.get('competency'))} - {_clean_scalar(item.get('rating'))}. {_clean_scalar(item.get('note'))}".strip()
+                for item in normalized.get("answer_ratings", [])
+                if isinstance(item, Mapping)
+            ),
+        ),
+        _dossier_section("Hedge Observations", "\n".join(f"- {line}" for line in _split_lines(normalized.get("hedge_observations", [])))),
+        _dossier_section("New Story Candidates", "\n".join(f"- {line}" for line in _split_lines(normalized.get("new_story_candidates", [])))),
+        _dossier_section("Development Area Signals", "\n".join(f"- {line}" for line in _split_lines(normalized.get("development_area_signals", [])))),
         _dossier_section("Stories That Generated Follow-Up Questions", "\n".join(f"- {line}" for line in _split_lines(normalized.get("story_followups", [])))),
         _dossier_section("Unexpected Questions", "\n".join(f"- {line}" for line in _split_lines(normalized.get("unexpected_questions", [])))),
         _dossier_section("Raw Notes", _clean_scalar(normalized.get("raw_notes"))),

@@ -27,14 +27,15 @@
 ## Shared Guidance Layer
 
 - `scripts/business_context.py` extracts business model, customer type, product or service context, operational complexity, technical stack, compliance signals, and role-success outcomes.
-- `scripts/interview_context.py` scopes company research and interview notes so later outputs only use context that belongs to the active company.
+- `scripts/interview_context.py` scopes company research, interview notes, and structured debrief fields so later outputs only use context that belongs to the active company.
 - `scripts/job_search_guidance.py` is the shared advice layer for generalized career guidance, recruiter-screen prep, follow-up timing, concise email rules, salary research basics, remote or hybrid screening, LinkedIn findability, informational interviews, and follow-up sequences.
+- `scripts/interview_intelligence.py` owns the provisional self-inventory loader, validation, spoken strengths and weaknesses answers, per-JD interview scorecard generation, daily prep plan rotation and debrief focus biasing, debrief review-queue artifacts, career operating plan model, competency framework terms, story or gap-pivot mapping, and candidate-facing leak guards for self-development-only weakness labels.
 
 ## Output Families
 
 - Resume and cover letter: `build_resume.py`, `build_federal_resume.py`, `build_cover_letter.py`, `build_application_checklist.py`
-- Interview prep: `build_interview_cheat_sheet.py`, `build_detailed_interview_guide.py`, `build_thank_you.py`, `build_interview_followup.py`, `build_post_round.py`, `build_internal_interview.py`
-- Career and job-search guidance: `build_general_advice.py`, `build_linkedin_update.py`, `build_linkedin_calendar.py`, `build_networking_outreach.py`, `build_first_90_days.py`, `build_salary_guide.py`, `build_monthly_review.py`, `build_skills_gap.py`
+- Interview prep: `build_interview_cheat_sheet.py`, `build_detailed_interview_guide.py`, `build_self_inventory_onepager.py`, `build_daily_prep_plan.py`, `build_thank_you.py`, `build_interview_followup.py`, `build_post_round.py`, `build_internal_interview.py`
+- Career and job-search guidance: `build_career_operating_plan.py`, `build_general_advice.py`, `build_linkedin_update.py`, `build_linkedin_calendar.py`, `build_networking_outreach.py`, `build_first_90_days.py`, `build_salary_guide.py`, `build_monthly_review.py`, `build_skills_gap.py`
 - Debrief and search operations: `post_interview_debrief.py`, `build_debrief_analysis.py`, `track_applications.py`, `application_status.py`, `build_search_analytics.py`, `reset_jobs.py`, `backup.py`
 
 ## Governance Rules

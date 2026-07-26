@@ -224,6 +224,27 @@ TASKS: dict[str, Task] = {
     "jd-patterns": Task("Show job-description library patterns.", ("scripts/build_jd_library.py", "patterns"), False),
     "interview": Task("Build the standard interview cheat sheet directly.", ("scripts/build_interview_cheat_sheet.py",)),
     "guide": Task("Build the detailed interview guide directly. Optional flags: --stage <key> [--interviewer-context PATH].", ("scripts/build_detailed_interview_guide.py",)),
+    "self-inventory": Task(
+        "Build the provisional self-inventory one-pager and spoken strengths/weaknesses answers.",
+        ("scripts/build_self_inventory_onepager.py",),
+        False,
+        "Experimental",
+        False,
+    ),
+    "daily-prep": Task(
+        "Build the daily interview prep plan. Optional flags: --mode job_search|on_the_job [--log-complete --reps-done N --hedge-count N --self-rated-clarity N].",
+        ("scripts/build_daily_prep_plan.py",),
+        False,
+        "Experimental",
+        False,
+    ),
+    "career-plan": Task(
+        "Build the career operating plan linking target roles, gaps, Study tracks, daily prep, and review checkpoints.",
+        ("scripts/build_career_operating_plan.py",),
+        False,
+        "Experimental",
+        False,
+    ),
     "interview-review": Task(
         "Build the latest interview review and positioning-diagnosis document from structured debriefs.",
         ("scripts/build_interview_review.py",),

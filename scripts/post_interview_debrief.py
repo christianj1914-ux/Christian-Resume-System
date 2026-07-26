@@ -11,6 +11,7 @@ from pathlib import Path
 
 import build_resume
 import interview_context
+import interview_intelligence
 import track_applications
 from utils import agent_debug_log, companies_refer_to_same, fail, optional_text, read_text
 
@@ -45,6 +46,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--role-language", help="Optional newline-delimited interviewer language notes for non-interactive capture.")
     parser.add_argument("--feedback-received", help="Optional newline-delimited feedback notes for non-interactive capture.")
     parser.add_argument("--company-intelligence", help="Optional newline-delimited company intelligence notes for non-interactive capture.")
+    parser.add_argument("--competencies-probed", help="Optional newline-delimited competencies probed in the interview.")
+    parser.add_argument("--answer-ratings", help="Optional newline-delimited answer ratings: prompt | competency | landed|rambled|missed | note.")
+    parser.add_argument("--hedge-observations", help="Optional newline-delimited hedge or delivery observations.")
+    parser.add_argument("--new-story-candidates", help="Optional newline-delimited new story candidates surfaced in the debrief.")
+    parser.add_argument("--development-area-signals", help="Optional newline-delimited development areas that showed up as real gaps.")
+    parser.add_argument("--job-description-text", help="Optional job description text for this debrief.")
+    parser.add_argument("--job-description-file", help="Optional path to the job description for this debrief.")
     parser.add_argument("--no-prompt", action="store_true", help="Do not prompt for missing multiline sections when importing a round.")
     args = parser.parse_args()
     if not any((args.capture, args.prepare_notes, args.prepare_company_notes, args.repair_legacy, args.list, args.search)):
@@ -167,6 +175,13 @@ def _noninteractive_capture(args: argparse.Namespace) -> bool:
                     args.role_language,
                     args.feedback_received,
                     args.company_intelligence,
+                    args.competencies_probed,
+                    args.answer_ratings,
+                    args.hedge_observations,
+                    args.new_story_candidates,
+                    args.development_area_signals,
+                    args.job_description_text,
+                    args.job_description_file,
                 )
             )
         )
@@ -204,6 +219,22 @@ def collect_debrief(args: argparse.Namespace) -> dict[str, object]:
     role_language = args.role_language.strip() if args.role_language else ("" if noninteractive else prompt_multiline("What specific language did the interviewer use about the role?"))
     feedback_received = args.feedback_received.strip() if args.feedback_received else ("" if noninteractive else prompt_multiline("What feedback was received?"))
     company_intelligence = args.company_intelligence.strip() if args.company_intelligence else ("" if noninteractive else prompt_multiline("What insider company intelligence was learned?"))
+    competencies_probed = args.competencies_probed.strip() if args.competencies_probed else ("" if noninteractive else prompt_multiline("Which competencies did they probe?"))
+    answer_ratings = args.answer_ratings.strip() if args.answer_ratings else (
+        ""
+        if noninteractive
+        else prompt_multiline("Rate key answers as: prompt | competency | landed|rambled|missed | note")
+    )
+    hedge_observations = args.hedge_observations.strip() if args.hedge_observations else ("" if noninteractive else prompt_multiline("What hedge, ramble, or delivery observations showed up?"))
+    new_story_candidates = args.new_story_candidates.strip() if args.new_story_candidates else ("" if noninteractive else prompt_multiline("Any new story candidates surfaced? Keep them raw for review."))
+    development_area_signals = args.development_area_signals.strip() if args.development_area_signals else ("" if noninteractive else prompt_multiline("Which development areas showed up as real gaps?"))
+    job_description_text = args.job_description_text.strip() if args.job_description_text else ""
+    if not job_description_text and args.job_description_file:
+        job_description_text = _read_optional_raw_notes_file(args.job_description_file)
+    if not job_description_text:
+        active_jd = read_text(PROJECT_ROOT / "jobs" / "job_description.txt")
+        if active_jd and debrief_matches_active_job(company_name, active_jd):
+            job_description_text = active_jd.strip()
 
     imported_review_path = args.import_review or ("" if noninteractive else prompt_optional("Imported performance review file path (optional)"))
     imported_review_text = _read_optional_artifact(imported_review_path)
@@ -221,6 +252,12 @@ def collect_debrief(args: argparse.Namespace) -> dict[str, object]:
         "role_language": role_language,
         "feedback_received": feedback_received,
         "company_intelligence": company_intelligence,
+        "competencies_probed": competencies_probed,
+        "answer_ratings": answer_ratings,
+        "hedge_observations": hedge_observations,
+        "new_story_candidates": new_story_candidates,
+        "development_area_signals": development_area_signals,
+        "job_description_text": job_description_text,
         "imported_review_text": imported_review_text,
         "imported_artifacts": imported_artifacts,
     }
@@ -313,7 +350,7 @@ def update_tracker_from_debrief(data: dict[str, object]) -> None:
     print(f"Application tracker {action.lower()} from debrief.")
 
 
-def print_summary(record: dict[str, object], record_path: Path, dossier_path: Path) -> None:
+def print_summary(record: dict[str, object], record_path: Path, dossier_path: Path, feedback_paths: dict[str, Path] | None = None) -> None:
     print()
     print("Captured debrief summary")
     print(f"Company: {record.get('company_name', '')}")
@@ -325,6 +362,9 @@ def print_summary(record: dict[str, object], record_path: Path, dossier_path: Pa
     print(f"Company dossier updated: {dossier_path}")
     print(f"Legacy debrief history regenerated: {DEBRIEF_HISTORY}")
     print(f"Legacy company research regenerated: {COMPANY_RESEARCH}")
+    if feedback_paths:
+        print(f"Prep focus written: {feedback_paths.get('prep_focus', '')}")
+        print(f"Inventory candidates written: {feedback_paths.get('inventory_candidates', '')}")
     print()
     print("Reminder: rerun the standard cheat sheet or detailed guide scripts to incorporate the new intelligence and coaching signals.")
 
@@ -335,7 +375,8 @@ def capture_debrief(args: argparse.Namespace) -> None:
     interview_context.rebuild_company_dossiers(JOBS_DIR)
     interview_context.rebuild_legacy_exports(JOBS_DIR)
     update_tracker_from_debrief(record)
-    print_summary(record, record_path, interview_context.company_dossier_path(JOBS_DIR, str(record.get("company_name", ""))))
+    feedback_paths = interview_intelligence.write_debrief_feedback_artifacts(record)
+    print_summary(record, record_path, interview_context.company_dossier_path(JOBS_DIR, str(record.get("company_name", ""))), feedback_paths)
 
 
 def prepare_company_notes(args: argparse.Namespace) -> None:

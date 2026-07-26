@@ -1,0 +1,167 @@
+{
+  "status": "provisional",
+  "status_note": "Draft self-inventory for Christian to confirm or edit before later interview-system phases build on it.",
+  "strengths": [
+    {
+      "name": "Dual-sided implementation translator",
+      "one_line": "Translates between business and technical teams because he has implemented enterprise systems from both the vendor side and the internal owner side.",
+      "interview_safe": "I translate between business and technical teams. I have implemented enterprise systems from both the vendor side and as the internal owner, so I can sit with a customer, understand what they actually need, turn it into something engineering can build, and make sure what is delivered still matches what was agreed.",
+      "evidence_stories": [
+        "Windows-95 discovery",
+        "CEO escalation",
+        "Aptean 80+ client engagements",
+        "East West ERP ownership"
+      ],
+      "how_it_shows_up": "Discovery, requirements definition, FRD/SOW alignment, gap analysis, implementation judgment, and translating unclear needs into buildable scope.",
+      "keywords": [
+        "discovery",
+        "requirements",
+        "FRD",
+        "SOW",
+        "gap analysis",
+        "implementation judgment"
+      ]
+    },
+    {
+      "name": "Fast ramp on unfamiliar systems",
+      "one_line": "Gets productive quickly in unfamiliar systems by mapping new tools to fundamentals he already understands.",
+      "interview_safe": "I ramp quickly on unfamiliar systems. I have been handed platforms I had never used and gotten up to speed fast enough to train other teams on them, because I map new tools to fundamentals I already know. I am comfortable in ambiguity and I get productive fast.",
+      "evidence_stories": [
+        "East West fast ramp",
+        "Aptean rapid product learning",
+        "hands-on Claude and Codex use"
+      ],
+      "how_it_shows_up": "Learning velocity, self-direction, practical systems thinking, and becoming useful before every detail is known.",
+      "keywords": [
+        "adaptability",
+        "learning velocity",
+        "self-direction",
+        "ambiguity",
+        "rapid learning"
+      ]
+    },
+    {
+      "name": "Cross-functional alignment without authority",
+      "one_line": "Gets business, IT, finance, vendors, and leaders onto one usable plan even when ownership is split.",
+      "interview_safe": "I am strong at aligning cross-functional groups without formal authority, getting business, IT, finance, and vendors onto one plan everyone commits to. I did exactly that on a five-month payment-integration project spanning four different organizations.",
+      "evidence_stories": [
+        "EFT/ACH cross-functional replacement",
+        "60+ executive workshops",
+        "CEO escalation"
+      ],
+      "how_it_shows_up": "Stakeholder alignment, influence without authority, executive communication, written confirmation, and delivery ownership across divided groups.",
+      "keywords": [
+        "stakeholder alignment",
+        "influence",
+        "delivery",
+        "executive readout",
+        "cross-functional"
+      ]
+    }
+  ],
+  "weaknesses": [
+    {
+      "honest_name": "rambles, buries the point, not BLUF",
+      "interview_safe": "I tend to go deep into detail when I care about the work, so I have been deliberately practicing leading with the headline first and keeping answers tight, especially with non-technical and executive audiences.",
+      "improvement_action": "Daily BLUF and story drills: answer first, one example, result, relevance, then stop.",
+      "improvement_spoken": "so I have been drilling answer-first delivery: the headline, one example, the result, then I stop",
+      "status": "active"
+    },
+    {
+      "honest_name": "loses track of strengths, hedges, undersells",
+      "interview_safe": "Historically I have undersold my own contributions by crediting the team and downplaying my part.",
+      "improvement_action": "Maintain this self-inventory and a running evidence record so I can own my impact accurately without overstating it.",
+      "improvement_spoken": "so I now keep a running record of my outcomes to own my impact accurately without overstating it",
+      "status": "active"
+    },
+    {
+      "honest_name": "no formal Lean Six Sigma belt, thinner on deep AI engineering, TOGAF, cloud and coding foundations",
+      "interview_safe": "In a couple of areas my experience is hands-on rather than formally certified, for example I have led process-improvement work but have not sat for a Six Sigma belt.",
+      "improvement_action": "Actively pursue the IT learning path so credentials and technical fluency catch up to the hands-on experience.",
+      "improvement_spoken": "so I am actively working the certifications to catch the credentials up to the hands-on experience",
+      "status": "in progress"
+    }
+  ],
+  "signature_stories": [
+    {
+      "name": "Windows-95 discovery",
+      "summary": "Aptean discovery uncovered hidden integration and infrastructure risk before ERP modernization work reached production.",
+      "spoken_reference": "for example, at a client still running Windows-95-era systems, I led the discovery that surfaced the integration risks before they hit production",
+      "result": "The project risk was surfaced during discovery instead of being discovered in production.",
+      "competencies": [
+        "discovery",
+        "requirements",
+        "implementation risk",
+        "technical translation"
+      ]
+    },
+    {
+      "name": "CEO escalation",
+      "summary": "Took ownership of an executive escalation, reset alignment through written confirmation, and rebuilt customer trust.",
+      "spoken_reference": "for example, when a client's CEO felt the delivered product did not match what was agreed, I took direct ownership, set a weekly cadence with him, fast-tracked the fixes with product and dev, and moved every agreement into writing",
+      "result": "The relationship recovered and the account held.",
+      "competencies": [
+        "executive communication",
+        "customer recovery",
+        "stakeholder alignment",
+        "requirements confirmation"
+      ]
+    },
+    {
+      "name": "East West fast ramp",
+      "summary": "Ramped on an unfamiliar Aptean environment quickly enough to train global teams and own the system internally.",
+      "spoken_reference": "for example, I was dropped into a platform I had never used at East West and got up to speed fast enough to train the global teams on it",
+      "result": "I became productive quickly enough to train global teams and own the system internally.",
+      "competencies": [
+        "rapid learning",
+        "adaptability",
+        "systems ownership",
+        "training"
+      ]
+    },
+    {
+      "name": "EFT/ACH cross-functional replacement",
+      "summary": "Coordinated IT, finance, Aptean, and Truist Bank through a five-month replacement of a fragile payment workflow.",
+      "spoken_reference": "for example, a five-month EFT/ACH payment replacement where I aligned internal IT, global finance, the vendor, and the bank on one plan",
+      "result": "The five-month replacement produced a compliant, auditable payment workflow across four parties.",
+      "competencies": [
+        "cross-functional alignment",
+        "delivery",
+        "risk management",
+        "vendor coordination"
+      ]
+    },
+    {
+      "name": "Inventory automation / DMAIC",
+      "summary": "Mapped and automated an inventory workflow, reducing manual work by 78%, discrepancies by 22%, and scrap cost by about 32%.",
+      "spoken_reference": "for example, I mapped a messy inventory workflow, automated the control points, and reduced manual work by 78% while lowering discrepancies by 22%",
+      "result": "The work reduced manual processing by 78%, lowered discrepancies by 22%, and cut scrap cost by about 32%.",
+      "competencies": [
+        "process improvement",
+        "root cause analysis",
+        "automation",
+        "controls"
+      ]
+    }
+  ],
+  "motivation": "What drives me is stepping into ambiguous, cross-functional problems, the ones without a clear owner, and turning them into structured work that people actually use and that holds up after I hand it off. I do my best work where business, operations, and technology have to line up, whatever the title, and I care most about closing the gap between a plan and something that actually works in practice.",
+  "values": [
+    "clarity",
+    "ownership",
+    "useful systems",
+    "truthful proof",
+    "practical adoption"
+  ],
+  "target_roles": [
+    "Implementation Consultant",
+    "Solutions Consultant",
+    "Business Systems Analyst",
+    "Technical Program Manager",
+    "Business Architect / AI Evangelist"
+  ],
+  "non_negotiables": [
+    "Do not invent credentials, metrics, ownership, or experience.",
+    "Lead with the point before adding context.",
+    "Use real stories and evidence rather than generic confidence language."
+  ]
+}

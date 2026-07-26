@@ -34,6 +34,7 @@ import build_interview_cheat_sheet as cheat
 import build_resume
 import business_context
 import interview_context
+import interview_intelligence
 import interview_stage
 import question_prep
 import prose_engine
@@ -465,24 +466,37 @@ def add_body(document: Document, text: str, *, small: bool = False) -> None:
     run.font.size = Pt(SMALL_SIZE if small else BODY_SIZE)
 
 
-def add_answer_box(document: Document, text: str, *, label: str = "SAY THIS:") -> None:
+def repair_subjectless_fast_ramp_fragment(text: str) -> str:
+    return re.sub(r"\.\s+Got up to speed\b", " and got up to speed", text)
+
+
+def add_answer_box(
+    document: Document,
+    text: str,
+    *,
+    label: str = "SAY THIS:",
+    dedupe_sentences: bool = True,
+    apply_spoken_register: bool = True,
+) -> None:
     """Light blue answer box that follows a navy subsection/question header,
     matching the reference guide's "SAY THIS:" answer card body."""
     table, cell = _full_width_box_table(document)
     _shade_cell(cell, ANSWER_BOX_HEX)
     _set_cell_margins(cell, top=100, bottom=100, left=160, right=160)
-    spoken = prose_engine.spoken_register(text).text
-    ledger = getattr(document, "_codex_spoken_sentence_ledger", set())
-    kept_sentences: list[str] = []
-    for sentence in re.split(r"(?<=[.!?])\s+", spoken):
-        key = build_resume.normalize_compare(sentence)
-        if len(key.split()) > 6 and key in ledger:
-            continue
-        if len(key.split()) > 6:
-            ledger.add(key)
-        kept_sentences.append(sentence)
-    setattr(document, "_codex_spoken_sentence_ledger", ledger)
-    spoken = " ".join(kept_sentences) or spoken
+    spoken = prose_engine.spoken_register(text).text if apply_spoken_register else text
+    spoken = repair_subjectless_fast_ramp_fragment(spoken)
+    if dedupe_sentences:
+        ledger = getattr(document, "_codex_spoken_sentence_ledger", set())
+        kept_sentences: list[str] = []
+        for sentence in re.split(r"(?<=[.!?])\s+", spoken):
+            key = build_resume.normalize_compare(sentence)
+            if len(key.split()) > 6 and key in ledger:
+                continue
+            if len(key.split()) > 6:
+                ledger.add(key)
+            kept_sentences.append(sentence)
+        setattr(document, "_codex_spoken_sentence_ledger", ledger)
+        spoken = " ".join(kept_sentences) or spoken
     lines = []
     if label:
         lines.append((label, {"bold": True, "color": RGBColor(0x1F, 0x3B, 0x5C), "size": SMALL_SIZE}))
@@ -499,7 +513,7 @@ def add_structured_answer_box(document: Document, label: str, entries: Sequence[
     _set_cell_margins(cell, top=100, bottom=100, left=160, right=160)
     lines = [(f"{label}:", {"bold": True, "color": RGBColor(0x1F, 0x3B, 0x5C), "size": SMALL_SIZE})]
     for entry_label, text in entries:
-        spoken = prose_engine.spoken_register(text).text
+        spoken = repair_subjectless_fast_ramp_fragment(prose_engine.spoken_register(text).text)
         rendered = f"{entry_label}: {spoken}" if entry_label else spoken
         lines.append((rendered, {"size": BODY_SIZE}))
     _set_cell_text(cell, lines)
@@ -1179,8 +1193,7 @@ def build_extended_tmay_sections(
     if top_story:
         proof_parts: list[str] = []
         if top_story.title and top_story.hook:
-            opener = cheat.story_opener_by_type(set(top_story.story_types), top_story.title)
-            proof_parts.append(f"{opener[:1].upper() + opener[1:]} {cheat.lower_clause(top_story.hook)}")
+            proof_parts.append(story_claim_sentence(top_story))
         if top_story.level3_trait:
             proof_parts.append(cheat.spoken_level3_trait_sentence(top_story.level3_trait))
         if top_story.evidence:
@@ -1350,6 +1363,14 @@ def story_script_calibration(
     return ""
 
 
+def story_claim_sentence(card: cheat.StoryCard) -> str:
+    hook = re.sub(r"\s+", " ", card.hook).strip()
+    if re.match(r"^at\s+", hook, re.I):
+        return cheat.concrete_story_opening(card)
+    opener = cheat.story_opener_by_type(set(card.story_types), card.title)
+    return f"{opener[:1].upper() + opener[1:]} {cheat.lower_clause(hook)}"
+
+
 def story_script_answer(
     card: cheat.StoryCard,
     profile: build_resume.JobProblemProfile,
@@ -1367,8 +1388,7 @@ def story_script_answer(
         job_description,
         resume_text,
     )
-    opener = cheat.story_opener_by_type(set(card.story_types), card.title)
-    claim = f"{opener[:1].upper() + opener[1:]} {cheat.lower_clause(card.hook)}"
+    claim = story_claim_sentence(card)
     noticing = (
         f"What I noticed early was {cheat.lower_clause(card.level3_trait)}"
         if card.level3_trait
@@ -1484,6 +1504,27 @@ def add_story_anchor_system_section(
     add_bullet(document, "The Human Element is the part that should sound freshest in every interview. Keep the idea stable, but let the wording flex naturally.")
     add_bullet(document, "If the interviewer leans in on the Proof Beat, stay there and go deeper before rushing to the bridge.")
     add_bullet(document, "When the opening needs to stay shorter, collapse this into the 60-second version instead of forcing the full sequence.")
+
+
+def add_bluf_answer_bank(document: Document, title: str, answers: Sequence[interview_intelligence.BlufAnswer]) -> None:
+    if not answers:
+        return
+    add_section(document, title)
+    for item in answers:
+        add_subsection(document, item.prompt)
+        add_answer_box(
+            document,
+            item.answer,
+            label="HONEST PIVOT:" if item.is_gap else "BLUF ANSWER:",
+            dedupe_sentences=False,
+            apply_spoken_register=False,
+        )
+        if item.example_story:
+            add_bullet(document, f"Example story: {item.example_story}")
+        if item.result:
+            add_bullet(document, f"Result: {item.result}")
+        if item.relevance:
+            add_bullet(document, f"Relevance: {item.relevance}")
 
 
 def why_company_answer(
@@ -3066,6 +3107,20 @@ def build_document(
     if len(hero_stories) < 3:
         hero_stories = stories[:5]
     hero_stories = debrief_analysis.reorder_story_cards(hero_stories, debrief_summary)
+    interview_scorecard = interview_intelligence.jd_competency_scorecard(job_description, resume_text)
+    scorecard_bluf_answers = interview_intelligence.build_scorecard_bluf_answers(
+        interview_scorecard,
+        job_description,
+        role_title,
+        company_name,
+    )
+    high_stakes_answers = interview_intelligence.build_standard_high_stakes_answers(
+        job_description,
+        resume_text,
+        company_name,
+        role_title,
+        interview_scorecard,
+    )
     state_farm_mode = is_state_farm_active(company_name, role_title, job_description, company_research, interview_notes)
 
     document = Document()
@@ -3113,6 +3168,8 @@ def build_document(
         add_bullet(document, line)
     for title, description, fix in cheat.communication_audit_reference(job_description, interview_notes)[:3]:
         add_bullet(document, f"{title}: {description} {fix}")
+    add_bluf_answer_bank(document, "JD Scorecard BLUF Answer Bank", scorecard_bluf_answers)
+    add_bluf_answer_bank(document, "High-Stakes Prompt Bank", high_stakes_answers)
     add_story_anchor_system_section(document, hero_stories, profile)
     risk_label, risk_warning = cheat.candidate_archetype_assessment(profile, job_description, resume_text, supplied_context, interview_notes)
     add_section(document, "Self-Assessment: Your Likely Interview Risk")
@@ -3200,6 +3257,7 @@ def build_document(
         body = document_text(document)
         scrub_document_for_job_language(document, job_description)
         body = document_text(document)
+        interview_intelligence.assert_safe_generated_text(body, interview_intelligence.load_self_inventory())
         build_resume.assert_no_erp_language_for_non_erp_role(body, job_description, "detailed interview guide")
         validate_text(body, company_name=company_name, role_title=role_title)
         output_docx.parent.mkdir(exist_ok=True)
@@ -3395,6 +3453,7 @@ def build_document(
     body = document_text(document)
     scrub_document_for_job_language(document, job_description)
     body = document_text(document)
+    interview_intelligence.assert_safe_generated_text(body, interview_intelligence.load_self_inventory())
     build_resume.assert_no_erp_language_for_non_erp_role(body, job_description, "detailed interview guide")
     validate_text(body, company_name=company_name, role_title=role_title)
     output_docx.parent.mkdir(exist_ok=True)

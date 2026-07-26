@@ -16,6 +16,7 @@ from docx.shared import Pt
 
 import build_resume
 import interview_context
+import interview_intelligence
 from config.paths import JOB_DESCRIPTION, OUTPUT_DIR, PROJECT_ROOT
 from utils import fail, optional_text
 
@@ -143,13 +144,28 @@ def interview_review_sections(record: Mapping[str, object]) -> list[tuple[str, l
             ],
         )
     )
+    phase6 = interview_intelligence.debrief_review_summary(normalized)
+    sections.append(("What Went Well", phase6.get("what_went_well", [])))
+    sections.append(("What To Fix", phase6.get("what_to_fix", [])))
+    sections.append(("Next-Day Focus", phase6.get("next_day_focus", [])))
     appendix_lines = _clean_lines(normalized.get("imported_artifacts", []), limit=4)
     review_appendix = str(normalized.get("review_appendix_path", "")).strip()
     if review_appendix:
         appendix_lines.append("Review appendix: " + review_appendix)
     if appendix_lines:
         sections.append(("Appendix References", appendix_lines))
-    return [(title, [line for line in lines if line.strip()]) for title, lines in sections if any(line.strip() for line in lines)]
+    inventory = interview_intelligence.load_self_inventory()
+    safe_sections = [
+        (
+            title,
+            [interview_intelligence._safe_advisory_text(line, inventory) for line in lines if line.strip()],
+        )
+        for title, lines in sections
+        if any(line.strip() for line in lines)
+    ]
+    rendered = "\n".join(line for _title, lines in safe_sections for line in lines)
+    interview_intelligence.assert_safe_generated_text(rendered, inventory)
+    return safe_sections
 
 
 def _set_default_style(document: Document) -> None:
@@ -191,6 +207,8 @@ def build_document(record: Mapping[str, object], output_path: Path) -> None:
     _add_title(document, normalized)
     for title, lines in interview_review_sections(normalized):
         _add_section(document, title, lines)
+    visible_text = "\n".join(paragraph.text for paragraph in document.paragraphs)
+    interview_intelligence.assert_safe_generated_text(visible_text, interview_intelligence.load_self_inventory())
     output_path.parent.mkdir(parents=True, exist_ok=True)
     document.save(output_path)
 

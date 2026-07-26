@@ -51,6 +51,9 @@ Review-heavy commands:
 - `trajectory`
 - `story-audit`
 - `interview-review`
+- `self-inventory`
+- `daily-prep`
+- `career-plan`
 
 Run `python tasks.py commands` for the live inventory, maturity labels, and script targets.
 
@@ -77,7 +80,11 @@ Cover and communication outputs:
 Interview outputs:
 
 - standard interview cheat sheet
+- per-JD interview scorecard inside the cheat sheet
 - detailed interview guide
+- provisional self-inventory one-pager
+- daily prep plan with optional scratch progress log
+- career operating plan linking target roles, safe gaps, Study tracks, daily prep, and review checkpoints
 - post-round follow-up and next-round prep
 - internal interview guide
 - dedicated interview review document
@@ -85,6 +92,7 @@ Interview outputs:
 Career strategy outputs:
 
 - Career Operating Manual
+- career operating plan
 - first 90 days plan
 - LinkedIn calendar
 - networking outreach templates
@@ -113,9 +121,14 @@ Use `scripts/post_interview_debrief.py` to:
 - repair legacy debrief files into structured records
 - list or search prior debriefs
 
+After capture, the debrief feedback loop writes advisory `scratch/prep_focus.json`
+and `scratch/inventory_candidates.json`. These files bias the next daily prep
+plan and queue possible self-inventory updates for human review only; capture
+must never auto-edit `source/self_inventory.json`.
+
 Normal next step after a debrief:
 
-- rebuild the interview cheat sheet or guide for the same company
+- rebuild the interview review, daily prep plan, cheat sheet, or guide for the same company
 
 ## Architecture Pointers
 

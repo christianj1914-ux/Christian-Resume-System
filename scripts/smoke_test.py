@@ -4,6 +4,8 @@
 from __future__ import annotations
 
 import contextlib
+import csv
+import hashlib
 import importlib
 import io
 import json
@@ -13,7 +15,7 @@ import subprocess
 import sys
 import xml.etree.ElementTree as ET
 import zipfile
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from types import SimpleNamespace
@@ -43,6 +45,9 @@ MAJOR_SCRIPTS = (
     "build_standard_qualifications_statement",
     "build_interview_cheat_sheet",
     "build_interview_companions",
+    "build_self_inventory_onepager",
+    "build_daily_prep_plan",
+    "build_career_operating_plan",
     "build_first_90_days",
     "build_detailed_interview_guide",
     "build_interview_review",
@@ -62,6 +67,7 @@ MAJOR_SCRIPTS = (
     "extract_writing_examples",
     "federal_supporting_docs",
     "interview_stage",
+    "interview_intelligence",
     "interview_context",
     "job_search_guidance",
     "job_context_archive",
@@ -13011,6 +13017,632 @@ def test_tasks_register_interview_review_command() -> None:
     )
 
 
+def test_self_inventory_loads_and_validates(interview_intelligence: object) -> None:
+    inventory = interview_intelligence.load_self_inventory()
+    issues = interview_intelligence.validate_self_inventory(inventory)
+    assert_true(not issues, f"self_inventory.json should validate cleanly; got {issues}")
+    assert_true(inventory.status == "provisional", "self-inventory seed should remain provisional until Christian confirms it")
+    assert_true(len(inventory.strengths) == 3, f"self-inventory should define exactly 3 strengths; got {len(inventory.strengths)}")
+    assert_true(len(inventory.weaknesses) == 3, f"self-inventory should define exactly 3 weaknesses; got {len(inventory.weaknesses)}")
+    assert_true(len(inventory.signature_stories) == 5, f"self-inventory should define exactly 5 signature stories; got {len(inventory.signature_stories)}")
+    for strength in inventory.strengths:
+        for field in ("name", "one_line", "interview_safe", "evidence_stories", "how_it_shows_up", "keywords"):
+            assert_true(bool(strength.get(field)), f"strength {strength!r} should include {field}")
+    for weakness in inventory.weaknesses:
+        for field in ("honest_name", "interview_safe", "improvement_action", "improvement_spoken", "status"):
+            assert_true(bool(weakness.get(field)), f"weakness {weakness!r} should include {field}")
+    for story in inventory.signature_stories:
+        for field in ("name", "summary", "spoken_reference", "result", "competencies"):
+            assert_true(bool(story.get(field)), f"signature story {story!r} should include {field}")
+
+
+def test_self_inventory_answers_are_safe_and_bluf(interview_intelligence: object) -> None:
+    inventory = interview_intelligence.load_self_inventory()
+    strengths_answer = interview_intelligence.build_strengths_answer(inventory)
+    weaknesses_answer = interview_intelligence.build_weaknesses_answer(inventory)
+    all_text = f"{strengths_answer}\n{weaknesses_answer}"
+    assert_true(
+        strengths_answer.startswith("My three biggest strengths are"),
+        f"strengths answer should lead with the point; got {strengths_answer!r}",
+    )
+    assert_true(
+        weaknesses_answer.startswith("The three areas I am actively working on are"),
+        f"weaknesses answer should lead with the point; got {weaknesses_answer!r}",
+    )
+    for strength in inventory.strengths:
+        story = next(story for story in inventory.signature_stories if story["name"] == strength["evidence_stories"][0])
+        assert_true(
+            story["spoken_reference"] in strengths_answer,
+            f"strengths answer should include spoken story reference {story['spoken_reference']!r}",
+        )
+    for weakness in inventory.weaknesses:
+        assert_true(
+            weakness["interview_safe"].rstrip(".") in weaknesses_answer,
+            f"weaknesses answer should use interview-safe language for {weakness!r}",
+        )
+        spoken_improvement = re.sub(r"(?i)^\s*so\s+", "", weakness["improvement_spoken"])
+        assert_true(
+            spoken_improvement in weaknesses_answer,
+            f"weaknesses answer should attach spoken improvement for {weakness!r}",
+        )
+        assert_true(
+            weakness["honest_name"].lower() not in all_text.lower(),
+            f"generated answers should never leak honest_name {weakness['honest_name']!r}",
+        )
+    for forbidden in ("The proof point I would anchor to is", "The active improvement is"):
+        assert_true(forbidden not in all_text, f"generated answers should not expose field-label phrasing {forbidden!r}")
+    interview_intelligence.assert_safe_generated_text(all_text, inventory)
+
+
+def test_self_inventory_onepager_content_is_safe(interview_intelligence: object) -> None:
+    inventory = interview_intelligence.load_self_inventory()
+    content = interview_intelligence.build_self_inventory_onepager_content(inventory)
+    flattened = "\n".join(interview_intelligence._flatten_content_text(content))
+    assert_true("provisional" in flattened.lower(), "one-pager content should preserve provisional status")
+    for weakness in inventory.weaknesses:
+        assert_true(
+            weakness["honest_name"].lower() not in flattened.lower(),
+            f"one-pager content should never leak honest_name {weakness['honest_name']!r}",
+        )
+    for forbidden in ("Six Sigma certified", "TOGAF certified", "deep RAG", "direct hardware ownership"):
+        assert_true(forbidden.lower() not in flattened.lower(), f"one-pager content should not claim {forbidden!r}")
+    for forbidden in ("The proof point I would anchor to is", "The active improvement is"):
+        assert_true(forbidden not in flattened, f"one-pager content should not expose field-label phrasing {forbidden!r}")
+    interview_intelligence.assert_safe_generated_text(flattened, inventory)
+
+
+def test_jd_competency_scorecard_solutions_consultant(interview_intelligence: object) -> None:
+    jd = """
+Company: Example Automation
+Role: Solutions Consultant
+Lead discovery calls, requirements workshops, current-state analysis, stakeholder alignment,
+solution scoping, implementation handoff, integration risk review, and consultative customer communication.
+"""
+    scorecard = interview_intelligence.jd_competency_scorecard(jd, "ERP implementation, stakeholder alignment, discovery, UAT, Power BI")
+    labels = {entry.competency for entry in scorecard}
+    assert_true(4 <= len(scorecard) <= 8, f"scorecard should return 4-8 competencies; got {scorecard!r}")
+    assert_true("Discovery" in labels, f"Solutions Consultant scorecard should include Discovery; got {labels}")
+    assert_true("Stakeholder alignment" in labels, f"Solutions Consultant scorecard should include Stakeholder alignment; got {labels}")
+    for entry in scorecard:
+        assert_true(entry.framework_words, f"{entry.competency} should include words to say")
+        assert_true(entry.mapped_story or entry.gap_pivot, f"{entry.competency} should map to a story or honest pivot")
+    inventory = interview_intelligence.load_self_inventory()
+    interview_intelligence.assert_safe_generated_text(
+        "\n".join(str(value) for entry in scorecard for value in entry.__dict__.values()),
+        inventory,
+    )
+
+
+def test_jd_competency_scorecard_process_improvement_frameworks(interview_intelligence: object) -> None:
+    jd = """
+Company: Example Insurance
+Role: Continuous Improvement Analyst
+Own process improvement, Lean Six Sigma partnership, DMAIC problem solving, root cause analysis,
+5 Whys, workflow optimization, operational excellence, KPI reporting, and measurable process gains.
+"""
+    scorecard = interview_intelligence.jd_competency_scorecard(jd, "Inventory automation reduced manual work 78% and discrepancies 22%.")
+    process_entries = [entry for entry in scorecard if entry.competency == "Process improvement"]
+    assert_true(process_entries, f"process improvement JD should surface Process improvement; got {scorecard!r}")
+    words = " ".join(process_entries[0].framework_words)
+    assert_true("DMAIC" in words and "Lean Six Sigma" in words, f"process framework words should include DMAIC and Lean Six Sigma; got {words!r}")
+    rendered = "\n".join(str(value) for entry in scorecard for value in entry.__dict__.values())
+    assert_true("Six Sigma certified" not in rendered, "scorecard should never claim Six Sigma certification")
+    interview_intelligence.assert_safe_generated_text(rendered, interview_intelligence.load_self_inventory())
+
+
+def test_scorecard_story_distribution_spreads_triggered_stories(interview_intelligence: object) -> None:
+    jd = """
+Company: Example Automation
+Role: Solutions Consultant
+This customer-facing trusted advisor role owns discovery, current-state workshops,
+requirements translation, stakeholder alignment, executive communication, relationship
+building, implementation handoff, UAT, data migration, process improvement, KPI
+reporting, analytics, ambiguity, fast-paced ramp-up, and learning new domains quickly.
+"""
+    scorecard = interview_intelligence.jd_competency_scorecard(
+        jd,
+        "Discovery, stakeholder alignment, implementation, Power BI, SQL, process automation, and training.",
+    )
+    distribution = interview_intelligence.scorecard_story_distribution(scorecard)
+    assert_true(
+        len(distribution) >= 5,
+        f"trigger-rich scorecard should use all five signature stories before repeats; got {distribution}",
+    )
+    assert_true(
+        max(distribution.values()) <= 2,
+        f"no signature story should carry more than two competencies when alternatives exist; got {distribution}",
+    )
+
+
+def test_scorecard_relationship_and_adaptability_are_triggered_only(interview_intelligence: object) -> None:
+    triggered_jd = """
+Company: Example Automation
+Role: Solutions Consultant
+This customer-facing trusted advisor role builds relationships, manages expectations,
+works in ambiguity, learns new domains quickly, and ramps fast.
+"""
+    baseline_jd = """
+Company: Example Automation
+Role: Implementation Consultant
+This role owns discovery, requirements translation, implementation planning, UAT,
+data migration, integration risk review, and go-live handoff.
+"""
+    triggered_labels = {
+        entry.competency
+        for entry in interview_intelligence.jd_competency_scorecard(triggered_jd, "implementation and stakeholder work")
+    }
+    baseline_labels = {
+        entry.competency
+        for entry in interview_intelligence.jd_competency_scorecard(baseline_jd, "implementation and stakeholder work")
+    }
+    assert_true(
+        {"Customer relationship building", "Adaptability / fast ramp"} <= triggered_labels,
+        f"relationship and adaptability competencies should surface when triggered; got {triggered_labels}",
+    )
+    assert_true(
+        "Customer relationship building" not in baseline_labels and "Adaptability / fast ramp" not in baseline_labels,
+        f"relationship and adaptability should not be default filler competencies; got {baseline_labels}",
+    )
+
+
+def test_detailed_guide_bluf_answer_banks_render_safely(
+    build_detailed_interview_guide: object,
+    interview_intelligence: object,
+) -> None:
+    from docx import Document
+
+    jd = """
+Company: Example Automation
+Role: Solutions Consultant
+Lead discovery, requirements translation, stakeholder alignment, customer-facing
+relationship building, implementation handoff, process improvement, KPI reporting,
+and fast-paced ramp-up work.
+"""
+    scorecard = interview_intelligence.jd_competency_scorecard(
+        jd,
+        "ERP implementation, stakeholder alignment, discovery, UAT, training, and Power BI.",
+    )
+    answers = interview_intelligence.build_scorecard_bluf_answers(
+        scorecard,
+        jd,
+        "Solutions Consultant",
+        "Example Automation",
+    )
+    answer_text = "\n".join(item.answer for item in answers)
+    assert_true("is for example" not in answer_text.lower(), f"BLUF prose should not double the example lead-in; got {answer_text!r}")
+    assert_true("example is for example" not in answer_text.lower(), f"BLUF prose should not double example phrasing; got {answer_text!r}")
+    assert_true("Got up to speed" not in answer_text, f"BLUF prose should not create a subjectless fast-ramp fragment; got {answer_text!r}")
+    for item in answers:
+        if item.is_gap:
+            continue
+        assert_true(item.example_story, f"non-gap BLUF answer should carry a story label; got {item}")
+        assert_true(item.result and item.result in item.answer, f"non-gap BLUF answer should include result inline; got {item}")
+        assert_true(item.relevance and item.relevance in item.answer, f"non-gap BLUF answer should include relevance inline; got {item}")
+    document = Document()
+    build_detailed_interview_guide.add_bluf_answer_bank(document, "JD Scorecard BLUF Answer Bank", answers)
+    high_stakes = interview_intelligence.build_standard_high_stakes_answers(
+        jd,
+        "ERP implementation, stakeholder alignment, discovery, UAT, training, and Power BI.",
+        "Example Automation",
+        "Solutions Consultant",
+        scorecard,
+    )
+    build_detailed_interview_guide.add_bluf_answer_bank(document, "High-Stakes Answer Bank", high_stakes)
+    rendered = build_detailed_interview_guide.document_text(document)
+    assert_true(". for example" not in answer_text, f"BLUF answers should capitalize standalone examples; got {answer_text!r}")
+    assert_true(". for example" not in rendered, f"rendered BLUF answers should capitalize standalone examples; got {rendered!r}")
+    assert_true("is for example" not in rendered.lower(), f"rendered guide BLUF text should not double example phrasing; got {rendered!r}")
+    assert_true(
+        not re.search(r"\b(?:example|for example).{0,20}\bfor example\b", rendered, re.I),
+        f"rendered guide BLUF text should not double example phrasing; got {rendered!r}",
+    )
+    assert_true("Got up to speed" not in rendered, f"rendered guide BLUF text should not contain subjectless fast-ramp fragment; got {rendered!r}")
+    assert_true("To train the global teams" not in rendered, f"rendered guide BLUF text should not split the fast-ramp reference; got {rendered!r}")
+    assert_true("JD SCORECARD BLUF ANSWER BANK" in rendered, f"BLUF bank title should render; got {rendered!r}")
+    assert_true("BLUF ANSWER:" in rendered, f"BLUF answer label should render; got {rendered!r}")
+    assert_true(
+        "Example story:" in rendered and ("78%" in rendered or "78 percent" in rendered),
+        f"BLUF bank should carry story references and numeric results where available; got {rendered!r}",
+    )
+    inventory = interview_intelligence.load_self_inventory()
+    answer_cells = [cell.text for table in document.tables for row in table.rows for cell in row.cells if "BLUF ANSWER:" in cell.text]
+    story_checks = (
+        (
+            "Customer relationship building: BLUF answer",
+            interview_intelligence._sentence_start_reference(interview_intelligence._spoken_story_reference(inventory, "CEO escalation")),
+            interview_intelligence._story_result(inventory, "CEO escalation"),
+        ),
+        (
+            "Process improvement: BLUF answer",
+            interview_intelligence._sentence_start_reference(interview_intelligence._spoken_story_reference(inventory, "Inventory automation / DMAIC")),
+            interview_intelligence._story_result(inventory, "Inventory automation / DMAIC"),
+        ),
+        (
+            "Build productive relationships",
+            interview_intelligence._sentence_start_reference(interview_intelligence._spoken_story_reference(inventory, "CEO escalation")),
+            interview_intelligence._story_result(inventory, "CEO escalation"),
+        ),
+        (
+            "Get alignment when perspectives differ",
+            interview_intelligence._sentence_start_reference(interview_intelligence._spoken_story_reference(inventory, "EFT/ACH cross-functional replacement")),
+            interview_intelligence._story_result(inventory, "EFT/ACH cross-functional replacement"),
+        ),
+    )
+    for prompt, reference, result in story_checks:
+        matching_answers = [item.answer for item in (*answers, *high_stakes) if item.prompt == prompt]
+        assert_true(matching_answers, f"test setup should include prompt {prompt!r}")
+        matching_cell = next((cell for cell in answer_cells if matching_answers[0] in cell), "")
+        assert_true(matching_cell, f"{prompt!r} should render the BLUF answer paragraph; cells: {answer_cells!r}")
+        assert_true(reference in matching_cell, f"{prompt!r} should include actual spoken reference inline; got {matching_cell!r}")
+        assert_true(result in matching_cell, f"{prompt!r} should include actual result inline; got {matching_cell!r}")
+    interview_intelligence.assert_safe_generated_text(rendered, inventory)
+
+
+def test_cheat_sheet_scorecard_table_renders(build_interview_cheat_sheet: object, interview_intelligence: object) -> None:
+    from docx import Document
+
+    jd = """
+Company: Example Automation
+Role: Solutions Consultant
+Lead discovery, requirements translation, stakeholder alignment, implementation planning,
+integration risk review, and customer communication.
+"""
+    scorecard = interview_intelligence.jd_competency_scorecard(jd, "ERP implementation, stakeholder alignment, discovery, UAT")
+    document = Document()
+    build_interview_cheat_sheet.add_jd_interview_scorecard(document, scorecard)
+    paragraph_text = "\n".join(paragraph.text for paragraph in document.paragraphs)
+    table_text = "\n".join(cell.text for table in document.tables for row in table.rows for cell in row.cells)
+    assert_true("JD INTERVIEW SCORECARD" in paragraph_text, f"scorecard section title should render; got {paragraph_text!r}")
+    assert_true("Competency" in table_text and "Words to say" in table_text, f"scorecard table headers should render; got {table_text!r}")
+    assert_true("Discovery" in table_text, f"scorecard table should include Discovery; got {table_text!r}")
+    interview_intelligence.assert_safe_generated_text(table_text, interview_intelligence.load_self_inventory())
+
+
+def test_daily_prep_plans_cover_rep_types_and_modes(interview_intelligence: object) -> None:
+    inventory = interview_intelligence.load_self_inventory()
+    jd = """
+Company: Example Automation
+Role: Solutions Consultant
+Lead discovery, requirements translation, stakeholder alignment, customer-facing relationship building, and UAT.
+"""
+    with TemporaryDirectory(prefix="daily_prep_no_focus_") as temp_name:
+        no_focus_path = Path(temp_name) / "missing_prep_focus.json"
+        job_search = interview_intelligence.build_daily_prep_plan(
+            "job_search",
+            today=date(2026, 7, 25),
+            job_description=jd,
+            prep_focus_path=no_focus_path,
+        )
+        on_the_job = interview_intelligence.build_daily_prep_plan(
+            "on_the_job",
+            today=date(2026, 7, 25),
+            job_description=jd,
+            prep_focus_path=no_focus_path,
+        )
+    expected_types = {"self_inventory", "delivery", "story", "scorecard", "weakness"}
+    assert_true({rep.rep_type for rep in job_search.reps} == expected_types, f"job_search plan should cover all rep types; got {job_search.reps}")
+    assert_true({rep.rep_type for rep in on_the_job.reps} == expected_types, f"on_the_job plan should cover all rep types; got {on_the_job.reps}")
+    job_search_weights = {rep.rep_type: rep.weight for rep in job_search.reps}
+    on_the_job_weights = {rep.rep_type: rep.weight for rep in on_the_job.reps}
+    assert_true(job_search_weights != on_the_job_weights, "daily prep mode weighting should differ by mode")
+    assert_true(job_search_weights["scorecard"] == "high", f"job_search should prioritize scorecard work; got {job_search_weights}")
+    assert_true(on_the_job_weights["weakness"] == "high", f"on_the_job should prioritize improvement/logging work; got {on_the_job_weights}")
+    rendered = "\n".join(
+        "\n".join((rep.title, rep.proof_reference, *rep.instructions))
+        for plan in (job_search, on_the_job)
+        for rep in plan.reps
+    )
+    for strength in inventory.strengths:
+        assert_true(strength["name"] in rendered, f"daily prep plan should reference strength {strength['name']!r}")
+    for weakness in inventory.weaknesses:
+        assert_true(
+            weakness["interview_safe"].rstrip(".") in rendered,
+            f"daily prep plan should reference safe weakness text for {weakness!r}",
+        )
+        assert_true(
+            weakness["honest_name"].lower() not in rendered.lower(),
+            f"daily prep plan should never leak honest_name {weakness['honest_name']!r}",
+        )
+    interview_intelligence.assert_safe_generated_text(rendered, inventory)
+
+
+def test_daily_prep_story_rotation_and_invalid_mode(interview_intelligence: object) -> None:
+    inventory = interview_intelligence.load_self_inventory()
+    seen = set()
+    with TemporaryDirectory(prefix="daily_prep_rotation_no_focus_") as temp_name:
+        no_focus_path = Path(temp_name) / "missing_prep_focus.json"
+        for offset in range(10):
+            plan = interview_intelligence.build_daily_prep_plan(
+                "job_search",
+                today=date(2026, 7, 25) + timedelta(days=offset),
+                prep_focus_path=no_focus_path,
+            )
+            story_reps = [rep for rep in plan.reps if rep.rep_type == "story"]
+            assert_true(len(story_reps) == 1, f"daily prep plan should include exactly one story rep; got {plan.reps}")
+            seen.add(story_reps[0].proof_reference)
+    expected = {str(story["name"]) for story in inventory.signature_stories}
+    assert_true(expected <= seen, f"daily prep rotation should cover all signature stories; got {seen}")
+    try:
+        interview_intelligence.build_daily_prep_plan("weekend")
+    except ValueError as error:
+        assert_true("daily prep mode" in str(error), f"invalid mode error should be clear; got {error}")
+    else:
+        raise SmokeFailure("invalid daily prep mode should raise ValueError")
+
+
+def test_daily_prep_log_appends_expected_columns(interview_intelligence: object) -> None:
+    with TemporaryDirectory(prefix="daily_prep_log_") as temp_name:
+        path = Path(temp_name) / "prep_log.csv"
+        returned = interview_intelligence.append_daily_prep_log(
+            "job_search",
+            reps_done=5,
+            hedge_count=2,
+            self_rated_clarity=4,
+            path=path,
+            today=date(2026, 7, 25),
+        )
+        interview_intelligence.append_daily_prep_log(
+            "on_the_job",
+            reps_done=4,
+            hedge_count=1,
+            self_rated_clarity=5,
+            path=path,
+            today=date(2026, 7, 26),
+        )
+        assert_true(returned == path and path.exists(), f"prep log should be created at requested scratch path; got {returned}")
+        with path.open(newline="", encoding="utf-8") as handle:
+            rows = list(csv.DictReader(handle))
+        assert_true(
+            rows
+            == [
+                {"date": "2026-07-25", "mode": "job_search", "reps_done": "5", "hedge_count": "2", "self_rated_clarity": "4"},
+                {"date": "2026-07-26", "mode": "on_the_job", "reps_done": "4", "hedge_count": "1", "self_rated_clarity": "5"},
+            ],
+            f"prep log should append expected rows and columns; got {rows}",
+        )
+
+
+def test_daily_prep_command_builds_word_plan(build_daily_prep_plan: object, interview_intelligence: object) -> None:
+    from docx import Document
+
+    with TemporaryDirectory(prefix="daily_prep_output_") as temp_name:
+        output = build_daily_prep_plan.build_daily_prep_plan_docx(
+            mode="on_the_job",
+            output_dir=Path(temp_name),
+            job_description="Company: Example Automation\nRole: Solutions Consultant\nLead discovery and stakeholder alignment.",
+        )
+        assert_true(output.exists() and output.suffix == ".docx", f"daily prep builder should create a Word plan; got {output}")
+        text = build_daily_prep_plan.document_text(Document(output))
+        assert_true("Daily Prep Plan" in text and "On The Job" in text, f"daily prep Word output should render mode and title; got {text!r}")
+        assert_true("Study/IT_Learning_Path_and_Schedule.docx" in text, f"on_the_job mode should reference the Study path; got {text!r}")
+        interview_intelligence.assert_safe_generated_text(text, interview_intelligence.load_self_inventory())
+
+
+def test_debrief_feedback_writes_review_artifacts_without_inventory_mutation(interview_intelligence: object) -> None:
+    source_hash = hashlib.sha256(interview_intelligence.SELF_INVENTORY_PATH.read_bytes()).hexdigest()
+    record = {
+        "company_name": "Example Automation",
+        "role_title": "Solutions Consultant",
+        "interview_date": "2026-07-26",
+        "round_number": "1",
+        "competencies_probed": "Discovery\nStakeholder alignment\nAI adoption",
+        "answer_ratings": "\n".join(
+            (
+                "Discovery question | Discovery | landed | Clear current-state answer.",
+                "Stakeholder question | Stakeholder alignment | rambled | Answer ran long before the point.",
+                "AI architecture question | AI adoption | missed | No ready story for adoption governance.",
+            )
+        ),
+        "hedge_observations": "Said kind of and broadly speaking several times.",
+        "new_story_candidates": "A debrief-only story about handling a difficult executive stakeholder; needs fact review.",
+        "development_area_signals": "Need tighter headline-first delivery under pressure.",
+    }
+    with TemporaryDirectory(prefix="debrief_feedback_") as temp_name:
+        prep_focus_path = Path(temp_name) / "prep_focus.json"
+        candidates_path = Path(temp_name) / "inventory_candidates.json"
+        paths = interview_intelligence.write_debrief_feedback_artifacts(
+            record,
+            prep_focus_path=prep_focus_path,
+            inventory_candidates_path=candidates_path,
+        )
+        assert_true(paths["prep_focus"] == prep_focus_path and prep_focus_path.exists(), "prep_focus.json should be written")
+        assert_true(paths["inventory_candidates"] == candidates_path and candidates_path.exists(), "inventory_candidates.json should be written")
+        prep_focus = json.loads(prep_focus_path.read_text(encoding="utf-8"))
+        candidates = json.loads(candidates_path.read_text(encoding="utf-8"))
+    after_hash = hashlib.sha256(interview_intelligence.SELF_INVENTORY_PATH.read_bytes()).hexdigest()
+    assert_true(source_hash == after_hash, "debrief feedback generation must not mutate source/self_inventory.json")
+    assert_true(
+        {"delivery", "scorecard", "story", "weakness"} <= set(prep_focus.get("focus_rep_types", [])),
+        f"prep focus should translate debrief signals into rep types; got {prep_focus}",
+    )
+    assert_true(
+        any(item.get("type") == "signature_story" and item.get("status") == "review" for item in candidates.get("candidates", [])),
+        f"new story candidates should land only in review queue; got {candidates}",
+    )
+    serialized = json.dumps({"prep_focus": prep_focus, "inventory_candidates": candidates}, sort_keys=True)
+    assert_true("source/self_inventory.json" in serialized, "candidate queue should explicitly require manual promotion")
+    interview_intelligence.assert_safe_generated_text(serialized, interview_intelligence.load_self_inventory())
+
+
+def test_daily_prep_focus_file_reweights_plan(interview_intelligence: object) -> None:
+    baseline_dir = TemporaryDirectory(prefix="daily_prep_baseline_")
+    focus_dir = TemporaryDirectory(prefix="daily_prep_focus_")
+    try:
+        baseline_path = Path(baseline_dir.name) / "missing_prep_focus.json"
+        focus_path = Path(focus_dir.name) / "prep_focus.json"
+        baseline = interview_intelligence.build_daily_prep_plan(
+            "job_search",
+            today=date(2026, 7, 25),
+            prep_focus_path=baseline_path,
+        )
+        focus_path.write_text(
+            json.dumps(
+                {
+                    "version": "test",
+                    "updated_at": "2026-07-26T09:00:00",
+                    "focus_rep_types": ["delivery", "scorecard"],
+                    "competencies": ["Stakeholder alignment"],
+                    "story_targets": ["CEO escalation"],
+                    "weakness_targets": ["Need tighter headline-first delivery under pressure."],
+                    "hedge_observations": ["Said kind of too often."],
+                    "next_day_focus": ["Delivery drill: tighten the stakeholder alignment answer."],
+                },
+                indent=2,
+            ),
+            encoding="utf-8",
+        )
+        focused = interview_intelligence.build_daily_prep_plan(
+            "job_search",
+            today=date(2026, 7, 25),
+            prep_focus_path=focus_path,
+        )
+    finally:
+        baseline_dir.cleanup()
+        focus_dir.cleanup()
+    baseline_weights = {rep.rep_type: rep.weight for rep in baseline.reps}
+    focused_weights = {rep.rep_type: rep.weight for rep in focused.reps}
+    focused_text = "\n".join("\n".join((rep.title, rep.weight, *rep.instructions)) for rep in focused.reps)
+    assert_true(baseline_weights["delivery"] == "high", f"baseline job-search delivery should remain high; got {baseline_weights}")
+    assert_true(focused_weights["delivery"] == "focus" and focused_weights["scorecard"] == "focus", f"focus file should promote flagged reps; got {focused_weights}")
+    assert_true("Stakeholder alignment" in focused_text, f"focused daily prep should show the flagged competency; got {focused_text!r}")
+    interview_intelligence.assert_safe_generated_text(focused_text, interview_intelligence.load_self_inventory())
+
+
+def test_interview_review_renders_phase6_sections(build_interview_review: object, interview_intelligence: object) -> None:
+    from docx import Document
+
+    record = {
+        "company_name": "Example Automation",
+        "role_title": "Solutions Consultant",
+        "interview_date": "2026-07-26",
+        "round_number": "1",
+        "outcome": "pending",
+        "answer_ratings": [
+            {"prompt": "Discovery question", "competency": "Discovery", "rating": "landed", "note": "Clear current-state answer."},
+            {"prompt": "Stakeholder question", "competency": "Stakeholder alignment", "rating": "rambled", "note": "Answer ran long."},
+        ],
+        "hedge_observations": ["Said kind of too often."],
+        "development_area_signals": ["Need tighter headline-first delivery under pressure."],
+    }
+    sections = build_interview_review.interview_review_sections(record)
+    titles = {title for title, _lines in sections}
+    assert_true({"What Went Well", "What To Fix", "Next-Day Focus"} <= titles, f"interview review should include Phase 6 sections; got {titles}")
+    with TemporaryDirectory(prefix="interview_review_phase6_") as temp_name:
+        output = Path(temp_name) / "review.docx"
+        build_interview_review.build_document(record, output)
+        text = "\n".join(paragraph.text for paragraph in Document(output).paragraphs)
+    assert_true("What Went Well" in text and "What To Fix" in text and "Next-Day Focus" in text, f"review Word output should render Phase 6 sections; got {text!r}")
+    interview_intelligence.assert_safe_generated_text(text, interview_intelligence.load_self_inventory())
+
+
+def test_career_plan_roles_modes_and_safe_gaps(interview_intelligence: object) -> None:
+    inventory = interview_intelligence.load_self_inventory()
+    plan = interview_intelligence.build_career_plan(today=date(2026, 7, 25))
+    text = interview_intelligence._career_plan_render_text(plan)
+    for role in (
+        "Implementation Consultant",
+        "Solutions Consultant",
+        "Business Systems Analyst",
+        "Technical Program Manager",
+    ):
+        assert_true(role in plan.near_term_roles, f"career plan should include near-term role {role!r}; got {plan.near_term_roles}")
+    assert_true(
+        any("Business Architect" in role and "AI Evangelist" in role for role in plan.stretch_roles),
+        f"career plan should include the stretch/north-star role; got {plan.stretch_roles}",
+    )
+    mode_names = {mode.name for mode in plan.modes}
+    assert_true({"get a job now", "excel in the job"} <= mode_names, f"career plan should render both operating modes; got {mode_names}")
+    assert_true("Monthly quick review" in text and "Quarterly deep review" in text, f"career plan should include review cadence; got {text!r}")
+    for weakness in inventory.weaknesses:
+        assert_true(
+            str(weakness["honest_name"]).lower() not in text.lower(),
+            f"career plan should never leak honest_name {weakness['honest_name']!r}",
+        )
+    for gap in (*plan.development_gaps, *plan.stretch_role_gaps):
+        assert_true(gap.safe_description, f"career plan gap should have safe wording; got {gap}")
+        assert_true(gap.track_references, f"career plan gap should map to a Study or daily-prep reference; got {gap}")
+    interview_intelligence.assert_safe_generated_text(text, inventory)
+
+
+def test_career_plan_study_tracks_are_real(interview_intelligence: object) -> None:
+    plan = interview_intelligence.build_career_plan(today=date(2026, 7, 25))
+    text = interview_intelligence._career_plan_render_text(plan)
+    expected_tracks = (
+        "CAPM/PMP",
+        "AI Innovator",
+        "AI-900",
+        "Business Architecture / TOGAF EA Foundation",
+        "Track D Data Analytics & BI / PL-300",
+        "Track E AI Adoption & Change Management / Prosci / ADKAR",
+        "AWS Cloud track",
+        "Python/foundations track",
+        "Security+ track",
+    )
+    for track in expected_tracks:
+        assert_true(track in text, f"career plan should include Study track {track!r}; got {text!r}")
+    for gap in plan.stretch_role_gaps:
+        assert_true(gap.track_references, f"stretch-role gap should map to a real Study track name; got {gap}")
+        for reference in gap.track_references:
+            if reference.startswith("Study/"):
+                assert_true((PROJECT_ROOT / reference).exists(), f"Study reference should exist: {reference}")
+    interview_intelligence.assert_safe_generated_text(text, interview_intelligence.load_self_inventory())
+
+
+def test_career_operating_plan_command_builds_word_plan(
+    build_career_operating_plan: object,
+    interview_intelligence: object,
+) -> None:
+    from docx import Document
+
+    with TemporaryDirectory(prefix="career_plan_output_") as temp_name:
+        output = build_career_operating_plan.build_career_operating_plan_docx(output_dir=Path(temp_name))
+        assert_true(output.exists() and output.suffix == ".docx", f"career plan builder should create a Word document; got {output}")
+        text = build_career_operating_plan.document_text(Document(output))
+        assert_true("Career Operating Plan" in text, f"career plan Word output should render title; got {text!r}")
+        assert_true("get a job now" in text and "excel in the job" in text, f"career plan should render both modes; got {text!r}")
+        assert_true("Monthly quick review" in text and "Quarterly deep review" in text, f"career plan should render checkpoints; got {text!r}")
+        interview_intelligence.assert_safe_generated_text(text, interview_intelligence.load_self_inventory())
+
+
+def test_tasks_register_self_inventory_command() -> None:
+    import tasks
+
+    task = tasks.TASKS["self-inventory"]
+    assert_true(
+        task.args == ("scripts/build_self_inventory_onepager.py",),
+        f"self-inventory should point to the dedicated one-pager builder; got {task.args}",
+    )
+    assert_true(not task.needs_job_description, "self-inventory should not require an active job description")
+    assert_true(task.maturity == "Experimental", f"self-inventory should start as Experimental; got {task.maturity}")
+    assert_true(not task.production_safe, "self-inventory should remain review-heavy until Christian confirms the language")
+
+
+def test_tasks_register_daily_prep_command() -> None:
+    import tasks
+
+    task = tasks.TASKS["daily-prep"]
+    assert_true(
+        task.args == ("scripts/build_daily_prep_plan.py",),
+        f"daily-prep should point to the dedicated plan builder; got {task.args}",
+    )
+    assert_true(not task.needs_job_description, "daily-prep should not require an active job description")
+    assert_true(task.maturity == "Experimental", f"daily-prep should start as Experimental; got {task.maturity}")
+    assert_true(not task.production_safe, "daily-prep should remain human-review while the habit loop is new")
+
+
+def test_tasks_register_career_plan_command() -> None:
+    import tasks
+
+    task = tasks.TASKS["career-plan"]
+    assert_true(
+        task.args == ("scripts/build_career_operating_plan.py",),
+        f"career-plan should point to the dedicated operating-plan builder; got {task.args}",
+    )
+    assert_true(not task.needs_job_description, "career-plan should not require an active job description")
+    assert_true(task.maturity == "Experimental", f"career-plan should start as Experimental; got {task.maturity}")
+    assert_true(not task.production_safe, "career-plan should remain human-review while Phase 5 is new")
+
+
 def test_onedrive_run_guard_absent() -> None:
     import tasks
 
@@ -14651,6 +15283,8 @@ def main() -> None:
         commercial_resume_model = modules["commercial_resume_model"]
         build_standard_qualifications_statement = modules["build_standard_qualifications_statement"]
         build_interview_cheat_sheet = modules["build_interview_cheat_sheet"]
+        build_daily_prep_plan = modules["build_daily_prep_plan"]
+        build_career_operating_plan = modules["build_career_operating_plan"]
         build_detailed_interview_guide = modules["build_detailed_interview_guide"]
         build_interview_review = modules["build_interview_review"]
         build_debrief_analysis = modules["build_debrief_analysis"]
@@ -14665,6 +15299,7 @@ def main() -> None:
         build_general_advice = modules["build_general_advice"]
         federal_supporting_docs = modules["federal_supporting_docs"]
         interview_stage = modules["interview_stage"]
+        interview_intelligence = modules["interview_intelligence"]
         interview_context = modules["interview_context"]
         job_search_guidance = modules["job_search_guidance"]
         reset_jobs = modules["reset_jobs"]
@@ -14721,6 +15356,28 @@ def main() -> None:
             ("federal workflow dry-run labels unverified page counts", test_run_federal_workflow_dry_run_labels_unverified_page_counts),
             ("tasks register federal supporting doc commands", test_tasks_register_federal_supporting_doc_commands),
             ("tasks register interview review command", test_tasks_register_interview_review_command),
+            ("self-inventory loads and validates", lambda: test_self_inventory_loads_and_validates(interview_intelligence)),
+            ("self-inventory answers are safe and BLUF", lambda: test_self_inventory_answers_are_safe_and_bluf(interview_intelligence)),
+            ("self-inventory one-pager content is safe", lambda: test_self_inventory_onepager_content_is_safe(interview_intelligence)),
+            ("JD competency scorecard Solutions Consultant", lambda: test_jd_competency_scorecard_solutions_consultant(interview_intelligence)),
+            ("JD competency scorecard process frameworks", lambda: test_jd_competency_scorecard_process_improvement_frameworks(interview_intelligence)),
+            ("scorecard story distribution spreads triggered stories", lambda: test_scorecard_story_distribution_spreads_triggered_stories(interview_intelligence)),
+            ("scorecard relationship and adaptability are triggered only", lambda: test_scorecard_relationship_and_adaptability_are_triggered_only(interview_intelligence)),
+            ("detailed guide BLUF answer banks render safely", lambda: test_detailed_guide_bluf_answer_banks_render_safely(build_detailed_interview_guide, interview_intelligence)),
+            ("cheat sheet scorecard table renders", lambda: test_cheat_sheet_scorecard_table_renders(build_interview_cheat_sheet, interview_intelligence)),
+            ("daily prep plans cover rep types and modes", lambda: test_daily_prep_plans_cover_rep_types_and_modes(interview_intelligence)),
+            ("daily prep story rotation and invalid mode", lambda: test_daily_prep_story_rotation_and_invalid_mode(interview_intelligence)),
+            ("daily prep log appends expected columns", lambda: test_daily_prep_log_appends_expected_columns(interview_intelligence)),
+            ("daily prep command builds Word plan", lambda: test_daily_prep_command_builds_word_plan(build_daily_prep_plan, interview_intelligence)),
+            ("debrief feedback writes review artifacts without inventory mutation", lambda: test_debrief_feedback_writes_review_artifacts_without_inventory_mutation(interview_intelligence)),
+            ("daily prep focus file reweights plan", lambda: test_daily_prep_focus_file_reweights_plan(interview_intelligence)),
+            ("interview review renders Phase 6 sections", lambda: test_interview_review_renders_phase6_sections(build_interview_review, interview_intelligence)),
+            ("career plan roles modes and safe gaps", lambda: test_career_plan_roles_modes_and_safe_gaps(interview_intelligence)),
+            ("career plan Study tracks are real", lambda: test_career_plan_study_tracks_are_real(interview_intelligence)),
+            ("career operating plan command builds Word plan", lambda: test_career_operating_plan_command_builds_word_plan(build_career_operating_plan, interview_intelligence)),
+            ("tasks register self-inventory command", test_tasks_register_self_inventory_command),
+            ("tasks register daily-prep command", test_tasks_register_daily_prep_command),
+            ("tasks register career-plan command", test_tasks_register_career_plan_command),
             ("onedrive run guard absent", test_onedrive_run_guard_absent),
             ("onedrive run guard present", test_onedrive_run_guard_present),
             ("resume builder source passes alignment grade to final fit audit", lambda: test_resume_builder_source_passes_alignment_grade_to_final_fit_audit(build_resume)),

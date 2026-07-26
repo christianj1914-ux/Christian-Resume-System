@@ -25,6 +25,7 @@ import build_cover_letter
 import build_debrief_analysis as debrief_analysis
 import build_resume
 import business_context
+import interview_intelligence
 import interview_context
 import proof_text
 import question_prep
@@ -282,7 +283,7 @@ def story_company_hint(card: StoryCard, fallback: str = "") -> str:
 def concrete_story_opening(card: StoryCard, company: str = "") -> str:
     company_name = story_company_hint(card, company)
     hook = re.sub(r"\s+", " ", card.hook).strip().rstrip(".")
-    if company_name and not re.search(re.escape(company_name), hook, re.I):
+    if company_name and not re.match(r"^at\s+", hook, re.I) and not re.search(re.escape(company_name), hook, re.I):
         hook = f"At {company_name}, {lower_clause(hook)}"
     elif not company_name:
         hook = hook[:1].upper() + hook[1:]
@@ -1428,6 +1429,42 @@ def add_virtual_panel_adaptation_table(document: Document) -> None:
     for row in table.rows:
         for cell in row.cells:
             for paragraph in cell.paragraphs:
+                paragraph.paragraph_format.space_after = Pt(1)
+                for run in paragraph.runs:
+                    run.font.name = RESUME_FONT
+                    run.font.size = Pt(BODY_SIZE)
+
+
+def add_jd_interview_scorecard(document: Document, scorecard: Sequence[interview_intelligence.ScorecardEntry]) -> None:
+    if not scorecard:
+        return
+    add_section(document, "JD Interview Scorecard")
+    table = document.add_table(rows=1, cols=3)
+    table.style = "Table Grid"
+    headers = ("Competency", "Words to say", "Story or honest pivot")
+    for index, header in enumerate(headers):
+        cell = table.rows[0].cells[index]
+        cell.text = header
+        for paragraph in cell.paragraphs:
+            for run in paragraph.runs:
+                run.bold = True
+                run.font.name = RESUME_FONT
+                run.font.size = Pt(BODY_SIZE)
+    for entry in scorecard:
+        row = table.add_row().cells
+        story_or_pivot = (
+            f"{entry.mapped_story}: {entry.story_reference}"
+            if entry.mapped_story and entry.story_reference
+            else entry.gap_pivot
+        )
+        row_values = (
+            f"{entry.competency} ({entry.support_level})",
+            ", ".join(entry.framework_words),
+            story_or_pivot,
+        )
+        for index, value in enumerate(row_values):
+            row[index].text = value
+            for paragraph in row[index].paragraphs:
                 paragraph.paragraph_format.space_after = Pt(1)
                 for run in paragraph.runs:
                     run.font.name = RESUME_FONT
@@ -2911,7 +2948,7 @@ def expanded_story_bank() -> list[StoryCard]:
         StoryCard(
             title="Operations versus finance alignment",
             story_types=("Persuasion", "Teamwork", "Opposing Views"),
-            hook="At East West, operations, finance, engineering, and vendor stakeholders needed one decision path across cost, timeline, and system impact.",
+            hook="At East West, the central issue was getting several internal teams and the vendor onto one decision path for the business tradeoff.",
             takeaways=("Listened for the constraint behind each position", "Made tradeoffs explicit", "Recommended the option that protected the business outcome"),
             evidence="Led cross-functional discovery, surfaced the tradeoffs, and negotiated priorities with vendors and internal stakeholders.",
             level3_trait="Show what was noticed: one group was optimizing speed, another was protecting control, and the answer had to make the tradeoff visible.",
@@ -5653,6 +5690,22 @@ def build_document(company_name: str, role_title: str, job_description: str, res
     )
     selected_stories = hero_stories(profile, job_description, resume_text)
     all_stories = supported_story_bank(resume_text)
+    interview_scorecard = interview_intelligence.jd_competency_scorecard(job_description, resume_text)
+    interview_intelligence.assert_safe_generated_text(
+        "\n".join(
+            "\n".join(
+                (
+                    entry.competency,
+                    " ".join(entry.framework_words),
+                    entry.mapped_story,
+                    entry.story_reference,
+                    entry.gap_pivot,
+                )
+            )
+            for entry in interview_scorecard
+        ),
+        interview_intelligence.load_self_inventory(),
+    )
     debrief_summary = (
         debrief_analysis.analyze_entries(context_bundle.round_records, company_name)
         if context_bundle.round_records
@@ -5739,6 +5792,7 @@ def build_document(company_name: str, role_title: str, job_description: str, res
         add_bullet(document, line)
     for line in top_answer_risk_lines(profile, company_name, role_title, context_bundle.round_records, global_round_records)[:3]:
         add_bullet(document, line)
+    add_jd_interview_scorecard(document, interview_scorecard)
     add_section(document, "Pre-Call Routine")
     for line in pre_interview_routine_lines(role_title, context_bundle.round_records, global_round_records):
         add_bullet(document, line)
