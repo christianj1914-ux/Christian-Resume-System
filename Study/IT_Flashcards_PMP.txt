@@ -1,0 +1,81 @@
+#separator:tab
+#html:false
+#tags column:3
+The three exam domains	People, Process, Business Environment	pmp
+Approximate domain weights	People 42%, Process 50%, Business Environment 8%	pmp
+Scrum roles	Product Owner, Scrum Master, Developers	pmp
+Scrum events	Sprint, Daily Scrum, Sprint Review, Retrospective	pmp
+Scrum artifacts	Product Backlog, Sprint Backlog, Increment	pmp
+Who prioritizes the backlog	The Product Owner	pmp
+Servant leadership means	Supporting and empowering the team	pmp
+First move in a team conflict	Understand the root cause and collaborate	pmp
+Predictive vs adaptive	Plan-driven (waterfall) vs iterative (agile)	pmp
+Velocity	Work a team completes per sprint	pmp
+Definition of Done	Shared criteria that make work complete	pmp
+Kanban core practices	Visualize work and limit work in progress	pmp
+Negative risk responses	Avoid, transfer, mitigate, accept	pmp
+Positive risk responses	Exploit, share, enhance, accept	pmp
+The PMI mindset in one line	Be a proactive servant leader who addresses root causes	pmp
+What waives the 35 contact hours	Holding an active CAPM	pmp
+Change requests are evaluated by	The change control board	pmp
+Stakeholder management steps	Identify, analyze, plan, manage and monitor	pmp
+When lessons learned are captured	Throughout the project, not only at the end	pmp
+What a burndown chart shows	Remaining work over time	pmp
+Project vs operations	Temporary and unique vs ongoing and repetitive	pmp
+Project, program, portfolio	A project, related projects, all organizational work	pmp
+The triple constraint	Scope, time, cost (with quality)	pmp
+What the charter does	Formally authorizes the project	pmp
+Who issues the charter	The sponsor	pmp
+Stakeholder register	A documented list of stakeholders	pmp
+WBS	Work Breakdown Structure: decomposed scope	pmp
+Work package	The lowest level of the WBS	pmp
+Critical path	The longest path; the shortest possible duration	pmp
+Float or slack	Time an activity can slip without delaying the project	pmp
+Cost baseline	The approved time-phased budget	pmp
+EVM: PV, EV, AC	Planned Value, Earned Value, Actual Cost	pmp
+SPI formula	EV divided by PV	pmp
+CPI formula	EV divided by AC	pmp
+CPI below 1 means	Over budget	pmp
+Contingency vs management reserve	For known risks vs unknown risks	pmp
+Contract types	Fixed price, cost reimbursable, time and materials	pmp
+RACI	Responsible, Accountable, Consulted, Informed	pmp
+Communication channels formula	n(n-1)/2	pmp
+Quality vs grade	Fitness for use vs level of features	pmp
+Typical sprint length	One to four weeks	pmp
+User story format	As a role, I want a goal, so that a benefit	pmp
+Story points	A relative estimate of effort	pmp
+MVP	Minimum Viable Product	pmp
+Retrospective purpose	Improve the team's process	pmp
+Tuckman ladder	Forming, storming, norming, performing, adjourning	pmp
+Best conflict approach	Collaborate and problem-solve	pmp
+Empirical process pillars	Transparency, inspection, adaptation	pmp
+Progressive elaboration	Refining plans as more becomes known	pmp
+Agile Manifesto (short)	Individuals, working software, collaboration, responding to change	pmp
+The five process groups	Initiating, Planning, Executing, Monitoring & Controlling, Closing	pmp
+Integration management	Coordinates all other knowledge areas	pmp
+Scope creep	Uncontrolled changes to scope	pmp
+Gold plating	Adding features nobody requested	pmp
+Validate vs control scope	Accept deliverables vs manage changes	pmp
+Dependency types	FS, SS, FF, SF	pmp
+Lead vs lag	Accelerate vs delay a successor activity	pmp
+Crashing	Add resources to shorten the schedule	pmp
+Fast tracking	Overlap activities to shorten the schedule	pmp
+Three-point (PERT) estimate	(Optimistic + 4x Most likely + Pessimistic) / 6	pmp
+Analogous estimating	Base it on a similar past project	pmp
+Parametric estimating	Rate times quantity	pmp
+Rolling wave planning	Plan near-term work in detail	pmp
+Cost of quality	Prevention, appraisal, and failure costs	pmp
+Pareto principle	80% of problems from 20% of causes	pmp
+Fishbone (Ishikawa)	Cause-and-effect diagram	pmp
+Fixed-price risk falls on	The seller	pmp
+Cost-plus risk falls on	The buyer	pmp
+Power/interest grid	A stakeholder analysis tool	pmp
+Salience model	Power, urgency, legitimacy	pmp
+Tuckman stages	Forming, storming, norming, performing, adjourning	pmp
+Theory X vs Theory Y	Controlling vs empowering management	pmp
+Maslow's hierarchy	Needs from physiological to self-actualization	pmp
+Scrum Master role	Servant leader who removes impediments	pmp
+Product Owner role	Owns and prioritizes the backlog	pmp
+Timebox	A fixed, unchangeable period	pmp
+Kill point / phase gate	A go or no-go review	pmp
+Emotional intelligence	Self-awareness, self-management, social skills	pmp

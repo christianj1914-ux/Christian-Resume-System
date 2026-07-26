@@ -1,0 +1,27 @@
+#separator:tab
+#html:false
+#tags column:3
+Change management	Guiding people through a change to adoption	ai_adoption
+ADKAR model	Awareness, Desire, Knowledge, Ability, Reinforcement	ai_adoption
+Prosci	A leading change management methodology	ai_adoption
+Awareness (ADKAR)	Understanding the need to change	ai_adoption
+Desire (ADKAR)	Willingness to support the change	ai_adoption
+Knowledge (ADKAR)	Knowing how to change	ai_adoption
+Ability (ADKAR)	Being able to apply the new skills	ai_adoption
+Reinforcement (ADKAR)	Sustaining the change over time	ai_adoption
+AI enablement	Helping people actually use AI tools well	ai_adoption
+AI champion	A power user who evangelizes adoption	ai_adoption
+Adoption rate	Share of target users actively using a tool	ai_adoption
+MAU	Monthly Active Users	ai_adoption
+ROI	Return on Investment: value versus cost	ai_adoption
+Time-to-value	How fast users get a benefit	ai_adoption
+Playbook	A repeatable guide for a workflow	ai_adoption
+Executive reporting goal	Show impact and progress simply	ai_adoption
+Stakeholder analysis	Mapping influence and interest	ai_adoption
+Resistance management	Addressing why people resist change	ai_adoption
+Workshop purpose	Hands-on skill building and buy-in	ai_adoption
+Pilot program	A small first rollout to prove value	ai_adoption
+Center of Excellence	A team that drives best practices and enablement	ai_adoption
+Build in public	Sharing your work to build credibility	ai_adoption
+Sustaining adoption	Reinforcement, recognition, and ongoing training	ai_adoption
+Leading vs lagging metric	Predicts vs confirms an outcome	ai_adoption

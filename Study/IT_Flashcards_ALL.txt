@@ -1,0 +1,673 @@
+#separator:tab
+#html:false
+#tags column:3
+The 8 bit values in an octet?	128, 64, 32, 16, 8, 4, 2, 1	foundations
+Convert 192 to binary	11000000	foundations
+Convert 200 to binary	11001000	foundations
+Convert 255 to binary	11111111	foundations
+Usable hosts in a /24	254	foundations
+Usable hosts in a /26	62	foundations
+Usable hosts in a /27	30	foundations
+Usable hosts in a /30	2	foundations
+Subnet mask for /26	255.255.255.192	foundations
+Subnet mask for /28	255.255.255.240	foundations
+Block-size formula (interesting octet)	256 minus the mask value in that octet	foundations
+Usable-hosts formula	2 to the power of host bits, minus 2	foundations
+Private IPv4 ranges	10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16	foundations
+Loopback address	127.0.0.1	foundations
+Port: SSH	22	foundations
+Port: HTTP	80	foundations
+Port: HTTPS	443	foundations
+Port: DNS	53	foundations
+Port: RDP	3389	foundations
+Port: SMTP	25	foundations
+Port: DHCP	67 and 68	foundations
+TCP vs UDP	TCP = reliable, connection-oriented; UDP = fast, connectionless	foundations
+OSI layer 3	Network (IP, routing)	foundations
+OSI layer 4	Transport (TCP/UDP)	foundations
+What DNS does	Resolves names to IP addresses	foundations
+What DHCP does	Automatically assigns IP configuration	foundations
+What NAT does	Translates private addresses to public	foundations
+Default gateway role	Routes traffic off the local subnet	foundations
+Python: int to 8-bit binary string	format(n, '08b')	foundations
+Big-O of binary search	O(log n)	foundations
+Convert 168 to binary	10101000	foundations
+Convert binary 11000000 to decimal	192	foundations
+Usable hosts in a /25	126	foundations
+Usable hosts in a /28	14	foundations
+Usable hosts in a /29	6	foundations
+Subnet mask for /25	255.255.255.128	foundations
+Subnet mask for /27	255.255.255.224	foundations
+Subnet mask for /30	255.255.255.252	foundations
+CIDR for 255.255.255.0	/24	foundations
+CIDR for 255.255.0.0	/16	foundations
+APIPA range	169.254.0.0/16	foundations
+Class A range	1 to 126	foundations
+Class B range	128 to 191	foundations
+Class C range	192 to 223	foundations
+Broadcast of 192.168.1.0/24	192.168.1.255	foundations
+What ARP does	Maps an IP address to a MAC address	foundations
+ICMP is used by	ping and traceroute	foundations
+Router vs switch	Layer 3 (routing) vs Layer 2 (switching)	foundations
+DHCP DORA steps	Discover, Offer, Request, Acknowledge	foundations
+IPv6 address length	128 bits	foundations
+Python: length of a list	len(list)	foundations
+Big-O of linear search	O(n)	foundations
+Convert 224 to binary	11100000	foundations
+Convert 240 to binary	11110000	foundations
+Binary 10101010 to decimal	170	foundations
+Hex FF in decimal	255	foundations
+Number of addresses in a /22	1024	foundations
+Usable hosts in a /23	510	foundations
+Wildcard mask of /24	0.0.0.255	foundations
+First usable host in 192.168.1.0/24	192.168.1.1	foundations
+Which /26 subnet holds .100	the .64 subnet (.64 to .127)	foundations
+MAC address length	48 bits (6 bytes)	foundations
+IPv6 loopback	::1	foundations
+Purpose of a subnet mask	Separates network bits from host bits	foundations
+Unicast / broadcast / multicast	One-to-one, one-to-all, one-to-group	foundations
+Well-known port range	0 to 1023	foundations
+TCP three-way handshake	SYN, SYN-ACK, ACK	foundations
+What traceroute relies on	Increasing TTL with ICMP/UDP	foundations
+What a default gateway does	Connects a network to other networks	foundations
+Python: define a class	class	foundations
+Python: handle errors	try / except	foundations
+Python: immutable ordered sequence	tuple	foundations
+Big-O of a nested loop over n	O(n squared)	foundations
+What a variable is	A named reference to a value	foundations
+CIA triad	Confidentiality, Integrity, Availability	security_plus
+AAA	Authentication, Authorization, Accounting	security_plus
+Symmetric encryption example	AES	security_plus
+Asymmetric encryption example	RSA or ECC	security_plus
+Hashing example and purpose	SHA-256; one-way integrity check, not encryption	security_plus
+What provides non-repudiation	Digital signatures	security_plus
+Deterrent control example	A warning banner or sign	security_plus
+Compensating control	An alternative when the primary control is not feasible	security_plus
+Four control categories	Technical, Managerial, Operational, Physical	security_plus
+Phishing via SMS	Smishing	security_plus
+Phishing via voice call	Vishing	security_plus
+Phishing targeting executives	Whaling	security_plus
+MITM modern name	On-path attack	security_plus
+SQL injection targets	Databases via unsanitized input	security_plus
+XSS targets	Other users' browsers via injected script	security_plus
+Zero trust principle	Never trust, always verify	security_plus
+Least privilege	Grant the minimum access needed	security_plus
+MFA factor types	Something you know, have, and are	security_plus
+Purpose of salting	Defeat rainbow-table attacks on hashes	security_plus
+SIEM	Security Information and Event Management	security_plus
+IDS vs IPS	Detect only vs detect and block	security_plus
+CVE	Common Vulnerabilities and Exposures	security_plus
+Qualitative risk formula	Likelihood x Impact	security_plus
+RTO vs RPO	Max tolerable downtime vs max tolerable data loss	security_plus
+Confidentiality control example	Encryption	security_plus
+Integrity control example	Hashing or digital signatures	security_plus
+What PKI provides	Trusted public keys via certificates and a CA	security_plus
+Defense in depth	Multiple layered controls	security_plus
+Three states of data	At rest, in transit, in use	security_plus
+Common symmetric ciphers	AES, 3DES, ChaCha20	security_plus
+Common asymmetric algorithms	RSA, ECC, Diffie-Hellman	security_plus
+Weak or deprecated hash	MD5 (and SHA-1)	security_plus
+What a CA does	Issues and signs digital certificates	security_plus
+CRL vs OCSP	Revocation list vs real-time revocation check	security_plus
+What TLS provides	Encryption of data in transit (HTTPS)	security_plus
+What a VPN provides	An encrypted tunnel over an untrusted network	security_plus
+SSO	Single sign-on	security_plus
+SAML vs OAuth	Federated authentication vs authorization	security_plus
+RADIUS	Centralized AAA for network access	security_plus
+Honeypot	A decoy system to attract attackers	security_plus
+DLP	Data Loss Prevention	security_plus
+EDR	Endpoint Detection and Response	security_plus
+SOAR	Security Orchestration, Automation, and Response	security_plus
+Rootkit	Malware hiding at the OS or kernel level	security_plus
+Logic bomb	Malware that triggers on a condition	security_plus
+Zero-day	An exploit used before a patch exists	security_plus
+DMZ / screened subnet	Isolated segment for public-facing services	security_plus
+802.1X	Port-based network access control	security_plus
+Key stretching examples	bcrypt, PBKDF2, scrypt	security_plus
+Order of volatility	Collect the most volatile evidence first	security_plus
+Chain of custody	Documented handling of evidence	security_plus
+Backup types	Full, incremental, differential	security_plus
+What a nonce prevents	Replay attacks (a number used once)	security_plus
+Pass-the-hash	Reusing a stolen password hash	security_plus
+Privilege escalation types	Vertical and horizontal	security_plus
+Supply chain attack	Compromise through a trusted vendor	security_plus
+Watering hole attack	Compromising a site the target visits	security_plus
+Business email compromise	Fraud via a spoofed executive email	security_plus
+Typosquatting	Malicious lookalike domain names	security_plus
+False positive	A benign event flagged as malicious	security_plus
+Jump server / bastion	A hardened host for admin access	security_plus
+Network segmentation	Dividing networks to limit blast radius	security_plus
+WAF	Web Application Firewall	security_plus
+NGFW	Next-generation, application-aware firewall	security_plus
+Full vs split tunnel VPN	All traffic vs only some through the VPN	security_plus
+TOTP	Time-based one-time password	security_plus
+FIDO2 / passkey	Phishing-resistant passwordless auth	security_plus
+Wildcard certificate	Covers all subdomains of a domain	security_plus
+SAN certificate	Valid for multiple named hosts	security_plus
+CSR	Certificate Signing Request	security_plus
+Certificate pinning	Trusting one specific known certificate	security_plus
+Tokenization	Replacing data with a non-sensitive token	security_plus
+AES block size	128 bits	security_plus
+Playbook (IR)	Documented response steps	security_plus
+Microsegmentation	Fine-grained per-workload isolation	security_plus
+Replay attack	Reusing captured valid data	security_plus
+Sideloading / shadow IT	Unsanctioned apps or devices	security_plus
+What a HSM is	Hardware Security Module for keys	security_plus
+What a TPM is	Trusted Platform Module (device keys)	security_plus
+Add a user	useradd	rhcsa_linux
+Set or change a password	passwd	rhcsa_linux
+Change file permissions	chmod	rhcsa_linux
+Change file ownership	chown	rhcsa_linux
+Set an ACL entry	setfacl -m	rhcsa_linux
+View ACLs	getfacl	rhcsa_linux
+Start a service now	systemctl start <svc>	rhcsa_linux
+Enable a service at boot	systemctl enable <svc>	rhcsa_linux
+View system logs	journalctl	rhcsa_linux
+List block devices	lsblk	rhcsa_linux
+Create a physical volume	pvcreate	rhcsa_linux
+Create a volume group	vgcreate	rhcsa_linux
+Create a logical volume	lvcreate -L <size> -n <name> <vg>	rhcsa_linux
+Extend a logical volume	lvextend	rhcsa_linux
+Grow an xfs filesystem	xfs_growfs	rhcsa_linux
+Format a partition as xfs	mkfs.xfs	rhcsa_linux
+File for persistent mounts	/etc/fstab	rhcsa_linux
+Configure networking (CLI)	nmcli	rhcsa_linux
+Open a firewall service permanently	firewall-cmd --permanent --add-service=<svc>	rhcsa_linux
+Reload the firewall	firewall-cmd --reload	rhcsa_linux
+Check SELinux mode	getenforce	rhcsa_linux
+Set SELinux permissive (temporary)	setenforce 0	rhcsa_linux
+Restore SELinux file contexts	restorecon	rhcsa_linux
+Edit the current user's cron	crontab -e	rhcsa_linux
+chmod 755 means	rwx owner, r-x group, r-x others	rhcsa_linux
+chmod 644 means	rw- owner, r-- group, r-- others	rhcsa_linux
+Find files by name	find <path> -name <pattern>	rhcsa_linux
+Search text within files	grep	rhcsa_linux
+Add a group	groupadd	rhcsa_linux
+Delete a user	userdel	rhcsa_linux
+Lock a user account	usermod -L (or passwd -l)	rhcsa_linux
+Show your user and groups	id	rhcsa_linux
+Become root with environment	su -	rhcsa_linux
+Run one command as root	sudo <cmd>	rhcsa_linux
+Make a directory	mkdir	rhcsa_linux
+Copy a directory recursively	cp -r	rhcsa_linux
+Create a symbolic link	ln -s target link	rhcsa_linux
+View the end of a file	tail	rhcsa_linux
+Count lines in a file	wc -l	rhcsa_linux
+Sort lines	sort	rhcsa_linux
+Show unique lines	uniq	rhcsa_linux
+Extract a tar.gz archive	tar -xzf file.tar.gz	rhcsa_linux
+Numeric perms for rwxr-xr-x	755	rhcsa_linux
+Default umask value	022 (dirs 755, files 644)	rhcsa_linux
+Show disk free space	df -h	rhcsa_linux
+Show a directory's size	du -sh <dir>	rhcsa_linux
+Install a package	dnf install <pkg>	rhcsa_linux
+Set the default boot target	systemctl set-default	rhcsa_linux
+List failed services	systemctl --failed	rhcsa_linux
+Set the hostname	hostnamectl set-hostname <name>	rhcsa_linux
+Run a container	podman run	rhcsa_linux
+Add a SELinux port context	semanage port -a	rhcsa_linux
+List hidden files	ls -a	rhcsa_linux
+Create an empty file / update times	touch	rhcsa_linux
+Move or rename a file	mv	rhcsa_linux
+Follow a growing log	tail -f	rhcsa_linux
+Redirect output (overwrite / append)	> and >>	rhcsa_linux
+Pipe output to another command	|	rhcsa_linux
+Find and replace in a stream	sed 's/old/new/g'	rhcsa_linux
+Print the second column	awk '{print $2}'	rhcsa_linux
+Make a script executable	chmod +x script.sh	rhcsa_linux
+Shebang line	#!/bin/bash	rhcsa_linux
+Show the default boot target	systemctl get-default	rhcsa_linux
+Reload a service's config	systemctl reload	rhcsa_linux
+Prevent a service from starting	systemctl mask	rhcsa_linux
+Show listening ports	ss -tulpn	rhcsa_linux
+List active firewall zones	firewall-cmd --get-active-zones	rhcsa_linux
+Copy your SSH key to a host	ssh-copy-id user@host	rhcsa_linux
+Toggle a SELinux boolean persistently	setsebool -P <bool> on	rhcsa_linux
+Mount everything in fstab	mount -a	rhcsa_linux
+Create swap (sequence)	fallocate/dd, mkswap, swapon	rhcsa_linux
+Numeric perms for rw-r-----	640	rhcsa_linux
+SUID bit numeric prefix	4 (e.g., 4755)	rhcsa_linux
+Sticky bit purpose	Only owners delete their files (/tmp)	rhcsa_linux
+Show block devices and mounts	lsblk	rhcsa_linux
+Display the running kernel	uname -r	rhcsa_linux
+Search installed packages	dnf list installed	rhcsa_linux
+View a service's logs	journalctl -u <svc>	rhcsa_linux
+Reset root password (concept)	Boot to rd.break, remount rw, passwd	rhcsa_linux
+Object storage	S3	aws
+Block storage for EC2	EBS	aws
+Shared file storage	EFS	aws
+Archive / cold storage	S3 Glacier	aws
+Serverless compute	Lambda	aws
+Virtual machines	EC2	aws
+Managed relational database	RDS (or Aurora)	aws
+Managed NoSQL database	DynamoDB	aws
+In-memory cache	ElastiCache	aws
+DNS service	Route 53	aws
+Content delivery network	CloudFront	aws
+Load balancer	ELB	aws
+Automatic capacity scaling	Auto Scaling Groups	aws
+Identity and permissions	IAM	aws
+Managed encryption keys	KMS	aws
+Stateful firewall (instance level)	Security Group	aws
+Stateless firewall (subnet level)	Network ACL	aws
+Message queue for decoupling	SQS	aws
+Pub/sub notifications	SNS	aws
+Metrics and monitoring	CloudWatch	aws
+API and account activity auditing	CloudTrail	aws
+The 6 Well-Architected pillars	Operational Excellence, Security, Reliability, Performance Efficiency, Cost Optimization, Sustainability	aws
+Shared responsibility: AWS secures	The cloud itself (hardware, facilities)	aws
+Shared responsibility: you secure	Your data and configuration in the cloud	aws
+Region vs Availability Zone	Region = geographic area; AZ = isolated data center(s) within it	aws
+Best for hosting a static website	S3	aws
+EC2 pricing models	On-demand, Reserved / Savings Plans, Spot	aws
+Spot instances	Cheap but interruptible capacity	aws
+What is an AMI	Amazon Machine Image (an EC2 template)	aws
+S3 storage classes	Standard, IA, One Zone-IA, Glacier, Intelligent-Tiering	aws
+S3 durability	Eleven nines (99.999999999%)	aws
+Default S3 bucket access	Private	aws
+Public vs private subnet	Has a route to an Internet Gateway or not	aws
+Internet Gateway	Gives a VPC internet access	aws
+NAT Gateway	Outbound internet for private subnets	aws
+IAM user vs role	Long-term identity vs assumed temporary credentials	aws
+IAM policy format	A JSON permissions document	aws
+Is IAM regional or global	Global	aws
+CloudFormation	Infrastructure as code	aws
+ALB vs NLB	Layer 7 (HTTP) vs Layer 4 load balancer	aws
+Multi-AZ vs read replica	Failover / HA vs read scaling	aws
+Lambda max runtime	15 minutes	aws
+API Gateway	A managed front door for APIs	aws
+Step Functions	Serverless workflow orchestration	aws
+Cognito	User authentication for your apps	aws
+Secrets Manager	Stores and rotates secrets	aws
+Trusted Advisor	Best-practice and cost checks	aws
+AWS support plans	Basic, Developer, Business, Enterprise	aws
+Edge location	A CloudFront cache point of presence	aws
+Direct Connect	A dedicated private link to AWS	aws
+Default security group behavior	Deny inbound, allow all outbound	aws
+Aurora	AWS high-performance managed relational database	aws
+AZs per region (typical minimum)	Three or more	aws
+EBS vs instance store	Persistent vs ephemeral	aws
+S3 versioning	Keeps multiple versions of an object	aws
+S3 lifecycle policy	Auto-move or expire objects by age	aws
+S3 encryption options	SSE-S3, SSE-KMS, SSE-C	aws
+Route 53 routing policies	Simple, weighted, latency, failover, geolocation	aws
+VPC peering	Privately connect two VPCs	aws
+Transit Gateway	Hub connecting many VPCs and networks	aws
+VPC endpoint	Private access to AWS services (no internet)	aws
+STS	Security Token Service (temporary credentials)	aws
+IAM group	A set of users sharing policies	aws
+Resource-based policy	A policy attached to a resource, e.g. an S3 bucket	aws
+EventBridge	An event bus for routing events	aws
+SQS FIFO queue	Ordered, exactly-once delivery	aws
+Kinesis	Real-time streaming data	aws
+Athena	Query data in S3 using SQL	aws
+Redshift	Managed data warehouse	aws
+Glue	Managed ETL service	aws
+Fargate	Serverless containers	aws
+CloudWatch Logs	Centralized log storage and queries	aws
+Elastic Beanstalk	PaaS that deploys and manages your app	aws
+What an AMI is	Amazon Machine Image, an EC2 template	aws
+EBS snapshot	A point-in-time backup stored in S3	aws
+Cross-region replication (S3)	Copies objects to another region	aws
+Savings Plans	Discount for a usage commitment	aws
+WAF vs Shield	App-layer filtering vs DDoS protection	aws
+Well-Architected Tool	Reviews a workload against the pillars	aws
+The three exam domains	People, Process, Business Environment	pmp
+Approximate domain weights	People 42%, Process 50%, Business Environment 8%	pmp
+Scrum roles	Product Owner, Scrum Master, Developers	pmp
+Scrum events	Sprint, Daily Scrum, Sprint Review, Retrospective	pmp
+Scrum artifacts	Product Backlog, Sprint Backlog, Increment	pmp
+Who prioritizes the backlog	The Product Owner	pmp
+Servant leadership means	Supporting and empowering the team	pmp
+First move in a team conflict	Understand the root cause and collaborate	pmp
+Predictive vs adaptive	Plan-driven (waterfall) vs iterative (agile)	pmp
+Velocity	Work a team completes per sprint	pmp
+Definition of Done	Shared criteria that make work complete	pmp
+Kanban core practices	Visualize work and limit work in progress	pmp
+Negative risk responses	Avoid, transfer, mitigate, accept	pmp
+Positive risk responses	Exploit, share, enhance, accept	pmp
+The PMI mindset in one line	Be a proactive servant leader who addresses root causes	pmp
+What waives the 35 contact hours	Holding an active CAPM	pmp
+Change requests are evaluated by	The change control board	pmp
+Stakeholder management steps	Identify, analyze, plan, manage and monitor	pmp
+When lessons learned are captured	Throughout the project, not only at the end	pmp
+What a burndown chart shows	Remaining work over time	pmp
+Project vs operations	Temporary and unique vs ongoing and repetitive	pmp
+Project, program, portfolio	A project, related projects, all organizational work	pmp
+The triple constraint	Scope, time, cost (with quality)	pmp
+What the charter does	Formally authorizes the project	pmp
+Who issues the charter	The sponsor	pmp
+Stakeholder register	A documented list of stakeholders	pmp
+WBS	Work Breakdown Structure: decomposed scope	pmp
+Work package	The lowest level of the WBS	pmp
+Critical path	The longest path; the shortest possible duration	pmp
+Float or slack	Time an activity can slip without delaying the project	pmp
+Cost baseline	The approved time-phased budget	pmp
+EVM: PV, EV, AC	Planned Value, Earned Value, Actual Cost	pmp
+SPI formula	EV divided by PV	pmp
+CPI formula	EV divided by AC	pmp
+CPI below 1 means	Over budget	pmp
+Contingency vs management reserve	For known risks vs unknown risks	pmp
+Contract types	Fixed price, cost reimbursable, time and materials	pmp
+RACI	Responsible, Accountable, Consulted, Informed	pmp
+Communication channels formula	n(n-1)/2	pmp
+Quality vs grade	Fitness for use vs level of features	pmp
+Typical sprint length	One to four weeks	pmp
+User story format	As a role, I want a goal, so that a benefit	pmp
+Story points	A relative estimate of effort	pmp
+MVP	Minimum Viable Product	pmp
+Retrospective purpose	Improve the team's process	pmp
+Tuckman ladder	Forming, storming, norming, performing, adjourning	pmp
+Best conflict approach	Collaborate and problem-solve	pmp
+Empirical process pillars	Transparency, inspection, adaptation	pmp
+Progressive elaboration	Refining plans as more becomes known	pmp
+Agile Manifesto (short)	Individuals, working software, collaboration, responding to change	pmp
+The five process groups	Initiating, Planning, Executing, Monitoring & Controlling, Closing	pmp
+Integration management	Coordinates all other knowledge areas	pmp
+Scope creep	Uncontrolled changes to scope	pmp
+Gold plating	Adding features nobody requested	pmp
+Validate vs control scope	Accept deliverables vs manage changes	pmp
+Dependency types	FS, SS, FF, SF	pmp
+Lead vs lag	Accelerate vs delay a successor activity	pmp
+Crashing	Add resources to shorten the schedule	pmp
+Fast tracking	Overlap activities to shorten the schedule	pmp
+Three-point (PERT) estimate	(Optimistic + 4x Most likely + Pessimistic) / 6	pmp
+Analogous estimating	Base it on a similar past project	pmp
+Parametric estimating	Rate times quantity	pmp
+Rolling wave planning	Plan near-term work in detail	pmp
+Cost of quality	Prevention, appraisal, and failure costs	pmp
+Pareto principle	80% of problems from 20% of causes	pmp
+Fishbone (Ishikawa)	Cause-and-effect diagram	pmp
+Fixed-price risk falls on	The seller	pmp
+Cost-plus risk falls on	The buyer	pmp
+Power/interest grid	A stakeholder analysis tool	pmp
+Salience model	Power, urgency, legitimacy	pmp
+Tuckman stages	Forming, storming, norming, performing, adjourning	pmp
+Theory X vs Theory Y	Controlling vs empowering management	pmp
+Maslow's hierarchy	Needs from physiological to self-actualization	pmp
+Scrum Master role	Servant leader who removes impediments	pmp
+Product Owner role	Owns and prioritizes the backlog	pmp
+Timebox	A fixed, unchangeable period	pmp
+Kill point / phase gate	A go or no-go review	pmp
+Emotional intelligence	Self-awareness, self-management, social skills	pmp
+Risk formula	Threat x Vulnerability (weighted by impact)	cissp
+Risk response options	Avoid, transfer, mitigate, accept	cissp
+DAC	Discretionary: the data owner grants access	cissp
+MAC	Mandatory: the system enforces labels and clearances	cissp
+RBAC	Access by job role	cissp
+ABAC	Access by attributes and policy	cissp
+Least privilege	Minimum access necessary	cissp
+Separation of duties	Split critical tasks among people	cissp
+Defense in depth	Layered, overlapping controls	cissp
+ALE formula	ALE = SLE x ARO	cissp
+SLE formula	SLE = Asset Value x Exposure Factor	cissp
+Qualitative vs quantitative risk	Subjective ranking vs numeric (money) analysis	cissp
+Due care vs due diligence	Doing the right thing vs investigating to know it	cissp
+BCP vs DRP	Keep the business running vs recover IT after a disaster	cissp
+RTO	Maximum acceptable downtime	cissp
+RPO	Maximum acceptable data loss, in time	cissp
+Symmetric vs asymmetric crypto	One shared key vs a public/private key pair	cissp
+Integrity is provided by	Hashing and digital signatures	cissp
+The opposite of the CIA triad	DAD: Disclosure, Alteration, Destruction	cissp
+Type I vs Type II biometric error	False rejection vs false acceptance	cissp
+The CISSP exam mindset	Think like a risk manager, not a technician	cissp
+Preventive control example	Firewalls, access controls, encryption	cissp
+Policy vs standard vs procedure	Intent vs mandatory rule vs step-by-step	cissp
+Data roles	Owner (accountable), custodian (maintains), steward (quality)	cissp
+Data classification example	Public, sensitive, confidential, secret	cissp
+STRIDE	Spoofing, Tampering, Repudiation, Info disclosure, DoS, Elevation	cissp
+Bell-LaPadula	Confidentiality: no read up, no write down	cissp
+Biba	Integrity: no write up, no read down	cissp
+Clark-Wilson	Integrity via well-formed transactions	cissp
+Reference monitor	Mediates all subject-to-object access	cissp
+TCB	Trusted Computing Base	cissp
+Symmetric key count formula	n(n-1)/2	cissp
+AES mode to avoid	ECB (patterns leak); prefer GCM	cissp
+Kerberos basics	Ticket-based auth; the KDC issues a TGT	cissp
+OAuth vs OIDC	Authorization vs authentication	cissp
+Need to know vs least privilege	Access to specific data vs minimum rights overall	cissp
+Vuln scan vs pen test	Automated find vs active exploit	cissp
+IDS types	Signature-based vs anomaly-based	cissp
+IR phases	Prepare, detect, respond, mitigate, report, recover, remediate, learn	cissp
+Evidence types	Real, documentary, testimonial	cissp
+What RAID provides	Redundancy for availability	cissp
+BIA	Business Impact Analysis	cissp
+MTD	Maximum Tolerable Downtime	cissp
+Recovery site types	Hot, warm, cold	cissp
+OWASP Top 10	Common web application security risks	cissp
+Shift left	Build security in early in the SDLC	cissp
+Due diligence vs due care	Investigate and know vs act on it	cissp
+ISC2 ethics	Follow the Code of Ethics canons	cissp
+Quantitative risk needs	ALE = SLE x ARO	cissp
+Change management goal	Controlled, documented changes	cissp
+Security governance	Aligning security with business objectives	cissp
+Confidentiality attacks	Shoulder surfing, eavesdropping, sniffing	cissp
+Integrity attacks	Tampering, MITM alteration	cissp
+Availability attacks	DoS, DDoS, ransomware	cissp
+Security baseline	A minimum required configuration	cissp
+ARO	Annualized Rate of Occurrence	cissp
+Exposure factor	Percent of asset value lost per event	cissp
+Residual risk	Risk remaining after controls are applied	cissp
+Risk transference example	Insurance	cissp
+NIST CSF functions	Identify, Protect, Detect, Respond, Recover	cissp
+ISO 27001	Information security management standard	cissp
+Fail-secure vs fail-safe	Deny on failure vs allow (life safety)	cissp
+Aggregation vs inference	Combining data vs deducing hidden facts	cissp
+Data remanence	Residual data left after deletion	cissp
+Secure deletion methods	Overwrite, degauss, physically destroy	cissp
+Covert channel	An unintended data path	cissp
+Mandatory vacation purpose	Detect fraud	cissp
+Job rotation purpose	Reduce fraud and cross-train	cissp
+Trusted path	A protected channel to the TCB	cissp
+Common Criteria (EAL)	An evaluation assurance rating	cissp
+SOC 2 report	Controls for security, availability, and more	cissp
+Fire suppression (clean agent)	FM-200 or inert gas, not water	cissp
+Provisioning lifecycle	Onboard, modify, offboard access	cissp
+Layering vs abstraction	Stacked controls vs hiding complexity	cissp
+Qualitative vs quantitative	Ranking vs numeric (ALE) analysis	cissp
+Security policy hierarchy	Policy, standard, procedure, guideline	cissp
+Threat vs vulnerability vs risk	Actor, weakness, and the chance of harm	cissp
+Ethics priority (ISC2)	Protect society and the common good first	cissp
+DRP vs BCP scope	IT recovery vs whole-business continuity	cissp
+MTD relationship to RTO	RTO must be less than MTD	cissp
+What is an LLM	A model trained to predict text, used for reasoning and generation	ai_agents
+What is RAG	Retrieval-Augmented Generation: fetch relevant docs and add them to the prompt	ai_agents
+The RAG Triad	Faithfulness, Answer Relevance, Context Relevance	ai_agents
+What is an embedding	A vector representing meaning, used for similarity search	ai_agents
+Vector database examples	Pinecone, Qdrant, Weaviate	ai_agents
+What is MCP	Model Context Protocol: a standard for connecting agents to tools and data	ai_agents
+What the Claude Agent SDK gives you	An agent loop, built-in tools, context management, and MCP integration	ai_agents
+What is a tool or function call	The model invoking a defined function to take an action	ai_agents
+What is an AI agent	An LLM plus tools, a loop, and memory to complete multi-step tasks	ai_agents
+Agent orchestration frameworks	LangGraph and CrewAI	ai_agents
+Purpose of a guardrail or hook	Block unsafe or destructive actions	ai_agents
+Key agent eval metrics	Accuracy, latency, and cost	ai_agents
+What is prompt injection	Malicious input that hijacks the model's instructions	ai_agents
+What is structured output	A response constrained to a schema, such as JSON Schema	ai_agents
+What is prompt caching	Reusing repeated context to cut cost and latency	ai_agents
+What is chunking	Splitting documents into pieces before embedding	ai_agents
+What temperature controls	The randomness of the model's output	ai_agents
+Role of a system prompt	Sets the model's role and behavior	ai_agents
+Fine-tuning vs RAG	Fine-tuning changes weights; RAG adds context at run time	ai_agents
+What is Codex	OpenAI's agentic coding system, running on GPT-5.5	ai_agents
+Four parts of a strong prompt	Role, task, examples, and output format	ai_agents
+Install the Claude Agent SDK (Python)	pip install claude-agent-sdk	ai_agents
+What are Agent Skills	SKILL.md folders that teach an agent specialized workflows	ai_agents
+Why measure evals	To know if a change improves accuracy, cost, and latency	ai_agents
+What is a token	A unit of text (roughly 3/4 of a word) the model processes	ai_agents
+Context window	The maximum tokens the model can consider at once	ai_agents
+Hallucination	A confident but incorrect model output	ai_agents
+Zero-shot vs few-shot	No examples vs examples included in the prompt	ai_agents
+Chain of thought	Prompting the model to reason step by step	ai_agents
+Message roles	system, user, assistant	ai_agents
+ReAct pattern	Interleave reasoning and tool actions in a loop	ai_agents
+Semantic search	Finding matches by meaning using embeddings	ai_agents
+Cosine similarity	A measure of how close two vectors are	ai_agents
+Reranking	Reordering retrieved results by relevance	ai_agents
+Chunk overlap	Shared text between chunks to preserve context	ai_agents
+LLM-as-judge	Using a model to grade other model outputs	ai_agents
+Fine-tuning methods	SFT, DPO, RFT	ai_agents
+RLHF	Reinforcement Learning from Human Feedback	ai_agents
+Quantization	Compressing a model for speed and lower cost	ai_agents
+Streaming	Returning tokens as they are generated	ai_agents
+LangChain vs LangGraph	Chains vs stateful, graph-based agent flows	ai_agents
+CrewAI	A role-based multi-agent framework	ai_agents
+Observability tools	Langfuse, LangSmith, Phoenix	ai_agents
+Sandbox execution	Running agent-generated code safely (E2B, Modal)	ai_agents
+Two kinds of agent memory	Short-term (context) and long-term (vector store)	ai_agents
+Temperature 0 means	Near-deterministic output	ai_agents
+What drives LLM cost	Input tokens plus output tokens	ai_agents
+JSON mode or tool use	Ways to force structured output	ai_agents
+What MCP standardizes	How agents connect to tools and data across apps	ai_agents
+A2A	An agent-to-agent communication protocol	ai_agents
+What a parameter is	A learned weight inside the model	ai_agents
+Pretraining	Learning language from massive text	ai_agents
+Instruction tuning	Teaching a model to follow instructions	ai_agents
+Foundation model	A large model adaptable to many tasks	ai_agents
+Multimodality	Handling text, images, audio, and more	ai_agents
+Prompt template	A reusable prompt with variables	ai_agents
+Top-k sampling	Choose from the k most likely tokens	ai_agents
+Top-p (nucleus) sampling	Choose from the smallest set summing to p	ai_agents
+Stop sequence	Text that ends generation	ai_agents
+max_tokens	A cap on output length	ai_agents
+Approximate nearest neighbor	Fast vector similarity search (e.g., HNSW)	ai_agents
+Retriever	The component that fetches relevant chunks	ai_agents
+Hybrid search	Combine keyword and vector search	ai_agents
+Naive vs advanced RAG	Basic retrieve vs rerank, hybrid, multi-hop	ai_agents
+Human-in-the-loop	Requiring human approval before actions	ai_agents
+Jailbreaking	Bypassing a model's safety controls	ai_agents
+Injection defense	Separate instructions from data; least-privilege tools	ai_agents
+Webhook in agents	An external event that triggers an agent	ai_agents
+Eval dataset	Labeled examples used to score outputs	ai_agents
+Regression testing (LLM)	Re-running evals after each change	ai_agents
+Fine-tune vs prompt vs RAG	Weights vs instructions vs retrieved context	ai_agents
+What an embedding dimension is	The length of the embedding vector	ai_agents
+Guardrail model	A model that screens inputs and outputs	ai_agents
+Context stuffing	Placing retrieved text into the prompt	ai_agents
+Batch vs streaming inference	Many at once vs tokens as generated	ai_agents
+Why caching helps	Reuses results to cut cost and latency	ai_agents
+Agent memory types	Short-term context and long-term vector store	ai_agents
+Microsoft 365 Copilot	An AI assistant across the Office apps	enterprise_ai_tools
+Copilot Studio	A low-code tool to build custom copilots and agents	enterprise_ai_tools
+Glean	Enterprise AI search and assistant over company data	enterprise_ai_tools
+Cursor	An AI-native code editor	enterprise_ai_tools
+Replit	A browser IDE with an AI agent for building apps	enterprise_ai_tools
+Adobe Firefly	Adobe's generative AI for images and content	enterprise_ai_tools
+Adobe GenStudio	Adobe's generative AI content supply chain	enterprise_ai_tools
+MCP	Model Context Protocol: connects agents to tools and data (Anthropic)	enterprise_ai_tools
+A2A	Agent-to-Agent protocol: agents discover and delegate (Google)	enterprise_ai_tools
+ACP / UCP	Agent commerce protocols for transactions	enterprise_ai_tools
+MCP vs A2A	Vertical tool integration vs horizontal agent coordination	enterprise_ai_tools
+The two-layer agent stack	MCP for tools, A2A for agent coordination	enterprise_ai_tools
+Knowledge graph	A network of entities and their relationships	enterprise_ai_tools
+Neo4j	A popular graph database	enterprise_ai_tools
+When to use a knowledge graph	Reasoning over connected, related data	enterprise_ai_tools
+Low-code agent	Built with tools like Copilot Studio, minimal coding	enterprise_ai_tools
+Enterprise RAG	Grounding answers in company documents	enterprise_ai_tools
+What an AI agent needs	A model, tools, memory, a loop, and guardrails	enterprise_ai_tools
+Grounding a copilot	Connecting it to trusted enterprise data	enterprise_ai_tools
+Agent Card (A2A)	Metadata advertising an agent's capabilities	enterprise_ai_tools
+Human-in-the-loop	An approval step before an agent acts	enterprise_ai_tools
+Prompt library	Reusable, tested prompts shared across a team	enterprise_ai_tools
+AI-900	Microsoft Azure AI Fundamentals certification	enterprise_ai_tools
+Copilot Studio use case	A grounded HR or IT helpdesk chatbot	enterprise_ai_tools
+Business architecture	A blueprint linking strategy to capabilities and processes	business_architecture
+TOGAF	An enterprise architecture framework from The Open Group	business_architecture
+TOGAF current version	The Standard, 10th Edition	business_architecture
+TOGAF ADM	The Architecture Development Method (phases A to H)	business_architecture
+ADM Phase B	Business Architecture	business_architecture
+Business capability	An ability the business has: what it does	business_architecture
+Capability map	A stable, structure-agnostic view of what a business does	business_architecture
+Capability dimensions (TOGAF)	People, Process, Information, Resources	business_architecture
+Value stream	End-to-end activities that deliver value to a stakeholder	business_architecture
+Value stream stage	A step that adds value toward an outcome	business_architecture
+Heat map	Coloring capabilities by performance or investment need	business_architecture
+BIZBOK	The Business Architecture Body of Knowledge	business_architecture
+Current-state assessment	Documenting how things work today	business_architecture
+Gap analysis	The difference between current and target state	business_architecture
+Target architecture	The desired future-state design	business_architecture
+ArchiMate	A modeling language for enterprise architecture	business_architecture
+BPMN	Business Process Model and Notation	business_architecture
+Capability vs process	What the business does vs how it does it	business_architecture
+Why capability maps are stable	They ignore org structure, which changes often	business_architecture
+Operating model	How an organization delivers value	business_architecture
+Roadmap (architecture)	A sequenced path from current to target state	business_architecture
+Value of business architecture	Aligns technology investment to strategy	business_architecture
+Stakeholder	Anyone affected by or influencing the work	business_architecture
+TOGAF entry certification	TOGAF Enterprise Architecture Foundation	business_architecture
+Power BI	Microsoft's BI and data visualization tool	data_bi
+PL-300	The Microsoft Power BI Data Analyst certification	data_bi
+DAX	Data Analysis Expressions, Power BI's formula language	data_bi
+Power Query	Extract, transform, and load data in Power BI/Excel	data_bi
+Star schema	A fact table linked to dimension tables	data_bi
+Fact vs dimension table	Measures and events vs descriptive attributes	data_bi
+Measure (BI)	A calculated aggregate, such as total sales	data_bi
+Slicer	An interactive filter on a report	data_bi
+Tableau	A leading data visualization tool	data_bi
+Excel PivotTable	Summarizes and aggregates data interactively	data_bi
+KPI	Key Performance Indicator	data_bi
+Dashboard	A single view of the key metrics	data_bi
+Data storytelling	Framing data to drive a decision	data_bi
+Chart for trend over time	Line chart	data_bi
+Chart for comparison	Bar chart	data_bi
+Data cleaning	Removing errors, duplicates, and inconsistencies	data_bi
+ETL	Extract, Transform, Load	data_bi
+Adoption metrics examples	Active users, usage rate, time saved, ROI	data_bi
+Data model (BI)	How tables relate for analysis	data_bi
+Row vs filter context (DAX)	The current row vs the applied filters	data_bi
+Refresh (BI)	Updating a report with new data	data_bi
+Why visualize data	To turn numbers into decisions faster	data_bi
+Vanity vs actionable metric	Looks good vs drives a decision	data_bi
+Semantic model	The modeled dataset behind a report	data_bi
+Change management	Guiding people through a change to adoption	ai_adoption
+ADKAR model	Awareness, Desire, Knowledge, Ability, Reinforcement	ai_adoption
+Prosci	A leading change management methodology	ai_adoption
+Awareness (ADKAR)	Understanding the need to change	ai_adoption
+Desire (ADKAR)	Willingness to support the change	ai_adoption
+Knowledge (ADKAR)	Knowing how to change	ai_adoption
+Ability (ADKAR)	Being able to apply the new skills	ai_adoption
+Reinforcement (ADKAR)	Sustaining the change over time	ai_adoption
+AI enablement	Helping people actually use AI tools well	ai_adoption
+AI champion	A power user who evangelizes adoption	ai_adoption
+Adoption rate	Share of target users actively using a tool	ai_adoption
+MAU	Monthly Active Users	ai_adoption
+ROI	Return on Investment: value versus cost	ai_adoption
+Time-to-value	How fast users get a benefit	ai_adoption
+Playbook	A repeatable guide for a workflow	ai_adoption
+Executive reporting goal	Show impact and progress simply	ai_adoption
+Stakeholder analysis	Mapping influence and interest	ai_adoption
+Resistance management	Addressing why people resist change	ai_adoption
+Workshop purpose	Hands-on skill building and buy-in	ai_adoption
+Pilot program	A small first rollout to prove value	ai_adoption
+Center of Excellence	A team that drives best practices and enablement	ai_adoption
+Build in public	Sharing your work to build credibility	ai_adoption
+Sustaining adoption	Reinforcement, recognition, and ongoing training	ai_adoption
+Leading vs lagging metric	Predicts vs confirms an outcome	ai_adoption
+A2A (Forward Deployed context)	Application-to-application integration: APIs, webhooks, events	ai_engineering_mlops
+REST vs gRPC	JSON over HTTP vs efficient binary RPC over HTTP/2	ai_engineering_mlops
+Webhook	An HTTP callback fired by an event	ai_engineering_mlops
+Event-driven system	Components communicate through events/messages	ai_engineering_mlops
+Message queue	Buffers work between services (SQS, Kafka)	ai_engineering_mlops
+Idempotency	A repeated request has no extra effect	ai_engineering_mlops
+Rate limiting	Capping request volume to protect a service	ai_engineering_mlops
+Retry with backoff	Retrying failures with increasing delays	ai_engineering_mlops
+PyTorch	A deep-learning framework (tensors, autograd)	ai_engineering_mlops
+A tensor	A multi-dimensional array, the core ML data type	ai_engineering_mlops
+Training loop steps	Forward pass, loss, backward pass, optimizer step	ai_engineering_mlops
+Offline vs online eval	Test sets and thresholds vs A/B tests and live ratings	ai_engineering_mlops
+A/B test	Comparing two variants on live traffic	ai_engineering_mlops
+Golden / test set	Curated examples used to score quality	ai_engineering_mlops
+Acceptance threshold	The minimum score a change must beat	ai_engineering_mlops
+Three pillars of observability	Logs, metrics, traces	ai_engineering_mlops
+OpenTelemetry	An open standard for collecting telemetry	ai_engineering_mlops
+Prometheus + Grafana	Metrics collection plus dashboards	ai_engineering_mlops
+Datadog	A commercial observability platform	ai_engineering_mlops
+What a trace shows	A request's timeline across services and model calls	ai_engineering_mlops
+Feature flag	Toggle a feature without redeploying	ai_engineering_mlops
+Canary rollout	Release to a small slice of users first	ai_engineering_mlops
+Prompt / version management	Tracking prompt and model versions in production	ai_engineering_mlops
+Model drift	Quality degrading as real-world data changes	ai_engineering_mlops
+MLOps vs LLMOps	Ops for ML models vs for LLM apps (prompts, evals, cost)	ai_engineering_mlops
+CI/CD	Continuous Integration and Continuous Delivery	ai_engineering_mlops
+Docker	Packages an app and its dependencies into a container	ai_engineering_mlops
+FastAPI	A Python framework for building APIs	ai_engineering_mlops

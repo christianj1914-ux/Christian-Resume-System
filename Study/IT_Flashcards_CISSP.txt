@@ -1,0 +1,83 @@
+#separator:tab
+#html:false
+#tags column:3
+Risk formula	Threat x Vulnerability (weighted by impact)	cissp
+Risk response options	Avoid, transfer, mitigate, accept	cissp
+DAC	Discretionary: the data owner grants access	cissp
+MAC	Mandatory: the system enforces labels and clearances	cissp
+RBAC	Access by job role	cissp
+ABAC	Access by attributes and policy	cissp
+Least privilege	Minimum access necessary	cissp
+Separation of duties	Split critical tasks among people	cissp
+Defense in depth	Layered, overlapping controls	cissp
+ALE formula	ALE = SLE x ARO	cissp
+SLE formula	SLE = Asset Value x Exposure Factor	cissp
+Qualitative vs quantitative risk	Subjective ranking vs numeric (money) analysis	cissp
+Due care vs due diligence	Doing the right thing vs investigating to know it	cissp
+BCP vs DRP	Keep the business running vs recover IT after a disaster	cissp
+RTO	Maximum acceptable downtime	cissp
+RPO	Maximum acceptable data loss, in time	cissp
+Symmetric vs asymmetric crypto	One shared key vs a public/private key pair	cissp
+Integrity is provided by	Hashing and digital signatures	cissp
+The opposite of the CIA triad	DAD: Disclosure, Alteration, Destruction	cissp
+Type I vs Type II biometric error	False rejection vs false acceptance	cissp
+The CISSP exam mindset	Think like a risk manager, not a technician	cissp
+Preventive control example	Firewalls, access controls, encryption	cissp
+Policy vs standard vs procedure	Intent vs mandatory rule vs step-by-step	cissp
+Data roles	Owner (accountable), custodian (maintains), steward (quality)	cissp
+Data classification example	Public, sensitive, confidential, secret	cissp
+STRIDE	Spoofing, Tampering, Repudiation, Info disclosure, DoS, Elevation	cissp
+Bell-LaPadula	Confidentiality: no read up, no write down	cissp
+Biba	Integrity: no write up, no read down	cissp
+Clark-Wilson	Integrity via well-formed transactions	cissp
+Reference monitor	Mediates all subject-to-object access	cissp
+TCB	Trusted Computing Base	cissp
+Symmetric key count formula	n(n-1)/2	cissp
+AES mode to avoid	ECB (patterns leak); prefer GCM	cissp
+Kerberos basics	Ticket-based auth; the KDC issues a TGT	cissp
+OAuth vs OIDC	Authorization vs authentication	cissp
+Need to know vs least privilege	Access to specific data vs minimum rights overall	cissp
+Vuln scan vs pen test	Automated find vs active exploit	cissp
+IDS types	Signature-based vs anomaly-based	cissp
+IR phases	Prepare, detect, respond, mitigate, report, recover, remediate, learn	cissp
+Evidence types	Real, documentary, testimonial	cissp
+What RAID provides	Redundancy for availability	cissp
+BIA	Business Impact Analysis	cissp
+MTD	Maximum Tolerable Downtime	cissp
+Recovery site types	Hot, warm, cold	cissp
+OWASP Top 10	Common web application security risks	cissp
+Shift left	Build security in early in the SDLC	cissp
+Due diligence vs due care	Investigate and know vs act on it	cissp
+ISC2 ethics	Follow the Code of Ethics canons	cissp
+Quantitative risk needs	ALE = SLE x ARO	cissp
+Change management goal	Controlled, documented changes	cissp
+Security governance	Aligning security with business objectives	cissp
+Confidentiality attacks	Shoulder surfing, eavesdropping, sniffing	cissp
+Integrity attacks	Tampering, MITM alteration	cissp
+Availability attacks	DoS, DDoS, ransomware	cissp
+Security baseline	A minimum required configuration	cissp
+ARO	Annualized Rate of Occurrence	cissp
+Exposure factor	Percent of asset value lost per event	cissp
+Residual risk	Risk remaining after controls are applied	cissp
+Risk transference example	Insurance	cissp
+NIST CSF functions	Identify, Protect, Detect, Respond, Recover	cissp
+ISO 27001	Information security management standard	cissp
+Fail-secure vs fail-safe	Deny on failure vs allow (life safety)	cissp
+Aggregation vs inference	Combining data vs deducing hidden facts	cissp
+Data remanence	Residual data left after deletion	cissp
+Secure deletion methods	Overwrite, degauss, physically destroy	cissp
+Covert channel	An unintended data path	cissp
+Mandatory vacation purpose	Detect fraud	cissp
+Job rotation purpose	Reduce fraud and cross-train	cissp
+Trusted path	A protected channel to the TCB	cissp
+Common Criteria (EAL)	An evaluation assurance rating	cissp
+SOC 2 report	Controls for security, availability, and more	cissp
+Fire suppression (clean agent)	FM-200 or inert gas, not water	cissp
+Provisioning lifecycle	Onboard, modify, offboard access	cissp
+Layering vs abstraction	Stacked controls vs hiding complexity	cissp
+Qualitative vs quantitative	Ranking vs numeric (ALE) analysis	cissp
+Security policy hierarchy	Policy, standard, procedure, guideline	cissp
+Threat vs vulnerability vs risk	Actor, weakness, and the chance of harm	cissp
+Ethics priority (ISC2)	Protect society and the common good first	cissp
+DRP vs BCP scope	IT recovery vs whole-business continuity	cissp
+MTD relationship to RTO	RTO must be less than MTD	cissp

@@ -1,0 +1,27 @@
+#separator:tab
+#html:false
+#tags column:3
+Power BI	Microsoft's BI and data visualization tool	data_bi
+PL-300	The Microsoft Power BI Data Analyst certification	data_bi
+DAX	Data Analysis Expressions, Power BI's formula language	data_bi
+Power Query	Extract, transform, and load data in Power BI/Excel	data_bi
+Star schema	A fact table linked to dimension tables	data_bi
+Fact vs dimension table	Measures and events vs descriptive attributes	data_bi
+Measure (BI)	A calculated aggregate, such as total sales	data_bi
+Slicer	An interactive filter on a report	data_bi
+Tableau	A leading data visualization tool	data_bi
+Excel PivotTable	Summarizes and aggregates data interactively	data_bi
+KPI	Key Performance Indicator	data_bi
+Dashboard	A single view of the key metrics	data_bi
+Data storytelling	Framing data to drive a decision	data_bi
+Chart for trend over time	Line chart	data_bi
+Chart for comparison	Bar chart	data_bi
+Data cleaning	Removing errors, duplicates, and inconsistencies	data_bi
+ETL	Extract, Transform, Load	data_bi
+Adoption metrics examples	Active users, usage rate, time saved, ROI	data_bi
+Data model (BI)	How tables relate for analysis	data_bi
+Row vs filter context (DAX)	The current row vs the applied filters	data_bi
+Refresh (BI)	Updating a report with new data	data_bi
+Why visualize data	To turn numbers into decisions faster	data_bi
+Vanity vs actionable metric	Looks good vs drives a decision	data_bi
+Semantic model	The modeled dataset behind a report	data_bi

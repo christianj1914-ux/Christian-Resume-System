@@ -1,0 +1,27 @@
+#separator:tab
+#html:false
+#tags column:3
+Business architecture	A blueprint linking strategy to capabilities and processes	business_architecture
+TOGAF	An enterprise architecture framework from The Open Group	business_architecture
+TOGAF current version	The Standard, 10th Edition	business_architecture
+TOGAF ADM	The Architecture Development Method (phases A to H)	business_architecture
+ADM Phase B	Business Architecture	business_architecture
+Business capability	An ability the business has: what it does	business_architecture
+Capability map	A stable, structure-agnostic view of what a business does	business_architecture
+Capability dimensions (TOGAF)	People, Process, Information, Resources	business_architecture
+Value stream	End-to-end activities that deliver value to a stakeholder	business_architecture
+Value stream stage	A step that adds value toward an outcome	business_architecture
+Heat map	Coloring capabilities by performance or investment need	business_architecture
+BIZBOK	The Business Architecture Body of Knowledge	business_architecture
+Current-state assessment	Documenting how things work today	business_architecture
+Gap analysis	The difference between current and target state	business_architecture
+Target architecture	The desired future-state design	business_architecture
+ArchiMate	A modeling language for enterprise architecture	business_architecture
+BPMN	Business Process Model and Notation	business_architecture
+Capability vs process	What the business does vs how it does it	business_architecture
+Why capability maps are stable	They ignore org structure, which changes often	business_architecture
+Operating model	How an organization delivers value	business_architecture
+Roadmap (architecture)	A sequenced path from current to target state	business_architecture
+Value of business architecture	Aligns technology investment to strategy	business_architecture
+Stakeholder	Anyone affected by or influencing the work	business_architecture
+TOGAF entry certification	TOGAF Enterprise Architecture Foundation	business_architecture

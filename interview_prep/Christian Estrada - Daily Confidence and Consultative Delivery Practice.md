@@ -8,6 +8,36 @@ You are not broken. Interview nerves are a trainable survival response, and the 
 - Mindset: "My brain is trying to keep me safe right now, but I am secure enough to handle this."
 - Consultative: "I am not selling myself. I am diagnosing their problem."
 
+## Your positioning anchor (broad identity, sharp per role)
+
+You are not a master of none. Your "one thing" is a capability, not a domain: you take ambiguous,
+cross-functional problems and turn them into structured delivery that people actually adopt. That
+shows up as program management, product ownership, continuous improvement, consulting, or ERP
+implementation depending on the role. You specialize in the messy middle where business, operations,
+and technology have to line up, which is exactly where most initiatives break. Broad in where it
+applies; specialized in the capability. Full detail in "Recruiter call analysis and repositioning.md".
+
+Your 20-second umbrella pitch (over-rehearse until it is automatic and calm):
+"I take on ambiguous, cross-functional work, program, product, process, or system, and turn it into
+structured delivery that actually gets adopted. My best work is at the intersection of business,
+operations, and technology, where things usually break, and I have owned that from both the vendor and
+the customer side."
+
+Then match ONE title to the role in front of you (Technical Program Manager, Product Owner, Continuous
+Improvement Analyst, or Implementation/Solutions Consultant) and lead with the proof story that fits
+that lane (see the answer bank's "Part 0" for the per-lane proof map).
+
+Three reframes to say at full size, never apologetically:
+- Not "I'm not tied to one tool/ERP" but "I ramp fast because I understand the logic and the business
+  process; the interface changes, the fundamentals do not."
+- Not "I'm not really a coder" but "configuration, integration coordination, and SQL-level data work;
+  I bridge business and dev."
+- Not "almost desktop support" (Aderant) but "enterprise application support with SQL Server, Active
+  Directory, and integration diagnostics."
+
+Ban these self-sabotage words: "just", "almost", "not really", "I wouldn't advertise that". They take
+a strength and apologize for it.
+
 ## The 15-minute routine
 
 **Minutes 0 to 2, warm up and prime.** Read a paragraph aloud slowly, then read the top three wins from your Evidence Log out loud. This warms the voice and reminds your nervous system, before you practice anything, that you are competent.

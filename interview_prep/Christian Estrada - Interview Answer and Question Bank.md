@@ -6,6 +6,51 @@ Every answer uses the same shape: sentence one is the answer plus your ownership
 
 ---
 
+## Part 0: Your positioning (lead with this; match the title to the role)
+
+Your "one thing" is a capability, not a domain: you take ambiguous, cross-functional problems and turn
+them into structured delivery that people actually adopt. That is what makes you both broad and
+specialized. It shows up as program management, product ownership, continuous improvement, consulting,
+or ERP implementation depending on the role. You are not a master of none. You are a master of the
+messy middle where business, operations, and technology have to line up, which is exactly where most
+initiatives break.
+
+Umbrella pitch (default; adapt the title to whatever role you are in):
+"I take on ambiguous, cross-functional work, program, product, process, or system, and turn it into
+structured delivery that actually gets adopted. My best work is at the intersection of business,
+operations, and technology, where things usually break, and I have owned that from both the vendor and
+the customer side."
+
+Pick ONE title per conversation, matched to the role in front of you (never a range):
+- Program / delivery roles: "I'm targeting Technical Program Manager / Delivery roles."
+- Product roles: "Product Owner / Product Manager."
+- Process / operations: "Continuous Improvement / Business Process Analyst."
+- Consulting / implementation: "Implementation or Solutions Consultant."
+
+Then specialize the proof to that lane (lead with the story that fits):
+- Program / delivery: owned the five-month EFT/ACH replacement and the warehouse + Amazon Robotics
+  launch end to end, cross-functional, without direct authority.
+- Product: de facto product owner of the ERP platform, requirements to backlog to adoption, drove
+  VP and director decisions.
+- Continuous improvement / process: cut manual work 78% and discrepancies 22% by redesigning a
+  workflow; standardized processes across five sites.
+- Consulting: discovery to delivery, translating ambiguous business needs into SOWs, scope, and
+  adoption; McKinsey Forward.
+- ERP / implementation: dual-sided Aptean Intuitive, vendor consultant and internal owner, full
+  lifecycle.
+- Analytics / operations: 200+ dashboards, SQL and Power BI, turning data into decisions.
+- Customer success: protected $1M+ at-risk revenue across 80+ clients through QBRs and recovery.
+
+Three reframes, said at full size (see "Recruiter call analysis and repositioning.md"):
+- "You don't have our exact tool / ERP" -> "I ramp fast because I understand the underlying logic and
+  the business process; the interface changes, the fundamentals do not."
+- "Are you a developer?" -> "My technical work is configuration, integration coordination, and
+  SQL-level data work. I'm not a developer, but I work closely with dev teams and read and write SQL."
+- "Was that just support?" (Aderant) -> "Enterprise application support with SQL Server, Active
+  Directory, and integration diagnostics, my most technical role."
+
+Never say: "just", "almost", "not really", "I wouldn't advertise that". Attach a number to every role.
+
 ## Part A: Common questions and how to answer
 
 ### ERP and implementation

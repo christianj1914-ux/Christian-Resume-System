@@ -1,0 +1,77 @@
+#separator:tab
+#html:false
+#tags column:3
+The 8 bit values in an octet?	128, 64, 32, 16, 8, 4, 2, 1	foundations
+Convert 192 to binary	11000000	foundations
+Convert 200 to binary	11001000	foundations
+Convert 255 to binary	11111111	foundations
+Usable hosts in a /24	254	foundations
+Usable hosts in a /26	62	foundations
+Usable hosts in a /27	30	foundations
+Usable hosts in a /30	2	foundations
+Subnet mask for /26	255.255.255.192	foundations
+Subnet mask for /28	255.255.255.240	foundations
+Block-size formula (interesting octet)	256 minus the mask value in that octet	foundations
+Usable-hosts formula	2 to the power of host bits, minus 2	foundations
+Private IPv4 ranges	10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16	foundations
+Loopback address	127.0.0.1	foundations
+Port: SSH	22	foundations
+Port: HTTP	80	foundations
+Port: HTTPS	443	foundations
+Port: DNS	53	foundations
+Port: RDP	3389	foundations
+Port: SMTP	25	foundations
+Port: DHCP	67 and 68	foundations
+TCP vs UDP	TCP = reliable, connection-oriented; UDP = fast, connectionless	foundations
+OSI layer 3	Network (IP, routing)	foundations
+OSI layer 4	Transport (TCP/UDP)	foundations
+What DNS does	Resolves names to IP addresses	foundations
+What DHCP does	Automatically assigns IP configuration	foundations
+What NAT does	Translates private addresses to public	foundations
+Default gateway role	Routes traffic off the local subnet	foundations
+Python: int to 8-bit binary string	format(n, '08b')	foundations
+Big-O of binary search	O(log n)	foundations
+Convert 168 to binary	10101000	foundations
+Convert binary 11000000 to decimal	192	foundations
+Usable hosts in a /25	126	foundations
+Usable hosts in a /28	14	foundations
+Usable hosts in a /29	6	foundations
+Subnet mask for /25	255.255.255.128	foundations
+Subnet mask for /27	255.255.255.224	foundations
+Subnet mask for /30	255.255.255.252	foundations
+CIDR for 255.255.255.0	/24	foundations
+CIDR for 255.255.0.0	/16	foundations
+APIPA range	169.254.0.0/16	foundations
+Class A range	1 to 126	foundations
+Class B range	128 to 191	foundations
+Class C range	192 to 223	foundations
+Broadcast of 192.168.1.0/24	192.168.1.255	foundations
+What ARP does	Maps an IP address to a MAC address	foundations
+ICMP is used by	ping and traceroute	foundations
+Router vs switch	Layer 3 (routing) vs Layer 2 (switching)	foundations
+DHCP DORA steps	Discover, Offer, Request, Acknowledge	foundations
+IPv6 address length	128 bits	foundations
+Python: length of a list	len(list)	foundations
+Big-O of linear search	O(n)	foundations
+Convert 224 to binary	11100000	foundations
+Convert 240 to binary	11110000	foundations
+Binary 10101010 to decimal	170	foundations
+Hex FF in decimal	255	foundations
+Number of addresses in a /22	1024	foundations
+Usable hosts in a /23	510	foundations
+Wildcard mask of /24	0.0.0.255	foundations
+First usable host in 192.168.1.0/24	192.168.1.1	foundations
+Which /26 subnet holds .100	the .64 subnet (.64 to .127)	foundations
+MAC address length	48 bits (6 bytes)	foundations
+IPv6 loopback	::1	foundations
+Purpose of a subnet mask	Separates network bits from host bits	foundations
+Unicast / broadcast / multicast	One-to-one, one-to-all, one-to-group	foundations
+Well-known port range	0 to 1023	foundations
+TCP three-way handshake	SYN, SYN-ACK, ACK	foundations
+What traceroute relies on	Increasing TTL with ICMP/UDP	foundations
+What a default gateway does	Connects a network to other networks	foundations
+Python: define a class	class	foundations
+Python: handle errors	try / except	foundations
+Python: immutable ordered sequence	tuple	foundations
+Big-O of a nested loop over n	O(n squared)	foundations
+What a variable is	A named reference to a value	foundations

@@ -1,0 +1,27 @@
+#separator:tab
+#html:false
+#tags column:3
+Microsoft 365 Copilot	An AI assistant across the Office apps	enterprise_ai_tools
+Copilot Studio	A low-code tool to build custom copilots and agents	enterprise_ai_tools
+Glean	Enterprise AI search and assistant over company data	enterprise_ai_tools
+Cursor	An AI-native code editor	enterprise_ai_tools
+Replit	A browser IDE with an AI agent for building apps	enterprise_ai_tools
+Adobe Firefly	Adobe's generative AI for images and content	enterprise_ai_tools
+Adobe GenStudio	Adobe's generative AI content supply chain	enterprise_ai_tools
+MCP	Model Context Protocol: connects agents to tools and data (Anthropic)	enterprise_ai_tools
+A2A	Agent-to-Agent protocol: agents discover and delegate (Google)	enterprise_ai_tools
+ACP / UCP	Agent commerce protocols for transactions	enterprise_ai_tools
+MCP vs A2A	Vertical tool integration vs horizontal agent coordination	enterprise_ai_tools
+The two-layer agent stack	MCP for tools, A2A for agent coordination	enterprise_ai_tools
+Knowledge graph	A network of entities and their relationships	enterprise_ai_tools
+Neo4j	A popular graph database	enterprise_ai_tools
+When to use a knowledge graph	Reasoning over connected, related data	enterprise_ai_tools
+Low-code agent	Built with tools like Copilot Studio, minimal coding	enterprise_ai_tools
+Enterprise RAG	Grounding answers in company documents	enterprise_ai_tools
+What an AI agent needs	A model, tools, memory, a loop, and guardrails	enterprise_ai_tools
+Grounding a copilot	Connecting it to trusted enterprise data	enterprise_ai_tools
+Agent Card (A2A)	Metadata advertising an agent's capabilities	enterprise_ai_tools
+Human-in-the-loop	An approval step before an agent acts	enterprise_ai_tools
+Prompt library	Reusable, tested prompts shared across a team	enterprise_ai_tools
+AI-900	Microsoft Azure AI Fundamentals certification	enterprise_ai_tools
+Copilot Studio use case	A grounded HR or IT helpdesk chatbot	enterprise_ai_tools
