@@ -36,6 +36,7 @@ import business_context
 import interview_context
 import interview_intelligence
 import interview_stage
+import question_bank_audit
 import question_prep
 import prose_engine
 import resume_analysis
@@ -691,6 +692,50 @@ def add_application_question_prep_section(document: Document, job_description: s
         add_subsection(document, "Likely Requirement-Probe Questions")
         for response in probes:
             add_qa_card(document, response.prompt, response.answer)
+    return True
+
+
+def question_bank_story_anchor(category: str) -> str:
+    return {
+        "parallel_project_governance": "Aptean concurrent implementations plus East West migration / warehouse launch",
+        "executive_reporting_trust": "60+ executive workshops/QBRs and 200+ reporting tools",
+        "ambiguity_delivery": "East West warehouse and Amazon Robotics launch",
+        "complex_project_leadership": "East West enterprise platform migration and launch workstreams",
+        "expectation_gap": "CEO escalation and written expectation reset",
+        "training_strategy_leadership": "Aptean client enablement and East West cross-site training",
+        "implementation_volume": "80+ international client engagement portfolio",
+        "implementation_success": "UAT, go-live readiness, adoption, and reporting visibility",
+        "ai_passion": "Claude-assisted workflows and LivePerson chatbot logic",
+        "saas_ai_company_experience": "Aptean, Aderant, and AI-enabled workflow exposure",
+        "communication": "60+ executive workshops/QBRs",
+        "software_inventory": "supported tools from source resumes",
+    }.get(category, "Use the closest supported story and honest bridge language")
+
+
+def add_question_bank_coverage_section(document: Document, job_description: str, resume_text: str = "") -> bool:
+    audit = question_bank_audit.audit_application_inputs(job_description)
+    if not audit.rows:
+        return False
+    if not resume_text:
+        _, _, resume_text = question_prep.selected_resume_snapshot(job_description)
+    _, snapshot, _selected_resume_text = question_prep.selected_resume_snapshot(job_description)
+    add_section(document, "Question Bank Coverage")
+    seen_categories: set[str] = set()
+    for row in audit.rows:
+        if row.category in seen_categories:
+            continue
+        seen_categories.add(row.category)
+        try:
+            answer = question_prep.answer_prompt(row.prompt, job_description, snapshot, resume_text).answer
+        except ValueError:
+            answer = question_prep.generic_bridge_answer(job_description, resume_text)
+        tracks = "; ".join(row.theme_track_refs) if row.theme_track_refs else "No Study track mapped"
+        tip = cheat.join_answer_sentences(
+            f"Category: {row.category}",
+            f"Story anchor: {question_bank_story_anchor(row.category)}",
+            f"Study refs: {tracks}",
+        )
+        add_qa_card(document, row.prompt, answer, tip=tip)
     return True
 
 
@@ -3351,6 +3396,7 @@ def build_document(
             )
             add_body(document, f"Follow-up angle: {item.angle}", small=True)
         add_application_question_prep_section(document, job_description, resume_text)
+        add_question_bank_coverage_section(document, job_description, resume_text)
         add_recent_interview_question_prep_section(
             document,
             job_description,

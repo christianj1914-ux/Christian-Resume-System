@@ -28,6 +28,7 @@ import business_context
 import interview_intelligence
 import interview_context
 import proof_text
+import question_bank_audit
 import question_prep
 import prose_engine
 import resume_analysis
@@ -5657,6 +5658,7 @@ def strip_external_question_prompts_for_validation(
     jobs_dir: Path = PROJECT_ROOT / "jobs",
 ) -> str:
     prompts = list(question_prep.load_active_application_prompts())
+    prompts.extend(prompt for prompt, _source in question_bank_audit.application_bank_prompts())
     if company_name and role_title:
         prompts.extend(interview_context.recent_interviewer_questions(jobs_dir, company_name, role_title, limit=10))
     cleaned = text

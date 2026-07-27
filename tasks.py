@@ -102,6 +102,13 @@ TASKS: dict[str, Task] = {
         "Build the standard qualifications statement or application-question companion document.",
         ("scripts/build_standard_qualifications_statement.py",),
     ),
+    "question-bank-audit": Task(
+        "Audit application question banks for redundancy, category collisions, and unmapped prompts. Read only Word report.",
+        ("scripts/build_question_bank_audit.py",),
+        False,
+        "Experimental",
+        False,
+    ),
     "cover-short": Task(
         "Legacy alias: build the default concise cover letter directly from the latest matching resume.",
         ("scripts/build_cover_letter.py", "--mode", "standard"),

@@ -43,6 +43,8 @@ MAJOR_SCRIPTS = (
     "build_cover_letter",
     "commercial_resume_model",
     "build_standard_qualifications_statement",
+    "question_bank_audit",
+    "build_question_bank_audit",
     "build_interview_cheat_sheet",
     "build_interview_companions",
     "build_self_inventory_onepager",
@@ -8510,6 +8512,226 @@ def test_standard_qualifications_answers_added_company_and_implementation_questi
     )
 
 
+def test_application_question_bank_category_lock(question_prep: object) -> None:
+    bank_path = PROJECT_ROOT / "jobs" / "application_questions_bank.txt"
+    prompts = question_prep.parse_question_blocks(bank_path.read_text(encoding="utf-8-sig"))
+    expected_categories = (
+        "education_years",
+        "direct_experience_years",
+        "relevant_experience",
+        "public_agency_experience",
+        "unique_qualifications",
+        "certifications",
+        "software_inventory",
+        "communication",
+        "company_interest",
+        "customer_profile",
+        "implementation_volume",
+        "implementation_success",
+        "ai_passion",
+        "ambiguity_delivery",
+        "expectation_gap",
+        "saas_ai_company_experience",
+        "complex_project_leadership",
+        "training_strategy_leadership",
+        "parallel_project_governance",
+        "executive_reporting_trust",
+    )
+    actual_categories = tuple(question_prep.question_category(prompt) for prompt in prompts)
+    assert_true(
+        len(prompts) == len(expected_categories) and actual_categories == expected_categories,
+        f"application question bank category mapping changed; got {list(enumerate(actual_categories, start=1))}",
+    )
+
+
+def test_new_question_bank_answers_are_claim_first(
+    question_prep: object,
+    build_interview_cheat_sheet: object,
+) -> None:
+    prompts = (
+        "Tell us about a period when you ran multiple complex technical projects in parallel. How did you keep milestones, dependencies, and stakeholders on track across all of them?",
+        "Give an example of how you built trust with an executive stakeholder group through your reporting and communication.",
+    )
+    expected = ("parallel_project_governance", "executive_reporting_trust")
+    _resume_path, snapshot, resume_text = question_prep.selected_resume_snapshot(SOURCEWELL_QUALIFICATIONS_JOB_DESCRIPTION)
+    for prompt, category in zip(prompts, expected):
+        assert_true(
+            question_prep.question_category(prompt) == category,
+            f"{prompt!r} should map to {category}; got {question_prep.question_category(prompt)!r}",
+        )
+        response = question_prep.answer_prompt(prompt, SOURCEWELL_QUALIFICATIONS_JOB_DESCRIPTION, snapshot, resume_text)
+        assert_true(
+            not response.warning and "generic bridge" not in response.answer.lower(),
+            f"{category} should produce a mapped answer without generic warning; got {response}",
+        )
+        question_prep.assert_no_application_banned_phrases(response.answer)
+        build_interview_cheat_sheet.assert_claim_then_prove_answer(category, response.answer, min_words=18)
+
+
+def test_question_bank_audit_groups_by_category_and_excludes_derived_prompts(question_bank_audit: object) -> None:
+    rows = (
+        ("Why are you interested in joining this company?", "bank"),
+        ("Why are you interested in joining this company?", "active"),
+        ("Why are you interested in this role?", "active"),
+        ("Repeated cleanup prompt about custom reporting cadence?", "bank"),
+        ("Repeated cleanup prompt about custom reporting cadence?", "bank"),
+        ("A custom unmapped prompt about stakeholder reporting cadence and stakeholder reporting cadence?", "bank"),
+        ("A custom unmapped prompt about stakeholder reporting cadence and stakeholder reporting cadence follow-up?", "active"),
+    )
+    audit = question_bank_audit.build_audit(rows)
+    assert_true(
+        "company_interest" in audit.category_collisions
+        and len(audit.category_collisions["company_interest"]) == 2,
+        f"audit should group functional redundancy by question category; got {audit.category_collisions}",
+    )
+    shared_row = next(row for row in audit.rows if row.prompt == "Why are you interested in joining this company?")
+    assert_true(
+        shared_row.sources == ("bank", "active"),
+        f"same prompt across Class A sources should merge as provenance; got {shared_row.sources}",
+    )
+    assert_true(
+        audit.exact_duplicate_groups
+        and audit.exact_duplicate_groups[0][0] == "Repeated cleanup prompt about custom reporting cadence?"
+        and audit.exact_duplicate_groups[0][1:] == ("bank",),
+        f"audit should flag same-source repeats only; got {audit.exact_duplicate_groups}",
+    )
+    assert_true(
+        len(audit.application_near_duplicates) == 1 and audit.application_near_duplicates[0][2] >= 0.6,
+        f"audit should only emit application near-duplicate hints inside generic_bridge; got {audit.application_near_duplicates}",
+    )
+    active_audit = question_bank_audit.build_audit(job_description=DUMMY_JOB_DESCRIPTION)
+    assert_true(
+        not any(prompt.startswith("How would your experience transfer to") for prompt in (row.prompt for row in active_audit.rows)),
+        "question bank audit should exclude generated element_probe_responses prompts",
+    )
+
+
+def test_question_bank_audit_class_separation_and_markdown_extractor(question_bank_audit: object) -> None:
+    audit = question_bank_audit.build_audit(job_description="")
+    class_b_prompts = {row.prompt for row in audit.interview_corpus_rows}
+    assert_true(
+        len(audit.rows) == 20
+        and not audit.unmapped_prompts
+        and not audit.category_collisions,
+        f"Class A should report clean application-bank health; got rows={len(audit.rows)}, unmapped={audit.unmapped_prompts}, collisions={audit.category_collisions}",
+    )
+    assert_true(
+        class_b_prompts
+        and not any(prompt in class_b_prompts for prompt in audit.unmapped_prompts),
+        "Class B interview-corpus prompts should not appear in Class A unmapped prompts",
+    )
+    assert_true(
+        not question_bank_audit.is_markdown_interview_question(
+            question_bank_audit.normalize_markdown_question_line("are automatic. Fill any bracketed blanks with your real specifics.")
+        ),
+        "markdown extractor should reject lowercase prose fragments",
+    )
+    assert_true(
+        not question_bank_audit.is_markdown_interview_question(
+            question_bank_audit.normalize_markdown_question_line("How to sell your projects (stop underselling)")
+        ),
+        "markdown extractor should reject question-like headings without a question mark",
+    )
+    assert_true(
+        question_bank_audit.is_markdown_interview_question(
+            question_bank_audit.normalize_markdown_question_line("How do you handle scope creep or changing requirements?")
+        ),
+        "markdown extractor should keep real interrogative questions",
+    )
+    assert_true(
+        question_bank_audit.is_markdown_interview_question(
+            question_bank_audit.normalize_markdown_question_line("13. Tell me about yourself.")
+        ),
+        "markdown extractor should keep enumerated behavioral prompts",
+    )
+
+
+def test_question_bank_audit_command_is_word_only_and_read_only(
+    build_question_bank_audit: object,
+) -> None:
+    from docx import Document
+
+    bank_path = PROJECT_ROOT / "jobs" / "application_questions_bank.txt"
+    before = bank_path.read_bytes()
+    original_output = build_question_bank_audit.OUTPUT_DIR
+    try:
+        with TemporaryDirectory(prefix="question_bank_audit_") as temp_name:
+            temp_root = Path(temp_name)
+            build_question_bank_audit.OUTPUT_DIR = temp_root
+            build_question_bank_audit.main()
+            outputs = list(temp_root.iterdir())
+            document = Document(outputs[0])
+            text = "\n".join(paragraph.text for paragraph in document.paragraphs)
+    finally:
+        build_question_bank_audit.OUTPUT_DIR = original_output
+    after = bank_path.read_bytes()
+    assert_true(before == after, "question-bank-audit command should not mutate the source question bank")
+    assert_true(
+        len(outputs) == 1 and outputs[0].suffix.lower() == ".docx",
+        f"question-bank-audit command should create one Word document only; got {outputs}",
+    )
+    assert_true(
+        "Application Bank Health" in text
+        and "Application prompts: 20" in text
+        and "Interview Question Corpus" in text
+        and "Unique prompts:" not in text,
+        f"question-bank-audit report should separate application health from interview corpus; got {text[:1000]}",
+    )
+
+
+def test_detailed_guide_question_bank_coverage_section(
+    build_detailed_interview_guide: object,
+) -> None:
+    from docx import Document
+
+    document = Document()
+    rendered = build_detailed_interview_guide.add_question_bank_coverage_section(
+        document,
+        SOURCEWELL_QUALIFICATIONS_JOB_DESCRIPTION,
+    )
+    text = build_detailed_interview_guide.document_text(document)
+    assert_true(
+        rendered
+        and "QUESTION BANK COVERAGE" in text
+        and "parallel" in text
+        and "60+ executive workshops" in text,
+        f"detailed guide should render mapped question-bank examples; got {text[:1000]}",
+    )
+
+
+def test_daily_prep_question_bank_checklist(interview_intelligence: object, build_daily_prep_plan: object) -> None:
+    plan = interview_intelligence.build_daily_prep_plan(
+        "job_search",
+        today=date(2026, 7, 27),
+        job_description="",
+        prep_focus_path=Path("missing-prep-focus.json"),
+    )
+    checklist = plan.question_bank_checklist
+    assert_true(
+        len(checklist) >= 20,
+        f"daily prep checklist should include every applicable bank prompt when no JD filtering applies; got {len(checklist)}",
+    )
+    first_generic = next((index for index, line in enumerate(checklist) if "Generic Bridge" in line), len(checklist))
+    first_mapped = next((index for index, line in enumerate(checklist) if "Study/IT_" in line), len(checklist))
+    assert_true(
+        first_mapped < first_generic,
+        f"career-target-aligned mapped categories should rank above generic_bridge prompts; got {checklist[:5]}",
+    )
+    valid_refs = set(interview_intelligence.STUDY_TRACK_REFERENCES)
+    mapped_lines = [line for line in checklist if "Study/IT_" in line]
+    assert_true(
+        mapped_lines
+        and all(any(reference in line for reference in valid_refs) for line in mapped_lines),
+        f"mapped checklist lines should reference real Study tracks; got {mapped_lines[:5]}",
+    )
+    document = build_daily_prep_plan.render_daily_prep_plan(plan)
+    text = build_daily_prep_plan.document_text(document)
+    assert_true(
+        "Question Bank Checklist" in text and "Parallel Project Governance" in text,
+        f"daily prep renderer should include the question bank checklist; got {text[:1000]}",
+    )
+
+
 def test_standard_application_question_parser_dedupes_blocks(
     build_standard_qualifications_statement: object,
 ) -> None:
@@ -15282,6 +15504,8 @@ def main() -> None:
         build_cover_letter = modules["build_cover_letter"]
         commercial_resume_model = modules["commercial_resume_model"]
         build_standard_qualifications_statement = modules["build_standard_qualifications_statement"]
+        question_bank_audit = modules["question_bank_audit"]
+        build_question_bank_audit = modules["build_question_bank_audit"]
         build_interview_cheat_sheet = modules["build_interview_cheat_sheet"]
         build_daily_prep_plan = modules["build_daily_prep_plan"]
         build_career_operating_plan = modules["build_career_operating_plan"]
@@ -15611,6 +15835,13 @@ def main() -> None:
             ("qualifications builder removes local shadow answer helpers", test_qualifications_builder_removes_local_shadow_answer_helpers),
             ("standard qualifications answers known questions", lambda: test_standard_qualifications_answers_known_questions(build_standard_qualifications_statement)),
             ("standard qualifications answers added company and implementation questions", lambda: test_standard_qualifications_answers_added_company_and_implementation_questions(build_standard_qualifications_statement)),
+            ("application question bank category lock", lambda: test_application_question_bank_category_lock(question_prep)),
+            ("new question bank answers are claim first", lambda: test_new_question_bank_answers_are_claim_first(question_prep, build_interview_cheat_sheet)),
+            ("question bank audit groups and excludes derived prompts", lambda: test_question_bank_audit_groups_by_category_and_excludes_derived_prompts(question_bank_audit)),
+            ("question bank audit class separation and markdown extractor", lambda: test_question_bank_audit_class_separation_and_markdown_extractor(question_bank_audit)),
+            ("question bank audit command is Word only and read only", lambda: test_question_bank_audit_command_is_word_only_and_read_only(build_question_bank_audit)),
+            ("detailed guide question bank coverage section", lambda: test_detailed_guide_question_bank_coverage_section(build_detailed_interview_guide)),
+            ("daily prep question bank checklist", lambda: test_daily_prep_question_bank_checklist(interview_intelligence, build_daily_prep_plan)),
             ("standard application question parser", lambda: test_standard_application_question_parser_dedupes_blocks(build_standard_qualifications_statement)),
             ("standard qualifications render recent interview prep", lambda: test_standard_qualifications_document_renders_recent_interview_questions(build_standard_qualifications_statement)),
             ("standard qualifications recent interviewer scripts resolve factual script", lambda: test_standard_qualifications_recent_interviewer_scripts_resolve_factual_script(build_standard_qualifications_statement)),

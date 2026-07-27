@@ -59,6 +59,10 @@ def render_daily_prep_plan(plan: interview_intelligence.DailyPrepPlan) -> Docume
     document.add_heading("Completion Log", level=2)
     document.add_paragraph(plan.completion_prompt)
     document.add_paragraph("Columns: date, mode, reps_done, hedge_count, self_rated_clarity.")
+    if plan.question_bank_checklist:
+        document.add_heading("Question Bank Checklist", level=2)
+        for item in plan.question_bank_checklist:
+            add_bullet(document, item)
     return document
 
 

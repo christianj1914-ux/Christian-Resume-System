@@ -1568,6 +1568,22 @@ def training_strategy_leadership_answer() -> str:
     )
 
 
+def parallel_project_governance_answer() -> str:
+    return finalize_candidate_answer(
+        "Parallel project governance answer",
+        "I have carried several complex technical efforts at the same time and kept them on track by managing the portfolio, not just each project. At Aptean I regularly ran multiple enterprise software implementations concurrently across an 80+ international client engagement portfolio, and at East West Manufacturing I ran parallel workstreams for an enterprise platform migration alongside the new warehouse and Amazon Robotics launch. The method was consistent: one combined view of milestones and go-live dates across projects, an explicit map of cross-project dependencies so a slip in one effort did not quietly break another, and a standing stakeholder cadence so operations, finance, engineering, and vendors reviewed the same risks on the same rhythm. For each engagement I held scope baselines, milestone schedules, risk assumptions, and testing and training checkpoints, then triaged my own attention by dependency and go-live risk rather than by whoever asked last. This kind of structure let me keep several complex efforts moving without losing control of any single one.",
+        claim_first=True,
+    )
+
+
+def executive_reporting_trust_answer() -> str:
+    return finalize_candidate_answer(
+        "Executive reporting trust answer",
+        "I built executive trust mainly by making my reporting the thing leaders could rely on when a decision was hard. Across roles I ran 60+ executive workshops and quarterly business reviews and built 200+ reporting tools, and the consistent pattern was translating technical detail into the few things an executive audience actually needed: where the risk was, what the tradeoffs were, and what decision I was asking them to make. I kept the reporting honest, including surfacing bad news early rather than letting a status look greener than it was, because credibility comes from being right about risk before it becomes a problem. Over time that reliability meant executives treated my read of a situation as a basis for action rather than something they had to re-verify. The trust came from clarity, a consistent cadence, and never making them dig for the real status.",
+        claim_first=True,
+    )
+
+
 def generic_bridge_answer(job_description: str, resume_text: str) -> str:
     profile = build_resume.job_problem_profile(job_description, resume_text)
     return normalize_spaces(
@@ -1705,6 +1721,14 @@ def question_category(prompt: str) -> str:
         return "expectation_gap"
     if "protect trust" in normalized and "path forward" in normalized and "tradeoffs" in normalized:
         return "expectation_gap"
+    if "parallel" in normalized and ("multiple" in normalized or "several" in normalized) and (
+        "milestones" in normalized or "dependencies" in normalized
+    ):
+        return "parallel_project_governance"
+    if "executive" in normalized and "trust" in normalized and (
+        "reporting" in normalized or "communication" in normalized
+    ):
+        return "executive_reporting_trust"
     if "priorit" in normalized or "competing deadlines" in normalized or "multiple deadlines" in normalized:
         return "prioritization"
     if "acumatica" in normalized or ("platform experience" in normalized and "erp" in normalized):
@@ -1757,6 +1781,10 @@ def answer_prompt(prompt: str, job_description: str, snapshot: ResumeSnapshot, r
         response = QualificationsResponse(prompt, expectation_gap_answer())
     elif category == "training_strategy_leadership":
         response = QualificationsResponse(prompt, training_strategy_leadership_answer())
+    elif category == "parallel_project_governance":
+        response = QualificationsResponse(prompt, parallel_project_governance_answer())
+    elif category == "executive_reporting_trust":
+        response = QualificationsResponse(prompt, executive_reporting_trust_answer())
     elif category == "prioritization":
         response = QualificationsResponse(prompt, prioritization_answer())
     elif category == "platform_ramp":
@@ -1774,6 +1802,8 @@ def answer_prompt(prompt: str, job_description: str, snapshot: ResumeSnapshot, r
         "training_strategy_leadership",
         "prioritization",
         "platform_ramp",
+        "parallel_project_governance",
+        "executive_reporting_trust",
     }
     finalized = finalize_candidate_answer(
         prompt,

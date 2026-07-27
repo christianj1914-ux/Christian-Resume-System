@@ -40,6 +40,23 @@ STUDY_TRACK_REFERENCES = (
     "Study/IT_Flashcards_PMP.txt",
     "Study/IT_Flashcards_SecurityPlus.txt",
 )
+QUESTION_THEME_TRACKS: dict[str, tuple[str, ...]] = {
+    "parallel_project_governance": ("Study/IT_Flashcards_PMP.txt",),
+    "complex_project_leadership": ("Study/IT_Flashcards_PMP.txt",),
+    "ambiguity_delivery": ("Study/IT_Flashcards_PMP.txt",),
+    "ai_passion": ("Study/IT_Flashcards_AI.txt", "Study/IT_Flashcards_AIAdoption.txt"),
+    "saas_ai_company_experience": ("Study/IT_Flashcards_AIAdoption.txt",),
+    "executive_reporting_trust": (
+        "Study/IT_Flashcards_DataAnalyticsBI.txt",
+        "Study/IT_Flashcards_BusinessArchitecture.txt",
+    ),
+    "implementation_success": ("Study/IT_Flashcards_DataAnalyticsBI.txt",),
+}
+
+
+def question_theme_tracks(category: str) -> tuple[str, ...]:
+    return QUESTION_THEME_TRACKS.get(category, ())
+
 
 UNSUPPORTED_CREDENTIAL_PATTERNS = (
     re.compile(r"\bSix Sigma certified\b", re.I),
@@ -110,6 +127,7 @@ class DailyPrepPlan:
     emphasis: str
     reps: tuple[DailyPrepRep, ...]
     completion_prompt: str
+    question_bank_checklist: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -1155,6 +1173,7 @@ def _plan_render_text(plan: DailyPrepPlan) -> str:
             plan.plan_date.isoformat(),
             plan.emphasis,
             plan.completion_prompt,
+            *plan.question_bank_checklist,
             *(
                 "\n".join(
                     (
@@ -1169,6 +1188,49 @@ def _plan_render_text(plan: DailyPrepPlan) -> str:
             ),
         )
     )
+
+
+def _question_bank_checklist(job_description: str) -> tuple[str, ...]:
+    try:
+        import question_bank_audit
+        import question_prep
+    except ImportError:
+        return ()
+
+    audit = question_bank_audit.audit_application_bank()
+    stale_prompts = set()
+    if job_description.strip():
+        stale_prompts = set(
+            question_prep.application_question_context_issues(
+                job_description,
+                tuple(row.prompt for row in audit.rows),
+                workflow="commercial",
+            )
+        )
+    rows = [row for row in audit.rows if row.prompt not in stale_prompts]
+    if not rows:
+        return ()
+
+    def row_priority(index_row: tuple[int, object]) -> tuple[int, int]:
+        index, row = index_row
+        tracks = tuple(getattr(row, "theme_track_refs", ()))
+        category = str(getattr(row, "category", ""))
+        if tracks:
+            return (0, index)
+        if category == "generic_bridge":
+            return (1, index)
+        return (2, index)
+
+    checklist: list[str] = []
+    for _index, row in sorted(enumerate(rows), key=row_priority):
+        category = row.category.replace("_", " ").title()
+        tracks = "; ".join(row.theme_track_refs) if row.theme_track_refs else "no Study track"
+        if row.category == "generic_bridge":
+            action = "needs a mapped answer; rehearse with honest bridge language until it is categorized"
+        else:
+            action = "rehearse the answer with claim, proof, and role relevance"
+        checklist.append(f"{category} ({tracks}): {action}. Prompt: {row.prompt}")
+    return tuple(checklist)
 
 
 def build_daily_prep_plan(
@@ -1338,6 +1400,7 @@ def build_daily_prep_plan(
         emphasis=_join_sentence(emphasis, plan_focus_line) if plan_focus_line else emphasis,
         reps=reps,
         completion_prompt="Log reps_done, hedge_count, and self_rated_clarity only when you intentionally mark the session complete.",
+        question_bank_checklist=_question_bank_checklist(job_description),
     )
     assert_safe_generated_text(_plan_render_text(plan), inventory)
     return plan
