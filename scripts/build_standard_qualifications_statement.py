@@ -19,6 +19,7 @@ from docx.shared import Inches, Pt, RGBColor
 
 import build_interview_cheat_sheet
 import build_resume
+import question_bank_audit
 import question_prep
 import prose_engine
 import render_checks
@@ -60,6 +61,20 @@ class QualificationsBuildResult:
     company_name: str
     question_count: int
     used_custom_questions: bool
+    question_source_label: str
+
+
+@dataclass(frozen=True)
+class ResolvedQuestionRows:
+    active_rows: tuple[question_bank_audit.QuestionBankAuditRow, ...]
+    additional_rows: tuple[question_bank_audit.QuestionBankAuditRow, ...]
+    all_rows: tuple[question_bank_audit.QuestionBankAuditRow, ...] = ()
+    warnings: tuple[str, ...] = ()
+    document_notes: tuple[str, ...] = ()
+
+    @property
+    def rows(self) -> tuple[question_bank_audit.QuestionBankAuditRow, ...]:
+        return self.all_rows or (*self.active_rows, *self.additional_rows)
 
 
 def parse_args() -> argparse.Namespace:
@@ -224,6 +239,46 @@ def latest_resume_state(job_description: str) -> str:
     return resume_analysis.output_audit_state(matches[0] if matches else None)
 
 
+def row_has_active_application_source(row: question_bank_audit.QuestionBankAuditRow) -> bool:
+    return any(
+        source == "jobs/application_questions.txt" or source.startswith("jobs/job_description.txt#")
+        for source in row.sources
+    )
+
+
+def resolve_qualification_question_rows(
+    job_description: str,
+    prompt_state: question_prep.ApplicationPromptState,
+) -> ResolvedQuestionRows:
+    collected = question_bank_audit.collect_application_input_prompts(job_description)
+    rows, _duplicates = question_bank_audit.application_rows_and_duplicates(collected)
+    bank_prompts = question_bank_audit.application_bank_prompts()
+    if not bank_prompts:
+        fallback_prompts = prompt_state.effective_prompts
+        fallback_rows = tuple(
+            question_bank_audit.QuestionBankAuditRow(
+                prompt=prompt,
+                category=question_prep.question_category(prompt),
+                sources=("fallback/default_prompt_set",),
+                theme_track_refs=(),
+            )
+            for prompt in fallback_prompts
+        )
+        return ResolvedQuestionRows(
+            active_rows=(),
+            additional_rows=fallback_rows,
+            all_rows=fallback_rows,
+            warnings=(
+                "QUALIFICATIONS WARNING: full application question bank was unavailable; "
+                "answered the active/default prompt set only.",
+            ),
+            document_notes=("Full question bank was unavailable; answered default prompt only.",),
+        )
+    active_rows = tuple(row for row in rows if row_has_active_application_source(row))
+    additional_rows = tuple(row for row in rows if not row_has_active_application_source(row))
+    return ResolvedQuestionRows(active_rows=active_rows, additional_rows=additional_rows, all_rows=rows)
+
+
 def set_normal_style(document: Document) -> None:
     style = document.styles["Normal"]
     style.font.name = "Calibri"
@@ -253,6 +308,22 @@ def add_paragraph(
     run.italic = italic
     if color is not None:
         run.font.color.rgb = color
+
+
+def add_response_block(
+    document: Document,
+    heading: str,
+    responses: tuple[question_prep.QualificationsResponse, ...],
+) -> None:
+    if not responses:
+        return
+    add_paragraph(document, heading, size=QUESTION_FONT_SIZE, bold=True, color=TITLE_BLUE, space_after=5)
+    for response in responses:
+        add_paragraph(document, response.prompt, size=QUESTION_FONT_SIZE, bold=True, color=TITLE_BLUE, space_after=4)
+        for paragraph in re.split(r"\n{2,}", response.answer):
+            cleaned = normalize_spaces(paragraph)
+            if cleaned:
+                add_paragraph(document, cleaned)
 
 
 def build_recent_interviewer_scripts(
@@ -317,6 +388,9 @@ def build_document(
     role_title: str,
     responses: tuple[question_prep.QualificationsResponse, ...],
     *,
+    active_responses: tuple[question_prep.QualificationsResponse, ...] = (),
+    additional_responses: tuple[question_prep.QualificationsResponse, ...] = (),
+    document_notes: tuple[str, ...] = (),
     recent_interviewer_scripts: tuple[tuple[str, str], ...] = (),
     used_custom_questions: bool,
 ) -> Document:
@@ -333,14 +407,20 @@ def build_document(
     add_paragraph(document, f"Target Position: {company_name} - {role_title}", italic=True, centered=True, space_after=10)
     if used_custom_questions:
         add_paragraph(document, "Customized to the current application questions.", size=10, italic=True, centered=True, space_after=10)
+    for note in document_notes:
+        add_paragraph(document, note, size=10, italic=True, color=RGBColor(192, 0, 0), centered=True, space_after=10)
 
-    for response in responses:
-        add_paragraph(document, response.prompt, size=QUESTION_FONT_SIZE, bold=True, color=TITLE_BLUE, space_after=4)
-        for paragraph in re.split(r"\n{2,}", response.answer):
-            cleaned = normalize_spaces(paragraph)
-            if cleaned:
-                add_paragraph(document, cleaned)
-    if recent_interviewer_scripts and not used_custom_questions:
+    if active_responses or additional_responses:
+        add_response_block(document, "Questions this application asks", active_responses)
+        add_response_block(document, "Additional prepared responses", additional_responses)
+    else:
+        for response in responses:
+            add_paragraph(document, response.prompt, size=QUESTION_FONT_SIZE, bold=True, color=TITLE_BLUE, space_after=4)
+            for paragraph in re.split(r"\n{2,}", response.answer):
+                cleaned = normalize_spaces(paragraph)
+                if cleaned:
+                    add_paragraph(document, cleaned)
+    if recent_interviewer_scripts:
         add_paragraph(
             document,
             "Recent Interview Questions To Be Ready For",
@@ -363,9 +443,23 @@ def build_standard_qualifications_statement() -> QualificationsBuildResult:
     _, snapshot, resume_text = question_prep.selected_resume_snapshot(job_description)
 
     prompt_state = question_prep.load_application_prompt_state(APPLICATION_QUESTIONS)
-    prompts = prompt_state.effective_prompts
+    resolved_question_rows = resolve_qualification_question_rows(job_description, prompt_state)
+    for warning in resolved_question_rows.warnings:
+        print(warning)
     used_custom_questions = not prompt_state.uses_default_questions
-    responses = question_prep.build_question_responses(prompts, job_description, snapshot, resume_text)
+    active_responses = question_prep.build_question_responses(
+        tuple(row.prompt for row in resolved_question_rows.active_rows),
+        job_description,
+        snapshot,
+        resume_text,
+    )
+    additional_responses = question_prep.build_question_responses(
+        tuple(row.prompt for row in resolved_question_rows.additional_rows),
+        job_description,
+        snapshot,
+        resume_text,
+    )
+    responses = (*active_responses, *additional_responses)
     recent_interviewer_items = question_prep.recent_interviewer_question_prep_items(
         job_description,
         company_name,
@@ -394,6 +488,9 @@ def build_standard_qualifications_statement() -> QualificationsBuildResult:
         company_name,
         role_title,
         responses,
+        active_responses=active_responses,
+        additional_responses=additional_responses,
+        document_notes=resolved_question_rows.document_notes,
         recent_interviewer_scripts=recent_interviewer_scripts,
         used_custom_questions=used_custom_questions,
     )
@@ -406,6 +503,7 @@ def build_standard_qualifications_statement() -> QualificationsBuildResult:
         company_name=company_name,
         question_count=len(responses),
         used_custom_questions=used_custom_questions,
+        question_source_label="full application question bank + active custom questions",
     )
 
 
@@ -415,11 +513,7 @@ def main() -> None:
     print(f"Company: {result.company_name}")
     print(f"Output DOCX: {result.output_docx}")
     print(f"Questions answered: {result.question_count}")
-    print(
-        "Question source: custom application questions"
-        if result.used_custom_questions
-        else "Question source: default role-interest question"
-    )
+    print(f"Question source: {result.question_source_label}")
 
 
 if __name__ == "__main__":

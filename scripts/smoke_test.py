@@ -8581,6 +8581,83 @@ def test_application_question_bank_category_lock(question_prep: object) -> None:
     )
 
 
+def test_standard_qualifications_resolver_uses_full_bank_and_active_extras(
+    build_standard_qualifications_statement: object,
+) -> None:
+    module = build_standard_qualifications_statement
+    audit = module.question_bank_audit
+    original_bank = audit.application_bank_prompts
+    original_active = audit.active_application_prompts
+    original_embedded = audit.embedded_application_prompts
+    bank_prompts = original_bank()
+    fleetio_prompts = tuple(prompt for prompt, _source in bank_prompts[-2:])
+    active_extra = "Describe a custom active-only prompt about stakeholder reporting cadence?"
+    try:
+        audit.application_bank_prompts = lambda: bank_prompts
+        audit.embedded_application_prompts = lambda _job_description="": ()
+        empty_state = module.question_prep.ApplicationPromptState((), module.question_prep.DEFAULT_APPLICATION_QUESTIONS, True)
+        audit.active_application_prompts = lambda: ()
+        empty_resolved = module.resolve_qualification_question_rows(DUMMY_JOB_DESCRIPTION, empty_state)
+        assert_true(
+            len(empty_resolved.rows) == 20
+            and not empty_resolved.active_rows
+            and any(row.category == "company_interest" for row in empty_resolved.rows),
+            f"Empty active questions should still resolve the full 20-prompt bank with company interest; got {empty_resolved}",
+        )
+
+        active_state = module.question_prep.ApplicationPromptState(fleetio_prompts, fleetio_prompts, False)
+        audit.active_application_prompts = lambda: tuple((prompt, "jobs/application_questions.txt") for prompt in fleetio_prompts)
+        fleetio_resolved = module.resolve_qualification_question_rows(DUMMY_JOB_DESCRIPTION, active_state)
+        assert_true(
+            len(fleetio_resolved.rows) == 20
+            and len(fleetio_resolved.active_rows) == 2
+            and not set(row.prompt for row in fleetio_resolved.active_rows) & set(row.prompt for row in fleetio_resolved.additional_rows),
+            f"Active prompts already in the bank should dedupe to 20 total and render once; got {fleetio_resolved}",
+        )
+
+        extra_state = module.question_prep.ApplicationPromptState((active_extra,), (active_extra,), False)
+        audit.active_application_prompts = lambda: ((active_extra, "jobs/application_questions.txt"),)
+        extra_resolved = module.resolve_qualification_question_rows(DUMMY_JOB_DESCRIPTION, extra_state)
+        assert_true(
+            len(extra_resolved.rows) == 21
+            and extra_resolved.rows[-1].prompt == active_extra
+            and extra_resolved.active_rows[-1].prompt == active_extra,
+            f"Active-only extras should append after bank order in the resolver and appear in active rows; got {extra_resolved}",
+        )
+    finally:
+        audit.application_bank_prompts = original_bank
+        audit.active_application_prompts = original_active
+        audit.embedded_application_prompts = original_embedded
+
+
+def test_standard_qualifications_bank_expansion_keeps_active_stale_check_scoped(
+    build_standard_qualifications_statement: object,
+) -> None:
+    module = build_standard_qualifications_statement
+    bank_prompts = tuple(prompt for prompt, _source in module.question_bank_audit.application_bank_prompts())
+    _resume_path, snapshot, resume_text = module.selected_resume_snapshot(DUMMY_JOB_DESCRIPTION)
+    responses = module.build_question_responses(bank_prompts, DUMMY_JOB_DESCRIPTION, snapshot, resume_text)
+    categories = tuple(module.question_prep.question_category(prompt) for prompt in bank_prompts)
+    assert_true(
+        "generic_bridge" not in categories
+        and any("0 years of direct public-agency or cooperative experience" in response.answer for response in responses)
+        and not any("public-sector" in response.answer.lower() for response in responses),
+        "The full bank should be answerable without generic bridges and should keep public-agency gaps honest.",
+    )
+    default_state = module.question_prep.ApplicationPromptState((), module.question_prep.DEFAULT_APPLICATION_QUESTIONS, True)
+    public_prompt = "How many years of business-related experience do you have with public agencies or cooperatives?"
+    active_public_state = module.question_prep.ApplicationPromptState((public_prompt,), (public_prompt,), False)
+    assert_true(
+        not module.question_prep.application_question_context_issues(DUMMY_JOB_DESCRIPTION, default_state, workflow="commercial")
+        and module.question_prep.application_question_context_issues(
+            DUMMY_JOB_DESCRIPTION,
+            active_public_state,
+            workflow="commercial",
+        ),
+        "Qualifications should include canonical broad bank prompts, while stale checks remain active-custom only.",
+    )
+
+
 def test_new_question_bank_answers_are_claim_first(
     question_prep: object,
     build_interview_cheat_sheet: object,
@@ -8826,13 +8903,19 @@ def test_standard_qualifications_document_renders_recent_interview_questions(
     )
 
 
-def test_standard_qualifications_custom_questions_suppress_recent_interview_section(
+def test_standard_qualifications_document_groups_responses_and_appends_recent_interview_section(
     build_standard_qualifications_statement: object,
 ) -> None:
-    responses = (
+    active_responses = (
         build_standard_qualifications_statement.QualificationsResponse(
             "Tell us about parallel technical projects.",
             "I managed the work through milestone visibility, dependency tracking, and stakeholder cadence.",
+        ),
+    )
+    additional_responses = (
+        build_standard_qualifications_statement.QualificationsResponse(
+            "Why are you interested in joining this company?",
+            "I am interested because the role connects technical execution with customer value.",
         ),
     )
     recent_scripts = (
@@ -8844,16 +8927,69 @@ def test_standard_qualifications_custom_questions_suppress_recent_interview_sect
     document = build_standard_qualifications_statement.build_document(
         "Acme Systems",
         "Implementation Consultant",
-        responses,
+        (*active_responses, *additional_responses),
+        active_responses=active_responses,
+        additional_responses=additional_responses,
         recent_interviewer_scripts=recent_scripts,
         used_custom_questions=True,
     )
     text = "\n".join(paragraph.text.strip() for paragraph in document.paragraphs if paragraph.text.strip())
+    active_index = text.index("Questions this application asks")
+    additional_index = text.index("Additional prepared responses")
+    recent_index = text.index("Recent Interview Questions To Be Ready For")
     assert_true(
         "Customized to the current application questions." in text
         and "Tell us about parallel technical projects." in text
-        and "Recent Interview Questions To Be Ready For" not in text,
-        "Custom application-question statements should stay focused on the supplied prompts and suppress interview-prep appendix items.",
+        and "Why are you interested in joining this company?" in text
+        and active_index < additional_index < recent_index,
+        "Custom application-question statements should render active questions first, bank responses next, and recent prep as an appendix.",
+    )
+
+
+def test_standard_qualifications_document_omits_empty_group_headings_and_warns_on_missing_bank(
+    build_standard_qualifications_statement: object,
+) -> None:
+    module = build_standard_qualifications_statement
+    additional_responses = (
+        module.QualificationsResponse(
+            "Why are you interested in joining this company?",
+            "I am interested because the role connects technical execution with customer value.",
+        ),
+    )
+    document = module.build_document(
+        "Acme Systems",
+        "Implementation Consultant",
+        additional_responses,
+        active_responses=(),
+        additional_responses=additional_responses,
+        document_notes=("Full question bank was unavailable; answered default prompt only.",),
+        recent_interviewer_scripts=(),
+        used_custom_questions=False,
+    )
+    text = "\n".join(paragraph.text.strip() for paragraph in document.paragraphs if paragraph.text.strip())
+    assert_true(
+        "Questions this application asks" not in text
+        and "Additional prepared responses" in text
+        and "Full question bank was unavailable; answered default prompt only." in text,
+        f"Empty groups should not render headings and missing-bank notes should be visible; got {text!r}",
+    )
+
+    original_bank = module.question_bank_audit.application_bank_prompts
+    original_collect = module.question_bank_audit.collect_application_input_prompts
+    try:
+        module.question_bank_audit.application_bank_prompts = lambda: ()
+        module.question_bank_audit.collect_application_input_prompts = lambda _job_description="": ()
+        state = module.question_prep.ApplicationPromptState((), module.question_prep.DEFAULT_APPLICATION_QUESTIONS, True)
+        resolved = module.resolve_qualification_question_rows(DUMMY_JOB_DESCRIPTION, state)
+    finally:
+        module.question_bank_audit.application_bank_prompts = original_bank
+        module.question_bank_audit.collect_application_input_prompts = original_collect
+    assert_true(
+        resolved.warnings
+        and resolved.document_notes
+        and len(resolved.additional_rows) == 1
+        and resolved.additional_rows[0].prompt == module.question_prep.DEFAULT_APPLICATION_QUESTIONS[0],
+        f"Missing bank should loudly fall back to the default prompt set; got {resolved}",
     )
 
 
@@ -15916,9 +16052,12 @@ def main() -> None:
             ("question bank audit command is Word only and read only", lambda: test_question_bank_audit_command_is_word_only_and_read_only(build_question_bank_audit)),
             ("detailed guide question bank coverage section", lambda: test_detailed_guide_question_bank_coverage_section(build_detailed_interview_guide)),
             ("daily prep question bank checklist", lambda: test_daily_prep_question_bank_checklist(interview_intelligence, build_daily_prep_plan)),
+            ("standard qualifications resolver uses full bank and active extras", lambda: test_standard_qualifications_resolver_uses_full_bank_and_active_extras(build_standard_qualifications_statement)),
+            ("standard qualifications bank expansion keeps active stale check scoped", lambda: test_standard_qualifications_bank_expansion_keeps_active_stale_check_scoped(build_standard_qualifications_statement)),
             ("standard application question parser", lambda: test_standard_application_question_parser_dedupes_blocks(build_standard_qualifications_statement)),
             ("standard qualifications render recent interview prep", lambda: test_standard_qualifications_document_renders_recent_interview_questions(build_standard_qualifications_statement)),
-            ("standard qualifications custom questions suppress recent interview section", lambda: test_standard_qualifications_custom_questions_suppress_recent_interview_section(build_standard_qualifications_statement)),
+            ("standard qualifications document groups responses and appends recent interview section", lambda: test_standard_qualifications_document_groups_responses_and_appends_recent_interview_section(build_standard_qualifications_statement)),
+            ("standard qualifications document omits empty headings and warns on missing bank", lambda: test_standard_qualifications_document_omits_empty_group_headings_and_warns_on_missing_bank(build_standard_qualifications_statement)),
             ("standard qualifications recent interviewer scripts resolve factual script", lambda: test_standard_qualifications_recent_interviewer_scripts_resolve_factual_script(build_standard_qualifications_statement)),
             ("Randstad qualifications avoid descriptor subject and bare numbers", lambda: test_randstad_qualifications_answers_avoid_descriptor_subject_and_bare_numbers(build_standard_qualifications_statement, build_resume)),
             ("S5 qualifications why-company fixes archived defects", lambda: test_s5_qualifications_why_company_fixes_archived_defects(build_standard_qualifications_statement, build_resume)),
