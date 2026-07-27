@@ -46,11 +46,18 @@ MONTHS = (
 ZERO_WIDTH_CHAR_RE = re.compile(r"[\u200b\u200c\u200d\ufeff]")
 
 
-def contains_search_term(text: str, term: str) -> bool:
-    normalized = ZERO_WIDTH_CHAR_RE.sub(" ", text.lower())
+@lru_cache(maxsize=8192)
+def _search_term_regexes(term: str) -> tuple[re.Pattern, ...]:
+    """Compile the search regexes for a term once and cache by term.
+
+    Independent of the searched text, so callers reuse the compiled patterns
+    across the many contains_search_term() calls in signal_hits /
+    job_problem_profile instead of recompiling per call. Matching behavior is
+    identical to the previous inline implementation.
+    """
     parts = ZERO_WIDTH_CHAR_RE.sub(" ", term.lower()).strip().split()
     if not parts:
-        return False
+        return ()
 
     last = parts[-1]
     variants = [" ".join(parts)]
@@ -77,10 +84,15 @@ def contains_search_term(text: str, term: str) -> bool:
         connector = r"(?:\s+(?:and|&)\s+|\s+)"
         return connector.join(re.escape(token) for token in tokens)
 
-    return any(
-        re.search(rf"(?<![a-z0-9]){variant_pattern(variant)}(?![a-z0-9])", normalized) is not None
+    return tuple(
+        re.compile(rf"(?<![a-z0-9]){variant_pattern(variant)}(?![a-z0-9])")
         for variant in dict.fromkeys(variants)
     )
+
+
+def contains_search_term(text: str, term: str) -> bool:
+    normalized = ZERO_WIDTH_CHAR_RE.sub(" ", text.lower())
+    return any(regex.search(normalized) is not None for regex in _search_term_regexes(term))
 
 
 JD_TERM_MIRROR: tuple[tuple[tuple[str, ...], tuple[str, ...]], ...] = (
