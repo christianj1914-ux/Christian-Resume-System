@@ -205,6 +205,10 @@ def review_blocking_artifact_status(output: str) -> str:
     return ""
 
 
+def draft_blocks_required_downstream(script_name: str) -> bool:
+    return script_name == "build_resume.py"
+
+
 def needs_review_artifact_status(output: str) -> str:
     if re.search(r"(?:Final audit:\s*FAIL|Output DOCX:.*\bFAIL\b)", output, re.I):
         return "FAIL"
@@ -588,6 +592,7 @@ def main() -> None:
     cover_preflight_warnings: list[str] = []
     resume_gap_blockers = ""
     review_artifact_status = ""
+    required_downstream_blocked = False
     needs_review_status = ""
     for step_name, script_name, can_rebuild_resume in required_steps:
         result = run_with_recovery(step_name, script_name, can_rebuild_resume=can_rebuild_resume)
@@ -600,13 +605,21 @@ def main() -> None:
             cover_specificity_warnings.extend(result.specificity_warnings)
             cover_warnings.extend(result.cover_warnings)
             cover_preflight_warnings.extend(result.preflight_warnings)
-        review_artifact_status = review_blocking_artifact_status(result.output)
-        if review_artifact_status:
+        step_review_artifact_status = review_blocking_artifact_status(result.output)
+        if step_review_artifact_status:
+            if not review_artifact_status:
+                review_artifact_status = step_review_artifact_status
+            if draft_blocks_required_downstream(script_name):
+                required_downstream_blocked = True
+                print(
+                    f"Workflow stopped: a {review_artifact_status} artifact was created and is excluded "
+                    "from downstream builders and tracker updates."
+                )
+                break
             print(
-                f"Workflow stopped: a {review_artifact_status} artifact was created and is excluded "
-                "from downstream builders and tracker updates."
+                f"Workflow notice: a {review_artifact_status} artifact was created. "
+                "Continuing required companion documents, but tracker and optional downstream builders will be skipped."
             )
-            break
         step_review_status = needs_review_artifact_status(result.output)
         if step_review_status and not needs_review_status:
             needs_review_status = step_review_status
@@ -615,13 +628,18 @@ def main() -> None:
                 "Continuing to build review materials, but tracker auto-add will be skipped."
             )
     if review_artifact_status:
-        raise SystemExit(2)
+        print(
+            f"\nApplication tracker was not updated automatically because a {review_artifact_status} "
+            "artifact needs human review before submission."
+        )
+        if required_downstream_blocked:
+            raise SystemExit(2)
     if needs_review_status:
         print(
             f"\nApplication tracker was not updated automatically because a {needs_review_status} "
             "artifact needs human review before submission."
         )
-    else:
+    elif not review_artifact_status:
         run_tracker_auto_add()
     if resume_only:
         print("\nDone. Resume-only build complete. Check the output folder and render_check folder.")
@@ -629,6 +647,12 @@ def main() -> None:
             print("\nResume bridge guidance for this role:")
             print(f"  {resume_gap_blockers}")
         return
+    if review_artifact_status:
+        print(
+            f"\nOptional downstream builders were skipped because a {review_artifact_status} "
+            "artifact needs human review before submission."
+        )
+        raise SystemExit(2)
     for step_name, script_name, can_rebuild_resume in optional_steps:
         result = run_with_recovery(step_name, script_name, can_rebuild_resume=can_rebuild_resume)
         if not result.ok:

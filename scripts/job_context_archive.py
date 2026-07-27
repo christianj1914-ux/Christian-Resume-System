@@ -312,6 +312,7 @@ def application_question_pairing_issue(
     job_hash = sha256_text(job_description_text)
     question_hash = sha256_text(application_questions_text)
     active_prompts = parse_question_blocks(application_questions_text)
+    matching_question_rows: list[dict[str, str]] = []
     for row in reversed(_read_index_raw()):
         same_question_set = row.get("application_questions_sha256", "") == question_hash
         if not same_question_set:
@@ -322,6 +323,10 @@ def application_question_pairing_issue(
                 ) == active_prompts
         if not same_question_set:
             continue
+        matching_question_rows.append(row)
+        if row.get("job_description_sha256", "") in {"", job_hash}:
+            return ""
+    for row in matching_question_rows:
         if row.get("job_description_sha256", "") in {"", job_hash}:
             continue
         company = row.get("company", "an earlier target") or "an earlier target"

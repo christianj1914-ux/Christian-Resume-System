@@ -340,7 +340,7 @@ def build_document(
             cleaned = normalize_spaces(paragraph)
             if cleaned:
                 add_paragraph(document, cleaned)
-    if recent_interviewer_scripts:
+    if recent_interviewer_scripts and not used_custom_questions:
         add_paragraph(
             document,
             "Recent Interview Questions To Be Ready For",

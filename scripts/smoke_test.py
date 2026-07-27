@@ -6772,6 +6772,43 @@ def test_application_question_pairing_detects_jd_swap() -> None:
     )
 
 
+def test_application_question_pairing_accepts_current_match_after_prior_stale_archive() -> None:
+    import job_context_archive
+
+    original_archive_root = job_context_archive.SCRATCH_JD_LIBRARY
+    original_index_path = job_context_archive.INDEX_PATH
+    original_sync_complete = job_context_archive._SYNC_COMPLETE
+    try:
+        with TemporaryDirectory(prefix="question_pairing_current_") as temp_name:
+            archive_root = Path(temp_name) / "jd_library"
+            job_context_archive.SCRATCH_JD_LIBRARY = archive_root
+            job_context_archive.INDEX_PATH = archive_root / "index.csv"
+            job_context_archive._SYNC_COMPLETE = True
+            questions = "Tell us about managing parallel technical projects.\n\nDescribe executive reporting trust."
+            active_job = "Company: Fleetio\nRole: Senior Technical Project Manager\nDrive milestones and dependencies."
+            job_context_archive.archive_texts(
+                job_description_text="Company: OldCo\nRole: Program Manager\nLegacy posting.",
+                application_questions_text=questions,
+                source_command="smoke",
+                sync_legacy=False,
+            )
+            job_context_archive.archive_texts(
+                job_description_text=active_job,
+                application_questions_text=questions,
+                source_command="smoke",
+                sync_legacy=False,
+            )
+            issue = job_context_archive.application_question_pairing_issue(active_job, questions)
+    finally:
+        job_context_archive.SCRATCH_JD_LIBRARY = original_archive_root
+        job_context_archive.INDEX_PATH = original_index_path
+        job_context_archive._SYNC_COMPLETE = original_sync_complete
+    assert_true(
+        issue == "",
+        f"A current JD/question archive should clear older stale matches; got {issue!r}",
+    )
+
+
 def test_repo_guidance_prefers_rehearsed_foundation() -> None:
     agents_text = Path("AGENTS.md").read_text(encoding="utf-8")
     rules_text = Path(".context/RULES_FOR_CLAUDE.md").read_text(encoding="utf-8")
@@ -8786,6 +8823,37 @@ def test_standard_qualifications_document_renders_recent_interview_questions(
         and "What was your role in go-live?" in text
         and "I led the go-live cutover end to end" in text,
         "Commercial qualifications statements should render the resolved spoken script for each recent interviewer-question appendix item.",
+    )
+
+
+def test_standard_qualifications_custom_questions_suppress_recent_interview_section(
+    build_standard_qualifications_statement: object,
+) -> None:
+    responses = (
+        build_standard_qualifications_statement.QualificationsResponse(
+            "Tell us about parallel technical projects.",
+            "I managed the work through milestone visibility, dependency tracking, and stakeholder cadence.",
+        ),
+    )
+    recent_scripts = (
+        (
+            "What was your role in go-live?",
+            "I led the go-live cutover end to end, coordinating readiness checks, training, and stakeholder sign-off.",
+        ),
+    )
+    document = build_standard_qualifications_statement.build_document(
+        "Acme Systems",
+        "Implementation Consultant",
+        responses,
+        recent_interviewer_scripts=recent_scripts,
+        used_custom_questions=True,
+    )
+    text = "\n".join(paragraph.text.strip() for paragraph in document.paragraphs if paragraph.text.strip())
+    assert_true(
+        "Customized to the current application questions." in text
+        and "Tell us about parallel technical projects." in text
+        and "Recent Interview Questions To Be Ready For" not in text,
+        "Custom application-question statements should stay focused on the supplied prompts and suppress interview-prep appendix items.",
     )
 
 
@@ -12775,7 +12843,7 @@ def test_workflow_continues_fail_artifacts_but_skips_tracker() -> None:
     )
 
 
-def test_workflow_stops_draft_artifacts_before_downstream() -> None:
+def test_workflow_continues_required_companion_after_draft_cover() -> None:
     import run_resume_workflow
 
     order: list[str] = []
@@ -12833,11 +12901,12 @@ def test_workflow_stops_draft_artifacts_before_downstream() -> None:
         run_resume_workflow.job_context_archive.application_question_pairing_issue = original_pairing_issue
 
     assert_true(
-        order == ["Building resume", "Building cover letter"],
-        f"Workflow should stop at DRAFT cover and avoid tracker/downstream builders; got {order}",
+        order == ["Building resume", "Building cover letter", "Building qualifications statement"],
+        f"Workflow should continue qualifications after a DRAFT cover and avoid tracker/optional builders; got {order}",
     )
     assert_true(
-        "DRAFT artifact was created" in stdout.getvalue(),
+        "Continuing required companion documents" in stdout.getvalue()
+        and "tracker was not updated automatically" in stdout.getvalue(),
         f"Workflow should explain DRAFT gating; got {stdout.getvalue()!r}",
     )
 
@@ -15323,6 +15392,7 @@ def main() -> None:
         ("commercial resume model provenance and render", None),
         ("canonical catalog preserves provenance identity", None),
         ("application question pairing detects JD swap", None),
+        ("application question pairing accepts current match after stale archive", None),
         ("compact anchor phrase handles intermediate scope words", None),
         ("compact anchor phrase keeps expansion proof anchors", None),
         ("extract selected proof sentences strips trailing reorg annotation", None),
@@ -15788,6 +15858,10 @@ def main() -> None:
             ("commercial resume model provenance and render", lambda: test_commercial_resume_model_provenance_and_render(commercial_resume_model, build_resume)),
             ("canonical catalog preserves provenance identity", lambda: test_canonical_catalog_preserves_provenance_identity(commercial_resume_model)),
             ("application question pairing detects JD swap", test_application_question_pairing_detects_jd_swap),
+            (
+                "application question pairing accepts current match after stale archive",
+                test_application_question_pairing_accepts_current_match_after_prior_stale_archive,
+            ),
             ("compact anchor phrase handles intermediate scope words", test_compact_anchor_phrase_handles_intermediate_scope_words),
             ("compact anchor phrase keeps expansion proof anchors", test_compact_anchor_phrase_keeps_expansion_proof_anchors),
             ("extract selected proof sentences strips trailing reorg annotation", test_extract_selected_proof_sentences_strips_trailing_reorg_annotation),
@@ -15844,6 +15918,7 @@ def main() -> None:
             ("daily prep question bank checklist", lambda: test_daily_prep_question_bank_checklist(interview_intelligence, build_daily_prep_plan)),
             ("standard application question parser", lambda: test_standard_application_question_parser_dedupes_blocks(build_standard_qualifications_statement)),
             ("standard qualifications render recent interview prep", lambda: test_standard_qualifications_document_renders_recent_interview_questions(build_standard_qualifications_statement)),
+            ("standard qualifications custom questions suppress recent interview section", lambda: test_standard_qualifications_custom_questions_suppress_recent_interview_section(build_standard_qualifications_statement)),
             ("standard qualifications recent interviewer scripts resolve factual script", lambda: test_standard_qualifications_recent_interviewer_scripts_resolve_factual_script(build_standard_qualifications_statement)),
             ("Randstad qualifications avoid descriptor subject and bare numbers", lambda: test_randstad_qualifications_answers_avoid_descriptor_subject_and_bare_numbers(build_standard_qualifications_statement, build_resume)),
             ("S5 qualifications why-company fixes archived defects", lambda: test_s5_qualifications_why_company_fixes_archived_defects(build_standard_qualifications_statement, build_resume)),
@@ -15944,7 +16019,10 @@ def main() -> None:
             ("debrief outcome mapping and notes", test_debrief_outcome_mapping_and_notes),
             ("workflow tracks before optional failure", test_workflow_tracks_after_required_steps_before_optional_failure),
             ("workflow continues fail artifacts but skips tracker", test_workflow_continues_fail_artifacts_but_skips_tracker),
-            ("workflow stops draft artifacts before downstream", test_workflow_stops_draft_artifacts_before_downstream),
+            (
+                "workflow continues required companion after draft cover",
+                test_workflow_continues_required_companion_after_draft_cover,
+            ),
             ("workflow parses cover warning channels", test_workflow_parses_cover_warning_channels),
             ("tasks auto-archive environment for commercial command", test_tasks_auto_archive_environment_for_commercial_command),
             ("workflow hard-fails docx validation issues", test_workflow_hard_fails_docx_validation_issues),

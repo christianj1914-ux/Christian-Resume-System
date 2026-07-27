@@ -14,7 +14,7 @@ import interview_context
 import prose_engine
 from build_skills_database import ResumeSnapshot, SOURCE_FILES, parse_resume
 from config.language_rules import MANDATORY_REORG_SENTENCE
-from config.paths import APPLICATION_QUESTIONS, COMPANY_RESEARCH, FEDERAL_RESUME_SOURCE, GLOBAL_NOTES, INTERVIEW_NOTES, JOBS_DIR
+from config.paths import APPLICATION_QUESTIONS, COMPANY_RESEARCH, FEDERAL_RESUME_SOURCE, GLOBAL_NOTES, INTERVIEW_NOTES, JOBS_DIR, JOB_DESCRIPTION
 from utils import read_text
 from text_safety import collision_safe_substitute, fix_indefinite_articles, sentence_splice_issues
 
@@ -991,8 +991,9 @@ def application_question_context_issues(
         try:
             import job_context_archive
 
+            pairing_job_description = read_text(JOB_DESCRIPTION) or job_description
             pairing_issue = job_context_archive.application_question_pairing_issue(
-                job_description,
+                pairing_job_description,
                 "\n\n".join(effective),
             )
         except (OSError, ValueError):
@@ -1579,7 +1580,7 @@ def parallel_project_governance_answer() -> str:
 def executive_reporting_trust_answer() -> str:
     return finalize_candidate_answer(
         "Executive reporting trust answer",
-        "I built executive trust mainly by making my reporting the thing leaders could rely on when a decision was hard. Across roles I ran 60+ executive workshops and quarterly business reviews and built 200+ reporting tools, and the consistent pattern was translating technical detail into the few things an executive audience actually needed: where the risk was, what the tradeoffs were, and what decision I was asking them to make. I kept the reporting honest, including surfacing bad news early rather than letting a status look greener than it was, because credibility comes from being right about risk before it becomes a problem. Over time that reliability meant executives treated my read of a situation as a basis for action rather than something they had to re-verify. The trust came from clarity, a consistent cadence, and never making them dig for the real status.",
+        "I built executive trust by making my reporting useful when leaders had to make decisions with incomplete information. At East West Manufacturing, I supported executive and director-level stakeholders across operations, finance, engineering, and IT while owning ERP visibility for a five-site, 150+ user environment. I built 200+ SQL-based KPI dashboards and reporting tools so leaders could see workflow performance, inventory issues, adoption gaps, and operational risk without waiting for a technical translation. The trust came from keeping the reporting honest: if a dependency, data issue, or launch risk was real, I surfaced it early, showed the tradeoff, and named the decision needed. Over time, that consistency made my read of the situation something executives could act on because the status was clear, current, and tied to the next decision.",
         claim_first=True,
     )
 
