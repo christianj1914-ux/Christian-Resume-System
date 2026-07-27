@@ -46,8 +46,8 @@ Read-only module plus a Word report builder. The audit separates two populations
 
 Class A, application-answer sources. `question_category`, category-collision grouping, and the unmapped `generic_bridge` alarm apply here only:
 
-- `jobs/application_questions_bank.txt` (reusable bank).
-- `jobs/application_questions.txt` (active file; currently empty, so the loader falls back to a single default).
+- `jobs/application_questions_bank.txt` (canonical reusable application-question bank).
+- `jobs/application_questions.txt` (active application-specific extras beyond the canonical bank).
 - Optional embedded `Application Questions:` section in `job_description.txt`, included via guarded import if that parser exists.
 
 Class B, interview-question corpus (reference only). `question_category` only knows the ~20 application prompts, so every Class B item is expected to be `generic_bridge`; it must never feed the unmapped alarm or collision grouping:
@@ -97,9 +97,19 @@ Verified output: 19 of 20 prompts render (public-agency prompt correctly filtere
 
 ---
 
-## 6. Tests (`scripts/smoke_test.py`)
+## 6. Qualifications coverage (`scripts/build_standard_qualifications_statement.py`)
 
-Coverage added and passing (420 total):
+`python tasks.py qualifications` answers the full canonical application-question bank plus any active application-specific extras. The active extras render first under "Questions this application asks"; the rest of the bank renders under "Additional prepared responses"; recent interview prep renders afterward as an appendix when populated. Empty groups do not render bare headings.
+
+Draft/stale validation remains scoped to `jobs/application_questions.txt` and optional embedded active prompts only. Broad canonical bank prompts, such as the public-agency gap prompt, are still included in qualifications with honest gap language even when daily prep would filter them for a non-public JD. This divergence is intentional: qualifications is a complete answer bank, while daily prep is an applicability-ranked study aid.
+
+If `jobs/application_questions_bank.txt` is missing or empty, the qualifications build must warn loudly and add a visible note in the document rather than silently shrinking back to the default prompt.
+
+---
+
+## 7. Tests (`scripts/smoke_test.py`)
+
+Coverage added and passing (425 total):
 
 - Category lock: each of the 20 bank prompts maps to its intended category; the two new prompts map to the new categories and no longer hit `generic_bridge`.
 - Both new answers pass the banned-phrase and claim-first checks.
@@ -109,13 +119,9 @@ Coverage added and passing (420 total):
 - Extractor fixtures: rejects `are automatic. Fill any bracketed blanks with your real specifics.` and `How to sell your projects (stop underselling)`; keeps `How do you handle scope creep or changing requirements?` and `13. Tell me about yourself.`.
 - Audit command is read-only (bank bytes unchanged) and Word-only.
 - Detailed guide renders coverage; daily prep renders the ranked checklist.
+- Qualifications resolves the full 20-prompt bank, dedupes active prompts already in the bank, appends active-only extras after bank prompts, includes the company-interest prompt, avoids false `DRAFT` state from broad bank prompts, keeps stale active custom prompts guarded, omits empty group headings, warns on missing bank, appends recent interview prep after application responses, and verifies the public-agency prompt stays honest.
 
 Validation commands: `python scripts/smoke_test.py`, `python tasks.py commands`, `python tasks.py question-bank-audit`, `python tasks.py qualifications`, `python tasks.py guide`, `python tasks.py daily-prep`, `python scripts/integration_test.py`.
-
-## Open housekeeping
-
-- `scripts/question_bank_audit.py` and `scripts/build_question_bank_audit.py` are untracked in git and should be committed so the audit subsystem is captured.
-- `jobs/application_questions.txt` is empty in the current baseline; seed it (or point tests at the bank) whenever exercising the real qualifications path end to end.
 
 ## Assumptions
 

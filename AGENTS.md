@@ -7,7 +7,7 @@ This project generates Christian Estrada's tailored resume, cover letter, interv
 Every run follows the same four layers:
 
 1. Knowledge Base: `AGENTS.md`, approved source resumes, approved federal source JSON, approved appendices, and any user-supplied notes allowed by the workflow.
-2. User Input: one active target posting, one target company, one target role, requested outputs, and any active application questions in `jobs/application_questions.txt`.
+2. User Input: one active target posting, one target company, one target role, requested outputs, the canonical application question bank, and any active application-specific extras in `jobs/application_questions.txt`.
 3. Processing: lane detection, evidence mapping, keyword audit, employer-context lens, unsupported-claim audit, and output-specific quality checks.
 4. Output: polished Word-only documents plus plain-language build feedback saved to `/output`.
 

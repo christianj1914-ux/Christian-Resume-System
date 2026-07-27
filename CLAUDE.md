@@ -69,8 +69,9 @@ Use Claude in two passes:
 
 1. Before replacing `jobs/job_description.txt`, run `python tasks.py jd-archive` if the current posting should remain available for tracker refresh or pattern review.
 2. Put one active job posting in `jobs/job_description.txt`.
-3. Generate the smallest useful packet with `python tasks.py claude-packet --mode ...`.
-4. Generate the matching review prompt with `python tasks.py claude-prompt review --packet-mode ...`.
-5. After Claude returns findings, generate the plan prompt with `python tasks.py claude-prompt plan --packet-mode ...`.
-6. Give Claude's implementation plan or review notes to Codex for edits and validation.
-7. Let Codex run scripts, validate generated Word documents, and keep final outputs in `output/`.
+3. Keep the reusable application-question prompts in `jobs/application_questions_bank.txt`; use `jobs/application_questions.txt` only for active application-specific extras beyond that bank.
+4. Generate the smallest useful packet with `python tasks.py claude-packet --mode ...`.
+5. Generate the matching review prompt with `python tasks.py claude-prompt review --packet-mode ...`.
+6. After Claude returns findings, generate the plan prompt with `python tasks.py claude-prompt plan --packet-mode ...`.
+7. Give Claude's implementation plan or review notes to Codex for edits and validation.
+8. Let Codex run scripts, validate generated Word documents, and keep final outputs in `output/`.
