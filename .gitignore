@@ -21,3 +21,8 @@ scratch/*
 !scratch/jd_library/**
 !scratch/target_jds/
 !scratch/target_jds/**
+
+# Working planning/handoff artifacts (superseded by .context/SPEC_question_bank_audit.md)
+.context/CODEX_SPEC_question_bank_audit.md
+.context/PLAN_commit_and_cleanup.md
+.context/CODEX_HANDOFF_verify_and_commit.md
