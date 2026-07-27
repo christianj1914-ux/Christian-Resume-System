@@ -26,3 +26,5 @@ scratch/*
 .context/CODEX_SPEC_question_bank_audit.md
 .context/PLAN_commit_and_cleanup.md
 .context/CODEX_HANDOFF_verify_and_commit.md
+.context/CODEX_HANDOFF_full_qualifications_coverage.md
+.context/CODEX_MASTER_SPEC_qualifications_and_commits.md
