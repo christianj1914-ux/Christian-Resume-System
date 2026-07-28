@@ -7,7 +7,7 @@ This project generates Christian Estrada's tailored resume, cover letter, interv
 Every run follows the same four layers:
 
 1. Knowledge Base: `AGENTS.md`, approved source resumes, approved federal source JSON, approved appendices, and any user-supplied notes allowed by the workflow.
-2. User Input: one active target posting, one target company, one target role, requested outputs, the canonical application question bank, and any active application-specific extras in `jobs/application_questions.txt`.
+2. User Input: one active target posting, one target company, one target role, requested outputs, the canonical application question bank, and any active application-specific extras pasted into `jobs/application_questions.txt`.
 3. Processing: lane detection, evidence mapping, keyword audit, employer-context lens, unsupported-claim audit, and output-specific quality checks.
 4. Output: polished Word-only documents plus plain-language build feedback saved to `/output`.
 
@@ -18,6 +18,7 @@ Use `python tasks.py` as the canonical command surface. For the live command inv
 - Create polished Word documents only. Do not create PDFs.
 - Use only one active commercial posting in `jobs/job_description.txt` at a time.
 - Use only one active federal posting or questionnaire set in `jobs/federal_job_description.txt` at a time.
+- Use `jobs/application_questions.txt` only for late-discovered, job-specific extras beyond the canonical bank; promote reusable questions to `jobs/application_questions_bank.txt` and clear the active file when changing postings.
 - Never use LinkedIn page content as source material.
 - Never use old outputs as source material.
 - Never invent content, placeholder content, unsupported metrics, or unsupported ownership.

@@ -47,7 +47,7 @@ Read-only module plus a Word report builder. The audit separates two populations
 Class A, application-answer sources. `question_category`, category-collision grouping, and the unmapped `generic_bridge` alarm apply here only:
 
 - `jobs/application_questions_bank.txt` (canonical reusable application-question bank).
-- `jobs/application_questions.txt` (active application-specific extras beyond the canonical bank).
+- `jobs/application_questions.txt` (active late-discovered, job-specific extras beyond the canonical bank; paste one question per block and clear when changing postings).
 - Optional embedded `Application Questions:` section in `job_description.txt`, included via guarded import if that parser exists.
 
 Class B, interview-question corpus (reference only). `question_category` only knows the ~20 application prompts, so every Class B item is expected to be `generic_bridge`; it must never feed the unmapped alarm or collision grouping:
@@ -102,6 +102,8 @@ Verified output: 19 of 20 prompts render (public-agency prompt correctly filtere
 `python tasks.py qualifications` answers the full canonical application-question bank plus any active application-specific extras. The active extras render first under "Questions this application asks"; the rest of the bank renders under "Additional prepared responses"; recent interview prep renders afterward as an appendix when populated. Empty groups do not render bare headings.
 
 Draft/stale validation remains scoped to `jobs/application_questions.txt` and optional embedded active prompts only. Broad canonical bank prompts, such as the public-agency gap prompt, are still included in qualifications with honest gap language even when daily prep would filter them for a non-public JD. This divergence is intentional: qualifications is a complete answer bank, while daily prep is an applicability-ranked study aid.
+
+When a posting-specific prompt becomes reusable, promote it to `jobs/application_questions_bank.txt` and remove it from `jobs/application_questions.txt`. Use `python tasks.py jd-archive` before replacing a posting worth keeping, or `python tasks.py reset-jobs` to archive and clear active job context so stale extras do not follow the next application.
 
 If `jobs/application_questions_bank.txt` is missing or empty, the qualifications build must warn loudly and add a visible note in the document rather than silently shrinking back to the default prompt.
 

@@ -8894,6 +8894,9 @@ def test_standard_application_question_parser_dedupes_blocks(
     prompts = build_standard_qualifications_statement.parse_question_blocks(
         "\n".join(
             [
+                "# Paste late-discovered job-specific questions here.",
+                "# The canonical bank is added automatically.",
+                "",
                 "Application Questions",
                 "",
                 "How many years of direct relevant experience do you have related to the job duties of this position?",
@@ -8910,7 +8913,7 @@ def test_standard_application_question_parser_dedupes_blocks(
             "How many years of direct relevant experience do you have related to the job duties of this position?",
             "Briefly describe your relevant experience demonstrating how it directly relates to the position.",
         ),
-        f"parse_question_blocks() should skip headings, preserve multiline prompts, and dedupe repeats; got {prompts}",
+        f"parse_question_blocks() should skip headings/comments, preserve multiline prompts, and dedupe repeats; got {prompts}",
     )
 
 
