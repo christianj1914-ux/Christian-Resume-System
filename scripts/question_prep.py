@@ -1585,11 +1585,77 @@ def executive_reporting_trust_answer() -> str:
     )
 
 
-def generic_bridge_answer(job_description: str, resume_text: str) -> str:
-    profile = build_resume.job_problem_profile(job_description, resume_text)
-    return normalize_spaces(
-        f"My strongest supported bridge for this application is experience in {build_resume.natural_problem_phrase(profile)}, backed by 80+ client engagements, 200+ reporting tools, 60+ executive workshops and QBRs, and multi-site enterprise systems ownership. I would answer this item with direct proof where available and honest bridge language where the requirement is adjacent rather than identical."
+def implementation_ownership_answer() -> str:
+    return finalize_candidate_answer(
+        "Implementation ownership answer",
+        "I personally led the IT program management lifecycle for an enterprise platform migration at East West Manufacturing, from initial scope and readiness planning through launch. The work was complex because it touched a five-site, 150+ user environment and required operations, finance, engineering, data readiness, training, vendor dependencies, and go-live risk to move together. I created structure through requirements, milestone tracking, risk assumptions, validation checkpoints, and role-based training so each team knew what had to be ready before launch. The outcome was a more controlled path to production go-live, clearer ownership across workstreams, and a stronger internal operating model for supporting the system after launch.",
+        claim_first=True,
     )
+
+
+def qa_go_live_readiness_answer() -> str:
+    return finalize_candidate_answer(
+        "QA go-live readiness answer",
+        "My testing approach is to validate the workflow, data, user path, and cutover risk before go-live. In implementation work, I used requirements, SQL-based validation, UAT feedback, training checkpoints, and issue tracking to confirm that the system worked for the people who would actually use it. I focused especially on data accuracy, process handoffs, reporting visibility, and whether users could complete the workflow without workaround-heavy support. Before launch, I wanted the team to know what had been validated, what risks remained, who owned each issue, and whether the go-live path was stable enough for customers or business users to trust.",
+        claim_first=True,
+    )
+
+
+def qualification_story_reference_sentence(story: dict[str, object]) -> str:
+    reference = normalize_spaces(str(story.get("spoken_reference", "")))
+    if not reference:
+        return ""
+    if reference.lower().startswith("for example, "):
+        reference = "For example, " + reference[len("for example, ") :]
+    elif reference[0].islower():
+        reference = reference[0].upper() + reference[1:]
+    return clean_answer_sentence(reference)
+
+
+def qualification_story_for_prompt(prompt: str, job_description: str) -> dict[str, object]:
+    import interview_intelligence
+
+    inventory = interview_intelligence.load_self_inventory()
+    stories = {
+        str(story.get("name", "")).strip(): story
+        for story in inventory.signature_stories
+        if str(story.get("name", "")).strip()
+    }
+    normalized = normalize_question(f"{prompt} {job_description}")
+    story_terms = (
+        ("Windows-95 discovery", ("discovery", "requirement", "integration", "infrastructure", "risk", "hidden")),
+        ("CEO escalation", ("ceo", "executive", "escalation", "trust", "customer", "expectation", "relationship")),
+        ("East West fast ramp", ("ramp", "learn", "unfamiliar", "training", "adapt", "new system")),
+        ("EFT/ACH cross-functional replacement", ("stakeholder", "cross functional", "finance", "vendor", "payment", "alignment", "delivery")),
+        ("Inventory automation / DMAIC", ("process", "automation", "data", "report", "quality", "qa", "testing", "metric", "root cause")),
+    )
+    scored: list[tuple[int, str]] = []
+    for story_name, terms in story_terms:
+        score = sum(1 for term in terms if term in normalized)
+        if story_name in stories:
+            scored.append((score, story_name))
+    if not scored:
+        return next(iter(stories.values()))
+    best_score, best_name = max(scored, key=lambda item: (item[0], -story_terms.index(next(pair for pair in story_terms if pair[0] == item[1]))))
+    if best_score <= 0 and "EFT/ACH cross-functional replacement" in stories:
+        best_name = "EFT/ACH cross-functional replacement"
+    return stories[best_name]
+
+
+def generic_bridge_answer(job_description: str, resume_text: str, prompt: str = "") -> str:
+    profile = build_resume.job_problem_profile(job_description, resume_text)
+    story = qualification_story_for_prompt(prompt, job_description)
+    story_reference = qualification_story_reference_sentence(story)
+    story_result = clean_answer_sentence(str(story.get("result", "")))
+    answer = normalize_spaces(
+        "The strongest supported answer is to show how I turn unclear operating or technical needs into structured delivery work people can use. "
+        f"{story_reference} "
+        f"{story_result} "
+        f"The relevance here is that {build_resume.natural_problem_phrase(profile)} depends on the same pattern: clarify the workflow, name the risk, align the stakeholders, and carry the work through to a usable outcome."
+    )
+    assert_no_application_banned_phrases(answer)
+    validate_answer_word_count(answer, 55, 155, "Generic custom-question answer")
+    return answer
 
 
 def prioritization_answer() -> str:
@@ -1730,6 +1796,22 @@ def question_category(prompt: str) -> str:
         "reporting" in normalized or "communication" in normalized
     ):
         return "executive_reporting_trust"
+    if (
+        "implementation" in normalized
+        and ("led" in normalized or "kickoff" in normalized or "launch" in normalized)
+        and ("complex" in normalized or "made it complex" in normalized or "how did you handle" in normalized)
+    ):
+        return "implementation_ownership"
+    if (
+        ("testing" in normalized or "qa" in normalized)
+        and (
+            "go-live" in normalized
+            or "went live" in normalized
+            or "customer-facing" in normalized
+            or re.search(r"\bbefore\b.*\blive\b", normalized)
+        )
+    ):
+        return "qa_go_live_readiness"
     if "priorit" in normalized or "competing deadlines" in normalized or "multiple deadlines" in normalized:
         return "prioritization"
     if "acumatica" in normalized or ("platform experience" in normalized and "erp" in normalized):
@@ -1786,6 +1868,10 @@ def answer_prompt(prompt: str, job_description: str, snapshot: ResumeSnapshot, r
         response = QualificationsResponse(prompt, parallel_project_governance_answer())
     elif category == "executive_reporting_trust":
         response = QualificationsResponse(prompt, executive_reporting_trust_answer())
+    elif category == "implementation_ownership":
+        response = QualificationsResponse(prompt, implementation_ownership_answer())
+    elif category == "qa_go_live_readiness":
+        response = QualificationsResponse(prompt, qa_go_live_readiness_answer())
     elif category == "prioritization":
         response = QualificationsResponse(prompt, prioritization_answer())
     elif category == "platform_ramp":
@@ -1793,7 +1879,7 @@ def answer_prompt(prompt: str, job_description: str, snapshot: ResumeSnapshot, r
     else:
         response = QualificationsResponse(
             prompt,
-            generic_bridge_answer(job_description, resume_text),
+            generic_bridge_answer(job_description, resume_text, prompt),
             warning=f"QUALIFICATIONS WARNING: used generic bridge answer for unrecognized question: {prompt}",
         )
     claim_first_categories = {
@@ -1805,6 +1891,8 @@ def answer_prompt(prompt: str, job_description: str, snapshot: ResumeSnapshot, r
         "platform_ramp",
         "parallel_project_governance",
         "executive_reporting_trust",
+        "implementation_ownership",
+        "qa_go_live_readiness",
     }
     finalized = finalize_candidate_answer(
         prompt,

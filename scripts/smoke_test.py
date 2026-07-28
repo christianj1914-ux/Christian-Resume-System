@@ -8552,32 +8552,32 @@ def test_standard_qualifications_answers_added_company_and_implementation_questi
 def test_application_question_bank_category_lock(question_prep: object) -> None:
     bank_path = PROJECT_ROOT / "jobs" / "application_questions_bank.txt"
     prompts = question_prep.parse_question_blocks(bank_path.read_text(encoding="utf-8-sig"))
-    expected_categories = (
-        "education_years",
-        "direct_experience_years",
-        "relevant_experience",
-        "public_agency_experience",
-        "unique_qualifications",
-        "certifications",
-        "software_inventory",
-        "communication",
-        "company_interest",
-        "customer_profile",
-        "implementation_volume",
-        "implementation_success",
-        "ai_passion",
-        "ambiguity_delivery",
-        "expectation_gap",
-        "saas_ai_company_experience",
-        "complex_project_leadership",
-        "training_strategy_leadership",
-        "parallel_project_governance",
-        "executive_reporting_trust",
+    expected_prompt_categories = (
+        ("How many years of related post-secondary and/or professional education have you completed?", "education_years"),
+        ("How many years of direct relevant experience do you have related to the job duties of this position?", "direct_experience_years"),
+        ("Briefly describe your relevant experience demonstrating how it directly relates to the position.", "relevant_experience"),
+        ("How many years of business-related experience do you have with public agencies or cooperatives?", "public_agency_experience"),
+        ("Is there anything else that may uniquely qualify you for this specific position?", "unique_qualifications"),
+        ("Please list all certifications and licenses you currently hold relevant to this position.", "certifications"),
+        ("Please list all software packages, systems, and programs for which you rate your skills at an intermediate or higher level, as it directly relates to position requirements.", "software_inventory"),
+        ("Briefly describe your level of demonstrated effective communication, formal public speaking, presentation experience, group facilitation or training skills, as it relates to the duties of this position.", "communication"),
+        ("Why are you interested in joining this company?", "company_interest"),
+        ("Describe the typical customer you support, including industry(s), employee count, and main stakeholder roles.", "customer_profile"),
+        ("How many concurrent implementations have you worked on at any given time and what was the average length of an implementation process?", "implementation_volume"),
+        ("How do you measure performance and success during a software implementation?", "implementation_success"),
+        ("We are looking for people who are personally and/or professionally passionate about AI. Please briefly explain how you have put it to work for you in either or both areas of your life.", "ai_passion"),
+        ("Tell us about a complex project or program you led where there was no clear delivery playbook, template, or established way of working. What was the business/customer outcome you were accountable for, what was ambiguous at the start, and how did you create enough structure for the team to move forward? Please include how you handled the first few weeks, what operating rhythm or artifacts you created, who you needed to influence, and what the final outcome was.", "ambiguity_delivery"),
+        ("Describe a time when a customer, executive stakeholder, or internal partner expected something that the product/platform/team could not actually deliver as promised. What was the gap between expectation and reality, how did you diagnose the issue, and how did you communicate the tradeoffs or bad news? Please include who was involved, how you protected trust, what decision or path forward you drove, and what you learned from the situation.", "expectation_gap"),
+        ("Do you have experience working for a SaaS or technology company with an AI product or service? If yes, please briefly describe your experience.", "saas_ai_company_experience"),
+        ("Can you describe your experience in project leadership roles for complex initiatives? What were some of the challenges you faced, and how did you address them?", "complex_project_leadership"),
+        ("Could you share details about your experience leading training strategies for large-scale technology or enterprise system implementations? What types of projects have you worked on, and what was your role?", "training_strategy_leadership"),
+        ("Tell us about a period when you ran multiple complex technical projects in parallel. How did you keep milestones, dependencies, and stakeholders on track across all of them?", "parallel_project_governance"),
+        ("Give an example of how you built trust with an executive stakeholder group through your reporting and communication.", "executive_reporting_trust"),
     )
-    actual_categories = tuple(question_prep.question_category(prompt) for prompt in prompts)
+    actual_prompt_categories = tuple((prompt, question_prep.question_category(prompt)) for prompt in prompts)
     assert_true(
-        len(prompts) == len(expected_categories) and actual_categories == expected_categories,
-        f"application question bank category mapping changed; got {list(enumerate(actual_categories, start=1))}",
+        actual_prompt_categories == expected_prompt_categories,
+        f"application question bank prompt/category mapping changed; got {list(enumerate(actual_prompt_categories, start=1))}",
     )
 
 
@@ -8680,6 +8680,48 @@ def test_new_question_bank_answers_are_claim_first(
         )
         question_prep.assert_no_application_banned_phrases(response.answer)
         build_interview_cheat_sheet.assert_claim_then_prove_answer(category, response.answer, min_words=18)
+
+
+def test_limbic_custom_questions_route_to_story_backed_answers(
+    question_prep: object,
+    build_interview_cheat_sheet: object,
+) -> None:
+    prompts = (
+        "Briefly describe one implementation you personally led from kickoff through launch. What made it complex, and what was the outcome?",
+        "Briefly describe how you approached testing or QA before a customer-facing system went live.",
+    )
+    expected = ("implementation_ownership", "qa_go_live_readiness")
+    _resume_path, snapshot, resume_text = question_prep.selected_resume_snapshot(DUMMY_JOB_DESCRIPTION)
+    for prompt, category in zip(prompts, expected):
+        assert_true(
+            question_prep.question_category(prompt) == category,
+            f"{prompt!r} should map to {category}; got {question_prep.question_category(prompt)!r}",
+        )
+        response = question_prep.answer_prompt(prompt, DUMMY_JOB_DESCRIPTION, snapshot, resume_text)
+        assert_true(
+            not response.warning and "generic bridge" not in response.answer.lower(),
+            f"{category} should produce a mapped answer without generic warning; got {response}",
+        )
+        for banned in ("I would answer this item", "bridge language", "adjacent rather than identical", "how would your experience transfer"):
+            assert_true(banned.lower() not in response.answer.lower(), f"{category} leaked meta phrasing {banned!r}: {response.answer}")
+        question_prep.assert_no_application_banned_phrases(response.answer)
+        build_interview_cheat_sheet.assert_claim_then_prove_answer(category, response.answer, min_words=18)
+
+
+def test_unmapped_application_question_gets_story_backed_fallback(question_prep: object) -> None:
+    prompt = "Describe a time you created structure around a messy intake and rollout process for a new customer team."
+    _resume_path, snapshot, resume_text = question_prep.selected_resume_snapshot(DUMMY_JOB_DESCRIPTION)
+    response = question_prep.answer_prompt(prompt, DUMMY_JOB_DESCRIPTION, snapshot, resume_text)
+    assert_true(
+        response.warning
+        and "For example," in response.answer
+        and "The relevance here is" in response.answer
+        and question_prep.sentence_word_count(response.answer) >= 55,
+        f"Unmapped prompts should still yield a real story-backed fallback; got {response}",
+    )
+    for banned in ("I would answer this item", "bridge language", "adjacent rather than identical", "how would your experience transfer"):
+        assert_true(banned.lower() not in response.answer.lower(), f"Fallback leaked meta phrasing {banned!r}: {response.answer}")
+    question_prep.assert_no_application_banned_phrases(response.answer)
 
 
 def test_question_bank_audit_groups_by_category_and_excludes_derived_prompts(question_bank_audit: object) -> None:
@@ -16047,6 +16089,8 @@ def main() -> None:
             ("standard qualifications answers added company and implementation questions", lambda: test_standard_qualifications_answers_added_company_and_implementation_questions(build_standard_qualifications_statement)),
             ("application question bank category lock", lambda: test_application_question_bank_category_lock(question_prep)),
             ("new question bank answers are claim first", lambda: test_new_question_bank_answers_are_claim_first(question_prep, build_interview_cheat_sheet)),
+            ("Limbic custom questions route to story-backed answers", lambda: test_limbic_custom_questions_route_to_story_backed_answers(question_prep, build_interview_cheat_sheet)),
+            ("unmapped application question gets story-backed fallback", lambda: test_unmapped_application_question_gets_story_backed_fallback(question_prep)),
             ("question bank audit groups and excludes derived prompts", lambda: test_question_bank_audit_groups_by_category_and_excludes_derived_prompts(question_bank_audit)),
             ("question bank audit class separation and markdown extractor", lambda: test_question_bank_audit_class_separation_and_markdown_extractor(question_bank_audit)),
             ("question bank audit command is Word only and read only", lambda: test_question_bank_audit_command_is_word_only_and_read_only(build_question_bank_audit)),
