@@ -1511,13 +1511,13 @@ def company_interest_answer(job_description: str, resume_text: str) -> str:
 
 def customer_profile_answer() -> str:
     return normalize_spaces(
-        "The typical customers I have supported were B2B manufacturing and enterprise software environments, including manufacturing, supply chain, distribution, and adjacent operational workflows. Exact employee counts were not always disclosed, so I would answer that honestly, but the environments ranged from multi-site mid-market operations to larger enterprise organizations, including a five-site 150+ user ERP environment and an international portfolio of manufacturing clients. The main stakeholder roles typically included operations leaders, finance teams, engineering or IT partners, executive sponsors, and business users responsible for adoption, reporting, and day-to-day workflow execution."
+        "The typical customers I have supported were B2B manufacturing and enterprise software environments, including manufacturing, supply chain, distribution, and adjacent operational workflows. Exact employee counts were not always disclosed, but the supported range is multi-site mid-market operations through larger enterprise organizations, including a five-site 150+ user ERP environment and an international portfolio of manufacturing clients. The main stakeholder roles typically included operations leaders, finance teams, engineering or IT partners, executive sponsors, and business users responsible for adoption, reporting, and day-to-day workflow execution."
     )
 
 
 def implementation_volume_answer() -> str:
     return normalize_spaces(
-        "My work has involved multiple concurrent implementations or workstreams at the same time rather than one isolated project. On the client-delivery side, I supported a portfolio of 80+ international manufacturing client engagements, and on the internal ERP side I coordinated migration, validation, training, and go-live activities across concurrent operations, finance, and engineering tracks. Exact project counts and a single average duration were not always the way those roles were measured, so I would answer this honestly as multiple active implementations or workstreams at once, with duration ranging from shorter scoped deployment phases to longer multi-phase enterprise programs that continued from discovery through post-go-live support."
+        "My work has involved multiple concurrent implementations or workstreams at the same time rather than one isolated project. On the client-delivery side, I supported a portfolio of 80+ international manufacturing client engagements, and on the internal ERP side I coordinated migration, validation, training, and go-live activities across concurrent operations, finance, and engineering tracks. Exact project counts and a single average duration were not always the way those roles were measured; the supported answer is multiple active implementations or workstreams at once, with duration ranging from shorter scoped deployment phases to longer multi-phase enterprise programs that continued from discovery through post-go-live support."
     )
 
 

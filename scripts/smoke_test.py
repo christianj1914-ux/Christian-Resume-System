@@ -8583,6 +8583,10 @@ def test_standard_qualifications_answers_added_company_and_implementation_questi
         "Implementation-volume answers should use supported portfolio and concurrent-workstream proof without inventing a fake average duration.",
     )
     assert_true(
+        not any("i would answer" in answer.lower() for answer in response_map.values()),
+        f"Application answers should be submit-ready and avoid meta-answer phrasing; got {response_map}",
+    )
+    assert_true(
         "scope clarity" in response_map[prompts[3]].lower()
         and "UAT" in response_map[prompts[3]]
         and "five-site 150+ user ERP environment" in response_map[prompts[3]]
@@ -8724,6 +8728,10 @@ def test_standard_qualifications_bank_expansion_keeps_active_stale_check_scoped(
         and not any("public-sector" in response.answer.lower() for response in responses),
         "The full bank should be answerable without generic bridges and should keep public-agency gaps honest.",
     )
+    assert_true(
+        not any("i would answer" in response.answer.lower() for response in responses),
+        "The full bank should avoid meta-answer phrasing in generated responses.",
+    )
     default_state = module.question_prep.ApplicationPromptState((), module.question_prep.DEFAULT_APPLICATION_QUESTIONS, True)
     public_prompt = "How many years of business-related experience do you have with public agencies or cooperatives?"
     active_public_state = module.question_prep.ApplicationPromptState((public_prompt,), (public_prompt,), False)
@@ -8782,7 +8790,7 @@ def test_limbic_custom_questions_route_to_story_backed_answers(
             not response.warning and "generic bridge" not in response.answer.lower(),
             f"{category} should produce a mapped answer without generic warning; got {response}",
         )
-        for banned in ("I would answer this item", "bridge language", "adjacent rather than identical", "how would your experience transfer"):
+        for banned in ("I would answer", "bridge language", "adjacent rather than identical", "how would your experience transfer"):
             assert_true(banned.lower() not in response.answer.lower(), f"{category} leaked meta phrasing {banned!r}: {response.answer}")
         question_prep.assert_no_application_banned_phrases(response.answer)
         build_interview_cheat_sheet.assert_claim_then_prove_answer(category, response.answer, min_words=18)
@@ -8799,7 +8807,7 @@ def test_unmapped_application_question_gets_story_backed_fallback(question_prep:
         and question_prep.sentence_word_count(response.answer) >= 55,
         f"Unmapped prompts should still yield a real story-backed fallback; got {response}",
     )
-    for banned in ("I would answer this item", "bridge language", "adjacent rather than identical", "how would your experience transfer"):
+    for banned in ("I would answer", "bridge language", "adjacent rather than identical", "how would your experience transfer"):
         assert_true(banned.lower() not in response.answer.lower(), f"Fallback leaked meta phrasing {banned!r}: {response.answer}")
     question_prep.assert_no_application_banned_phrases(response.answer)
 

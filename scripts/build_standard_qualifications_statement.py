@@ -230,7 +230,7 @@ def certifications_answer(snapshot: ResumeSnapshot) -> str:
 def generic_bridge_answer(job_description: str, resume_text: str) -> str:
     profile = build_resume.job_problem_profile(job_description, resume_text)
     return normalize_spaces(
-        f"My strongest supported bridge for this application is experience in {profile.core_problem}, backed by 80+ client engagements, 200+ reporting tools, 60+ executive workshops and QBRs, and multi-site enterprise systems ownership. I would answer this item with direct proof where available and honest bridge language where the requirement is adjacent rather than identical."
+        f"The closest supported evidence for this application is experience in {profile.core_problem}, backed by 80+ client engagements, 200+ reporting tools, 60+ executive workshops and QBRs, and multi-site enterprise systems ownership. Where the requirement is not a direct match, the supported answer should name the gap plainly and connect only to the closest proven delivery, reporting, stakeholder, or implementation evidence."
     )
 
 
