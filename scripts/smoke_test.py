@@ -14972,13 +14972,16 @@ def test_bootstrap_writes_live_canonical_launchers() -> None:
 
         assert_true(
             "workspace_health.py" in resume_text
-            and 'choice /c RFD' in resume_text
+            and 'choice /c RFDQ' in resume_text
+            and "Questions only (rebuild qualifications statement from current JD + questions)" in resume_text
+            and "if errorlevel 4 goto :run_questions" in resume_text
+            and "call :run_task qualifications || goto :failed" in resume_text
             and 'call :run_task resume --resume-only' in resume_text
             and 'call :run_task resume' in resume_text
             and 'call :run_task dry-run' in resume_text
             and 'Resume created, but the cover letter was saved as DRAFT.' in resume_text
             and 'if not exist ".\\output" mkdir ".\\output"' in resume_text,
-            "run_resume.bat should offer resume-only, full, and dry-run modes while treating a DRAFT cover letter as a handled outcome",
+            "run_resume.bat should offer resume-only, full, dry-run, and qualifications-only modes while treating a DRAFT cover letter as a handled outcome",
         )
         assert_true(
             "call :run_task federal-resume" in federal_text

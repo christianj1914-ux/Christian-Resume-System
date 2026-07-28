@@ -18,12 +18,18 @@ echo Choose what to build:
 echo   [R] Resume only
 echo   [F] Full workflow (resume + cover letter + qualifications)
 echo   [D] Dry run only
+echo   [Q] Questions only (rebuild qualifications statement from current JD + questions)
 echo.
-choice /c RFD /n /m "Selection [R/F/D]: "
+choice /c RFDQ /n /m "Selection [R/F/D/Q]: "
+if errorlevel 4 goto :run_questions
 if errorlevel 3 goto :run_dry
 if errorlevel 2 goto :run_full
 call :run_task resume --resume-only
 if errorlevel 1 goto :failed
+goto :done
+
+:run_questions
+call :run_task qualifications || goto :failed
 goto :done
 
 :run_dry
