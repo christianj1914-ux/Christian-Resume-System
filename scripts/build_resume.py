@@ -5113,6 +5113,76 @@ def section_index(paragraphs: list[ParagraphInfo], section: str) -> int | None:
     return None
 
 
+def is_recognized_commercial_section_heading(text: str) -> bool:
+    cleaned = re.sub(r"\s+", " ", text).strip()
+    if not cleaned:
+        return False
+    if normalize_required_section_name(cleaned):
+        return True
+    return any(section_matches(cleaned, section) for section in REQUIRED_SECTIONS)
+
+
+def remove_commercial_volunteer_section(document_xml: Path) -> int:
+    tree = ET.parse(document_xml)
+    body = tree.getroot().find(f".//{W}body")
+    if body is None:
+        return 0
+    children = list(body)
+    start: int | None = None
+    for index, child in enumerate(children):
+        if child.tag != f"{W}p":
+            continue
+        text = re.sub(r"\s+", " ", paragraph_text(child)).strip()
+        if section_matches(text, "Volunteer Experience"):
+            start = index
+            break
+    if start is None:
+        return 0
+
+    end = len(children)
+    for index in range(start + 1, len(children)):
+        child = children[index]
+        if child.tag != f"{W}p":
+            continue
+        text = re.sub(r"\s+", " ", paragraph_text(child)).strip()
+        if text and is_recognized_commercial_section_heading(text):
+            end = index
+            break
+
+    removed = 0
+    for child in children[start:end]:
+        if child.tag != f"{W}p":
+            continue
+        body.remove(child)
+        removed += 1
+    if removed:
+        tree.write(document_xml, encoding="utf-8", xml_declaration=True)
+    return removed
+
+
+COMMERCIAL_VOLUNTEER_PD_MARKERS = (
+    "volunteer experience",
+    "cybersecurity track lead grow with google mentor me collective",
+    "led and mentored participants in the cybersecurity track as a volunteer",
+)
+
+
+def is_commercial_volunteer_professional_development_item(item: str) -> bool:
+    normalized = normalize_compare(item)
+    return any(marker in normalized for marker in COMMERCIAL_VOLUNTEER_PD_MARKERS)
+
+
+def source_snapshot_without_commercial_volunteer(snapshot: ResumeSnapshot) -> ResumeSnapshot:
+    filtered_items = {
+        item
+        for item in snapshot.professional_development_items
+        if not is_commercial_volunteer_professional_development_item(item)
+    }
+    if filtered_items == snapshot.professional_development_items:
+        return snapshot
+    return replace(snapshot, professional_development_items=filtered_items)
+
+
 
 
 
@@ -5463,6 +5533,8 @@ def build_resume() -> BuildResult:
             validate_selected_resume_source_truth(source_snapshot)
             provenance_source_xml = variant_root / "approved_source_document.xml"
             shutil.copy2(document_xml, provenance_source_xml)
+            paragraphs_rewritten = remove_commercial_volunteer_section(document_xml)
+            source_snapshot = source_snapshot_without_commercial_volunteer(source_snapshot)
 
             visual_parts = copy_visual_parts(work_dir, visual_dir)
             if apply_section_layout(document_xml, visual_document_xml):
@@ -5472,7 +5544,7 @@ def build_resume() -> BuildResult:
             force_style_single_spacing(work_dir / "word" / "styles.xml")
             force_style_single_spacing(work_dir / "word" / "stylesWithEffects.xml")
             normalize_date_ranges(document_xml)
-            paragraphs_rewritten = apply_supported_rewrites(document_xml, job_description)
+            paragraphs_rewritten += apply_supported_rewrites(document_xml, job_description)
             paragraphs_rewritten += apply_outcome_framing_rewrites(document_xml, job_description)
             paragraphs_rewritten += apply_consulting_story_rewrites(document_xml, job_description)
             paragraphs_rewritten += apply_value_story_rewrites(document_xml, job_description)

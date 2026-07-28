@@ -88,6 +88,8 @@ def parse_question_blocks(text: str) -> tuple[str, ...]:
                 prompts.append(normalize_spaces(" ".join(current)))
                 current = []
             continue
+        if line.startswith("#"):
+            continue
         if re.fullmatch(r"(application )?(supplemental )?(qualifications )?questions?", line, re.I):
             continue
         current.append(line)

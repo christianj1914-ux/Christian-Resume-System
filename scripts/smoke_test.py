@@ -512,6 +512,86 @@ def test_choose_resume(build_resume: object) -> None:
     )
 
 
+def test_commercial_volunteer_section_removed_from_working_xml(build_resume: object) -> None:
+    w_uri = build_resume.W.strip("{}")
+
+    def paragraph(text: str) -> str:
+        return f"<w:p><w:r><w:t>{escape(text)}</w:t></w:r></w:p>"
+
+    document_xml = (
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+        f'<w:document xmlns:w="{w_uri}"><w:body>'
+        f"{paragraph('Professional Summary')}"
+        f"{paragraph('Professional Experience')}"
+        f"{paragraph('Education')}"
+        f"{paragraph('Skills')}"
+        f"{paragraph('Professional Development')}"
+        f"{paragraph('Volunteer Experience')}"
+        f"{paragraph('Cybersecurity Track Lead, Grow With Google')}"
+        f"{paragraph('Provided cybersecurity mentoring as a volunteer.')}"
+        f"{paragraph('Education')}"
+        f"{paragraph('Degree line')}"
+        "<w:sectPr />"
+        "</w:body></w:document>"
+    )
+    with TemporaryDirectory(prefix="volunteer_section_") as temp_name:
+        xml_path = Path(temp_name) / "document.xml"
+        xml_path.write_text(document_xml, encoding="utf-8")
+        removed = build_resume.remove_commercial_volunteer_section(xml_path)
+        text = build_resume.visible_text(xml_path)
+    assert_true(
+        removed == 3
+        and "Volunteer Experience" not in text
+        and "Cybersecurity Track Lead" not in text
+        and "as a volunteer" not in text
+        and "Education" in text
+        and "Professional Development" in text,
+        f"Commercial Volunteer section should be removed without deleting following required sections; removed={removed}, text={text!r}",
+    )
+
+    for source_path in (build_resume.IMPLEMENTATION_RESUME, build_resume.PRESALES_CSM_RESUME):
+        source_hash = hashlib.sha256(source_path.read_bytes()).hexdigest()
+        source_text = build_resume.docx_visible_text_from_path(source_path)
+        assert_true(
+            "Volunteer Experience" in source_text and "Cybersecurity Track Lead" in source_text,
+            f"Commercial source fixture should still contain Volunteer Experience: {source_path}",
+        )
+        with TemporaryDirectory(prefix="volunteer_source_xml_") as temp_name:
+            xml_path = Path(temp_name) / "document.xml"
+            with zipfile.ZipFile(source_path) as archive:
+                xml_path.write_bytes(archive.read("word/document.xml"))
+            source_snapshot = build_resume.resume_snapshot(xml_path)
+            filtered_snapshot = build_resume.source_snapshot_without_commercial_volunteer(source_snapshot)
+            assert_true(
+                any(
+                    build_resume.is_commercial_volunteer_professional_development_item(item)
+                    for item in source_snapshot.professional_development_items
+                )
+                and not any(
+                    build_resume.is_commercial_volunteer_professional_development_item(item)
+                    for item in filtered_snapshot.professional_development_items
+                ),
+                f"Commercial integrity baseline should ignore Volunteer-derived Professional Development items: {source_path}",
+            )
+            removed = build_resume.remove_commercial_volunteer_section(xml_path)
+            text = build_resume.visible_text(xml_path)
+        assert_true(
+            removed >= 2
+            and "Volunteer Experience" not in text
+            and "Cybersecurity Track Lead" not in text
+            and "Professional Summary" in text
+            and "Professional Experience" in text
+            and "Education" in text
+            and ("Skills" in text or "Core Competencies" in text)
+            and "Professional Development" in text,
+            f"Generated commercial XML should drop Volunteer section while keeping required sections: {source_path}",
+        )
+        assert_true(
+            hashlib.sha256(source_path.read_bytes()).hexdigest() == source_hash,
+            f"Source resume must not be modified by Volunteer removal test: {source_path}",
+        )
+
+
 def test_lane_profiles_and_summaries(build_resume: object) -> None:
     for expected_lane, job_description in LANE_JOB_DESCRIPTIONS.items():
         profile = build_resume.job_problem_profile(job_description)
@@ -11281,6 +11361,15 @@ def test_reset_jobs_helpers(reset_jobs: object) -> None:
 def test_job_context_archive_active_snapshot_includes_questions() -> None:
     import job_context_archive
 
+    comment_only_prompts = job_context_archive.parse_question_blocks(
+        "# Late-discovered application questions\n"
+        "# Paste job-specific questions here after the initial run.\n"
+    )
+    assert_true(
+        comment_only_prompts == (),
+        f"job context archive should not count comment-only question instructions as prompts; got {comment_only_prompts}",
+    )
+
     original_job_description = job_context_archive.JOB_DESCRIPTION
     original_application_questions = job_context_archive.APPLICATION_QUESTIONS
     original_jobs_dir = job_context_archive.JOBS_DIR
@@ -15793,6 +15882,7 @@ def main() -> None:
             ("output target name prefers company and role", lambda: test_output_target_name_prefers_company_and_role(build_resume)),
             ("output target name disambiguates same-company roles", lambda: test_output_target_name_disambiguates_same_company_roles(build_resume)),
             ("choose resume", lambda: test_choose_resume(build_resume)),
+            ("commercial Volunteer section removed from working XML", lambda: test_commercial_volunteer_section_removed_from_working_xml(build_resume)),
             ("lane profiles and summaries", lambda: test_lane_profiles_and_summaries(build_resume)),
             ("first person detector ignores role level i", lambda: test_first_person_detector_ignores_role_level_i(build_resume)),
             ("federal agency extraction", lambda: test_federal_agency_extraction(build_resume)),
