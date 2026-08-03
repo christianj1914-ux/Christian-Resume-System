@@ -426,7 +426,7 @@ def build_coverage_report(
     by_id = {element.element_id: element for element in elements}
     visible_hits: list[str] = []
     missing_direct: list[str] = []
-    questions: list[str] = []
+    unsupported_by_group: dict[str, list[RequirementElement]] = {}
     for match in matches:
         element = by_id[match.element_id]
         terms = match.required_terms or element.canonical_terms
@@ -439,8 +439,18 @@ def build_coverage_report(
             match.rationale.startswith("SQL Server instance administration was not confirmed")
             or match.rationale.startswith("Database-administration leadership was not confirmed")
         ):
-            capability = terms[0] if terms else normalize_text(element.text)[:120]
-            questions.append(f"Did your work involve {capability}? If confirmed, identify the employer, role, and scope so it can become claimable.")
+            group_id = element.requirement_group_id or element.element_id
+            unsupported_by_group.setdefault(group_id, []).append(element)
+    questions: list[str] = []
+    for group_id, grouped_elements in unsupported_by_group.items():
+        label = "Specialized Experience " + group_id.rsplit("_", 1)[-1] if group_id.startswith("specialized_experience_") else grouped_elements[0].section.replace("_", " ").title()
+        examples = [normalize_text(element.text)[:120] for element in grouped_elements[:2]]
+        example_text = "; ".join(examples)
+        count = len(grouped_elements)
+        questions.append(
+            f"Did your work involve any of these {label} requirements ({count} unsupported): {example_text}? "
+            "If confirmed, identify the employer, role, and scope so it can become claimable."
+        )
     competency_hits = tuple(
         item
         for item in competencies
@@ -455,5 +465,5 @@ def build_coverage_report(
         never_claim_hits=never_claim_hits(visible_work_text),
         competency_hits=competency_hits,
         competency_misses=competency_misses,
-        intake_questions=tuple(dict.fromkeys(questions)),
+        intake_questions=tuple(questions),
     )

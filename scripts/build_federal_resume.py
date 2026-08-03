@@ -152,6 +152,9 @@ class FederalRequirementBucket:
     text: str
     priority: int
     clusters: tuple[str, ...]
+    # Buckets can be split for readable evidence without multiplying their
+    # source-list's audit weight or warning volume.
+    weight_group_id: str = ""
 
 
 @dataclass(frozen=True)
@@ -1350,6 +1353,8 @@ def requirement_priority(kind: str, label: str) -> int:
         return 100
     if kind == "specialized_experience":
         return 96
+    if kind == "core_experience":
+        return 69
     if kind == "gs_level":
         match = re.search(r"gs[- ]?(\d{1,2})", label.lower())
         if match:
@@ -1416,94 +1421,30 @@ def infer_clusters(text: str, default_clusters: tuple[str, ...]) -> tuple[str, .
 
 def parse_requirement_buckets(job_description: str, profile_name: str) -> tuple[FederalRequirementBucket, ...]:
     default_clusters = FEDERAL_DEFAULT_CLUSTERS_BY_LANE.get(profile_name, ("implementation_delivery",))
-    buckets: list[FederalRequirementBucket] = []
-    current_label: str | None = None
-    current_kind: str | None = None
-    current_lines: list[str] = []
-    preamble_lines: list[str] = []
-
-    def flush_current() -> None:
-        nonlocal current_label, current_kind, current_lines
-        if not current_label or not current_lines:
-            current_label = None
-            current_kind = None
-            current_lines = []
-            return
-        text = normalize_spaces(" ".join(current_lines))
-        clusters = infer_clusters(f"{current_label} {text}", default_clusters)
-        buckets.append(
-            FederalRequirementBucket(
-                label=current_label,
-                kind=current_kind or "core_experience",
-                text=text,
-                priority=requirement_priority(current_kind or "core_experience", current_label),
-                clusters=clusters,
-            )
+    sections = requirement_engine.parse_federal_requirement_sections(job_description)
+    buckets: list[FederalRequirementBucket] = [
+        FederalRequirementBucket(
+            label=section.label,
+            kind=section.kind,
+            text=section.text,
+            priority=requirement_priority(section.kind, section.label),
+            clusters=infer_clusters(section.text, default_clusters),
+            weight_group_id=section.weight_group_id,
         )
-        current_label = None
-        current_kind = None
-        current_lines = []
-
-    for line in visible_job_lines(job_description):
-        lowered = line.lower()
-        if any(lowered.startswith(prefix) for prefix in FEDERAL_BUCKET_STOP_PHRASES):
-            flush_current()
-            continue
-        if any(lowered.startswith(prefix) for prefix in FEDERAL_COMPETENCY_PREFIXES):
-            flush_current()
-            continue
-        if current_kind == "specialized_experience" and (
-            lowered.startswith("you will be evaluated for this job based on")
-            or lowered.startswith("a panel of subject matter experts")
-            or any(lowered.startswith(prefix) for prefix in FEDERAL_KSA_PREFIXES)
-            or any(lowered.startswith(prefix) for prefix in FEDERAL_KSA_STOP_PHRASES)
-        ):
-            flush_current()
-            continue
-        if current_kind == "gs_level" and lowered.startswith("specialized experience for this position includes"):
-            current_lines.append(line)
-            continue
-        inline_bucket = inline_bucket_from_line(line)
-        if inline_bucket is not None:
-            flush_current()
-            current_label, current_kind, trailing = inline_bucket
-            if trailing:
-                current_lines.append(trailing)
-            continue
-        lowered = line.lower().rstrip(":")
-        if lowered in FEDERAL_IGNORE_SECTION_HEADINGS:
-            flush_current()
-            continue
-        if current_label is None:
-            preamble_lines.append(line)
-        else:
-            current_lines.append(line)
-
-    flush_current()
+        for section in sections
+    ]
     if not buckets:
-        fallback_text = normalize_spaces(" ".join(preamble_lines[:5])) or "Relevant federal IT delivery, systems, and stakeholder-facing experience."
+        fallback_text = "Relevant federal IT delivery, systems, and stakeholder-facing experience."
         buckets = [
             FederalRequirementBucket(
                 label="Core Experience",
                 kind="core_experience",
                 text=fallback_text,
-                priority=70,
+                priority=69,
                 clusters=infer_clusters(fallback_text, default_clusters),
+                weight_group_id="core_experience",
             )
         ]
-    elif preamble_lines:
-        leading_text = normalize_spaces(" ".join(preamble_lines[:4]))
-        if leading_text:
-            buckets.insert(
-                0,
-                FederalRequirementBucket(
-                    label="Core Experience",
-                    kind="core_experience",
-                    text=leading_text,
-                    priority=69,
-                    clusters=infer_clusters(leading_text, default_clusters),
-                ),
-            )
     deduped: list[FederalRequirementBucket] = []
     seen: set[tuple[str, str]] = set()
     for bucket in buckets:
@@ -1625,17 +1566,38 @@ def federal_requirement_audit(source: FederalSource, job_description: str) -> Fe
     cluster_weight_map: dict[str, int] = {}
     coverages: list[FederalRequirementCoverage] = []
     initial_warnings: list[str] = []
+    default_clusters = FEDERAL_DEFAULT_CLUSTERS_BY_LANE.get(profile.primary_lane, ("implementation_delivery",))
+    grouped_text: dict[str, list[str]] = {}
+    for bucket in buckets:
+        grouped_text.setdefault(bucket.weight_group_id or bucket.label, []).append(bucket.text)
+    group_clusters = {
+        group_id: infer_clusters(" ".join(texts), default_clusters)
+        for group_id, texts in grouped_text.items()
+    }
 
+    warned_groups: set[str] = set()
+    weighted_groups: set[tuple[str, str]] = set()
     for bucket in buckets:
         alignments = tuple(cluster_alignment(source, cluster) for cluster in bucket.clusters)
         alignment = coverage_alignment(alignments)
         refs: list[str] = []
         for cluster in bucket.clusters:
-            cluster_weight_map[cluster] = cluster_weight_map.get(cluster, 0) + bucket.priority
             for ref in cluster_source_refs(source, cluster):
                 if ref not in refs:
                     refs.append(ref)
-        if bucket.priority >= HIGH_PRIORITY_BUCKET_THRESHOLD and alignment == "Unsupported":
+        weight_group = bucket.weight_group_id or bucket.label
+        for cluster in group_clusters[weight_group]:
+            weight_key = (weight_group, cluster)
+            if weight_key not in weighted_groups:
+                weighted_groups.add(weight_key)
+                cluster_weight_map[cluster] = cluster_weight_map.get(cluster, 0) + bucket.priority
+        warning_group = bucket.weight_group_id or bucket.label
+        if (
+            bucket.priority >= HIGH_PRIORITY_BUCKET_THRESHOLD
+            and alignment == "Unsupported"
+            and warning_group not in warned_groups
+        ):
+            warned_groups.add(warning_group)
             initial_warnings.append(f"{bucket.label} is not well supported by the current federal source.")
         coverages.append(
             FederalRequirementCoverage(
@@ -1647,14 +1609,30 @@ def federal_requirement_audit(source: FederalSource, job_description: str) -> Fe
             )
         )
 
-    sorted_cluster_weights = tuple(sorted(cluster_weight_map.items(), key=lambda item: (-item[1], item[0])))
+    # program_delivery deliberately has no lane default in this change.  The
+    # fallback makes implementation_delivery the meaningful winner of a tie.
+    default_rank = {cluster: index for index, cluster in enumerate(FEDERAL_DEFAULT_CLUSTERS_BY_LANE.get(profile.primary_lane, ("implementation_delivery",)))}
+    sorted_cluster_weights = tuple(
+        sorted(
+            cluster_weight_map.items(),
+            key=lambda item: (-item[1], default_rank.get(item[0], float("inf")), item[0]),
+        )
+    )
     keywords = federal_keyword_targets(job_description, buckets, sorted_cluster_weights)
     target_context = requirement_engine.build_target_context(job_description, workflow="federal")
     records = evidence_engine.load_evidence_catalog(FEDERAL_RESUME_SOURCE)
     element_matches = evidence_engine.match_requirements(target_context.requirements, records)
+    unsupported_by_group: dict[str, list[requirement_engine.RequirementElement]] = {}
     for element, match in zip(target_context.requirements, element_matches):
         if match.status == requirement_engine.RequirementStatus.UNSUPPORTED:
-            initial_warnings.append(f"Unsupported federal requirement: {element.text}")
+            group_id = element.requirement_group_id or element.element_id
+            unsupported_by_group.setdefault(group_id, []).append(element)
+    for group_id, elements in unsupported_by_group.items():
+        label = "Specialized Experience " + group_id.rsplit("_", 1)[-1] if group_id.startswith("specialized_experience_") else elements[0].section.replace("_", " ").title()
+        examples = "; ".join(element.text[:120] for element in elements[:2])
+        initial_warnings.append(
+            f"Unsupported federal requirements in {label} ({len(elements)}): {examples}"
+        )
     return FederalAudit(
         buckets=tuple(coverages),
         cluster_weights=sorted_cluster_weights,

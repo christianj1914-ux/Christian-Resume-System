@@ -1,32 +1,88 @@
-Department of the Air Force
-Air Force Materiel Command
-Air Force Life Cycle Management Center
+Information Technology Project Manager
+Department of Veterans Affairs
+Electronic Health Record Modernization
+Office of Program Executive Director
 
+As an IT Project Manager/Scrum Master, you will:
 
-Air Force Materiel Command
-The mission of the United States Air Force is: To fly, fight, and win ... Airpower anytime, anywhere. To achieve that mission, the Air Force has a vision of Global Vigilance, Global Reach and Global Power. That vision orbits around three core competencies: Developing Airmen, Technology-to-Warfighting and Integrating Operations. Core competencies and distinctive capabilities are based on a shared commitment to three core values -- integrity first, service before self, and excellence in all we do.
+Lead multifaceted Information Technology (IT) software and infrastructure projects using waterfall, hybrid or agile delivery methods for the Railroad Retirement Board.
+Work across functional and organizational lines and deal with the full range of issues and concerns associated with IT systems within the agency.
+Manage project resources, including overseeing contractors and mentoring IT and business teams.
+Develop and implement plans, providing cost-benefit analysis, designing and conducting analytical studies, managing resources, and defining objectives and risks.
+Develop information systems testing strategies, identifying standards for infrastructure configuration, and developing information security plans and procedures.
+Serve as an Agile scrum master for application development projects by developing and executing user/epic stories, roadmap, product backlog, sprints, Kanban tracking, retrospectives, etc.
 
-1. As part of an Integrated Acquisition Team for an installation, or for development or sustainment of a system or smaller multiple systems within an installation, Direct Reporting Unit
-(DRU), Field Operating Agency (FOA), specialized unit, etc., plans the overall approach to meet contracting program objectives for a variety of requirements with multiple complexities.
-2. Procures complex and/or diversified services, commodities, and/or construction.
-3. Executes post-award contract performance management actions on assigned contracts.
-4. Serves as business advisor to a wide range of customers.
+For Grade GS-14:
+
+Applicants must have IT-related experience demonstrating each of the four competencies listed below. Applicants must demonstrate possession of these competencies within the body of the resume; no separate statements addressing them are required.
+
+Attention to Detail - Is thorough when performing work and conscientious about attending to detail.
+Customer Service - Works with clients and customers (that is, any individuals who use or receive the services or products that your work unit produces, including the general public, individuals who work in the agency, other agencies, or organizations outside the Government) to assess their needs, provide information or assistance, resolve their problems, or satisfy their expectations; knows about available products and services; is committed to providing quality products and services.
+Oral Communication - Expresses information (for example, ideas or facts) to individuals or groups effectively, taking into account the audience and nature of the information (for example, technical, sensitive, controversial); makes clear and convincing oral presentations; listens to others, attends to nonverbal cues, and responds appropriately.
+Problem Solving - Identifies problems; determines accuracy and relevance of information; uses sound judgment to generate and evaluate alternatives, and to make recommendations.
+-AND-
+
+One year of specialized experience equivalent to the GS-13 grade level in the Federal service.
+
+Specialized Experience is experience that has equipped the applicant with the particular knowledge, skills, and abilities/competencies to perform successfully the duties of the position and is typically in or related to the work of the position to be filled.
+
+Specialized experience is defined as demonstrated experience:
+Leading complex software and infrastructure IT projects using waterfall, hybrid, and Agile methodology.
+Developing IT project plans that incorporate risk controls, testing/training needs, acceptance criteria, change management, and IT governance.
+Executing IT project work by monitoring technical progress, updating activities in tracking tools, resolving system-related impediments, and ensuring all required IT deliverables are completed accurately and on schedule.
+Planning and leading scrum ceremonies such as standups meetings, backlog grooming, sprint planning, sprint review (demonstrations), release planning, and sprint retrospectives.
+Leading project teams and contractors by coaching, establishing goals, monitoring performance, and providing constructive feedback.
+Managing stakeholder expectations by gathering input, resolving issues, and communicating project status to ensure transparency.
 
 Qualifications
-Experience requirements described in the Office of Personnel Management (OPM) Qualification Standards for General Schedule Positions, DoD Instruction (DoDI) 5000.66, Defense Acquisition Workforce Education, Training, Experience, and Career Development.
+To qualify for this position, applicants must meet all requirements by the closing date of this announcement, 07/24/2026.
 
+For the GS-14: To meet the Competency-Based Qualification Standard for the Information Technology (IT) Management Series (2210), you must possess:
+Attention to Detail - Is thorough when performing work and conscientious about attending to detail.
 
-Ideal Candidate
-- Ability to manage complex contract processes.
-- Strong problem-solving and negotiation skills.
-- Knowledge of regulations and industry standards.
-- Ability to work well with teams and customers.
-- Knowledge of cost analysis and major weapon systems procurement
+Customer Service - Works with clients and customers (that is, any individuals who use or receive the services or products that your work unit produces, including the general public, individuals who work in the agency, other agencies, or organizations outside the Government) to assess their needs, provide information or assistance, resolve their problems, or satisfy their expectations; knows about available products and services; is committed to providing quality products and services.
 
-KNOWLEDGE, SKILLS AND ABILITIES (KSAs): Your qualifications will be evaluated on the basis of your level of knowledge, skills, abilities and/or competencies in the following areas:
-1. Professional knowledge of a wide range of Federal contracting laws, regulations, policies, procedures, methods, techniques, and contract types applicable to pre-award and post-award actions for a variety of complex contracts for unique services, commodities, and/or construction.
-2. Knowledge of the business environment (e.g. economic trends, awareness of commercial/business practices, standards, mergers, and acquisitions, etc.) in order to recognize potential programmatic/contractual impacts, and knowledge of the methods and techniques of fact-finding/market research.
-3. Knowledge of the principles, methods, and tools used to assist in risk identification, assessment, and mitigation including assessing the probability and consequences of potential problems.
-4. Knowledge of contract negotiation, administration, and termination principles, policies, procedures, and technical requirements; and knowledge of price and cost analysis sufficient to review proposals against previous history, actual and estimated expenditures, and established rates to determine price reasonableness or to determine a negotiation position.
-5. Ability to identify problems, determine accuracy and relevance of information, use sound judgment to generate and evaluate alternatives, and make recommendations; makes sound, well-informed, and objective decisions applying precedents found in government contracting case law to specific contracting situations to insure that legally binding contracting officer decisions are consistent, justifiable, and will be upheld at appellate courts or boards; perceives the impact and implications of decisions; commits to action, even in uncertain situations, to accomplish organizational goals.
-6. Ability to communicate both orally and in writing, clearly, concisely, and with technical accuracy.
+Decision Making - Makes sound, well-informed, and objective decisions; perceives the impact and implications of decisions; commits to action, even in uncertain situations, to accomplish organizational goals; causes change.
+
+Information Management - Identifies a need for and knows where or how to gather information; organizes and maintains information or information management systems.
+
+Interpersonal Skills - Shows understanding, friendliness, courtesy, tact, empathy, concern, and politeness to others; develops and maintains effective relationships with others; may include effectively dealing with individuals who are difficult, hostile, or distressed; relates well to people from varied backgrounds and different situations.
+
+Oral Communication - Expresses information (for example, ideas or facts) to individuals or groups effectively, taking into account the audience and nature of the information (for example, technical, sensitive, controversial); makes clear and convincing oral presentations; listens to others, attends to nonverbal cues, and responds appropriately.
+
+Problem Solving - Identifies problems; determines accuracy and relevance of information; uses sound judgment to generate and evaluate alternatives, and to make recommendations.
+
+Teamwork - Encourages and facilitates cooperation, pride, trust, and group identity; fosters commitment and team spirit; works with others to achieve goals.
+
+Technical Competence - Uses knowledge that is acquired through formal training or on-the-job experience to perform one's job; works with, understands, and evaluates technical information related to the job; advises others on technical issues.
+
+AND
+
+Specialized Experience: GS-14 grade level: One year of specialized experience (equivalent to the GS-13 grade level in the federal service); experience that equipped the applicant with the particular knowledge, skills and abilities (KSA's) and other characteristics to perform successfully the duties of the position, and that is typically in or related to the work of the position to be filled, in the normal line of progression for the occupation in the organization.
+
+Specialized experience for this position includes but is not limited to: Leading project teams in advanced systems software/hardware project efforts. Functioning as a technical authority in project management disciplines such as requirements analysis, project planning, budgeting, cost analysis, configuration management, data management, information systems and network security assignments. Planning and designing systems architecture as they relate to Electronic Healthcare Records Management. Assuring software and systems functionality and quality. Ensuring extensive application of security/information assurance policies, principles, and practices to the delivery of application software services. Applying project management principles to large-scale, complex projects which entail the methods, metrics, tools, and techniques of Electronic Health Records Management.
+
+OR
+
+Applicants may also be considered to have satisfied the minimum qualification requirements for a position if they can present evidence that clearly justifies a high evaluation of their competence, such as one or more of the following:
+
+Appropriate licensure, registration(s), certification(s); or
+A substantial record of experience, achievement, and publications that demonstrates eminence in the appropriate profession/technical field.
+
+Your qualifications will be evaluated based on your application materials (e.g., resume, supporting documents), your responses on the application questionnaire, and your responses to all assessments required for this position. You will be assessed on the following Competencies for this position:
+
+Accountability
+Attention to Detail
+Customer Service
+Decision Making
+Flexibility
+Influencing/Negotiating
+Integrity/Honesty
+Interpersonal Skills
+Learning
+Reading Comprehension
+Reasoning
+Self-Management
+Stress Tolerance
+Teamwork
+

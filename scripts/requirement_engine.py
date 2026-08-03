@@ -33,6 +33,9 @@ class RequirementElement:
     canonical_terms: tuple[str, ...] = ()
     category: str = "activity"
     priority: int = 3
+    alternative_group_id: str = ""
+    alternative_terms: tuple[str, ...] = ()
+    requirement_group_id: str = ""
 
 
 @dataclass(frozen=True)
@@ -51,7 +54,16 @@ class TargetContext:
     equivalence_years: int | None = None
     minimum_competencies: tuple[str, ...] = ()
     assessed_competencies: tuple[str, ...] = ()
-    parser_fallback_required: bool = False
+
+
+@dataclass(frozen=True)
+class FederalRequirementSection:
+    """A structural federal requirement unit shared by both federal consumers."""
+
+    label: str
+    kind: str
+    text: str
+    weight_group_id: str
 
 
 @dataclass(frozen=True)
@@ -146,9 +158,48 @@ def classify_requirement_category(text: str) -> str:
     lowered = normalize_key(text)
     if re.search(r"\b(sql|excel|salesforce|power bi|tableau|jira|servicenow|git|github|azure devops|tfs)\b", lowered):
         return "skill_tool"
-    if re.search(r"\b(contact center|financial services|nonprofit|manufacturing|saas|philanthrop|federal)\b", lowered):
+    if re.search(
+        r"\b(contact center|financial services|nonprofit|manufacturing|saas|philanthrop|federal|"
+        r"supply chain|warehouse(?: automation| operations?)?|robotics(?: integration)?|"
+        r"fulfillment operations?|eprocurement|e procurement|customer integration capabilities?)\b",
+        lowered,
+    ):
         return "domain"
     return "activity"
+
+
+def alternative_requirement_terms(text: str) -> tuple[str, ...]:
+    """Return explicit disjunctive noun-phrase alternatives from one requirement."""
+
+    if not re.search(r"(?:,\s*or\s+|\s+or\s+)", text, re.I):
+        return ()
+    candidate = normalize_text(text).rstrip(".")
+    # Prefer the object of a knowledge/experience preposition so leading
+    # qualification language cannot become an alternative.
+    object_match = re.search(
+        r"\b(?:knowledge|experience|expertise|familiarity|background)\s+(?:of|with|in)\s+(.+)$",
+        candidate,
+        re.I,
+    )
+    if object_match:
+        candidate = object_match.group(1)
+    parts = [
+        normalize_text(part)
+        for part in re.split(r"\s*,\s*|\s+\bor\b\s+", candidate, flags=re.I)
+    ]
+    cleaned: list[str] = []
+    for part in parts:
+        value = re.sub(r"^(?:and|or)\s+", "", part, flags=re.I)
+        value = re.sub(
+            r"^(?:strong|deep|demonstrated|proven|required|preferred)\s+",
+            "",
+            value,
+            flags=re.I,
+        )
+        words = value.split()
+        if 1 <= len(words) <= 7 and value.lower() not in {item.lower() for item in cleaned}:
+            cleaned.append(value)
+    return tuple(cleaned) if len(cleaned) >= 2 else ()
 
 
 def _split_requirement_lines(body: str) -> tuple[str, ...]:
@@ -194,6 +245,7 @@ def parse_commercial_requirements(job_description: str) -> tuple[RequirementElem
         for text in _split_requirement_lines(body):
             preferred = kind == "preferred" or bool(re.search(r"\bpreferred\b", text, re.I))
             required = not preferred
+            alternatives = alternative_requirement_terms(text)
             elements.append(
                 RequirementElement(
                     element_id=_element_id("commercial", heading, text),
@@ -206,30 +258,146 @@ def parse_commercial_requirements(job_description: str) -> tuple[RequirementElem
                     canonical_terms=canonical_terms(text),
                     category=classify_requirement_category(text),
                     priority=4 if required else 2,
+                    alternative_group_id=(
+                        _element_id("commercial-alternatives", heading, text)
+                        if alternatives
+                        else ""
+                    ),
+                    alternative_terms=alternatives,
                 )
             )
     return tuple(elements)
 
 
-def _federal_block(job_description: str, start_pattern: str, end_pattern: str) -> str:
-    match = re.search(start_pattern, job_description, re.I)
-    if not match:
-        return ""
-    remainder = job_description[match.end():]
-    end = re.search(end_pattern, remainder, re.I | re.M)
-    return remainder[: end.start()] if end else remainder
+def _federal_lines(job_description: str) -> list[str]:
+    return [normalize_text(line) for line in job_description.splitlines() if normalize_text(line)]
+
+
+def _federal_deduped_lines(lines: list[str]) -> tuple[str, ...]:
+    seen: set[str] = set()
+    result: list[str] = []
+    for line in lines:
+        key = normalize_key(line)
+        if key and key not in seen:
+            seen.add(key)
+            result.append(line)
+    return tuple(result)
+
+
+def parse_federal_requirement_sections(job_description: str) -> tuple[FederalRequirementSection, ...]:
+    """Extract only the role-duty and specialized-experience evidence from a posting.
+
+    Federal announcements reuse words such as "Qualifications" and "evaluated" in
+    boilerplate.  Structure, rather than a growing stop-phrase list, keeps those
+    routes out of the requirement surface.
+    """
+    lines = _federal_lines(job_description)
+    sections: list[FederalRequirementSection] = []
+
+    # The opening "you will" block is the real core-experience requirement, not
+    # the announcement title and agency header that precede it.
+    for index, line in enumerate(lines):
+        if re.match(r"^As an .+?,\s*you will:\s*$", line, re.I):
+            duty_lines: list[str] = [line]
+            for following in lines[index + 1 :]:
+                if re.match(r"^(?:For Grade|Qualifications\b|Specialized Experience\b)", following, re.I):
+                    break
+                duty_lines.append(following)
+            if duty_lines:
+                sections.append(
+                    FederalRequirementSection(
+                        label="Core Experience",
+                        kind="core_experience",
+                        text=" ".join(duty_lines),
+                        weight_group_id="core_experience",
+                    )
+                )
+            break
+
+    # Announcements can state specialized experience twice.  Treat each stated
+    # list as additive while exact-normalized duplicates are removed below.
+    first_marker = re.compile(r"^Specialized experience is defined as demonstrated experience:?$", re.I)
+    second_marker = re.compile(r"^Specialized experience for (?:this )?position includes(?: but is not limited to)?:\s*(.*)$", re.I)
+    for index, line in enumerate(lines):
+        if first_marker.match(line):
+            entries: list[str] = []
+            for following in lines[index + 1 :]:
+                if re.match(r"^(?:Qualifications\b|For the GS-|Specialized Experience:|OR$|Applicants may also\b|Your qualifications will be evaluated\b)", following, re.I):
+                    break
+                entries.append(following)
+            for entry in _federal_deduped_lines(entries):
+                sections.append(
+                    FederalRequirementSection("Specialized Experience", "specialized_experience", entry, "specialized_experience_1")
+                )
+        second = second_marker.match(line)
+        if second:
+            body = second.group(1).strip()
+            # This prose list carries independent duty sentences.  Split it for
+            # evidence matching, while keeping one audit-weight group below.
+            for duty in re.split(r"(?<=[.!?])\s+(?=[A-Z])", body):
+                cleaned = normalize_text(duty)
+                if cleaned:
+                    sections.append(
+                        FederalRequirementSection(
+                            "Specialized Experience",
+                            "specialized_experience",
+                            cleaned,
+                            "specialized_experience_2",
+                        )
+                    )
+
+    # Keep compact questionnaire-style federal postings usable.  These do not
+    # carry the richer structural markers above, but their explicit labels are
+    # still requirements rather than boilerplate.
+    if not sections:
+        current_label = ""
+        current_kind = ""
+        current_lines: list[str] = []
+
+        def flush_compact() -> None:
+            nonlocal current_label, current_kind, current_lines
+            if current_label and current_lines:
+                sections.append(
+                    FederalRequirementSection(
+                        current_label,
+                        current_kind,
+                        " ".join(current_lines),
+                        f"compact:{normalize_key(current_label)}",
+                    )
+                )
+            current_label, current_kind, current_lines = "", "", []
+
+        for line in lines:
+            selective = re.match(r"^Selective Factor\s*:\s*(.*)$", line, re.I)
+            gs = re.match(r"^(GS-\d+)\s*:\s*(.*)$", line, re.I)
+            if selective or gs:
+                flush_compact()
+                current_label = "Selective Factor" if selective else gs.group(1).upper()
+                current_kind = "selective_factor" if selective else "gs_level"
+                trailing = (selective.group(1) if selective else gs.group(2)).strip()
+                if trailing:
+                    current_lines.append(trailing)
+            elif current_label:
+                current_lines.append(line)
+        flush_compact()
+
+    deduped: list[FederalRequirementSection] = []
+    seen: set[tuple[str, str]] = set()
+    for section in sections:
+        key = (section.kind, normalize_key(section.text))
+        if key and key not in seen:
+            seen.add(key)
+            deduped.append(section)
+    return tuple(deduped)
 
 
 def parse_federal_requirements(job_description: str) -> tuple[RequirementElement, ...]:
-    grade_match = re.search(r"Specialized Experience\s+(GS-\d+)\s+Level", job_description, re.I)
-    grade = grade_match.group(1).upper() if grade_match else ""
-    body = _federal_block(
-        job_description,
-        r"Specialized Experience\s+GS-\d+\s+Level:.*?includes:\s*",
-        r"^\s*(?:How you will be evaluated|Education|Time in Grade|Conditions of Employment)\b",
-    )
+    grade, _equivalent, _years = parse_grade_clause(job_description)
     elements: list[RequirementElement] = []
-    for text in _split_requirement_lines(body):
+    for section in parse_federal_requirement_sections(job_description):
+        if section.kind != "specialized_experience":
+            continue
+        text = section.text
         elements.append(
             RequirementElement(
                 element_id=_element_id("federal", "specialized_experience", text, grade),
@@ -243,39 +411,48 @@ def parse_federal_requirements(job_description: str) -> tuple[RequirementElement
                 canonical_terms=canonical_terms(text),
                 category=classify_requirement_category(text),
                 priority=5,
+                requirement_group_id=section.weight_group_id,
             )
         )
     return tuple(elements)
 
 
 def parse_federal_competencies(job_description: str) -> tuple[tuple[str, ...], tuple[str, ...]]:
+    lines = _federal_lines(job_description)
     minimum: list[str] = []
-    minimum_match = re.search(
-        r"following nine competencies:\s*(.+?)(?:\n\s*Specialized Experience|\n\s*AND\b)",
-        job_description,
-        re.I | re.S,
-    )
-    if minimum_match:
-        for item in re.split(r"(?:,\s*|\s+and\s+)(?=\d+\))", minimum_match.group(1)):
-            cleaned = normalize_text(re.sub(r"^\d+\)\s*", "", item)).rstrip(".")
-            if cleaned:
-                minimum.append(cleaned)
-
-    assessed_body = _federal_block(
-        job_description,
-        r"assessed on the following competencies[^:]*:\s*",
-        r"^\s*(?:You may preview|Basis of Rating|Required Documents|How to Apply)\b",
-    )
     assessed: list[str] = []
-    for line in assessed_body.splitlines():
-        cleaned = normalize_text(LIST_PREFIX_RE.sub("", line)).rstrip(".")
-        if cleaned and len(cleaned.split()) <= 6 and not cleaned.lower().startswith("you will"):
-            assessed.append(cleaned)
-    return tuple(dict.fromkeys(minimum)), tuple(dict.fromkeys(assessed))
+    collecting_minimum = False
+    collecting_assessed = False
+    for line in lines:
+        if re.search(r"each of the (?:\w+|\d+) competencies listed below", line, re.I):
+            collecting_minimum = True
+            continue
+        if collecting_minimum:
+            if re.fullmatch(r"-?AND-?", line, re.I):
+                collecting_minimum = False
+                continue
+            match = re.match(r"^([A-Za-z][A-Za-z /-]+?)\s+-\s+", line)
+            if match:
+                minimum.append(match.group(1).strip())
+            continue
+        if re.search(r"assessed on the following competencies", line, re.I):
+            collecting_assessed = True
+            continue
+        if collecting_assessed:
+            if re.match(r"^(?:You may preview|Basis of Rating|Required Documents|How to Apply)\b", line, re.I):
+                break
+            cleaned = normalize_text(LIST_PREFIX_RE.sub("", line)).rstrip(".")
+            if cleaned and len(cleaned.split()) <= 6:
+                assessed.append(cleaned)
+    return _federal_deduped_lines(minimum), _federal_deduped_lines(assessed)
 
 
 def parse_grade_clause(job_description: str) -> tuple[str, str, int | None]:
-    target_match = re.search(r"Specialized Experience\s+(GS-\d+)\s+Level", job_description, re.I)
+    target_match = re.search(
+        r"Specialized Experience\s*(?::\s*)?(GS-\d+)\s+(?:grade\s+)?level",
+        job_description,
+        re.I,
+    )
     equivalent_match = re.search(r"equivalent to the\s+(GS-\d+)\s+grade level", job_description, re.I)
     years_match = re.search(r"\b(one|1)\s+year of specialized experience", job_description, re.I)
     return (
@@ -333,7 +510,6 @@ def build_target_context(job_description: str, *, workflow: str = "commercial") 
         equivalence_years=years,
         minimum_competencies=minimum,
         assessed_competencies=assessed,
-        parser_fallback_required=len(requirements) < 3,
     )
 
 
