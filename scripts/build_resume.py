@@ -24,6 +24,8 @@ _bootstrap.ensure_script_path()
 
 import argparse
 import difflib
+import hashlib
+import os
 import re
 import shutil
 import subprocess
@@ -41,15 +43,19 @@ import business_context
 import commercial_resume_model
 import prose_engine
 import requirement_engine
+from config.keyword_policy import (
+    DEFAULT_KEYWORD_POLICY,
+    KEYWORD_POLICIES,
+    active_keyword_policy,
+    normalize_keyword_policy,
+)
 from config.job_profiles import (
     BRIDGE_EVIDENCE_AREAS,
-    CONDITIONAL_COMPETENCY_ITEMS,
     EMPLOYER_CONTEXTS,
     POOR_FIT_REQUIREMENT_AREAS,
     PRESALES_SIGNALS,
     SAME_COMPANY_OUTPUT_LOOKBACK,
     SAME_COMPANY_VARIABLE_OVERLAP_THRESHOLD,
-    SIMPLE_COMPETENCY_KEYWORDS,
     SPECIALTY_GAP_AREAS,
     STORY_LENSES,
     TAILORING_EMPHASIS_PROFILES,
@@ -83,6 +89,7 @@ from config.paths import (
 from utils import (
     GREAT_EIGHT_OUTCOMES,
     clean_source_text,
+    enforce_prose_quality,
     fail,
     has_great_eight_signal,
     optional_text,
@@ -104,15 +111,21 @@ from resume_analysis import (
     CORPORATE_STRATEGY_PROFILE,
     IMPORTANT_SHORT_ATS_TERMS,
     JobProblemProfile,
+    KeywordCandidateClass,
+    KEYWORD_NOISE_PHRASES,
+    KEYWORD_NOISE_SINGLETONS,
     OWNERSHIP_ACTION_RE,
     ROLE_REQUIREMENT_SECTION_RE,
     STOP_WORDS,
     SUMMARY_PLACEMENT_TERMS,
+    UNSUPPORTED_PLATFORM_KEYWORDS,
     UNSUPPORTED_OWNERSHIP_LABELS,
     audit_keywords,
     choose_resume,
+    canonical_audit_keyword,
     clean_company_name,
     clean_job_title,
+    classify_keyword_candidate,
     detect_company_profile,
     employer_context_matches,
     employer_context_sentence,
@@ -122,6 +135,9 @@ from resume_analysis import (
     extract_output_name,
     extract_output_target_name,
     evidence_anchor_for_term,
+    evidence_entry_context_supported,
+    evidence_term_for_variant,
+    evidence_terms,
     evidence_supported_surfaces,
     fit_status,
     high_value_audit_keywords,
@@ -216,6 +232,7 @@ from resume_content import (
     summary_job_poster_sentence,
     summary_positioning_sentence,
     supported_simple_competencies,
+    targeted_skill_candidate_is_allowed,
     TailoringEmphasis,
 )
 
@@ -300,8 +317,22 @@ TOP_THIRD_OWNERSHIP_SOFTENERS: tuple[tuple[str, str], ...] = (
     (r"\binvolved in\b", "involved in"),
 )
 TOP_THIRD_STRONG_OWNERSHIP_RE = re.compile(
-    r"\b(?:owned|led|was responsible for|coordinated|drove|delivered|built|implemented|aligned|validated|stabilized|resolved|managed)\b",
+    r"\b(?:owned|managed|ran|was responsible for|led|drove|guided|delivered|built|implemented|launched|designed|developed|protected|improved|accelerated|resolved|stabilized)\b",
     re.I,
+)
+OWNERSHIP_VERB_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
+    ("accountable", re.compile(r"^\s*(?:owned|managed|ran|was responsible for)\b", re.I)),
+    ("leadership", re.compile(r"^\s*(?:led|drove|guided)\b", re.I)),
+    (
+        "execution",
+        re.compile(
+            r"^\s*(?:delivered|built|implemented|launched|designed|developed|protected|improved|accelerated|resolved|stabilized)\b",
+            re.I,
+        ),
+    ),
+    ("coordination", re.compile(r"^\s*(?:coordinated|aligned)\b", re.I)),
+    ("collaboration", re.compile(r"^\s*(?:partnered|contributed|worked with)\b", re.I)),
+    ("support", re.compile(r"^\s*(?:supported|helped|assisted|involved in)\b", re.I)),
 )
 
 IMPLEMENTATION_RESUME = SOURCE_DIR / "Estrada_Resume_Implementation.docx"
@@ -559,7 +590,6 @@ EXPERIENCE_CASE_REPLACEMENTS = {
     "Solution Functionality": "solution functionality",
 }
 
-
 @dataclass(frozen=True)
 class BuildResult:
     source_resume: Path
@@ -576,6 +606,7 @@ class BuildResult:
     audit_notes: list[str]
     readiness: "ResumeReadiness | None" = None
     build_warnings: tuple[str, ...] = ()
+    tailoring_status: str = "COMPLETE"
 
 
 @dataclass(frozen=True)
@@ -590,9 +621,66 @@ class ResumeGap:
 @dataclass(frozen=True)
 class ResumeReadiness:
     audit_status: str
+    tailoring_status: str
+    keyword_policy: str
     prioritized_unresolved_gaps: tuple[ResumeGap, ...]
     auto_closed_gaps: tuple[ResumeGap, ...]
     hard_blockers: tuple[ResumeGap, ...]
+    fit_blockers: tuple[ResumeGap, ...] = ()
+
+
+@dataclass(frozen=True)
+class KeywordPlacementTarget:
+    """One exact JD surface carried unchanged through placement and audit."""
+
+    surface: str
+    concept_id: str
+    scoring_tier: str
+    requirement_relation: str
+    validating_requirement_text: str
+    support_basis: str
+    evidence_anchor: str
+    placement_types: tuple[str, ...]
+    final_location: str = "missing"
+    landing_result: str = ""
+
+
+@dataclass(frozen=True)
+class FinalAuditSnapshot:
+    audit_status: str
+    tailoring_status: str
+    alignment_score: int
+    alignment_fail_floor_met: bool
+    core_percent: int
+    core_present: int
+    core_total: int
+    core_missing: tuple[str, ...]
+    breadth_percent: int
+    breadth_present: int
+    breadth_total: int
+    breadth_missing: tuple[str, ...]
+    ownership_findings: tuple[str, ...]
+    supported_misses: tuple[str, ...]
+    genuine_gaps: tuple[str, ...]
+    prose_findings: tuple[str, ...]
+    policy_blockers: tuple[str, ...]
+    audit_notes: tuple[str, ...]
+    readiness: ResumeReadiness
+
+
+@dataclass(frozen=True)
+class OwnershipSkimSegment:
+    kind: str
+    text: str
+
+
+@dataclass(frozen=True)
+class TopThirdOwnershipAssessment:
+    severity: str
+    issues: tuple[str, ...]
+    segments: tuple[OwnershipSkimSegment, ...]
+    strong_segments: int
+    soft_segments: int
 
 
 @dataclass(frozen=True)
@@ -620,8 +708,10 @@ class ResumeAssemblyResult:
     bullet_groups_reordered: int
     visual_parts_applied: int
     audit_status: str
+    tailoring_status: str
     audit_notes: list[str]
     readiness: "ResumeReadiness | None"
+    audit_snapshot: "FinalAuditSnapshot"
     auto_closed_keywords: tuple[str, ...]
     variable_snapshot: ResumeVariationSnapshot
 
@@ -1564,6 +1654,8 @@ def select_experience_bullets_for_two_page_resume(
     document_xml: Path,
     job_description: str,
     emphasis: TailoringEmphasis | None = None,
+    *,
+    protected_terms: tuple[str | KeywordPlacementTarget, ...] = (),
 ) -> int:
     tree = ET.parse(document_xml)
     root = tree.getroot()
@@ -1646,7 +1738,43 @@ def select_experience_bullets_for_two_page_resume(
             effective_budget = minimum_required
         if len(bullets) <= effective_budget:
             continue
-        for bullet in bullets[effective_budget:]:
+        protected_ids: set[int] = set()
+        for protected in protected_terms:
+            term = (
+                protected.surface
+                if isinstance(protected, KeywordPlacementTarget)
+                else protected
+            )
+            term_tokens = {
+                token
+                for token in normalize_compare(term).split()
+                if token not in {"and", "for", "the", "with"}
+            }
+            ranked_carriers: list[tuple[int, int, ET.Element]] = []
+            for index, bullet in enumerate(bullets):
+                text = re.sub(r"\s+", " ", paragraph_text(bullet)).strip()
+                normalized_text = normalize_compare(text)
+                score = sum(1 for token in term_tokens if token in normalized_text)
+                if contains_search_term(text, term):
+                    score += 20
+                if keyword_evidence_fits_bullet(term, text):
+                    score += 8
+                if score:
+                    ranked_carriers.append((score, -index, bullet))
+            if ranked_carriers:
+                protected_ids.add(id(max(ranked_carriers, key=lambda row: (row[0], row[1]))[2]))
+
+        keep_ids: set[int] = set()
+        for bullet in bullets:
+            if id(bullet) in protected_ids and len(keep_ids) < effective_budget:
+                keep_ids.add(id(bullet))
+        for bullet in bullets:
+            if len(keep_ids) >= effective_budget:
+                break
+            keep_ids.add(id(bullet))
+        for bullet in bullets:
+            if id(bullet) in keep_ids:
+                continue
             body.remove(bullet)
             removed += 1
 
@@ -1806,7 +1934,9 @@ def contains_search_term(text: str, term: str) -> bool:
     variants = [" ".join(parts)]
     if last.endswith("ies") and len(last) > 4:
         variants.append(" ".join(parts[:-1] + [last[:-3] + "y"]))
-    elif last.endswith("s") and len(last) > 4 and not last.endswith(("ss", "ics")):
+    elif last.endswith("ss") and len(last) > 4:
+        variants.append(" ".join(parts[:-1] + [last + "es"]))
+    elif last.endswith("s") and len(last) > 4 and not last.endswith(("ics", "is")):
         variants.append(" ".join(parts[:-1] + [last[:-1]]))
     elif not last.endswith("s") and not last.endswith("ing"):
         variants.append(" ".join(parts[:-1] + [last + "s"]))
@@ -1876,7 +2006,7 @@ def effective_lane_key(role_title: str, job_description: str, profile: JobProble
         return "process_improvement"
     if re.search(r"\b(implementation|implementation project manager|technical implementation manager|go-live|configuration|migration)\b", role_lower):
         return "implementation_delivery"
-    if re.search(r"\b(customer success|partner success|csm|renewal|retention manager|account manager)\b", role_lower):
+    if re.search(r"\b(customer success|client success|partner success|csm|renewal|retention manager|account manager)\b", role_lower):
         return "customer_success"
     support_title_signal = re.search(
         r"\b(customer experience|customer support|support specialist|support agent|member services|member support|cx)\b",
@@ -1918,7 +2048,7 @@ def effective_lane_key(role_title: str, job_description: str, profile: JobProble
         return "presales_solution"
     if re.search(r"\b(process improvement|process engineer|lean six sigma|root cause|standard work|cost[- ]benefit|service quality|workflow redesign|continuous improvement)\b", role_and_jd):
         return "process_improvement"
-    if re.search(r"\b(customer success|csm|account manager|renewal|expansion)\b", role_and_jd):
+    if re.search(r"\b(customer success|client success|csm|account manager|renewal|expansion)\b", role_and_jd):
         return "customer_success"
     if re.search(r"\b(change adoption|change management|change enablement|ways of working)\b", role_and_jd):
         return "change_enablement"
@@ -2867,6 +2997,56 @@ def role_top_bullet_texts(document_xml: Path, role_titles: tuple[str, ...], limi
     return texts
 
 
+def ownership_skim_zone(document_xml: Path) -> tuple[OwnershipSkimSegment, ...]:
+    """Return the actual recruiter skim zone, limited to the first visible role."""
+    segments: list[OwnershipSkimSegment] = []
+    summary = professional_summary_text(document_xml) or ""
+    if summary:
+        segments.append(OwnershipSkimSegment("professional_summary", summary))
+
+    paragraphs = paragraph_infos(document_xml)
+    experience_start = section_index(paragraphs, "Professional Experience")
+    if experience_start is None:
+        return tuple(segments)
+    role_index = next(
+        (
+            index
+            for index in range(experience_start + 1, len(paragraphs))
+            if is_role_heading(paragraphs[index].text)
+        ),
+        None,
+    )
+    if role_index is None:
+        return tuple(segments)
+
+    opening_candidates: list[str] = []
+    bullets: list[str] = []
+    for paragraph in paragraphs[role_index + 1 :]:
+        if is_role_heading(paragraph.text) or normalize_required_section_name(paragraph.text):
+            break
+        if paragraph.is_bullet:
+            bullets.append(paragraph.text)
+            if len(bullets) >= 2:
+                break
+        elif not bullets and paragraph.text:
+            opening_candidates.append(paragraph.text)
+    # A role block always starts with at least the company line. Do not mistake
+    # that lone line for a role summary when a compact fixture omits one.
+    if len(opening_candidates) >= 2:
+        segments.append(OwnershipSkimSegment("first_role_summary", opening_candidates[-1]))
+    segments.extend(OwnershipSkimSegment("first_role_bullet", bullet) for bullet in bullets)
+    return tuple(segments)
+
+
+def top_third_bullet_texts(document_xml: Path) -> list[str]:
+    """Return only the first two bullets under the first visible experience role."""
+    return [
+        segment.text
+        for segment in ownership_skim_zone(document_xml)
+        if segment.kind == "first_role_bullet"
+    ]
+
+
 def experience_bullet_texts(document_xml: Path) -> list[str]:
     paragraphs = paragraph_infos(document_xml)
     start = section_index(paragraphs, "Professional Experience")
@@ -2924,6 +3104,72 @@ def core_competencies_text_from_text(resume_text: str) -> str:
     return section_text_from_visible_text(resume_text, SKILLS_SECTION_HEADING, "Professional Development")
 
 
+def trim_redundant_targeted_core_competencies(
+    document_xml: Path,
+    job_description: str,
+    *,
+    source_required: set[str],
+    max_items: int = 25,
+) -> int:
+    """Remove only non-source Skills items whose exact surface already lands in prose."""
+    paragraphs_info = paragraph_infos(document_xml)
+    tree = ET.parse(document_xml)
+    skill_rows: list[tuple[ET.Element, str, list[str]]] = []
+    in_skills_xml = False
+    for paragraph in tree.getroot().findall(f".//{W}p"):
+        text = re.sub(r"\s+", " ", paragraph_text(paragraph)).strip()
+        if is_skills_section_heading(text):
+            in_skills_xml = True
+            continue
+        if text == "Professional Development":
+            break
+        if not in_skills_xml or ":" not in text:
+            continue
+        label, items_text = text.split(":", 1)
+        items = [item.strip() for item in re.split(r"\s+\|\s+", items_text.strip()) if item.strip()]
+        skill_rows.append((paragraph, label, items))
+    competency_items = [item for _paragraph, _label, items in skill_rows for item in items]
+    if len(competency_items) <= max_items:
+        return 0
+    outside_skills: list[str] = []
+    in_skills = False
+    for paragraph in paragraphs_info:
+        if is_skills_section_heading(paragraph.text):
+            in_skills = True
+            continue
+        if paragraph.text == "Professional Development":
+            in_skills = False
+        elif not in_skills:
+            outside_skills.append(paragraph.text)
+    outside_text = " ".join(outside_skills)
+    required = {normalize_compare(item) for item in source_required}
+    removable = sorted(
+        (
+            (
+                skill_relevance_score(item, job_description),
+                normalize_compare(item),
+            )
+            for item in competency_items
+            if normalize_compare(item) not in required
+            and contains_search_term(outside_text, item)
+        ),
+        key=lambda row: (row[0], row[1]),
+    )
+    remove_count = min(len(removable), len(competency_items) - max_items)
+    removals = {normalized for _score, normalized in removable[:remove_count]}
+    if not removals:
+        return 0
+    removed = 0
+    for paragraph, label, items in skill_rows:
+        kept = [item for item in items if normalize_compare(item) not in removals]
+        if len(kept) != len(items):
+            removed += len(items) - len(kept)
+            set_paragraph_text(paragraph, f"{label}:  " + "  |  ".join(kept))
+    if removed:
+        tree.write(document_xml, encoding="utf-8", xml_declaration=True)
+    return removed
+
+
 def keyword_occurrence_count(text: str, keyword: str) -> int:
     normalized = keyword.strip()
     if not normalized:
@@ -2933,10 +3179,16 @@ def keyword_occurrence_count(text: str, keyword: str) -> int:
     return len(re.findall(rf"\b{re.escape(normalized)}\b", text, flags=re.I))
 
 
-def keyword_placement_audit(job_description: str, resume_text: str, limit: int = 5) -> dict[str, object]:
+def keyword_placement_audit(
+    job_description: str,
+    resume_text: str,
+    limit: int = 5,
+    *,
+    early_bullets: Iterable[str] | None = None,
+) -> dict[str, object]:
     keywords = audit_keywords(job_description)
     summary = professional_summary_text_from_text(resume_text)
-    top_bullets = experience_bullet_texts_from_text(resume_text)[:5]
+    top_bullets = list(early_bullets) if early_bullets is not None else experience_bullet_texts_from_text(resume_text)[:5]
     core_text = core_competencies_text_from_text(resume_text)
     ranked_keywords = sorted(
         (
@@ -3091,16 +3343,33 @@ def role_defining_keyword(keyword: str, job_description: str, profile: JobProble
     )
 
 
-def classify_keyword_gap_support(keyword: str, source_resume_text: str, profile: JobProblemProfile) -> str:
+def classify_keyword_gap_support(
+    keyword: str,
+    source_resume_text: str,
+    profile: JobProblemProfile,
+    job_description: str = "",
+) -> str:
     if finance_ownership_gap(keyword):
+        return "unsupported-do-not-insert"
+    classification = classify_keyword_candidate(keyword, job_description or keyword)
+    if classification.candidate_class == KeywordCandidateClass.NOISE:
         return "unsupported-do-not-insert"
     if source_resume_text and contains_search_term(source_resume_text, keyword):
         return "supported-direct-unresolved"
+    catalog_entry = evidence_term_for_variant(keyword)
+    if (
+        catalog_entry
+        and job_description
+        and evidence_entry_context_supported(catalog_entry, job_description)
+    ):
+        return "supported-direct-unresolved"
+    if classification.candidate_class == KeywordCandidateClass.DOMAIN:
+        return "unsupported-do-not-insert"
 
     normalized_keyword = normalize_compare(keyword)
     if "delivery" in normalized_keyword and profile.primary_lane in {"implementation_delivery", "corporate_strategy"}:
         return "supported-adjacent"
-    if "cross-functional" in normalized_keyword and source_resume_text and any(
+    if "cross functional" in normalized_keyword and source_resume_text and any(
         contains_search_term(source_resume_text, term)
         for term in ("stakeholder", "stakeholders", "executive", "workshops", "coordination")
     ):
@@ -3112,10 +3381,13 @@ def classify_keyword_gap_support(keyword: str, source_resume_text: str, profile:
         if len(token) >= 4 and token.lower() not in {"with", "from", "through", "across", "role", "team"}
     ]
     if source_resume_text and keyword_tokens:
-        token_hits = sum(1 for token in keyword_tokens if contains_search_term(source_resume_text, token))
         required_hits = len(keyword_tokens) if len(keyword_tokens) <= 2 else len(keyword_tokens) - 1
-        if token_hits >= required_hits:
-            return "supported-adjacent"
+        for paragraph in re.split(r"[\r\n]+", source_resume_text):
+            token_hits = sum(
+                1 for token in keyword_tokens if contains_search_term(paragraph, token)
+            )
+            if token_hits >= required_hits:
+                return "supported-adjacent"
     adjacent_terms = tuple(profile.adjacent_matches) + tuple(profile.safe_terms) + tuple(profile.direct_matches)
     for term in adjacent_terms:
         normalized_term = normalize_compare(term)
@@ -3170,7 +3442,7 @@ def supported_keyword_surface_candidates(
             )
         ):
             continue
-        if classify_keyword_gap_support(keyword, source_resume_text, profile) == "unsupported-do-not-insert":
+        if classify_keyword_gap_support(keyword, source_resume_text, profile, job_description) == "unsupported-do-not-insert":
             continue
         selected.append(keyword)
         seen.add(normalized)
@@ -3265,6 +3537,10 @@ def keyword_evidence_fits_bullet(keyword: str, bullet: str) -> bool:
             re.search(r"\b(customer|customers|client|clients|buyer|buyers|account|accounts|training|workshops?|demos?|presentations?)\b", lowered)
             and not re.search(r"\bwarehouse operation|system setup|robotics setup|amazon robotics\b", lowered)
         )
+    if normalized == "customer focused":
+        return bool(re.search(r"\b(customer|customers|client|clients|training|delivery|engagement|support)\b", lowered))
+    if normalized == "inventory management":
+        return bool(re.search(r"\b(inventory|warehouse|supply chain|erp|adjustments?|transactions?)\b", lowered))
     if normalized == "automation":
         return bool(re.search(r"\b(ai-assisted|ai|sms|manual|workflow|automated|automation|robotics|reporting)\b", lowered))
     if normalized == "technical delivery":
@@ -3281,7 +3557,7 @@ def keyword_evidence_fits_bullet(keyword: str, bullet: str) -> bool:
         return bool(re.search(r"\b(saas|cloud|platform|erp|enterprise systems?)\b", lowered))
     if normalized in {"vendor management", "vendor partner", "vendor coordination", "partner relationship"}:
         return bool(re.search(r"\b(vendor|aptean|truist|partner|cost|timeline|coordination)\b", lowered))
-    if normalized in {"professional services", "professional service"}:
+    if normalized in {"professional services", "professional service", "professional services consultant", "services consultant"}:
         return bool(re.search(r"\b(client|customer|consultant|consulting|engagement|implementation|delivery)\b", lowered))
     if normalized in {"client onboarding", "customer onboarding"}:
         return bool(re.search(r"\b(onboarding|go-live|hypercare|enablement|training|client|customer)\b", lowered))
@@ -3305,7 +3581,7 @@ def keyword_evidence_fits_bullet(keyword: str, bullet: str) -> bool:
         return bool(re.search(r"\b(pre-?sales|demo|discovery|prospective|customer|client)\b", lowered))
     if normalized in {"agile", "agile delivery"}:
         return bool(re.search(r"\b(agile|backlog|sprint|product management|development team)\b", lowered))
-    if normalized == "implementation project":
+    if normalized in {"implementation project", "multiple implementation project", "multiple implementation projects"}:
         return bool(re.search(r"\b(implementation|project|delivery|go-live|scope|milestone|workstream)\b", lowered))
     if normalized == "global program":
         return bool(re.search(r"\b(global|five-site|cross-site|program|workstream|site)\b", lowered))
@@ -3328,13 +3604,87 @@ def safe_keyword_bullet_candidate(candidate: str, keyword: str) -> str:
     return normalize_bullet_ending(candidate)
 
 
+def evidence_entry_matches_role(
+    entry: dict[str, object] | None,
+    role_title: str,
+    employer: str,
+) -> bool:
+    if not entry:
+        return True
+    expected_employer = normalize_compare(str(entry.get("source_employer", "")).replace("_", " "))
+    expected_role = normalize_compare(str(entry.get("source_role", "")))
+    actual_employer = normalize_compare(employer)
+    actual_role = normalize_compare(normalize_title(role_title))
+    employer_matches = bool(
+        expected_employer
+        and (
+            expected_employer in actual_employer
+            or actual_employer in expected_employer
+            or set(expected_employer.split()) <= set(actual_employer.split())
+        )
+    )
+    role_matches = bool(
+        expected_role
+        and (expected_role in actual_role or actual_role in expected_role)
+    )
+    return employer_matches and role_matches
+
+
+def validated_keyword_bullet_rewrite(
+    original: str,
+    candidate: str,
+    keyword: str,
+    *,
+    planned_terms: tuple[str, ...],
+) -> str:
+    """Reject rewrites that weaken provenance, ownership, readability, or literal density."""
+
+    if not candidate or candidate == original or not contains_search_term(candidate, keyword):
+        return ""
+    original_numbers = re.findall(r"\b\d+(?:[.,]\d+)?%?\+?\b", original)
+    candidate_numbers = re.findall(r"\b\d+(?:[.,]\d+)?%?\+?\b", candidate)
+    if original_numbers != candidate_numbers:
+        return ""
+    original_ownership = {match.lower() for match in OWNERSHIP_ACTION_RE.findall(original)}
+    candidate_ownership = {match.lower() for match in OWNERSHIP_ACTION_RE.findall(candidate)}
+    if candidate_ownership - original_ownership:
+        return ""
+    newly_added_literals = [
+        term
+        for term in planned_terms
+        if not contains_search_term(original, term) and contains_search_term(candidate, term)
+    ]
+    if len({normalize_compare(term) for term in newly_added_literals}) > 2:
+        return ""
+    repair = prose_engine.repair_text(candidate, "bullet")
+    if not repair.converged or not contains_search_term(repair.text, keyword):
+        return ""
+    if any(finding.severity == "fail" for finding in prose_engine.validate_text(repair.text, "bullet")):
+        return ""
+    writing_report = enforce_prose_quality(
+        repair.text,
+        "generic",
+        label=f"Keyword rewrite ({keyword})",
+        mode="warn",
+    )
+    if writing_report.get("failures"):
+        return ""
+    return normalize_bullet_ending(repair.text)
+
+
 def natural_keyword_bullet_rewrite(
     bullet: str,
     keyword: str,
     job_description: str,
     source_resume_text: str,
+    *,
+    exact_surface: bool = False,
 ) -> str:
-    surface = jd_preferred_surface(keyword, job_description, source_resume_text)
+    surface = keyword.strip() if exact_surface else jd_preferred_surface(
+        keyword,
+        job_description,
+        source_resume_text,
+    )
     normalized = normalize_compare(surface)
     if not normalized or is_bullet_placement_excluded(surface) or contains_search_term(bullet, surface):
         return bullet
@@ -3347,11 +3697,91 @@ def natural_keyword_bullet_rewrite(
         return safe_keyword_bullet_candidate(replace_first_ci(text, r"\bimplementation paths\b", "implementation project paths"), surface)
     if normalized == "implementation project" and contains_search_term(text, "project management"):
         return ""
+    if normalized == "inventory management":
+        if re.search(r"\binventory transactions\b", lowered):
+            return safe_keyword_bullet_candidate(
+                replace_first_ci(text, r"\binventory transactions\b", "inventory management transactions"),
+                surface,
+            )
+        if re.search(r"\binventory adjustments\b", lowered):
+            return safe_keyword_bullet_candidate(
+                replace_first_ci(text, r"\binventory adjustments\b", "inventory management adjustments"),
+                surface,
+            )
+        if re.search(r"\binventory workflows?\b", lowered):
+            return safe_keyword_bullet_candidate(
+                replace_first_ci(text, r"\binventory workflows?\b", "inventory management workflows"),
+                surface,
+            )
+        if re.search(r"\bproduction-ready system setup\b", lowered) and re.search(
+            r"\b(?:warehouse|product families|BOMs?)\b",
+            text,
+            re.I,
+        ):
+            return safe_keyword_bullet_candidate(
+                replace_first_ci(
+                    text,
+                    r"\bproduction-ready system setup\b",
+                    "production-ready inventory management system setup",
+                ),
+                surface,
+            )
+    if normalized == "customer focused":
+        if re.search(r"\bcustomer-facing delivery\b", lowered):
+            return safe_keyword_bullet_candidate(
+                replace_first_ci(text, r"\bcustomer-facing delivery\b", "customer-focused, customer-facing delivery"),
+                surface,
+            )
+        if re.search(r"\bcustomer training\b", lowered):
+            return safe_keyword_bullet_candidate(
+                replace_first_ci(text, r"\bcustomer training\b", "customer-focused training"),
+                surface,
+            )
+    if normalized in {"multiple implementation project", "multiple implementation projects"}:
+        if re.search(r"\bDelivered enterprise technology projects end to end\b", text, re.I):
+            return safe_keyword_bullet_candidate(
+                replace_first_ci(
+                    text,
+                    r"\bDelivered enterprise technology projects end to end\b",
+                    f"Delivered {surface} end to end",
+                ),
+                surface,
+            )
+        if re.search(r"\bcomplex implementations\b", lowered):
+            return safe_keyword_bullet_candidate(
+                replace_first_ci(text, r"\bcomplex implementations\b", surface),
+                surface,
+            )
+        if re.search(r"\bconcurrent program tracks\b", lowered):
+            return safe_keyword_bullet_candidate(
+                replace_first_ci(text, r"\bconcurrent program tracks\b", surface),
+                surface,
+            )
+    if normalized == "ai pilot" and re.search(r"\bfounding pilot team member\b", lowered):
+        return safe_keyword_bullet_candidate(
+            replace_first_ci(text, r"\bfounding pilot team member\b", "founding AI pilot team member"),
+            surface,
+        )
     if normalized == "ai pilot" and re.search(r"\bchatbot logic\b", lowered):
         return safe_keyword_bullet_candidate(replace_first_ci(text, r"\bchatbot logic\b", "AI pilot chatbot logic"), surface)
+    if normalized == "cross functional" and re.search(
+        r"\bcross-functional coordination\b",
+        text,
+        re.I,
+    ):
+        # Match the active JD's exact spelling in one evidence-bearing carrier.
+        # The separate cross-functional-initiative surface remains untouched.
+        return safe_keyword_bullet_candidate(
+            replace_first_ci(
+                text,
+                r"\bcross-functional coordination\b",
+                "cross functional coordination",
+            ),
+            surface,
+        )
     replacements: dict[str, tuple[str, ...]] = {
         "stakeholder management": ("stakeholder governance", "stakeholder alignment", "stakeholder enablement"),
-        "requirements gathering": ("requirements definition", "requirements translation"),
+        "requirements gathering": ("requirements definition", "requirements translation", "initial requirements"),
         "requirements management": ("requirements definition", "requirements translation"),
         "go live": ("go live",),
         "go-live": ("go live",),
@@ -3391,7 +3821,12 @@ def natural_keyword_bullet_rewrite(
     }
     for candidate in replacements.get(normalized, ()):
         if contains_search_term(text, candidate):
-            updated = replace_first_ci(text, re.escape(candidate), surface)
+            replacement_surface = (
+                "business processes"
+                if normalized == "business process" and normalize_compare(candidate) in {"business processes", "process", "processes"}
+                else surface
+            )
+            updated = replace_first_ci(text, re.escape(candidate), replacement_surface)
             return safe_keyword_bullet_candidate(updated, surface)
 
     if normalized in {"program management", "project management"}:
@@ -3405,6 +3840,17 @@ def natural_keyword_bullet_rewrite(
             return safe_keyword_bullet_candidate(replace_first_ci(text, r"\bdelivery plans\b", f"{surface} plans"), surface)
         if re.search(r"\bprojects\b", lowered):
             return safe_keyword_bullet_candidate(replace_first_ci(text, r"\bprojects\b", f"{surface} projects"), surface)
+    if normalized == "project delivery":
+        if re.search(r"\bcross-functional initiative\b", lowered):
+            return safe_keyword_bullet_candidate(
+                replace_first_ci(text, r"\bcross-functional initiative\b", "cross-functional project delivery initiative"),
+                surface,
+            )
+        if re.search(r"\bconcurrent program tracks\b", lowered):
+            return safe_keyword_bullet_candidate(
+                replace_first_ci(text, r"\bconcurrent program tracks\b", "concurrent project delivery tracks"),
+                surface,
+            )
     if normalized == "implementation project":
         if re.search(r"\bimplementation paths\b", lowered):
             return safe_keyword_bullet_candidate(replace_first_ci(text, r"\bimplementation paths\b", f"{surface} paths"), surface)
@@ -3476,7 +3922,7 @@ def natural_keyword_bullet_rewrite(
         if re.search(r"\bvendor coordination\b", lowered):
             return safe_keyword_bullet_candidate(replace_first_ci(text, r"\bvendor coordination\b", surface), surface)
 
-    if normalized in {"professional services", "professional service"}:
+    if normalized in {"professional services", "professional service", "professional services consultant", "services consultant"}:
         if re.search(r"\bclient engagements\b", lowered):
             return safe_keyword_bullet_candidate(replace_first_ci(text, r"\bclient engagements\b", f"{surface} engagements"), surface)
         if re.search(r"\bconsultant\b", lowered):
@@ -3734,11 +4180,171 @@ def repair_summary_preserving_contract(summary: str, *, fallback: str | None = N
     fail(f"Commercial model summary repair did not preserve the summary contract. {' | '.join(failure_notes) or 'No usable summary candidate.'}")
 
 
+def realize_exact_summary_targets(
+    summary: str,
+    targets: tuple[KeywordPlacementTarget, ...],
+) -> str:
+    """Replace a non-scored sibling with the exact scored surface when safe."""
+
+    core_surfaces = {
+        normalize_compare(target.surface)
+        for target in targets
+        if target.scoring_tier == "core"
+    }
+    current = summary
+    for target in targets:
+        if target.scoring_tier != "core" or contains_search_term(current, target.surface):
+            continue
+        entry = evidence_term_for_variant(target.surface)
+        if not entry:
+            continue
+        siblings = sorted(
+            (
+                str(surface)
+                for surface in entry.get("permitted_surfaces", ())
+                if normalize_compare(str(surface)) != normalize_compare(target.surface)
+                and normalize_compare(str(surface)) not in core_surfaces
+                and contains_search_term(current, str(surface))
+            ),
+            key=lambda surface: (
+                current.lower().rfind(surface.lower()),
+                len(normalize_compare(surface).split()),
+                len(surface),
+            ),
+            reverse=True,
+        )
+        for sibling in siblings:
+            if " " not in normalize_compare(sibling):
+                candidate = replace_first_ci(
+                    current,
+                    re.escape(sibling),
+                    target.surface,
+                )
+            else:
+                matches = list(re.finditer(re.escape(sibling), current, re.I))
+                if not matches:
+                    continue
+                match = matches[-1]
+                replacement_surface = target.surface
+                if match.start() == 0:
+                    replacement_surface = (
+                        replacement_surface[:1].upper()
+                        + replacement_surface[1:]
+                    )
+                candidate = (
+                    current[: match.start()]
+                    + replacement_surface
+                    + current[match.end() :]
+                )
+            # If a bare sibling also appears in a trailing emphasis clause,
+            # remove only that redundant label while retaining the other
+            # independently supported emphasis.
+            if " " not in normalize_compare(sibling):
+                candidate = re.sub(
+                    rf",\s*with emphasis on\s+{re.escape(sibling)}\s+and\s+",
+                    ", with emphasis on ",
+                    candidate,
+                    count=1,
+                    flags=re.I,
+                )
+            target_stems = {
+                simple_keyword_stem(token)
+                for token in re.findall(r"[A-Za-z][A-Za-z-]+", target.surface)
+                if len(simple_keyword_stem(token)) >= 5
+            }
+            target_sentence = next(
+                (
+                    sentence
+                    for sentence in split_summary_sentences(candidate)
+                    if contains_search_term(sentence, target.surface)
+                ),
+                "",
+            )
+            landing_stems = [
+                simple_keyword_stem(token)
+                for token in re.findall(r"[A-Za-z][A-Za-z-]+", target_sentence)
+            ]
+            if any(landing_stems.count(stem) > 1 for stem in target_stems):
+                continue
+            if (
+                contains_search_term(candidate, target.surface)
+                and PROFESSIONAL_SUMMARY_MIN_WORDS
+                <= summary_word_count(candidate)
+                <= PROFESSIONAL_SUMMARY_MAX_WORDS
+                and summary_weave_candidate_is_safe(candidate)
+            ):
+                current = candidate
+                break
+    return current
+
+
 def weave_supported_keywords_into_summary(
     summary: str,
     job_description: str,
     source_resume_text: str,
+    *,
+    placement_targets: tuple[KeywordPlacementTarget, ...] | None = None,
 ) -> str:
+    placement_targets = placement_targets or planned_supported_keyword_targets(
+        job_description, source_resume_text
+    )
+    sentences = split_summary_sentences(summary)
+    if sentences:
+        identity_surfaces = []
+        role_title = normalize_compare(extract_job_title(job_description))
+        for index, target in enumerate(placement_targets):
+            surface = target.surface
+            entry = evidence_term_for_variant(surface)
+            placements = target.placement_types or tuple(
+                str(value) for value in (entry or {}).get("placement_types", ())
+            )
+            if (
+                "role_summary" not in placements
+                or not normalize_compare(surface).endswith(" consultant")
+                or contains_search_term(summary, surface)
+                or not re.search(r"\bconsultant\b", sentences[0], re.I)
+            ):
+                continue
+            identity_surfaces.append(
+                (
+                    0 if normalize_compare(surface) == role_title else 1,
+                    index,
+                    surface,
+                )
+            )
+        for _title_rank, _index, surface in sorted(identity_surfaces):
+            original_first = sentences[0]
+            candidate_first = re.sub(
+                r"^(?:[A-Za-z0-9+/-]+\s+){0,4}consultant\b",
+                surface[:1].upper() + surface[1:],
+                sentences[0],
+                count=1,
+                flags=re.I,
+            )
+            professional_services_required = any(
+                normalize_compare(other_surface).startswith("professional services")
+                for _other_rank, _other_index, other_surface in identity_surfaces
+                if normalize_compare(other_surface) != normalize_compare(surface)
+            )
+            if (
+                (
+                    contains_search_term(original_first, "professional services")
+                    or professional_services_required
+                )
+                and not contains_search_term(candidate_first, "professional services")
+            ):
+                candidate_first = re.sub(
+                    rf"^{re.escape(surface)}\b",
+                    f"{surface} in professional services",
+                    candidate_first,
+                    count=1,
+                    flags=re.I,
+                )
+            identity_candidate = " ".join([candidate_first, *sentences[1:]])
+            if summary_weave_candidate_is_safe(identity_candidate):
+                summary = identity_candidate
+                break
+    summary = realize_exact_summary_targets(summary, placement_targets)
     current_hits = keyword_hits(
         summary,
         {
@@ -3747,12 +4353,16 @@ def weave_supported_keywords_into_summary(
             if not is_unsupported_do_not_insert(keyword, source_resume_text, job_description)
         },
     )
-    if current_hits >= 3:
-        return summary
-    candidates = supported_keyword_surface_candidates(job_description, summary, source_resume_text, limit=6)
+    candidates = [
+        target.surface
+        for target in placement_targets
+        if not contains_search_term(summary, target.surface)
+    ][:6]
+    if current_hits >= 3 and not candidates:
+        return ensure_supported_core_problem_echo(summary, job_description, source_resume_text)
     focus = keyword_surface_focus_phrase(candidates, max_pieces=2)
     if not focus:
-        return summary
+        return ensure_supported_core_problem_echo(summary, job_description, source_resume_text)
     sentences = split_summary_sentences(summary)
     if len(sentences) != 3:
         return summary
@@ -3766,10 +4376,62 @@ def weave_supported_keywords_into_summary(
             PROFESSIONAL_SUMMARY_MIN_WORDS <= summary_word_count(candidate) <= PROFESSIONAL_SUMMARY_MAX_WORDS
             and summary_weave_candidate_is_safe(candidate)
         ):
-            return candidate
+            return ensure_supported_core_problem_echo(candidate, job_description, source_resume_text)
     focus_verb = "connect" if " and " in focus or focus.endswith("s") else "connects"
     compact_close = f"Brings the most value when {focus} {focus_verb} to measurable execution, training, and adoption follow-through."
     candidate = " ".join([sentences[0], sentences[1], compact_close])
+    if (
+        PROFESSIONAL_SUMMARY_MIN_WORDS <= summary_word_count(candidate) <= PROFESSIONAL_SUMMARY_MAX_WORDS
+        and summary_weave_candidate_is_safe(candidate)
+    ):
+        return ensure_supported_core_problem_echo(candidate, job_description, source_resume_text)
+    return ensure_supported_core_problem_echo(summary, job_description, source_resume_text)
+
+
+def ensure_supported_core_problem_echo(
+    summary: str,
+    job_description: str,
+    source_resume_text: str,
+) -> str:
+    """Surface one truthful business-problem phrase when the skim zone would otherwise omit it."""
+    profile = job_problem_profile(job_description, source_resume_text)
+    candidates = sorted(
+        (
+            keyword
+            for keyword in audit_keywords(profile.core_problem)
+            if " " in normalize_compare(keyword)
+            and not contains_search_term(summary, keyword)
+            and classify_keyword_gap_support(
+                keyword,
+                source_resume_text,
+                profile,
+                job_description,
+            )
+            != "unsupported-do-not-insert"
+        ),
+        key=lambda keyword: audit_keyword_sort_key(job_description, keyword),
+        reverse=True,
+    )
+    if not candidates:
+        return summary
+    sentences = split_summary_sentences(summary)
+    if len(sentences) != 3:
+        return summary
+    surface = candidates[0]
+    candidate = " ".join(
+        [
+            sentences[0],
+            sentences[1],
+            f"Connects {surface} to measurable execution, stakeholder clarity, and durable outcomes.",
+        ]
+    )
+    existing_core_terms = {
+        term
+        for term in audit_keywords(job_description)
+        if contains_search_term(summary, term)
+    }
+    if any(not contains_search_term(candidate, term) for term in existing_core_terms):
+        return summary
     if (
         PROFESSIONAL_SUMMARY_MIN_WORDS <= summary_word_count(candidate) <= PROFESSIONAL_SUMMARY_MAX_WORDS
         and summary_weave_candidate_is_safe(candidate)
@@ -3778,47 +4440,306 @@ def weave_supported_keywords_into_summary(
     return summary
 
 
+def planned_supported_keyword_targets(
+    job_description: str,
+    source_resume_text: str,
+) -> tuple[KeywordPlacementTarget, ...]:
+    """Return exact, scored JD surfaces without re-inferring them downstream."""
+
+    profile = job_problem_profile(job_description, source_resume_text)
+    core_surfaces = tuple(high_value_audit_keywords(job_description))
+    core_normalized = {normalize_compare(surface) for surface in core_surfaces}
+    breadth_surfaces = tuple(ats_scan_terms(job_description, limit=200))
+    breadth_normalized = {normalize_compare(surface) for surface in breadth_surfaces}
+    planned: list[KeywordPlacementTarget] = []
+    seen: set[str] = set()
+    for keyword in (*core_surfaces, *breadth_surfaces, *evidence_supported_surfaces(job_description)):
+        keyword_piece = keyword_surface_piece(keyword)
+        entry = evidence_term_for_variant(keyword_piece)
+        normalized = normalize_compare(keyword_piece)
+        if (
+            not entry
+            and " " not in normalized
+            and normalized not in IMPORTANT_SHORT_ATS_TERMS
+        ):
+            continue
+        # Every candidate here is already an exact literal extracted from the
+        # active JD. Do not call jd_preferred_surface(): doing so can replace a
+        # scored core surface with a sibling catalog variant.
+        surface = keyword_piece.strip()
+        normalized = normalize_compare(surface)
+        if (
+            not normalized
+            or normalized in seen
+            or is_bullet_placement_excluded(surface)
+        ):
+            continue
+        classification = classify_keyword_candidate(surface, job_description)
+        scoring_tier = "core" if normalized in core_normalized else "breadth"
+        if scoring_tier == "core" and (
+            classification.candidate_class != KeywordCandidateClass.REQUIREMENT
+            or not classification.validated_requirement
+            or classification.requirement_relation != "assigned"
+        ):
+            continue
+        if normalized not in core_normalized and normalized not in breadth_normalized:
+            scoring_tier = "breadth"
+        support = classify_keyword_gap_support(surface, source_resume_text, profile, job_description)
+        if support != "supported-direct-unresolved":
+            continue
+        entry = entry or evidence_term_for_variant(surface)
+        concept_id = str((entry or {}).get("concept_id", normalized))
+        placement_types = tuple(
+            str(value) for value in (entry or {}).get("placement_types", ())
+        )
+        planned.append(
+            KeywordPlacementTarget(
+                surface=surface,
+                concept_id=concept_id,
+                scoring_tier=scoring_tier,
+                requirement_relation=classification.requirement_relation,
+                validating_requirement_text=classification.validating_requirement_text,
+                support_basis=support,
+                evidence_anchor=evidence_anchor_for_term(surface),
+                placement_types=placement_types,
+            )
+        )
+        seen.add(normalized)
+
+    normalized_jd = normalize_compare(job_description)
+
+    def exact_jd_surface_scored(surface: str) -> bool:
+        normalized_surface = normalize_compare(surface)
+        if not normalized_surface:
+            return False
+        return bool(
+            re.search(
+                rf"(?<![a-z0-9]){re.escape(normalized_surface)}(?![a-z0-9])",
+                normalized_jd,
+            )
+        )
+
+    collapsed: list[KeywordPlacementTarget] = []
+    for target in planned:
+        tokens = {
+            canonical_audit_keyword(token)
+            for token in normalize_compare(target.surface).split()
+        }
+        stronger_targets = [
+            other
+            for other in planned
+            if other.concept_id == target.concept_id
+            and normalize_compare(other.surface) != normalize_compare(target.surface)
+            and (
+                other.scoring_tier == target.scoring_tier
+                or (other.scoring_tier == "core" and target.scoring_tier == "breadth")
+            )
+        ]
+        if any(
+            (
+                tokens
+                < {
+                    canonical_audit_keyword(token)
+                    for token in normalize_compare(other.surface).split()
+                }
+            )
+            or (
+                tokens
+                == {
+                    canonical_audit_keyword(token)
+                    for token in normalize_compare(other.surface).split()
+                }
+                and (
+                    (
+                        target.scoring_tier == "breadth"
+                        and other.scoring_tier == "core"
+                    )
+                    or (
+                        not exact_jd_surface_scored(target.surface)
+                        and exact_jd_surface_scored(other.surface)
+                    )
+                )
+            )
+            for other in stronger_targets
+        ):
+            continue
+        collapsed.append(target)
+    return tuple(collapsed)
+
+
+def planned_supported_keyword_terms(
+    job_description: str,
+    source_resume_text: str,
+) -> tuple[str, ...]:
+    """Compatibility surface for existing callers."""
+
+    return tuple(
+        target.surface
+        for target in planned_supported_keyword_targets(
+            job_description,
+            source_resume_text,
+        )
+    )
+
+
+def resolved_keyword_placement_targets(
+    targets: tuple[KeywordPlacementTarget, ...],
+    resume_text: str,
+) -> tuple[KeywordPlacementTarget, ...]:
+    """Attach final exact landing data without changing target identity."""
+
+    return tuple(
+        replace(
+            target,
+            final_location=landing_text_for_term(target.surface, resume_text)[0],
+            landing_result=landing_text_for_term(target.surface, resume_text)[1],
+        )
+        for target in targets
+    )
+
+
+def keyword_placement_priority_key(
+    keyword: str,
+    target_tier_by_surface: dict[str, str],
+    early_normalized: set[str],
+) -> tuple[int, int, int, int]:
+    normalized = normalize_compare(keyword)
+    return (
+        0 if target_tier_by_surface.get(normalized) == "core" else 1,
+        0 if normalized in early_normalized else 1,
+        0 if evidence_anchor_for_term(keyword) else 1,
+        0 if normalized == "automation" else 1,
+    )
+
+
+def realize_exact_orthographic_bullet_targets(
+    document_xml: Path,
+    job_description: str,
+    source_resume_text: str,
+    targets: tuple[KeywordPlacementTarget, ...],
+) -> int:
+    """Realize punctuation-only JD spellings before the general rewrite budget."""
+
+    current_text = visible_text(document_xml)
+    tree = ET.parse(document_xml)
+    paragraphs = tree.getroot().findall(f".//{W}p")
+    current_role_title = ""
+    current_role_employer = ""
+    awaiting_role_employer = False
+    bullet_contexts: list[tuple[ET.Element, str, str]] = []
+    for paragraph in paragraphs:
+        text = re.sub(r"\s+", " ", paragraph_text(paragraph)).strip()
+        if not text:
+            continue
+        if not is_bullet(paragraph) and is_role_heading(text):
+            current_role_title = text
+            current_role_employer = ""
+            awaiting_role_employer = True
+        elif awaiting_role_employer and not is_bullet(paragraph) and " | " in text:
+            current_role_employer = text.split("|", 1)[0].strip()
+            awaiting_role_employer = False
+        elif is_bullet(paragraph):
+            bullet_contexts.append(
+                (paragraph, current_role_title, current_role_employer)
+            )
+
+    changed = 0
+    planned_terms = tuple(target.surface for target in targets)
+    for target in targets:
+        if target.scoring_tier != "core" or contains_search_term(
+            current_text, target.surface
+        ):
+            continue
+        entry = evidence_term_for_variant(target.surface)
+        if not entry:
+            continue
+        orthographic_siblings = tuple(
+            str(surface)
+            for surface in entry.get("permitted_surfaces", ())
+            if str(surface).lower() != target.surface.lower()
+            and normalize_compare(str(surface))
+            == normalize_compare(target.surface)
+        )
+        if not orthographic_siblings:
+            continue
+        for paragraph, role_title, employer in bullet_contexts:
+            if not evidence_entry_matches_role(entry, role_title, employer):
+                continue
+            original = re.sub(r"\s+", " ", paragraph_text(paragraph)).strip()
+            if not any(
+                re.search(re.escape(sibling), original, re.I)
+                for sibling in orthographic_siblings
+            ):
+                continue
+            updated = natural_keyword_bullet_rewrite(
+                original,
+                target.surface,
+                job_description,
+                source_resume_text,
+                exact_surface=True,
+            )
+            updated = validated_keyword_bullet_rewrite(
+                original,
+                updated,
+                target.surface,
+                planned_terms=planned_terms,
+            )
+            if not updated:
+                continue
+            set_paragraph_text(paragraph, updated)
+            changed += 1
+            current_text = f"{current_text}\n{updated}"
+            break
+    if changed:
+        tree.write(document_xml, encoding="utf-8", xml_declaration=True)
+    return changed
+
+
 def weave_supported_keywords_into_top_bullets(
     document_xml: Path,
     job_description: str,
     source_resume_text: str,
     *,
     max_bullets: int = 5,
+    placement_targets: tuple[KeywordPlacementTarget, ...] | None = None,
 ) -> int:
+    placement_targets = placement_targets or planned_supported_keyword_targets(
+        job_description, source_resume_text
+    )
+    orthographic_changed = realize_exact_orthographic_bullet_targets(
+        document_xml,
+        job_description,
+        source_resume_text,
+        placement_targets,
+    )
     current_text = visible_text(document_xml)
     top_text = " ".join(role_top_bullet_texts(document_xml, AUDIT_TOP_ROLE_TITLES, limit=5))
-    profile = job_problem_profile(job_description, source_resume_text or current_text)
+    early_text = " ".join(top_third_bullet_texts(document_xml))
     missing: list[str] = []
+    early_missing: list[str] = []
     skills_candidates: list[str] = []
     seen_missing: set[str] = set()
     seen_skills: set[str] = set()
-    candidate_keywords: list[str] = []
-    seen_candidate_keywords: set[str] = set()
-    for keyword in (
-        *priority_ledger_assertion_terms(job_description),
-        *high_value_audit_keywords(job_description),
-        *evidence_supported_surfaces(job_description),
-    ):
-        normalized_keyword = normalize_compare(keyword)
-        if not normalized_keyword or normalized_keyword in seen_candidate_keywords:
-            continue
-        candidate_keywords.append(keyword)
-        seen_candidate_keywords.add(normalized_keyword)
-    for keyword in candidate_keywords:
-        surface = jd_preferred_surface(keyword_surface_piece(keyword), job_description, source_resume_text)
+    placement_terms = tuple(target.surface for target in placement_targets)
+    target_by_surface = {
+        normalize_compare(target.surface): target for target in placement_targets
+    }
+    target_tier_by_surface = {
+        normalized: target.scoring_tier
+        for normalized, target in target_by_surface.items()
+    }
+    for target in placement_targets:
+        surface = target.surface
         normalized = normalize_compare(surface)
-        if not normalized or is_bullet_placement_excluded(surface):
-            continue
-        if (
-            classify_keyword_gap_support(surface, source_resume_text, profile) == "unsupported-do-not-insert"
-            and not evidence_anchor_for_term(surface)
-        ):
+        entry = evidence_term_for_variant(surface)
+        placements = target.placement_types or tuple(
+            str(value) for value in (entry or {}).get("placement_types", ())
+        )
+        if "role_summary" in placements and normalized.endswith(" consultant"):
             continue
         if not contains_search_term(current_text, surface) and normalized not in seen_skills:
             skills_candidates.append(surface)
             seen_skills.add(normalized)
-        if evidence_anchor_for_term(surface):
-            continue
         if (
             normalized in seen_missing
             or contains_search_term(top_text, surface)
@@ -3831,8 +4752,30 @@ def weave_supported_keywords_into_top_bullets(
         if len(missing) < 8:
             missing.append(surface)
             seen_missing.add(normalized)
-    changed = 0
-    missing.sort(key=lambda keyword: (0 if evidence_anchor_for_term(keyword) else 1, 0 if normalize_compare(keyword) == "automation" else 1))
+    for target in placement_targets:
+        surface = target.surface
+        normalized = normalize_compare(surface)
+        if (
+            normalized in seen_missing
+            or contains_search_term(early_text, surface)
+            or not keyword_requires_top_third_placement(surface, job_description)
+            or not evidence_anchor_for_term(surface)
+        ):
+            continue
+        early_missing.append(surface)
+        seen_missing.add(normalized)
+        if len(early_missing) >= 3:
+            break
+    missing.extend(early_missing)
+    changed = orthographic_changed
+    early_normalized = {normalize_compare(keyword) for keyword in early_missing}
+    missing.sort(
+        key=lambda keyword: keyword_placement_priority_key(
+            keyword,
+            target_tier_by_surface,
+            early_normalized,
+        )
+    )
     if missing:
         tree = ET.parse(document_xml)
         paragraphs = tree.getroot().findall(f".//{W}p")
@@ -3840,21 +4783,34 @@ def weave_supported_keywords_into_top_bullets(
         active = False
         top_bullet_paragraphs: list[ET.Element] = []
         all_bullet_paragraphs: list[ET.Element] = []
+        paragraph_roles: dict[int, tuple[str, str]] = {}
+        original_bullet_text: dict[int, str] = {}
+        current_role_title = ""
+        current_role_employer = ""
+        awaiting_role_employer = False
         for paragraph in paragraphs:
             text = re.sub(r"\s+", " ", paragraph_text(paragraph)).strip()
             if not text:
                 continue
+            if not is_bullet(paragraph) and is_role_heading(text):
+                current_role_title = text
+                current_role_employer = ""
+                awaiting_role_employer = True
+            elif awaiting_role_employer and not is_bullet(paragraph) and " | " in text:
+                current_role_employer = text.split("|", 1)[0].strip()
+                awaiting_role_employer = False
             if is_bullet(paragraph):
                 all_bullet_paragraphs.append(paragraph)
+                paragraph_roles[id(paragraph)] = (current_role_title, current_role_employer)
+                original_bullet_text[id(paragraph)] = text
             if text.startswith(AUDIT_TOP_ROLE_TITLES) or normalize_compare(normalize_title(text)) in normalized_titles:
                 active = True
                 continue
             if active and is_role_heading(text):
                 active = False
             if active and is_bullet(paragraph):
-                top_bullet_paragraphs.append(paragraph)
-                if len(top_bullet_paragraphs) >= 5:
-                    break
+                if len(top_bullet_paragraphs) < 5:
+                    top_bullet_paragraphs.append(paragraph)
 
         for keyword in missing:
             if changed >= max_bullets:
@@ -3876,9 +4832,22 @@ def weave_supported_keywords_into_top_bullets(
                 candidate_paragraphs.extend(
                     paragraph for paragraph in all_bullet_paragraphs if id(paragraph) not in top_ids
                 )
+            entry = evidence_term_for_variant(keyword)
+            early_bullet_ids = {id(paragraph) for paragraph in top_bullet_paragraphs[:2]}
             for paragraph in candidate_paragraphs:
                 text = re.sub(r"\s+", " ", paragraph_text(paragraph)).strip()
+                role_title, employer = paragraph_roles.get(id(paragraph), ("", ""))
+                if entry and not evidence_entry_matches_role(entry, role_title, employer):
+                    continue
                 if contains_search_term(text, keyword):
+                    continue
+                baseline = original_bullet_text.get(id(paragraph), text)
+                already_added = {
+                    normalize_compare(term)
+                    for term in placement_terms
+                    if not contains_search_term(baseline, term) and contains_search_term(text, term)
+                }
+                if len(already_added) >= 2:
                     continue
                 normalized_text = normalize_compare(text)
                 overlap = sum(1 for token in keyword_tokens if token in normalized_text)
@@ -3891,10 +4860,24 @@ def weave_supported_keywords_into_top_bullets(
                     score += 4
                 if evidence_anchor_for_term(keyword) and keyword_evidence_fits_bullet(keyword, text):
                     score += 3
+                if id(paragraph) in early_bullet_ids:
+                    score += 6
                 best_matches.append((score, paragraph, text))
             for _score, paragraph, text in sorted(best_matches, key=lambda item: item[0], reverse=True):
-                updated = natural_keyword_bullet_rewrite(text, keyword, job_description, source_resume_text)
-                if not updated or updated == text or not contains_search_term(updated, keyword):
+                updated = natural_keyword_bullet_rewrite(
+                    text,
+                    keyword,
+                    job_description,
+                    source_resume_text,
+                    exact_surface=True,
+                )
+                updated = validated_keyword_bullet_rewrite(
+                    original_bullet_text.get(id(paragraph), text),
+                    updated,
+                    keyword,
+                    planned_terms=placement_terms,
+                )
+                if not updated:
                     continue
                 set_paragraph_text(paragraph, updated)
                 changed += 1
@@ -3913,35 +4896,15 @@ def weave_supported_keywords_into_top_bullets(
             continue
         skill_terms.append(keyword)
         seen_skill_terms.add(normalized)
-    skills_added = add_targeted_core_competencies(document_xml, skill_terms, job_description, limit=len(skill_terms))
+    skills_added = add_targeted_core_competencies(
+        document_xml,
+        skill_terms,
+        job_description,
+        limit=len(skill_terms),
+        allow_over_target=True,
+    )
     changed += len(skills_added)
     return changed
-
-
-def aggressively_close_supported_keyword_gaps(
-    document_xml: Path,
-    job_description: str,
-    source_resume_text: str,
-    *,
-    limit: int = 3,
-) -> list[str]:
-    current_text = visible_text(document_xml)
-    placement_report = keyword_placement_audit(job_description, current_text, limit=8)
-    profile = job_problem_profile(job_description, source_resume_text or current_text)
-    candidates: list[str] = []
-    for gap in placement_report.get("gaps", []):
-        if not isinstance(gap, dict):
-            continue
-        keyword = str(gap.get("keyword", "")).strip()
-        issue = str(gap.get("issue", "")).strip().lower()
-        if not keyword or issue != "missing from the resume":
-            continue
-        if classify_keyword_gap_support(keyword, source_resume_text, profile) != "supported-direct-unresolved":
-            continue
-        candidates.append(keyword)
-    if not candidates:
-        return []
-    return add_targeted_core_competencies(document_xml, candidates, job_description, limit=limit)
 
 
 def ledger_terms_for_placement(job_description: str) -> list[str]:
@@ -3978,16 +4941,43 @@ def landing_text_for_term(term: str, resume_text: str) -> tuple[str, str]:
     return "missing", ""
 
 
-def ledger_placement_diagnostics(job_description: str, resume_text: str) -> list[dict[str, str]]:
+def ledger_placement_diagnostics(
+    job_description: str,
+    resume_text: str,
+    *,
+    placement_targets: tuple[KeywordPlacementTarget, ...] = (),
+) -> list[dict[str, str]]:
     diagnostics: list[dict[str, str]] = []
-    for term in ledger_terms_for_placement(job_description):
+    target_by_surface = {
+        normalize_compare(target.surface): target
+        for target in resolved_keyword_placement_targets(
+            placement_targets,
+            resume_text,
+        )
+    }
+    ordered_terms = list(target.surface for target in placement_targets)
+    ordered_terms.extend(
+        term
+        for term in ledger_terms_for_placement(job_description)
+        if normalize_compare(term) not in target_by_surface
+    )
+    seen: set[str] = set()
+    for term in ordered_terms:
+        normalized = normalize_compare(term)
+        if not normalized or normalized in seen:
+            continue
+        seen.add(normalized)
         location, landing = landing_text_for_term(term, resume_text)
+        target = target_by_surface.get(normalized)
         diagnostics.append(
             {
                 "term": term,
                 "location": location,
                 "landing": landing,
                 "anchor": evidence_anchor_for_term(term),
+                "concept_id": target.concept_id if target else "",
+                "scoring_tier": target.scoring_tier if target else "",
+                "support_basis": target.support_basis if target else "",
             }
         )
     return diagnostics
@@ -4019,18 +5009,18 @@ def ledger_landing_issues(diagnostics: list[dict[str, str]]) -> list[str]:
                 issues.append(f"{term}: known-bad landing phrase -> {landing}")
             if re.search(r"\bwith\s+(?:emphasis on\s+)?[A-Za-z0-9 /&+-]+ emphasis\b", landing, re.I):
                 issues.append(f"{term}: emphasis-tail landing phrase -> {landing}")
-            if has_same_stem_repetition(landing):
+            target_stems = {
+                simple_keyword_stem(token)
+                for token in re.findall(r"[A-Za-z][A-Za-z-]+", term)
+                if len(simple_keyword_stem(token)) >= 5
+            }
+            landing_stems = [
+                simple_keyword_stem(token)
+                for token in re.findall(r"[A-Za-z][A-Za-z-]+", landing)
+            ]
+            if any(landing_stems.count(stem) > 1 for stem in target_stems):
                 issues.append(f"{term}: repeated word stem in landing -> {landing}")
     return issues
-
-
-def priority_ledger_assertion_terms(job_description: str) -> tuple[str, ...]:
-    target = normalize_compare(extract_output_target_name(job_description))
-    if target == "blue yonder program manager":
-        return ("project management", "implementation project", "SaaS")
-    if target == "adobe senior program manager gso":
-        return ("global program", "vendor partner", "ai pilot")
-    return ()
 
 
 def assert_ledger_terms_present(
@@ -4074,13 +5064,20 @@ def resume_readiness_report(
     source_resume_text: str = "",
     audit_status: str = "PASS",
     auto_closed_keywords: tuple[str, ...] = (),
+    keyword_policy: str | None = None,
 ) -> ResumeReadiness:
+    policy = normalize_keyword_policy(keyword_policy or active_keyword_policy())
     profile = job_problem_profile(job_description, resume_text or source_resume_text)
-    placement_report = keyword_placement_audit(job_description, resume_text, limit=8)
+    placement_report = keyword_placement_audit(job_description, resume_text, limit=25)
+    core_terms = {normalize_compare(term) for term in high_value_audit_keywords(job_description)}
+    breadth_terms = {normalize_compare(term) for term in ats_scan_terms(job_description)}
     auto_closed_normalized = {normalize_compare(keyword) for keyword in auto_closed_keywords if normalize_compare(keyword)}
     unresolved: list[ResumeGap] = []
     auto_closed: list[ResumeGap] = []
     blockers: list[ResumeGap] = []
+    fit_blockers: list[ResumeGap] = []
+    supported_core_misses: list[ResumeGap] = []
+    supported_breadth_misses: list[ResumeGap] = []
     seen_labels: set[str] = set()
 
     for gap in placement_report.get("gaps", []):
@@ -4096,15 +5093,82 @@ def resume_readiness_report(
             auto_closed.append(gap_obj)
             seen_labels.add(normalized_keyword)
             continue
-        support_level = classify_keyword_gap_support(keyword, source_resume_text, profile)
-        blocker = (
+        support_level = classify_keyword_gap_support(keyword, source_resume_text, profile, job_description)
+        fit_blocker = (
             role_defining_keyword(keyword, job_description, profile)
             and support_level == "unsupported-do-not-insert"
         )
-        gap_obj = ResumeGap(keyword, issue, support_level, int(gap.get("priority", 0)), blocker)
+        gap_obj = ResumeGap(keyword, issue, support_level, int(gap.get("priority", 0)), False)
         unresolved.append(gap_obj)
-        if blocker:
-            blockers.append(gap_obj)
+        if fit_blocker:
+            fit_blockers.append(replace(gap_obj, blocker=True))
+        classification = classify_keyword_candidate(keyword, job_description)
+        balanced_eligible = (
+            classification.candidate_class == KeywordCandidateClass.REQUIREMENT
+            and classification.validated_requirement
+            and classification.requirement_relation == "assigned"
+            and support_level == "supported-direct-unresolved"
+        )
+        if support_level != "unsupported-do-not-insert" and not contains_search_term(resume_text, keyword):
+            if normalized_keyword in core_terms:
+                if balanced_eligible:
+                    supported_core_misses.append(gap_obj)
+            elif normalized_keyword in breadth_terms:
+                supported_breadth_misses.append(gap_obj)
+        seen_labels.add(normalized_keyword)
+
+    for keyword in ats_scan_terms(job_description):
+        normalized_keyword = normalize_compare(keyword)
+        if (
+            not normalized_keyword
+            or normalized_keyword in seen_labels
+            or contains_search_term(resume_text, keyword)
+        ):
+            continue
+        support_level = classify_keyword_gap_support(keyword, source_resume_text, profile, job_description)
+        gap_obj = ResumeGap(
+            keyword,
+            "missing from the resume",
+            support_level,
+            1,
+            False,
+        )
+        unresolved.append(gap_obj)
+        classification = classify_keyword_candidate(keyword, job_description)
+        balanced_eligible = (
+            classification.candidate_class == KeywordCandidateClass.REQUIREMENT
+            and classification.validated_requirement
+            and classification.requirement_relation == "assigned"
+            and support_level == "supported-direct-unresolved"
+        )
+        if support_level != "unsupported-do-not-insert":
+            if normalized_keyword in core_terms and balanced_eligible:
+                supported_core_misses.append(gap_obj)
+            else:
+                supported_breadth_misses.append(gap_obj)
+        seen_labels.add(normalized_keyword)
+
+    for keyword in keyword_set(job_description):
+        normalized_keyword = normalize_compare(keyword)
+        classification = classify_keyword_candidate(keyword, job_description)
+        if (
+            not normalized_keyword
+            or normalized_keyword in seen_labels
+            or classification.candidate_class != KeywordCandidateClass.DOMAIN
+            or not classification.validated_requirement
+            or keyword_occurrence_count(job_description, keyword) < 2
+            or contains_search_term(resume_text, keyword)
+        ):
+            continue
+        unresolved.append(
+            ResumeGap(
+                keyword,
+                "domain evidence is absent from the resume",
+                "unsupported-do-not-insert",
+                3,
+                False,
+            )
+        )
         seen_labels.add(normalized_keyword)
 
     for requirement in profile.unsupported_requirements:
@@ -4121,7 +5185,7 @@ def resume_readiness_report(
         )
         unresolved.append(gap_obj)
         if blocker:
-            blockers.append(gap_obj)
+            fit_blockers.append(gap_obj)
         seen_labels.add(normalized_requirement)
 
     for term in ROLE_DEFINING_FINANCE_TERMS:
@@ -4142,17 +5206,32 @@ def resume_readiness_report(
             True,
         )
         unresolved.append(gap_obj)
-        blockers.append(gap_obj)
+        fit_blockers.append(gap_obj)
         seen_labels.add(normalized_term)
 
+    if policy in {"balanced", "exhaustive"}:
+        blockers.extend(replace(gap, blocker=True) for gap in supported_core_misses)
+    if policy == "exhaustive":
+        blockers.extend(replace(gap, blocker=True) for gap in supported_breadth_misses)
+    tailoring_status = (
+        "INCOMPLETE"
+        if supported_core_misses
+        else "REVIEW"
+        if supported_breadth_misses
+        else "COMPLETE"
+    )
     unresolved.sort(key=lambda item: (item.blocker, item.priority, item.label.lower()), reverse=True)
     auto_closed.sort(key=lambda item: (item.priority, item.label.lower()), reverse=True)
     blockers.sort(key=lambda item: (item.priority, item.label.lower()), reverse=True)
+    fit_blockers.sort(key=lambda item: (item.priority, item.label.lower()), reverse=True)
     return ResumeReadiness(
         audit_status=audit_status,
+        tailoring_status=tailoring_status,
+        keyword_policy=policy,
         prioritized_unresolved_gaps=tuple(unresolved),
         auto_closed_gaps=tuple(auto_closed),
         hard_blockers=tuple(blockers),
+        fit_blockers=tuple(fit_blockers),
     )
 
 
@@ -4162,12 +5241,14 @@ def resume_readiness_for_output(
     *,
     source_resume_text: str = "",
     audit_status: str = "PASS",
+    keyword_policy: str | None = None,
 ) -> ResumeReadiness:
     return resume_readiness_report(
         job_description,
         docx_visible_text_from_path(resume_docx),
         source_resume_text=source_resume_text,
         audit_status=audit_status,
+        keyword_policy=keyword_policy,
     )
 
 
@@ -4292,23 +5373,101 @@ def visible_term_hits(text: str, terms: tuple[str, ...]) -> int:
     return sum(1 for term in terms if term and term.lower() in lowered)
 
 
+def clause_leading_ownership_classes(text: str) -> tuple[str, ...]:
+    classes: list[str] = []
+    for sentence in summary_sentences(text):
+        for clause in re.split(r"\s*;\s*", sentence):
+            matched = next(
+                (label for label, pattern in OWNERSHIP_VERB_PATTERNS if pattern.search(clause)),
+                "",
+            )
+            if matched:
+                classes.append(matched)
+    return tuple(classes)
+
+
+def first_clause_ownership_class(text: str) -> str:
+    sentences = summary_sentences(text)
+    if not sentences:
+        return ""
+    return next(
+        (
+            label
+            for label, pattern in OWNERSHIP_VERB_PATTERNS
+            if pattern.search(sentences[0])
+        ),
+        "",
+    )
+
+
+def assess_top_third_ownership(
+    segments: tuple[OwnershipSkimSegment, ...],
+) -> TopThirdOwnershipAssessment:
+    if not segments:
+        return TopThirdOwnershipAssessment("FAIL", ("Top-third skim zone could not be located.",), (), 0, 0)
+
+    summary_segment = next((segment for segment in segments if segment.kind == "professional_summary"), None)
+    role_summary = next((segment for segment in segments if segment.kind == "first_role_summary"), None)
+    first_bullet = next((segment for segment in segments if segment.kind == "first_role_bullet"), None)
+    summary_proof_class = ""
+    if summary_segment:
+        sentences = summary_sentences(summary_segment.text)
+        if sentences:
+            first_class = first_clause_ownership_class(sentences[0])
+            proof_sentence = sentences[0] if first_class else (sentences[1] if len(sentences) > 1 else sentences[0])
+            summary_proof_class = first_clause_ownership_class(proof_sentence)
+    role_opening_classes = {
+        first_clause_ownership_class(segment.text)
+        for segment in (role_summary, first_bullet)
+        if segment is not None
+    }
+
+    classes = [
+        ownership_class
+        for segment in segments
+        for ownership_class in clause_leading_ownership_classes(segment.text)
+    ]
+    strong_classes = {"accountable", "leadership", "execution"}
+    soft_classes = {"collaboration", "support"}
+    strong_segments = sum(1 for value in classes if value in strong_classes)
+    soft_segments = sum(1 for value in classes if value in soft_classes)
+    proof_leads = (
+        summary_proof_class in strong_classes
+        or bool(role_opening_classes & strong_classes)
+    )
+    accountable_carrier = "accountable" in classes
+
+    if not proof_leads or (soft_segments > strong_segments and not accountable_carrier):
+        issues = (
+            "Top-third skim lacks a clear ownership line with execution-or-stronger proof in the primary summary proof sentence or first-role opening."
+            if not proof_leads
+            else "Top-third skim is dominated by collaboration or support language without an accountable carrier."
+        )
+        return TopThirdOwnershipAssessment(
+            "FAIL",
+            (issues,),
+            segments,
+            strong_segments,
+            soft_segments,
+        )
+    if soft_segments >= 2 or (soft_segments and strong_segments <= soft_segments):
+        return TopThirdOwnershipAssessment(
+            "REVIEW",
+            (
+                "Top-third ownership proof is valid, but repeated collaboration or support clauses dilute the execution signal.",
+            ),
+            segments,
+            strong_segments,
+            soft_segments,
+        )
+    return TopThirdOwnershipAssessment("PASS", (), segments, strong_segments, soft_segments)
+
+
 def top_third_ownership_issues(summary: str, top_bullets: list[str]) -> list[str]:
-    issues: list[str] = []
-    top_text = " ".join([summary, *top_bullets]).strip()
-    lowered = top_text.lower()
-    if not lowered:
-        return issues
-    strong_hits = len(TOP_THIRD_STRONG_OWNERSHIP_RE.findall(top_text))
-    soft_hits = sum(1 for pattern, _label in TOP_THIRD_OWNERSHIP_SOFTENERS if re.search(pattern, lowered, re.I))
-    if strong_hits == 0:
-        issues.append(
-            "Top-third skim still lacks a clear ownership line; the summary or first bullets should make Christian's role explicit."
-        )
-    if soft_hits >= 2 and strong_hits <= soft_hits:
-        issues.append(
-            "Top-third wording still leans too support-oriented; prefer the strongest truthful ownership verb over soft phrases like supported or worked with."
-        )
-    return issues
+    """Compatibility wrapper for direct callers; production uses ownership_skim_zone()."""
+    segments = [OwnershipSkimSegment("professional_summary", summary)] if summary else []
+    segments.extend(OwnershipSkimSegment("first_role_bullet", bullet) for bullet in top_bullets)
+    return list(assess_top_third_ownership(tuple(segments)).issues)
 
 
 def hiring_manager_skim_issues(
@@ -4457,7 +5616,6 @@ def hiring_manager_skim_issues(
         issues.append("Top-third skim contains subjective job-ad claim language instead of objective evidence.")
     if keyword_hits(top_text, audit_keywords(profile.core_problem)) < 1:
         issues.append("Top-third skim does not clearly echo the role's core business problem.")
-    issues.extend(top_third_ownership_issues(summary, top_bullets))
     if job_description:
         explicit_terms = explicit_private_sector_terms(profile, job_description)
         visible_hits = visible_term_hits(top_text, explicit_terms)
@@ -4484,6 +5642,14 @@ def final_fit_audit(
     notes: list[str] = []
     status = "PASS"
     document_text = visible_text(document_xml)
+    # Core remains REQUIREMENT-only for coverage and balanced-policy gating.
+    # Natural job-language checks may also recognize validated breadth surfaces;
+    # moving a competency/domain term out of core must not itself create a Fit FAIL.
+    job_language_keywords = {
+        keyword
+        for keyword in ats_scan_terms(job_description, limit=25)
+        if not is_unsupported_do_not_insert(keyword, document_text, job_description)
+    }
     profile = job_problem_profile(job_description, document_text)
     poor_requirements = poor_fit_requirements(job_description, document_text)
     hard_fail_reasons = 0
@@ -4512,11 +5678,11 @@ def final_fit_audit(
 
     summary_keywords = {
         keyword
-        for keyword in keywords
-        if not is_unsupported_do_not_insert(keyword, document_text, job_description)
+        for keyword in job_language_keywords
     }
     summary_hits = keyword_hits(summary, summary_keywords)
-    if summary_hits < 3:
+    required_summary_hits = min(2, max(1, (len(summary_keywords) + 1) // 2))
+    if summary_hits < required_summary_hits:
         add_fail(f"Professional Summary has weak job-language alignment ({summary_hits} keyword hits).")
 
     nat = naturalness_score(summary)
@@ -4556,25 +5722,17 @@ def final_fit_audit(
             + ". Use the cover letter and interview to address the learning curve honestly."
         )
 
-    top_bullets = role_top_bullet_texts(
-        document_xml,
-        AUDIT_TOP_ROLE_TITLES,
-        limit=2,
-    )
-    keyword_support_bullets = role_top_bullet_texts(
-        document_xml,
-        AUDIT_TOP_ROLE_TITLES,
-        limit=5,
-    )
+    top_bullets = top_third_bullet_texts(document_xml)
+    keyword_support_bullets = top_bullets
     placement_keywords = {
         keyword
-        for keyword in keywords
+        for keyword in job_language_keywords
         if not is_generic_soft_keyword(keyword)
         and not is_bullet_placement_excluded(keyword)
         and keyword_requires_top_third_placement(keyword, job_description)
     }
     support_bullet_hits = keyword_hits(" ".join([summary, *keyword_support_bullets]), placement_keywords)
-    required_support_hits = min(6, max(3, len(placement_keywords)))
+    required_support_hits = min(3, len(placement_keywords))
     if support_bullet_hits < required_support_hits:
         add_fail(f"Top third has weak job-language support ({support_bullet_hits} keyword hits across the summary and early bullets).")
 
@@ -4588,6 +5746,13 @@ def final_fit_audit(
             hard_fail_reasons += len(skim_issues)
             status = fit_status(status, "FAIL")
             notes.extend(skim_issues)
+        ownership_assessment = assess_top_third_ownership(ownership_skim_zone(document_xml))
+        if ownership_assessment.severity == "FAIL":
+            hard_fail_reasons += len(ownership_assessment.issues)
+            status = fit_status(status, "FAIL")
+            notes.extend(ownership_assessment.issues)
+        elif ownership_assessment.severity == "REVIEW":
+            notes.extend(ownership_assessment.issues)
         top_without_proof = [bullet for bullet in top_bullets if not has_outcome_or_metric(bullet)]
         if len(top_without_proof) > 1:
             add_fail("Too many top experience bullets lack a metric, scope marker, or clear outcome signal.")
@@ -4608,7 +5773,11 @@ def final_fit_audit(
                 "Resume bullets may be too activity-focused. Fewer than 60 percent connect explicitly to a business outcome. Prioritize bullets that answer: what changed because Christian was there?"
             )
 
-    placement_report = keyword_placement_audit(job_description, document_text)
+    placement_report = keyword_placement_audit(
+        job_description,
+        document_text,
+        early_bullets=top_bullets,
+    )
     placement_gaps = placement_report.get("gaps", [])
     if isinstance(placement_gaps, list):
         for gap in placement_gaps[:3]:
@@ -4619,15 +5788,50 @@ def final_fit_audit(
             if keyword and issue:
                 notes.append(f"Keyword placement gap: {keyword} is {issue}.")
 
-    competency_count = len(extract_competency_items(paragraph_infos(document_xml)))
+    competency_paragraphs = paragraph_infos(document_xml)
+    competency_items = extract_competency_items(competency_paragraphs)
+    competency_count = len(competency_items)
     if competency_count < 15:
         notes.append(
             f"Skills section currently lists {competency_count} items. Optimal range is 15-25; consider adding only supported keyword coverage."
         )
-    elif competency_count > 25:
-        notes.append(
-            f"Skills section currently lists {competency_count} items. Over 25 items can dilute signal and weaken ATS targeting."
+    else:
+        low_signal_items = sorted(
+            item
+            for item in competency_items
+            if not evidence_anchor_for_term(item)
+            and not targeted_skill_candidate_is_allowed(
+                item,
+                job_description,
+                require_jd_presence=False,
+            )
         )
+        normalized_families: dict[tuple[str, ...], list[str]] = {}
+        for item in competency_items:
+            family = tuple(sorted({simple_keyword_stem(token) for token in item.split() if len(simple_keyword_stem(token)) >= 4}))
+            if family:
+                normalized_families.setdefault(family, []).append(item)
+        redundant_items = sorted(
+            item
+            for family_items in normalized_families.values()
+            if len(family_items) > 1
+            for item in family_items[1:]
+        )
+        if low_signal_items and len(low_signal_items) / competency_count >= 0.25:
+            notes.append(
+                "Skills relevance warning: "
+                f"{len(low_signal_items)} of {competency_count} items have weak JD or evidence signal "
+                f"({', '.join(low_signal_items[:5])})."
+            )
+        if redundant_items:
+            notes.append(
+                "Skills redundancy warning: overlapping competency labels may dilute signal "
+                f"({', '.join(redundant_items[:5])})."
+            )
+        if competency_count > 25 and estimate_page_count_from_xml(document_xml) > 2:
+            notes.append(
+                f"Skills page-pressure warning: {competency_count} supported items contribute to a resume over two pages."
+            )
 
     alignment_report = alignment_score_report(job_description, document_text)
     total_score = int(alignment_report.get("total_score", 0))
@@ -4659,8 +5863,8 @@ def final_fit_audit(
         audit_status=status,
         auto_closed_keywords=auto_closed_keywords,
     )
-    if readiness.hard_blockers:
-        blocker_summary = "; ".join(resume_gap_summary_line(gap) for gap in readiness.hard_blockers[:3])
+    if readiness.fit_blockers:
+        blocker_summary = "; ".join(resume_gap_summary_line(gap) for gap in readiness.fit_blockers[:3])
         if status != "POOR" and (
             status in {"PASS", "BRIDGE"}
             or (status == "FAIL" and hard_fail_reasons == 0 and total_score >= ALIGNMENT_FAIL_FLOOR)
@@ -4685,6 +5889,121 @@ def final_alignment_fail_reason(total_score: int) -> str:
     )
 
 
+def final_document_audit_snapshot(
+    document_xml: Path,
+    job_description: str,
+    *,
+    source_resume_text: str = "",
+    auto_closed_keywords: tuple[str, ...] = (),
+) -> FinalAuditSnapshot:
+    """Compute the authoritative audit state from one visible DOCX document."""
+    document_text = visible_text(document_xml)
+    alignment = alignment_score_report(job_description, document_text)
+    audit_status, fit_notes = final_fit_audit(
+        document_xml,
+        job_description,
+        source_resume_text=source_resume_text,
+        auto_closed_keywords=auto_closed_keywords,
+        alignment_grade=str(alignment.get("grade", "")).strip() or None,
+    )
+    prose_findings = tuple(
+        dict.fromkeys(
+            [
+                *summary_prose_audit_notes(document_xml),
+                *bullet_prose_audit_notes(document_xml),
+            ]
+        )
+    )
+    audit_notes = tuple(dict.fromkeys([*fit_notes, *prose_findings]))
+    readiness = resume_readiness_report(
+        job_description,
+        document_text,
+        source_resume_text=source_resume_text,
+        audit_status=audit_status,
+        auto_closed_keywords=auto_closed_keywords,
+    )
+    coverage = ats_coverage(job_description, document_text)
+    core = coverage.get("core", coverage)
+    breadth = coverage.get("breadth", {})
+    if not isinstance(core, dict):
+        core = coverage
+    if not isinstance(breadth, dict):
+        breadth = {}
+    ownership_findings = assess_top_third_ownership(
+        ownership_skim_zone(document_xml)
+    ).issues
+    supported_misses = tuple(
+        resume_gap_summary_line(gap)
+        for gap in readiness.prioritized_unresolved_gaps
+        if gap.support_level != "unsupported-do-not-insert"
+        and not contains_search_term(document_text, gap.label)
+    )
+    genuine_gaps = tuple(
+        resume_gap_summary_line(gap)
+        for gap in readiness.prioritized_unresolved_gaps
+        if gap.support_level == "unsupported-do-not-insert"
+        and not contains_search_term(document_text, gap.label)
+    )
+    policy_blockers = tuple(resume_gap_summary_line(gap) for gap in readiness.hard_blockers)
+    return FinalAuditSnapshot(
+        audit_status=audit_status,
+        tailoring_status=readiness.tailoring_status,
+        alignment_score=int(alignment.get("total_score", 0)),
+        alignment_fail_floor_met=bool(alignment.get("minimum_pass_met", False)),
+        core_percent=int(core.get("percent", coverage.get("percent", 100))),
+        core_present=int(core.get("present", coverage.get("present", 0))),
+        core_total=int(core.get("total", coverage.get("total", 0))),
+        core_missing=tuple(str(term) for term in core.get("missing", ())),
+        breadth_percent=int(breadth.get("percent", 100)),
+        breadth_present=int(breadth.get("present", 0)),
+        breadth_total=int(breadth.get("total", 0)),
+        breadth_missing=tuple(str(term) for term in breadth.get("missing", ())),
+        ownership_findings=ownership_findings,
+        supported_misses=supported_misses,
+        genuine_gaps=genuine_gaps,
+        prose_findings=prose_findings,
+        policy_blockers=policy_blockers,
+        audit_notes=audit_notes,
+        readiness=readiness,
+    )
+
+
+def assert_packaged_audit_consistency(
+    before: FinalAuditSnapshot,
+    packaged: FinalAuditSnapshot,
+) -> None:
+    """Reject any package whose visible audit state differs from assembly."""
+    compared_fields = (
+        "audit_status",
+        "tailoring_status",
+        "alignment_score",
+        "alignment_fail_floor_met",
+        "core_percent",
+        "core_present",
+        "core_total",
+        "core_missing",
+        "breadth_percent",
+        "breadth_present",
+        "breadth_total",
+        "breadth_missing",
+        "ownership_findings",
+        "supported_misses",
+        "genuine_gaps",
+        "prose_findings",
+        "policy_blockers",
+    )
+    changes = [
+        f"{field}: {getattr(before, field)!r} -> {getattr(packaged, field)!r}"
+        for field in compared_fields
+        if getattr(before, field) != getattr(packaged, field)
+    ]
+    if changes:
+        fail(
+            "Packaged DOCX audit state differs from the assembled content:\n  "
+            + "\n  ".join(changes)
+        )
+
+
 def write_resume_audit_notes(
     output_target_name: str,
     company_name: str,
@@ -4693,7 +6012,9 @@ def write_resume_audit_notes(
     notes: list[str],
     job_description: str,
     document_text: str,
+    readiness: ResumeReadiness | None = None,
 ) -> Path | None:
+    notes = list(dict.fromkeys(note.strip() for note in notes if note.strip()))
     profile = job_problem_profile(job_description, document_text)
     coverage = ats_coverage(job_description, document_text)
     core = coverage.get("core", coverage)
@@ -4728,12 +6049,19 @@ def write_resume_audit_notes(
     }.get(status, f"{status} means the build needs human review.")
     ledger_diagnostics = ledger_placement_diagnostics(job_description, document_text)
     ledger_issues = ledger_landing_issues(ledger_diagnostics)
+    readiness = readiness or resume_readiness_report(
+        job_description,
+        document_text,
+        audit_status=status,
+    )
     status_suffix = "" if status == "PASS" else f" {status}"
     output_path = OUTPUT_DIR / f"Christian Estrada - {output_target_name}{status_suffix} Resume Notes.txt"
     lines = [
         f"Company: {company_name}",
         f"Role: {role_title or 'Unknown role'}",
         f"Fit status: {status}",
+        f"Tailoring status: {readiness.tailoring_status}",
+        f"Keyword policy: {readiness.keyword_policy}",
         coverage_line,
         core_coverage_line,
         breadth_coverage_line,
@@ -4753,7 +6081,54 @@ def write_resume_audit_notes(
         ]
     if ledger_issues:
         notes = [*notes, *[f"Ledger placement issue: {issue}" for issue in ledger_issues]]
+    notes = list(dict.fromkeys(note.strip() for note in notes if note.strip()))
     lines.extend(f"- {note}" for note in (notes or ["No detailed audit notes were returned."]))
+    supported_unwritten = [
+        gap
+        for gap in readiness.prioritized_unresolved_gaps
+        if gap.support_level != "unsupported-do-not-insert"
+        and not contains_search_term(document_text, gap.label)
+    ]
+    genuine_gaps = [
+        gap
+        for gap in readiness.prioritized_unresolved_gaps
+        if gap.support_level == "unsupported-do-not-insert"
+        and not contains_search_term(document_text, gap.label)
+    ]
+    excluded_noise = sorted(
+        term
+        for term in (*KEYWORD_NOISE_SINGLETONS, *KEYWORD_NOISE_PHRASES)
+        if contains_search_term(job_description, term)
+    )
+    lines.extend(["", "Placed Supported Terms:"])
+    placed_diagnostics = [item for item in ledger_diagnostics if item.get("location") != "missing"]
+    lines.extend(
+        f"- {item.get('term', '')}: {item.get('location', '')}"
+        for item in placed_diagnostics
+    )
+    if not placed_diagnostics:
+        lines.append("- None")
+    lines.extend(["", "Supported but Unwritten:"])
+    lines.extend(f"- {resume_gap_summary_line(gap)}" for gap in supported_unwritten)
+    if not supported_unwritten:
+        lines.append("- None")
+    lines.extend(["", "Genuine Evidence or Domain Gaps:"])
+    domain_labels = {normalize_compare(gap.label) for gap in genuine_gaps}
+    if {"apparel", "fashion", "textile"} <= domain_labels:
+        lines.append("- Apparel / fashion / textile domain family: unsupported-do-not-insert")
+        genuine_gaps = [
+            gap for gap in genuine_gaps if normalize_compare(gap.label) not in {"apparel", "fashion", "textile"}
+        ]
+    lines.extend(f"- {resume_gap_summary_line(gap)}" for gap in genuine_gaps)
+    if not genuine_gaps and not ({"apparel", "fashion", "textile"} <= domain_labels):
+        lines.append("- None")
+    lines.extend(["", "Excluded Noise:"])
+    lines.append("- " + ", ".join(excluded_noise) if excluded_noise else "- None")
+    conflicts = [note for note in notes if "conflict" in note.lower()]
+    lines.extend(["", "Placement or Page-Fit Conflicts:"])
+    lines.extend(f"- {note}" for note in conflicts)
+    if not conflicts:
+        lines.append("- None")
     lines.extend(
         [
             "",
@@ -4876,6 +6251,49 @@ def source_resume_lint_findings(paths: tuple[Path, ...] = SOURCE_RESUME_PATHS) -
     findings: list[SourceLintFinding] = []
     for path in paths:
         findings.extend(source_lint_findings_for_paragraphs(path.name, docx_paragraph_infos_from_path(path)))
+    paths_by_name = {path.name: path for path in paths}
+    for entry in evidence_terms():
+        source_file = str(entry.get("source_file", "")).strip()
+        concept_id = str(entry.get("concept_id", "")).strip()
+        source_contains = str(entry.get("source_contains", "")).strip()
+        expected_fingerprint = str(entry.get("source_fingerprint", "")).strip().lower()
+        path = paths_by_name.get(source_file)
+        if not path:
+            findings.append(
+                SourceLintFinding(
+                    source_file or "evidence_terms.py",
+                    "SOURCE_EVIDENCE_FILE",
+                    f"Evidence concept {concept_id!r} references an unavailable source resume.",
+                    source_contains,
+                )
+            )
+            continue
+        matches = [
+            paragraph.text
+            for paragraph in docx_paragraph_infos_from_path(path)
+            if source_contains.lower() in paragraph.text.lower()
+        ]
+        if len(matches) != 1:
+            findings.append(
+                SourceLintFinding(
+                    source_file,
+                    "SOURCE_EVIDENCE_ANCHOR",
+                    f"Evidence concept {concept_id!r} expected one source paragraph but found {len(matches)}.",
+                    source_contains,
+                )
+            )
+            continue
+        normalized = re.sub(r"\s+", " ", matches[0]).strip().lower()
+        actual_fingerprint = hashlib.sha256(normalized.encode("utf-8")).hexdigest()[:16]
+        if actual_fingerprint != expected_fingerprint:
+            findings.append(
+                SourceLintFinding(
+                    source_file,
+                    "SOURCE_EVIDENCE_FINGERPRINT",
+                    f"Evidence concept {concept_id!r} fingerprint drifted; review and refresh intentionally.",
+                    source_contains,
+                )
+            )
     findings.extend(source_global_notes_lint_findings())
     return findings
 
@@ -4924,13 +6342,34 @@ def alignment_score_report(job_description: str, resume_text: str) -> dict[str, 
     profile = job_problem_profile(job_description, resume_text)
     keywords = audit_keywords(job_description)
 
+    # Keep the displayed keyword population identical to the scored population.
+    # Unsupported tools are intentionally neither scored nor suggested for insertion.
+    eligible_keywords = [
+        keyword
+        for keyword in keywords
+        if not is_unsupported_do_not_insert(keyword, resume_text, job_description)
+    ]
+    # audit_keywords() deliberately filters noisy platform names out of the
+    # actionable population. Keep named, unsupported platforms visible here
+    # so align can report them as non-actionable without changing the score.
+    excluded_keywords = sorted(
+        {
+            keyword
+            for keyword in keywords
+            if is_unsupported_do_not_insert(keyword, resume_text, job_description)
+        }
+        | {
+            keyword
+            for keyword in UNSUPPORTED_PLATFORM_KEYWORDS
+            if is_unsupported_do_not_insert(keyword, resume_text, job_description)
+        }
+    )
     covered = 0
-    total_kw = len(keywords) if keywords else 1
+    uncovered_keywords: list[str] = []
+    total_kw = len(eligible_keywords)
     covered_weight = 0
     total_weight = 0
-    for keyword in keywords:
-        if is_unsupported_do_not_insert(keyword, resume_text, job_description):
-            continue
+    for keyword in eligible_keywords:
         sort_key = audit_keyword_sort_key(job_description, keyword)
         if len(sort_key) < 7:
             raise ValueError(
@@ -4942,6 +6381,8 @@ def alignment_score_report(job_description: str, resume_text: str) -> dict[str, 
         if contains_search_term(resume_text, keyword):
             covered += 1
             covered_weight += weight
+        else:
+            uncovered_keywords.append(keyword)
     total_weight = total_weight or 1
     kw_score = min(15, int((covered_weight / total_weight) * 15))
 
@@ -4995,13 +6436,18 @@ def alignment_score_report(job_description: str, resume_text: str) -> dict[str, 
         "total_score": total,
         "keyword_coverage": {
             "score": kw_score,
+            "max_score": 15,
             "covered": covered,
             "total_keywords": total_kw,
             "covered_weight": covered_weight,
             "total_weight": total_weight,
+            "eligible_keywords": eligible_keywords,
+            "excluded_keywords": excluded_keywords,
+            "uncovered_keywords": uncovered_keywords,
         },
         "requirement_coverage": {
             "score": requirement_score,
+            "max_score": 40,
             "required": len(required_items),
             "direct": direct_coverage,
             "adjacent": adjacent_coverage,
@@ -5009,11 +6455,13 @@ def alignment_score_report(job_description: str, resume_text: str) -> dict[str, 
         },
         "lane_fit": {
             "score": lane_score,
+            "max_score": 15,
             "direct": direct,
             "unsupported": unsupported,
         },
         "specialty_fit": {
             "score": specialty_score,
+            "max_score": 15,
             "required": required_specialties,
             "matched": specialty_matches,
             "gaps": specialty_gaps,
@@ -5023,9 +6471,11 @@ def alignment_score_report(job_description: str, resume_text: str) -> dict[str, 
         },
         "business_context": {
             "score": context_score,
+            "max_score": 15,
         },
         "outcome_density": {
             "score": outcome_score,
+            "max_score": 15,
         },
         "grade": grade,
         "score_scale_max": ALIGNMENT_MAX_SCORE,
@@ -5458,7 +6908,9 @@ def validate_resume_integrity(
 
 
 
-def build_resume() -> BuildResult:
+def build_resume(keyword_policy: str | None = None) -> BuildResult:
+    policy = normalize_keyword_policy(keyword_policy or active_keyword_policy())
+    os.environ["RESUME_KEYWORD_POLICY"] = policy
     validate_config_integrity()
     job_description = validate_inputs()
     company_name = extract_output_name(job_description)
@@ -5566,18 +7018,23 @@ def build_resume() -> BuildResult:
                 job_description,
                 emphasis=emphasis,
             )
-            auto_closed_keywords = tuple(
-                aggressively_close_supported_keyword_gaps(document_xml, job_description, selected_resume_text)
-            )
-            competency_items_added += len(auto_closed_keywords)
+            auto_closed_keywords: tuple[str, ...] = ()
             normalize_core_competency_capitalization(document_xml)
             normalize_supported_acronyms(document_xml)
             format_core_competency_runs(document_xml)
+            placement_targets = planned_supported_keyword_targets(
+                job_description,
+                selected_resume_text,
+            )
+            placement_plan = tuple(
+                target.surface for target in placement_targets
+            )
             reordered = reorder_bullets(document_xml, keywords, profile, job_description, emphasis)
             role_bullets_removed += select_experience_bullets_for_two_page_resume(
                 document_xml,
                 job_description,
                 emphasis,
+                protected_terms=placement_targets,
             )
             paragraphs_rewritten += apply_value_story_rewrites(document_xml, job_description)
             paragraphs_rewritten += apply_startup_operator_rewrites(document_xml, job_description)
@@ -5585,6 +7042,21 @@ def build_resume() -> BuildResult:
             paragraphs_rewritten += limit_cutover_mentions(document_xml)
             paragraphs_rewritten += scrub_non_erp_resume_language(document_xml, job_description)
             paragraphs_rewritten += normalize_role_bullet_endings(document_xml)
+            ledger_visible_before = visible_text(document_xml)
+            paragraphs_rewritten += weave_supported_keywords_into_top_bullets(
+                document_xml,
+                job_description,
+                selected_resume_text,
+                placement_targets=placement_targets,
+            )
+            ledger_visible_after = visible_text(document_xml)
+            ledger_terms_placed = tuple(
+                term
+                for term in placement_plan
+                if not contains_search_term(ledger_visible_before, term)
+                and contains_search_term(ledger_visible_after, term)
+            )
+            auto_closed_keywords = tuple(dict.fromkeys(ledger_terms_placed))
 
             # Phase 6 content boundary: candidate mutations stop here. Summary,
             # role-summary, and bullet content becomes a provenance-bearing
@@ -5603,6 +7075,7 @@ def build_resume() -> BuildResult:
                 base_summary,
                 job_description,
                 selected_resume_text,
+                placement_targets=placement_targets,
             )
             composed_summary = repair_summary_preserving_contract(
                 composed_summary,
@@ -5650,28 +7123,9 @@ def build_resume() -> BuildResult:
             )
             paragraphs_rewritten += 1 + len(role_summary_map)
             commercial_resume_model.render_content_model(document_xml, content_model)
-            ledger_visible_before = visible_text(document_xml)
-            paragraphs_rewritten += weave_supported_keywords_into_top_bullets(
-                document_xml,
-                job_description,
-                selected_resume_text,
-            )
-            ledger_visible_after = visible_text(document_xml)
-            ledger_terms_placed = tuple(
-                term
-                for term in ledger_terms_for_placement(job_description)
-                if not contains_search_term(ledger_visible_before, term)
-                and contains_search_term(ledger_visible_after, term)
-            )
-            auto_closed_keywords = tuple(dict.fromkeys((*auto_closed_keywords, *ledger_terms_placed)))
             manifest_name = re.sub(r"[^A-Za-z0-9._-]+", "_", output_target_name).strip("_")
-            final_content_model = commercial_resume_model.build_content_model(
-                selected_resume,
-                provenance_source_xml,
-                document_xml,
-            )
             commercial_resume_model.write_manifest(
-                final_content_model,
+                content_model,
                 SCRATCH_DIR / "provenance_models" / f"{manifest_name}_variant_{variant_index}.json",
             )
 
@@ -5684,11 +7138,6 @@ def build_resume() -> BuildResult:
             ensure_header_gap_after_contact(document_xml)
             apply_spacing_and_layout_pass(document_xml)
             remove_linkedin_hyperlinks(work_dir)
-            assert_ledger_terms_present(
-                job_description,
-                visible_text(document_xml),
-                required_terms=priority_ledger_assertion_terms(job_description),
-            )
             required_source_skills = retained_competency_items(
                 job_description,
                 source_snapshot.competency_items,
@@ -5708,6 +7157,11 @@ def build_resume() -> BuildResult:
                 reverse=True,
             )
             if missing_source_skills:
+                placement_skills = {
+                    normalize_compare(term)
+                    for term in placement_plan
+                    if landing_text_for_term(term, visible_text(document_xml))[0] == "skills"
+                }
                 competency_items_added += len(
                     add_targeted_core_competencies(
                         document_xml,
@@ -5715,9 +7169,14 @@ def build_resume() -> BuildResult:
                         job_description,
                         limit=len(missing_source_skills),
                         source_required=True,
-                        protected_existing=required_source_skills,
+                        protected_existing=required_source_skills | placement_skills,
                     )
                 )
+            competency_items_removed += trim_redundant_targeted_core_competencies(
+                document_xml,
+                job_description,
+                source_required=required_source_skills,
+            )
 
             final_snapshot = resume_snapshot(document_xml)
             validate_resume_integrity(source_snapshot, final_snapshot, job_description, emphasis)
@@ -5737,29 +7196,10 @@ def build_resume() -> BuildResult:
                 label="resume summary",
             )
 
-            alignment_report = alignment_score_report(job_description, visible_text(document_xml))
-            audit_status, audit_notes = final_fit_audit(
+            audit_snapshot = final_document_audit_snapshot(
                 document_xml,
                 job_description,
                 source_resume_text=selected_resume_text,
-                auto_closed_keywords=auto_closed_keywords,
-                alignment_grade=str(alignment_report.get("grade", "")).strip() or None,
-            )
-            audit_notes = [
-                *audit_notes,
-                *summary_prose_audit_notes(document_xml),
-                *bullet_prose_audit_notes(document_xml),
-            ]
-            audit_document_text = visible_text(document_xml)
-            audit_notes.extend(
-                f"Ledger placement issue: {issue}"
-                for issue in ledger_landing_issues(ledger_placement_diagnostics(job_description, audit_document_text))
-            )
-            readiness = resume_readiness_report(
-                job_description,
-                audit_document_text,
-                source_resume_text=selected_resume_text,
-                audit_status=audit_status,
                 auto_closed_keywords=auto_closed_keywords,
             )
             return ResumeAssemblyResult(
@@ -5775,9 +7215,11 @@ def build_resume() -> BuildResult:
                 role_bullets_removed=role_bullets_removed,
                 bullet_groups_reordered=reordered,
                 visual_parts_applied=visual_parts,
-                audit_status=audit_status,
-                audit_notes=audit_notes,
-                readiness=readiness,
+                audit_status=audit_snapshot.audit_status,
+                tailoring_status=audit_snapshot.tailoring_status,
+                audit_notes=list(audit_snapshot.audit_notes),
+                readiness=audit_snapshot.readiness,
+                audit_snapshot=audit_snapshot,
                 auto_closed_keywords=auto_closed_keywords,
                 variable_snapshot=resume_variable_snapshot(document_xml),
             )
@@ -5834,17 +7276,38 @@ def build_resume() -> BuildResult:
             output_docx = OUTPUT_DIR / f"Christian Estrada - {output_target_name} BRIDGE Resume.docx"
         elif assembled.audit_status == "FAIL":
             output_docx = OUTPUT_DIR / f"Christian Estrada - {output_target_name} FAIL Resume.docx"
+        pack_docx_with_page_fit(assembled.work_dir, output_docx, assembled.document_xml, temp_root)
+        packaged_audit_dir = temp_root / "packaged_audit"
+        packaged_audit_dir.mkdir(parents=True, exist_ok=True)
+        with zipfile.ZipFile(output_docx) as archive:
+            archive.extractall(packaged_audit_dir)
+        packaged_document_xml = packaged_audit_dir / "word" / "document.xml"
+        packaged_audit_snapshot = final_document_audit_snapshot(
+            packaged_document_xml,
+            job_description,
+            source_resume_text=selected_resume_text,
+            auto_closed_keywords=assembled.auto_closed_keywords,
+        )
+        assert_packaged_audit_consistency(assembled.audit_snapshot, packaged_audit_snapshot)
+        assembled = replace(
+            assembled,
+            document_xml=packaged_document_xml,
+            audit_status=packaged_audit_snapshot.audit_status,
+            tailoring_status=packaged_audit_snapshot.tailoring_status,
+            audit_notes=list(packaged_audit_snapshot.audit_notes),
+            readiness=packaged_audit_snapshot.readiness,
+            audit_snapshot=packaged_audit_snapshot,
+        )
         write_resume_audit_notes(
             output_target_name,
             company_name,
             role_title,
-            assembled.audit_status,
-            assembled.audit_notes,
+            packaged_audit_snapshot.audit_status,
+            list(packaged_audit_snapshot.audit_notes),
             job_description,
-            visible_text(assembled.document_xml),
+            visible_text(packaged_document_xml),
+            packaged_audit_snapshot.readiness,
         )
-
-        pack_docx_with_page_fit(assembled.work_dir, output_docx, assembled.document_xml, temp_root)
         ats_report = ats_plain_text_validation(output_docx)
         for warning in ats_report["warnings"]:
             print(f"ATS WARNING: {warning}")
@@ -5876,18 +7339,25 @@ def build_resume() -> BuildResult:
         assembled.audit_notes,
         assembled.readiness,
         tuple(build_warnings),
+        assembled.tailoring_status,
     )
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Build Christian Estrada's tailored DOCX resume.")
     parser.add_argument("--no-pdf", action="store_true", help="Accepted for clarity; PDFs are never created.")
+    parser.add_argument(
+        "--keyword-policy",
+        choices=KEYWORD_POLICIES,
+        default=os.environ.get("RESUME_KEYWORD_POLICY", DEFAULT_KEYWORD_POLICY),
+        help="Keyword gating policy; balanced is the production default.",
+    )
     return parser.parse_args()
 
 
 def main() -> None:
-    parse_args()
-    result = build_resume()
+    args = parse_args()
+    result = build_resume(args.keyword_policy)
     print(f"Company: {result.company_name}")
     print(f"Source resume: {result.source_resume}")
     print(f"Output DOCX: {result.output_docx}")
@@ -5899,20 +7369,28 @@ def main() -> None:
     print(f"Role bullets removed: {result.role_bullets_removed}")
     print(f"Bullet groups reordered: {result.bullet_groups_reordered}")
     print(f"Final audit: {result.audit_status}")
+    print(f"Tailoring status: {result.tailoring_status}")
+    if result.readiness:
+        print(f"Keyword policy: {result.readiness.keyword_policy}")
     if result.readiness and result.readiness.auto_closed_gaps:
         print(
             "Readiness auto-closed: "
             + ", ".join(gap.label for gap in result.readiness.auto_closed_gaps[:5])
         )
-    if result.readiness and result.readiness.hard_blockers:
+    if result.readiness and result.readiness.fit_blockers:
         print(
             "Resume bridge gaps: "
-            + "; ".join(resume_gap_summary_line(gap) for gap in result.readiness.hard_blockers[:3])
+            + "; ".join(resume_gap_summary_line(gap) for gap in result.readiness.fit_blockers[:3])
         )
     for warning in result.build_warnings:
         print(f"Build warning: {warning}")
     for note in result.audit_notes:
         print(f"Audit note: {note}")
+    if result.readiness and result.readiness.hard_blockers:
+        fail(
+            f"{result.readiness.keyword_policy} keyword policy blocked dependent documents: "
+            + "; ".join(resume_gap_summary_line(gap) for gap in result.readiness.hard_blockers[:3])
+        )
 
 
 if __name__ == "__main__":

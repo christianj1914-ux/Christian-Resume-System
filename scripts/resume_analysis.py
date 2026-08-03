@@ -6,6 +6,7 @@ from __future__ import annotations
 import re
 import importlib.util
 from dataclasses import dataclass
+from enum import Enum
 from functools import lru_cache
 from pathlib import Path
 
@@ -67,7 +68,7 @@ def _search_term_regexes(term: str) -> tuple[re.Pattern, ...]:
         singular_base = last[:-2]
         if singular_base.endswith(("ss", "sh", "ch", "x", "z")):
             variants.append(" ".join(parts[:-1] + [singular_base]))
-    elif last.endswith("s") and len(last) > 4 and not last.endswith(("ss", "ics")):
+    elif last.endswith("s") and len(last) > 4 and not last.endswith(("ss", "ics", "is")):
         variants.append(" ".join(parts[:-1] + [last[:-1]]))
     elif not last.endswith("s") and not last.endswith("ing"):
         if last.endswith("y") and len(last) > 3 and last[-2] not in "aeiou":
@@ -94,24 +95,6 @@ def contains_search_term(text: str, term: str) -> bool:
     normalized = ZERO_WIDTH_CHAR_RE.sub(" ", text.lower())
     return any(regex.search(normalized) is not None for regex in _search_term_regexes(term))
 
-
-JD_TERM_MIRROR: tuple[tuple[tuple[str, ...], tuple[str, ...]], ...] = (
-    (("stakeholder governance", "stakeholder alignment"), ("stakeholder management",)),
-    (("requirements definition", "requirements translation"), ("requirements gathering",)),
-    (("discovery-to-launch", "discovery-to-delivery"), ("discovery to delivery",)),
-    (("go live",), ("go-live",)),
-    (("cross functional",), ("cross-functional",)),
-    (("continuous improvement",), ("process improvement",)),
-    (("program delivery", "project delivery"), ("program management", "project management")),
-    (("QBR", "executive business review"), ("quarterly business review",)),
-    (("UAT",), ("user acceptance testing",)),
-    (("SOW",), ("statement of work",)),
-    (("presales",), ("pre-sales",)),
-    (("ERP",), ("enterprise resource planning",)),
-    (("SaaS",), ("software as a service",)),
-    (("KPI",), ("key performance indicator",)),
-    (("RFP",), ("request for proposal",)),
-)
 
 BULLET_PLACEMENT_EXCLUDED = {
     "approach",
@@ -148,26 +131,54 @@ def evidence_terms() -> tuple[dict[str, object], ...]:
             continue
         concept = str(item.get("concept", "")).strip()
         variants = tuple(str(value).strip() for value in item.get("variants", ()) if str(value).strip())
+        permitted_surfaces = tuple(
+            str(value).strip()
+            for value in item.get("permitted_surfaces", variants)
+            if str(value).strip()
+        )
         anchor = str(item.get("anchor", "")).strip()
         strength = str(item.get("strength", "strong")).strip().lower() or "strong"
-        if concept and variants and anchor:
-            terms.append({"concept": concept, "variants": variants, "anchor": anchor, "strength": strength})
+        concept_id = str(item.get("concept_id", "")).strip()
+        placement_types = tuple(str(value).strip() for value in item.get("placement_types", ()) if str(value).strip())
+        if concept and concept_id and variants and permitted_surfaces and anchor:
+            terms.append(
+                {
+                    "concept": concept,
+                    "concept_id": concept_id,
+                    "variants": variants,
+                    "permitted_surfaces": permitted_surfaces,
+                    "anchor": anchor,
+                    "strength": strength,
+                    "source_file": str(item.get("source_file", "")).strip(),
+                    "source_employer": str(item.get("source_employer", "")).strip(),
+                    "source_role": str(item.get("source_role", "")).strip(),
+                    "source_contains": str(item.get("source_contains", "")).strip(),
+                    "source_fingerprint": str(item.get("source_fingerprint", "")).strip(),
+                    "placement_types": placement_types,
+                    "competency_label": str(item.get("competency_label", "")).strip(),
+                    "ownership_limit": str(item.get("ownership_limit", "")).strip(),
+                }
+            )
     return tuple(terms)
 
 
 def evidence_term_for_variant(term: str) -> dict[str, object] | None:
-    normalized = normalize_compare(term)
+    normalized = canonical_audit_keyword(normalize_compare(term))
     if not normalized:
         return None
     for entry in evidence_terms():
-        forms = (str(entry.get("concept", "")), *tuple(str(value) for value in entry.get("variants", ())))
-        if normalized in {normalize_compare(form) for form in forms}:
+        forms = (
+            str(entry.get("concept", "")),
+            str(entry.get("competency_label", "")),
+            *tuple(str(value) for value in entry.get("permitted_surfaces", ())),
+        )
+        if normalized in {canonical_audit_keyword(normalize_compare(form)) for form in forms}:
             return entry
     return None
 
 
 def evidence_entry_context_supported(entry: dict[str, object], job_description: str) -> bool:
-    variants = tuple(str(value) for value in entry.get("variants", ()))
+    variants = tuple(str(value) for value in entry.get("permitted_surfaces", ()))
     if not any(contains_search_term(job_description, variant) for variant in variants):
         return False
     if str(entry.get("strength", "strong")).lower() == "strong":
@@ -193,17 +204,68 @@ def evidence_preferred_surface(concept_term: str, job_description: str) -> str:
     entry = evidence_term_for_variant(concept_term)
     if not entry or not evidence_entry_context_supported(entry, job_description):
         return concept_term
-    if contains_search_term(job_description, concept_term):
-        for variant in tuple(str(value) for value in entry.get("variants", ())):
-            if normalize_compare(variant) == normalize_compare(concept_term) and contains_search_term(job_description, variant):
-                return variant
-        return concept_term
+    def literal_occurs(surface: str) -> bool:
+        pattern = re.escape(surface).replace(r"\ ", r"\s+")
+        return re.search(rf"(?<!\w){pattern}(?!\w)", job_description, re.I) is not None
+
     supported_variants = [
         str(value)
-        for value in entry.get("variants", ())
-        if contains_search_term(job_description, str(value))
+        for value in entry.get("permitted_surfaces", ())
+        if literal_occurs(str(value))
     ]
     if supported_variants:
+        assigned_action_re = re.compile(
+            r"\b(?:own|owns|owned|lead|leads|led|drive|drives|drove|manage|manages|managed|"
+            r"deliver|delivers|delivered|implement|implements|implemented|coordinate|coordinates|"
+            r"coordinated|responsible for|serve as|act as|function as)\b",
+            re.I,
+        )
+        counterpart_re = re.compile(
+            r"\b(?:partner|collaborate|work|coordinate)\w*\s+(?:closely\s+)?with\b",
+            re.I,
+        )
+
+        def assignment_score(surface: str) -> int:
+            pattern = re.escape(surface).replace(r"\ ", r"\s+")
+            score = 0
+            for line in re.split(r"[\r\n]+|(?<=[.!?])\s+", job_description):
+                if not re.search(rf"(?<!\w){pattern}(?!\w)", line, re.I):
+                    continue
+                line_score = 1
+                if assigned_action_re.search(line):
+                    line_score += 4
+                if counterpart_re.search(line):
+                    line_score -= 5
+                score = max(score, line_score)
+            return score
+
+        best_assignment_score = max(assignment_score(value) for value in supported_variants)
+        assigned_variants = [
+            value
+            for value in supported_variants
+            if assignment_score(value) == best_assignment_score
+        ]
+        if best_assignment_score > 1 and len(assigned_variants) == 1:
+            return assigned_variants[0]
+        normalized_concept = normalize_compare(concept_term)
+        containing_variants = [
+            value
+            for value in supported_variants
+            if normalize_compare(value) != normalized_concept
+            and re.search(rf"\b{re.escape(normalized_concept)}\b", normalize_compare(value))
+        ]
+        if containing_variants:
+            return sorted(
+                containing_variants,
+                key=lambda value: (len(normalize_compare(value).split()), len(value)),
+                reverse=True,
+            )[0]
+        exact_variant = next(
+            (value for value in supported_variants if normalize_compare(value) == normalized_concept),
+            None,
+        )
+        if exact_variant:
+            return exact_variant
         return sorted(supported_variants, key=lambda value: (len(normalize_compare(value).split()), len(value)), reverse=True)[0]
     return concept_term
 
@@ -216,7 +278,7 @@ def evidence_supported_surfaces(job_description: str) -> tuple[str, ...]:
             continue
         supported_variants = [
             str(value)
-            for value in entry.get("variants", ())
+            for value in entry.get("permitted_surfaces", ())
             if contains_search_term(job_description, str(value))
         ]
         for variant in sorted(supported_variants, key=lambda value: (len(normalize_compare(value).split()), len(value)), reverse=True):
@@ -243,17 +305,6 @@ def jd_preferred_surface(concept_term: str, job_description: str, supported_text
     if evidence_surface != concept:
         return evidence_surface
 
-    for resume_forms, jd_forms in JD_TERM_MIRROR:
-        normalized_forms = {normalize_compare(form) for form in (*resume_forms, *jd_forms)}
-        if normalized_concept not in normalized_forms:
-            continue
-        if supported_text:
-            supported = any(contains_search_term(supported_text, form) for form in (*resume_forms, *jd_forms))
-            if not supported:
-                return concept
-        for jd_form in jd_forms:
-            if contains_search_term(job_description, jd_form):
-                return jd_form
     return concept
 
 
@@ -655,6 +706,9 @@ AUDIT_ACTION_LEAD_WORDS = {
     "executes",
     "identify",
     "identifies",
+    "improve",
+    "improves",
+    "improving",
     "incorporate",
     "incorporates",
     "maintain",
@@ -782,6 +836,258 @@ BOILERPLATE_LINE_RE = re.compile(
 )
 
 IMPORTANT_SHORT_ATS_TERMS = {"ai", "bi", "cs", "cx", "erp", "qbr", "crm", "uat", "sql", "api", "sso", "etl", "kpi"}
+
+
+class KeywordCandidateClass(str, Enum):
+    REQUIREMENT = "requirement_concept"
+    COMPETENCY = "skill_tool_method"
+    DOMAIN = "domain_term"
+    NOISE = "excluded_noise"
+
+
+@dataclass(frozen=True)
+class KeywordCandidateClassification:
+    normalized: str
+    candidate_class: KeywordCandidateClass
+    validated_requirement: bool
+    reason: str
+    requirement_relation: str = "none"
+    validating_requirement_text: str = ""
+    alternative_group_id: str = ""
+    alternative_terms: tuple[str, ...] = ()
+
+
+KEYWORD_NOISE_SINGLETONS = {
+    "booking",
+    "engineering",
+    "external",
+    "focused",
+    "have",
+    "identify",
+    "internal",
+    "managing",
+    "operational",
+    "outcome",
+    "portfolio",
+    "profile",
+    "rather",
+    "scalable",
+    "strategy",
+    "trusted",
+}
+
+KEYWORD_NOISE_PHRASES = {
+    "between customer",
+    "same delivery",
+    "sql advanced excel",
+}
+
+KEYWORD_COMPETENCY_SINGLETONS = {
+    "adoption",
+    "analytics",
+    "automation",
+    "communication",
+    "configuration",
+    "consulting",
+    "customer",
+    "data",
+    "delivery",
+    "discovery",
+    "implementation",
+    "integration",
+    "measurement",
+    "migration",
+    "process",
+    "quality",
+    "reporting",
+    "scope",
+    "stakeholder",
+    "status",
+    "testing",
+    "technical",
+    "training",
+    "transformation",
+    "validation",
+    "workflow",
+}
+
+KEYWORD_DOMAIN_SIGNALS = {
+    "apparel",
+    "contact center",
+    "data center",
+    "fashion",
+    "federal",
+    "financial services",
+    "healthcare",
+    "legal",
+    "manufacturing",
+    "philanthropy",
+    "retail",
+    "saas",
+    "supply chain",
+    "textile",
+    "warehouse automation",
+    "warehouse operations",
+    "robotics integration",
+    "fulfillment operations",
+    "eprocurement",
+    "customer integration",
+}
+
+ROLE_NOUN_TAILS = {
+    "administrator",
+    "advisor",
+    "analyst",
+    "architect",
+    "consultant",
+    "coordinator",
+    "director",
+    "engineer",
+    "lead",
+    "manager",
+    "owner",
+    "specialist",
+}
+
+
+def _candidate_requirement_relation(
+    normalized: str,
+    matching_elements: tuple[object, ...],
+    job_title: str,
+    fallback_text: str = "",
+) -> tuple[str, str, tuple[str, ...]]:
+    """Classify whether the candidate performs a role or merely works with it."""
+
+    matched_texts = tuple(
+        str(getattr(element, "text", "")).strip()
+        for element in matching_elements
+        if str(getattr(element, "text", "")).strip()
+    )
+    if not matched_texts and fallback_text:
+        flexible = re.escape(normalized).replace(r"\ ", r"[\s-]+")
+        matched_texts = tuple(
+            line.strip()
+            for line in re.split(r"[\r\n]+|(?<=[.!?])\s+", fallback_text)
+            if line.strip() and re.search(rf"\b{flexible}s?\b", line, re.I)
+        )
+    alternative_elements = tuple(
+        element
+        for element in matching_elements
+        if getattr(element, "alternative_group_id", "")
+        and any(
+            normalize_compare(str(term)) == normalized
+            or contains_search_term(str(term), normalized)
+            for term in tuple(getattr(element, "alternative_terms", ()))
+        )
+    )
+    non_alternative_elements = tuple(
+        element
+        for element in matching_elements
+        if not getattr(element, "alternative_group_id", "")
+    )
+    if alternative_elements and not non_alternative_elements:
+        return "domain_alternative", matched_texts[0] if matched_texts else "", tuple(
+            str(term)
+            for term in getattr(alternative_elements[0], "alternative_terms", ())
+        )
+
+    parts = normalized.split()
+    is_role_noun = bool(parts and parts[-1] in ROLE_NOUN_TAILS)
+    if not is_role_noun:
+        return "assigned" if matched_texts else "none", matched_texts[0] if matched_texts else "", ()
+
+    escaped = re.escape(normalized).replace(r"\ ", r"[\s-]+")
+    assigned_re = re.compile(
+        rf"\b(?:serve|serves|served|act|acts|acted|function|functions|functioned)\s+as\s+(?:an?\s+|the\s+)?{escaped}s?\b"
+        rf"|\b(?:be|become|is|are|was|were)\s+(?:an?\s+|the\s+)?{escaped}s?\b",
+        re.I,
+    )
+    counterpart_re = re.compile(
+        rf"\b(?:partner|partners|partnered|collaborate|collaborates|collaborated|work|works|worked|"
+        rf"coordinate|coordinates|coordinated)\s+(?:closely\s+)?with\b[^.;:\n]{{0,80}}\b{escaped}s?\b",
+        re.I,
+    )
+    if normalized and (
+        normalize_compare(job_title) == normalized
+        or any(assigned_re.search(text) for text in matched_texts)
+    ):
+        return "assigned", next(
+            (text for text in matched_texts if assigned_re.search(text)),
+            matched_texts[0] if matched_texts else job_title,
+        ), ()
+    if any(counterpart_re.search(text) for text in matched_texts):
+        return "counterpart", next(
+            text for text in matched_texts if counterpart_re.search(text)
+        ), ()
+    return "assigned" if matching_elements else "none", matched_texts[0] if matched_texts else "", ()
+
+
+def _domain_candidate(normalized: str, matching_elements: tuple[object, ...]) -> bool:
+    if normalized in KEYWORD_DOMAIN_SIGNALS:
+        return True
+    if any(str(getattr(element, "category", "")) == "domain" for element in matching_elements):
+        return bool(
+            re.search(
+                r"\b(?:supply chain|warehouse|robotics|fulfillment|eprocurement|e procurement)\b",
+                normalized,
+                re.I,
+            )
+            or (
+                "customer integration" in normalized
+                and any(
+                    re.search(r"\beprocurement|e procurement|product|feature|capabilit", str(getattr(element, "text", "")), re.I)
+                    for element in matching_elements
+                )
+            )
+        )
+    return False
+
+KEYWORD_VALID_PHRASE_TAILS = {
+    "adoption",
+    "analysis",
+    "analytics",
+    "configuration",
+    "consulting",
+    "delivery",
+    "discovery",
+    "documentation",
+    "implementation",
+    "integration",
+    "management",
+    "migration",
+    "operations",
+    "optimization",
+    "outcome",
+    "planning",
+    "process",
+    "quality",
+    "readiness",
+    "reporting",
+    "requirements",
+    "service",
+    "support",
+    "testing",
+    "training",
+    "transformation",
+    "validation",
+    "workflow",
+}
+
+KEYWORD_GENERIC_REQUIREMENT_HEAD_TAILS = {
+    "client": {"adoption", "delivery", "reporting", "service", "support"},
+    "customer": {"adoption", "delivery", "reporting", "service", "support"},
+    "documentation": KEYWORD_VALID_PHRASE_TAILS,
+    "initiative": KEYWORD_VALID_PHRASE_TAILS,
+    "platform": {"adoption", "delivery", "reporting", "service", "support"},
+    "product": {"adoption", "delivery", "reporting", "service", "support"},
+    "service": {"reporting"},
+}
+
+KEYWORD_ACRONYM_BREADTH_TAILS = {
+    "analysis",
+    "analytics",
+    "reporting",
+}
 
 SUMMARY_PLACEMENT_TERMS = {
     "adoption", "ai-assisted", "analytics", "assessment", "automation", "bi", "business intelligence", "change", "client", "customer",
@@ -1328,6 +1634,8 @@ def keyword_occurrence_count(text: str, keyword: str) -> int:
 
 
 def canonical_audit_keyword(keyword: str) -> str:
+    if keyword == "status":
+        return keyword
     if keyword == "analyses":
         return "analysis"
     if keyword.endswith("ies") and len(keyword) > 4:
@@ -1336,9 +1644,222 @@ def canonical_audit_keyword(keyword: str) -> str:
         singular_base = keyword[:-2]
         if singular_base.endswith(("ss", "sh", "ch", "x", "z")):
             return singular_base
-    if keyword.endswith("s") and len(keyword) > 4 and not keyword.endswith(("ss", "ics", "us")):
+    if keyword.endswith("s") and len(keyword) > 4 and not keyword.endswith(("ss", "ics", "us", "is")):
         return keyword[:-1]
     return keyword
+
+
+def classify_keyword_candidate(
+    keyword: str,
+    job_description: str,
+    parsed_requirements: tuple[object, ...] = (),
+) -> KeywordCandidateClassification:
+    """Classify one literal before frequency or ranking can promote it."""
+
+    normalized = canonical_audit_keyword(normalize_compare(keyword))
+    if not normalized:
+        return KeywordCandidateClassification("", KeywordCandidateClass.NOISE, False, "empty")
+
+    if not parsed_requirements:
+        try:
+            from requirement_engine import parse_commercial_requirements
+
+            parsed_requirements = tuple(parse_commercial_requirements(job_description))
+        except Exception:
+            parsed_requirements = ()
+
+    matching_elements = tuple(
+        element
+        for element in parsed_requirements
+        if normalized in normalize_compare(str(getattr(element, "text", "")))
+        or contains_search_term(str(getattr(element, "text", "")), normalized)
+        or normalized
+        in {
+            normalize_compare(str(term))
+            for term in tuple(getattr(element, "canonical_terms", ()))
+            if normalize_compare(str(term))
+        }
+    )
+    validated = bool(matching_elements) or (
+        not parsed_requirements
+        and contains_search_term(role_requirement_text(job_description), normalized)
+    )
+    parts = normalized.split()
+    job_title = normalize_compare(extract_job_title(job_description) or "")
+    title_phrases = {normalize_compare(term) for term in title_phrase_candidates(job_description)}
+    relation, validating_text, alternative_terms = _candidate_requirement_relation(
+        normalized,
+        matching_elements,
+        job_title,
+        role_requirement_text(job_description),
+    )
+    if normalized in title_phrases:
+        relation = "assigned"
+        validating_text = validating_text or job_title
+    alternative_group_id = next(
+        (
+            str(getattr(element, "alternative_group_id", ""))
+            for element in matching_elements
+            if getattr(element, "alternative_group_id", "")
+        ),
+        "",
+    )
+
+    def classified(
+        candidate_class: KeywordCandidateClass,
+        is_validated: bool,
+        reason: str,
+    ) -> KeywordCandidateClassification:
+        return KeywordCandidateClassification(
+            normalized,
+            candidate_class,
+            is_validated,
+            reason,
+            relation,
+            validating_text,
+            alternative_group_id,
+            alternative_terms,
+        )
+
+    if normalized in KEYWORD_NOISE_SINGLETONS or normalized in KEYWORD_NOISE_PHRASES:
+        return classified(KeywordCandidateClass.NOISE, validated, "invalid standalone or malformed phrase")
+    if len(parts) > 1 and parts[0] in {"complex", "experienced"}:
+        return classified(
+            KeywordCandidateClass.NOISE,
+            validated,
+            "non-concept modifier fragment",
+        )
+    if len(parts) > 1 and (parts[-1] == "supply" or parts[0] == "chain"):
+        return classified(
+            KeywordCandidateClass.NOISE,
+            validated,
+            "partial domain phrase",
+        )
+    if (
+        len(parts) == 3
+        and parts[-2:] == ["supply", "chain"]
+        and parts[0] in IMPORTANT_SHORT_ATS_TERMS
+    ):
+        return classified(
+            KeywordCandidateClass.NOISE,
+            validated,
+            "overlapping acronym/domain fragment",
+        )
+    if _domain_candidate(normalized, matching_elements):
+        return classified(
+            KeywordCandidateClass.DOMAIN,
+            validated,
+            "validated domain surface or alternative family",
+        )
+    if normalized in {"customer facing", "client facing", "customer focused", "client focused"}:
+        return classified(
+            KeywordCandidateClass.REQUIREMENT,
+            validated,
+            "validated customer-delivery requirement",
+        )
+    if normalized == "consulting" and re.search(r"\bconsultants?\b", job_title):
+        relation = "assigned"
+        return classified(
+            KeywordCandidateClass.REQUIREMENT,
+            True,
+            "role-title consulting requirement",
+        )
+    if normalized in title_phrases:
+        return classified(KeywordCandidateClass.REQUIREMENT, True, "role-title requirement phrase")
+    catalog_entry = evidence_term_for_variant(normalized)
+    catalog_literal_present = bool(
+        catalog_entry
+        and any(
+            canonical_audit_keyword(normalize_compare(str(surface))) == normalized
+            and contains_search_term(job_description, str(surface))
+            for surface in tuple(catalog_entry.get("permitted_surfaces", ()))
+        )
+    )
+    catalog_validated = bool(
+        catalog_entry
+        and evidence_entry_context_supported(catalog_entry, job_description)
+        and catalog_literal_present
+    )
+    if catalog_validated:
+        concept = canonical_audit_keyword(normalize_compare(str(catalog_entry.get("concept", ""))))
+        if len(parts) == 1:
+            singleton_class = (
+                KeywordCandidateClass.DOMAIN
+                if normalized in KEYWORD_DOMAIN_SIGNALS
+                else KeywordCandidateClass.COMPETENCY
+            )
+            return classified(
+                singleton_class,
+                True,
+                "catalog singleton retained outside core",
+            )
+        if (
+            len(parts) >= 2
+            and parts[-1] in KEYWORD_GENERIC_REQUIREMENT_HEAD_TAILS.get(parts[0], set())
+            and normalized != concept
+            and not contains_search_term(job_description, concept)
+        ):
+            return classified(
+                KeywordCandidateClass.COMPETENCY,
+                True,
+                "generic catalog surface retained as breadth competency",
+            )
+        if relation == "counterpart":
+            return classified(
+                KeywordCandidateClass.COMPETENCY,
+                True,
+                "catalog-backed role appears only as a counterpart",
+            )
+        return classified(
+            KeywordCandidateClass.REQUIREMENT,
+            True,
+            "validated evidence-catalog requirement surface",
+        )
+    if normalized in AUDIT_BLOCKED_PHRASES or normalized in BULLET_PLACEMENT_EXCLUDED:
+        return classified(KeywordCandidateClass.NOISE, validated, "blocked low-signal phrase")
+    if breadth_term_is_noise(normalized) or is_low_signal_audit_keyword(normalized):
+        return classified(KeywordCandidateClass.NOISE, validated, "failed shared phrase-shape gate")
+    if any(part in STOP_WORDS for part in parts):
+        return classified(KeywordCandidateClass.NOISE, validated, "contains stopword fragment")
+    if parts and parts[0] in AUDIT_ACTION_LEAD_WORDS:
+        return classified(KeywordCandidateClass.NOISE, validated, "dangling action phrase")
+
+    if normalized in IMPORTANT_SHORT_ATS_TERMS or normalized in KEYWORD_COMPETENCY_SINGLETONS:
+        return classified(KeywordCandidateClass.COMPETENCY, validated, "recognized competency")
+    if (
+        len(parts) >= 2
+        and parts[-1] in KEYWORD_GENERIC_REQUIREMENT_HEAD_TAILS.get(parts[0], set())
+    ):
+        return classified(
+            KeywordCandidateClass.COMPETENCY,
+            validated,
+            "generic-head phrase retained as breadth competency",
+        )
+    if (
+        len(parts) >= 2
+        and parts[0] in IMPORTANT_SHORT_ATS_TERMS
+        and parts[-1] in KEYWORD_ACRONYM_BREADTH_TAILS
+    ):
+        return classified(
+            KeywordCandidateClass.COMPETENCY,
+            validated,
+            "tool-reporting phrase retained as breadth competency",
+        )
+    if len(parts) >= 2 and (
+        parts[-1] in KEYWORD_VALID_PHRASE_TAILS
+        or any(part in IMPORTANT_SHORT_ATS_TERMS for part in parts)
+    ):
+        return classified(
+            KeywordCandidateClass.REQUIREMENT,
+            validated,
+            "validated requirement-shaped phrase",
+        )
+    element_categories = {str(getattr(element, "category", "")) for element in matching_elements}
+    if "domain" in element_categories or normalized in KEYWORD_DOMAIN_SIGNALS:
+        return classified(KeywordCandidateClass.DOMAIN, validated, "validated domain surface")
+    if "skill_tool" in element_categories:
+        return classified(KeywordCandidateClass.COMPETENCY, validated, "validated skill or tool")
+    return classified(KeywordCandidateClass.NOISE, validated, "not requirement or competency shaped")
 
 
 def affiliate_company_tokens(job_description: str) -> set[str]:
@@ -1388,6 +1909,75 @@ def repeated_keyword_is_signal(keyword: str, job_description: str, title_phrases
     if "-" in normalized:
         return hits >= 2 and len(normalized) >= 6
     return hits >= 3 and len(normalized) >= 6
+
+
+def collapse_core_concept_families(
+    keywords: set[str],
+    job_description: str,
+) -> set[str]:
+    """Keep one scoring surface for each catalog-backed requirement concept.
+
+    Exact JD surfaces remain available to breadth/placement diagnostics. Core
+    coverage, however, must not count every permitted spelling of the same
+    evidence concept as a separate requirement.
+    """
+    ungrouped: set[str] = set()
+    grouped: dict[str, list[str]] = {}
+    concept_names: dict[str, str] = {}
+    for keyword in keywords:
+        entry = evidence_term_for_variant(keyword)
+        concept_id = str((entry or {}).get("concept_id", "")).strip()
+        if not entry or not concept_id:
+            ungrouped.add(keyword)
+            continue
+        grouped.setdefault(concept_id, []).append(keyword)
+        concept_names[concept_id] = normalize_compare(str(entry.get("concept", "")))
+
+    collapsed = set(ungrouped)
+    for concept_id, surfaces in grouped.items():
+        concept_name = concept_names.get(concept_id, "")
+        def assigned_literal_score(surface: str) -> int:
+            score = 0
+            assigned_action_re = re.compile(
+                r"\b(?:own|owns|owned|lead|leads|led|drive|drives|drove|"
+                r"manage|manages|managed|deliver|delivers|delivered|"
+                r"implement|implements|implemented|coordinate|coordinates|"
+                r"coordinated|maintain|maintains|maintained|responsible for|"
+                r"serve as|act as|function as)\b",
+                re.I,
+            )
+            counterpart_re = re.compile(
+                r"\b(?:partner|collaborate|work|coordinate)\w*\s+"
+                r"(?:closely\s+)?with\b",
+                re.I,
+            )
+            for line in re.split(r"[\r\n]+|(?<=[.!?])\s+", job_description):
+                if not contains_search_term(line, surface):
+                    continue
+                line_score = 1
+                if assigned_action_re.search(line):
+                    line_score += 3
+                if counterpart_re.search(line):
+                    line_score -= 4
+                score = max(score, line_score)
+            return score
+
+        collapsed.add(
+            max(
+                surfaces,
+                key=lambda surface: (
+                    assigned_literal_score(surface),
+                    normalize_compare(surface) == concept_name,
+                    keyword_occurrence_count(job_description, surface),
+                    len(normalize_compare(surface).split()),
+                    len(surface),
+                    normalize_compare(surface),
+                    surface,
+                ),
+            )
+        )
+    return collapsed
+
 
 def audit_keywords(job_description: str) -> set[str]:
     blocked = {
@@ -1442,6 +2032,12 @@ def audit_keywords(job_description: str) -> set[str]:
     consulting_mode = is_general_management_consulting_role(original_job_description)
     keywords: set[str] = set()
     for keyword in keyword_set(job_description):
+        classification = classify_keyword_candidate(keyword, original_job_description, tuple(parsed_requirements))
+        if (
+            classification.candidate_class != KeywordCandidateClass.REQUIREMENT
+            or not classification.validated_requirement
+        ):
+            continue
         if len(keyword) >= 4 \
             and keyword not in blocked \
             and keyword != company_name \
@@ -1476,6 +2072,9 @@ def audit_keywords(job_description: str) -> set[str]:
         keywords.add("analytics and reporting")
     if jd_mentions(job_description, "ai-assisted", "ai guided", "ai-guided"):
         keywords.add("ai-assisted")
+    if contains_search_term(original_job_description, "go-live"):
+        keywords.discard("go live")
+        keywords.add("go-live")
 
     if consulting_mode:
         keywords = {
@@ -1484,8 +2083,16 @@ def audit_keywords(job_description: str) -> set[str]:
             if " " not in keyword or not all(part in keywords for part in keyword.split())
         }
     for element in parsed_requirements:
-        if element.category in {"skill_tool", "domain"} or "training adaptation" in element.canonical_terms:
-            keywords.update(element.canonical_terms)
+        keywords.update(
+            term
+            for term in element.canonical_terms
+            if classify_keyword_candidate(
+                term,
+                original_job_description,
+                tuple(parsed_requirements),
+            ).candidate_class
+            == KeywordCandidateClass.REQUIREMENT
+        )
     if parsed_requirements:
         requirement_vocabulary = {
             "adoption", "analytics", "client", "communication", "configuration", "customer", "data",
@@ -1497,8 +2104,25 @@ def audit_keywords(job_description: str) -> set[str]:
             term
             for term in requirement_vocabulary
             if re.search(rf"\b{re.escape(term)}s?\b", scoped_normalized)
+            and classify_keyword_candidate(term, original_job_description, tuple(parsed_requirements)).candidate_class
+            == KeywordCandidateClass.REQUIREMENT
         )
-    return keywords
+    for entry in evidence_terms():
+        for surface in tuple(str(value) for value in entry.get("permitted_surfaces", ())):
+            normalized_surface = canonical_audit_keyword(normalize_compare(surface))
+            if not normalized_surface or not contains_search_term(original_job_description, surface):
+                continue
+            classification = classify_keyword_candidate(
+                normalized_surface,
+                original_job_description,
+                tuple(parsed_requirements),
+            )
+            if (
+                classification.candidate_class == KeywordCandidateClass.REQUIREMENT
+                and classification.validated_requirement
+            ):
+                keywords.add(re.sub(r"\s+", " ", surface.strip().lower()))
+    return collapse_core_concept_families(keywords, original_job_description)
 
 
 def is_unsupported_do_not_insert(keyword: str, resume_text: str, job_description: str = "") -> bool:
@@ -1584,11 +2208,6 @@ def ats_scan_terms(job_description: str, *, limit: int = 25) -> list[str]:
     for element in parsed_requirements:
         candidates.update(element.canonical_terms)
 
-    for resume_forms, jd_forms in JD_TERM_MIRROR:
-        if any(contains_search_term(original_job_description, form) for form in jd_forms):
-            candidates.update(jd_forms)
-        elif any(contains_search_term(original_job_description, form) for form in resume_forms):
-            candidates.update(resume_forms)
     candidates.update(evidence_supported_surfaces(original_job_description))
 
     phrase_blockers = {
@@ -1642,8 +2261,18 @@ def ats_scan_terms(job_description: str, *, limit: int = 25) -> list[str]:
     }
 
     def keep(term: str) -> bool:
-        normalized = canonical_audit_keyword(term)
+        normalized = canonical_audit_keyword(normalize_compare(term))
         if not normalized or len(normalized) < 3:
+            return False
+        classification = classify_keyword_candidate(
+            normalized,
+            original_job_description,
+            tuple(parsed_requirements),
+        )
+        if (
+            classification.candidate_class == KeywordCandidateClass.NOISE
+            or not classification.validated_requirement
+        ):
             return False
         if normalized.isdigit() or normalized in STOP_WORDS:
             return False
@@ -1651,6 +2280,16 @@ def ats_scan_terms(job_description: str, *, limit: int = 25) -> list[str]:
             return False
         if " " in normalized and any(part in company_tokens for part in normalized.split()) and normalized not in title_phrases:
             return False
+        if classification.reason == "validated evidence-catalog requirement surface":
+            entry = evidence_term_for_variant(normalized)
+            return bool(
+                entry
+                and any(
+                    canonical_audit_keyword(normalize_compare(str(surface))) == normalized
+                    and contains_search_term(original_job_description, str(surface))
+                    for surface in tuple(entry.get("permitted_surfaces", ()))
+                )
+            )
         if normalized in BULLET_PLACEMENT_EXCLUDED or normalized in AUDIT_BLOCKED_PHRASES:
             return False
         if breadth_term_is_noise(normalized):
@@ -1877,6 +2516,37 @@ def breadth_term_is_noise(term: str) -> bool:
 
 
 def collapse_breadth_compound_families(terms: list[str], job_description: str) -> list[str]:
+    catalog_groups: dict[str, list[str]] = {}
+    ungrouped_terms: list[str] = []
+    for term in terms:
+        entry = evidence_term_for_variant(term)
+        concept_id = str((entry or {}).get("concept_id", "")).strip()
+        if concept_id:
+            catalog_groups.setdefault(concept_id, []).append(term)
+        else:
+            ungrouped_terms.append(term)
+    catalog_representatives: list[str] = []
+    for family in catalog_groups.values():
+        entry = evidence_term_for_variant(family[0]) or {}
+        preferred = evidence_preferred_surface(str(entry.get("concept", family[0])), job_description)
+        representative = next(
+            (
+                term
+                for term in family
+                if normalize_compare(term) == normalize_compare(preferred)
+            ),
+            max(
+                family,
+                key=lambda term: (
+                    keyword_occurrence_count(job_description, term),
+                    len(normalize_compare(term).split()),
+                    len(term),
+                ),
+            ),
+        )
+        catalog_representatives.append(representative)
+
+    terms = [*ungrouped_terms, *catalog_representatives]
     grouped: dict[str, list[str]] = {}
     passthrough: list[str] = []
     for term in terms:
@@ -1906,7 +2576,42 @@ def collapse_breadth_compound_families(terms: list[str], job_description: str) -
             if normalized and normalized not in seen:
                 collapsed.append(term)
                 seen.add(normalized)
-    return sorted(collapsed, key=lambda keyword: audit_keyword_sort_key(job_description, keyword), reverse=True)
+    ordered = sorted(
+        collapsed,
+        key=lambda keyword: (
+            keyword_occurrence_count(job_description, keyword),
+            -len(normalize_compare(keyword).split()),
+            audit_keyword_sort_key(job_description, keyword),
+        ),
+        reverse=True,
+    )
+    reconciled: list[str] = []
+    for term in ordered:
+        term_parts = normalize_compare(term).split()
+        term_class = classify_keyword_candidate(term, job_description).candidate_class
+        overlaps = False
+        for kept in reconciled:
+            if classify_keyword_candidate(kept, job_description).candidate_class != term_class:
+                continue
+            kept_parts = normalize_compare(kept).split()
+            shorter, longer = (
+                (term_parts, kept_parts)
+                if len(term_parts) <= len(kept_parts)
+                else (kept_parts, term_parts)
+            )
+            if any(
+                longer[index : index + len(shorter)] == shorter
+                for index in range(len(longer) - len(shorter) + 1)
+            ):
+                overlaps = True
+                break
+        if not overlaps:
+            reconciled.append(term)
+    return sorted(
+        reconciled,
+        key=lambda keyword: audit_keyword_sort_key(job_description, keyword),
+        reverse=True,
+    )
 
 
 def jd_explicitly_requires_erp(job_description: str) -> bool:

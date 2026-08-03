@@ -49,8 +49,23 @@ class Task:
 
 
 TASKS: dict[str, Task] = {
-    "validate": Task("Run the smoke test and print a pass/fail summary.", ("scripts/smoke_test.py",), False),
+    "validate": Task("Run the smoke suite; add --federal and/or --alignment for focused checks with visible progress.", ("scripts/smoke_test.py",), False),
     "source-lint": Task("Validate source resume bullets before JD-specific tailoring selects them.", ("scripts/source_lint.py",), False),
+    "keyword-corpus": Task(
+        "Project keyword/policy outcomes for archived fixtures or exact DOCX paths from --rebuild-manifest; add --ownership-only for the lightweight skim audit.",
+        ("scripts/keyword_reliability_corpus.py",),
+        False,
+    ),
+    "fresh-keyword-corpus": Task(
+        "Rebuild isolated recent/legacy keyword corpora without touching active jobs or output; supports --corpus, --batch-dir, --workers, and --fixture.",
+        ("scripts/fresh_corpus_rebuild.py",),
+        False,
+    ),
+    "balanced-promotion-report": Task(
+        "Create the safety/disruption summary and Claude decision packet from fresh recent and legacy CSVs.",
+        ("scripts/balanced_promotion_report.py",),
+        False,
+    ),
     "integration-test": Task("Run the end-to-end function-chain integration test.", ("scripts/integration_test.py",), False),
     "morning": Task("Show a one-screen job-search briefing.", (), False),
     "ci": Task("Show how to run or trigger the GitHub Actions smoke-test workflow.", (), False),
@@ -67,7 +82,7 @@ TASKS: dict[str, Task] = {
     ),
     "dry-run": Task("Validate the current job description and planned workflow without writing files.", ("scripts/run_resume_workflow.py", "--dry-run"), False),
     "resume": Task(
-        "Build the tailored commercial workflow. Optional flags: --resume-only, --skip-cover-letter, --include-cheat-sheet, --include-detailed-guide.",
+        "Build the tailored commercial workflow. Optional flags include --keyword-policy advisory|balanced|exhaustive.",
         ("scripts/run_resume_workflow.py",),
     ),
     "federal-dry-run": Task("Validate the federal job description and federal resume workflow without writing files.", ("scripts/run_federal_resume_workflow.py", "--dry-run"), False),
@@ -494,8 +509,12 @@ def term_occurrences(text: str, term: str) -> int:
     return len(re.findall(rf"\b{re.escape(normalized)}\b", text, flags))
 
 
-def coverage_status(term: str, resume_text: str) -> str:
-    if term_occurrences(resume_text, term):
+def coverage_status(term: str, resume_text: str, *, contains_search_term: object | None = None) -> str:
+    """Report display coverage using the same matching rule as alignment scoring."""
+    matcher = contains_search_term
+    if callable(matcher) and matcher(resume_text, term):
+        return "COVERED"
+    if matcher is None and term_occurrences(resume_text, term):
         return "COVERED"
     parts = [
         part
@@ -575,7 +594,19 @@ def run_check() -> int:
     keywords = build_resume.audit_keywords(job_description)
     ranked_keywords = sorted(
         (
-            (keyword, term_occurrences(job_description, keyword), coverage_status(keyword, resume_text))
+            (
+                keyword,
+                term_occurrences(job_description, keyword),
+                (
+                    "EXCLUDED"
+                    if build_resume.is_unsupported_do_not_insert(keyword, resume_text, job_description)
+                    else coverage_status(
+                        keyword,
+                        resume_text,
+                        contains_search_term=build_resume.contains_search_term,
+                    )
+                ),
+            )
             for keyword in keywords
         ),
         key=lambda item: (item[1], item[2] == "COVERED", len(item[0].split()), len(item[0]), item[0]),
@@ -717,6 +748,9 @@ def print_ci_instructions() -> int:
     print()
     print("Local smoke test:")
     print("  python tasks.py validate")
+    print("Focused smoke checks (combinable):")
+    print("  python tasks.py validate --federal")
+    print("  python tasks.py validate --alignment")
     print()
     print("Local GitHub Actions workflow with act, if installed:")
     print("  act push -W .github/workflows/smoke_test.yml")
@@ -729,7 +763,7 @@ def print_ci_instructions() -> int:
     print("  pre-commit install")
     print("  pre-commit run --all-files")
     print()
-    print("The CI workflow and pre-commit hook both run: python scripts/smoke_test.py")
+    print("The CI workflow and pre-commit hook run the full suite: python tasks.py validate")
     return 0
 
 
@@ -776,27 +810,31 @@ def run_align() -> int:
         job_description,
         build_resume.extract_output_name(job_description),
     )
-    keywords = build_resume.audit_keywords(job_description)
+    keyword_coverage = report["keyword_coverage"]
+    if not isinstance(keyword_coverage, dict):
+        raise ValueError("alignment_score_report returned invalid keyword coverage data")
     missing_keywords = sorted(
-        (
-            keyword
-            for keyword in keywords
-            if coverage_status(keyword, resume_text) == "MISSING"
-        ),
-        key=lambda keyword: (term_occurrences(job_description, keyword), len(keyword.split()), len(keyword), keyword),
+        (str(keyword) for keyword in keyword_coverage.get("uncovered_keywords", [])),
+        key=lambda keyword: build_resume.audit_keyword_sort_key(job_description, keyword),
         reverse=True,
     )[:5]
+    excluded_keywords = sorted(
+        (str(keyword) for keyword in keyword_coverage.get("excluded_keywords", [])),
+        key=lambda keyword: build_resume.audit_keyword_sort_key(job_description, keyword),
+        reverse=True,
+    )
 
     print("Alignment Score Report")
     print(f"  Source: {selected_resume.name}")
     print(f"  Score: {report['total_score']}/{report['score_scale_max']}")
     print(f"  Grade: {report['grade']}")
     print(f"  Gate: {decision}")
-    print(f"  Keyword coverage: {report['keyword_coverage']['score']}/30 ({report['keyword_coverage']['covered']}/{report['keyword_coverage']['total_keywords']})")
-    print(f"  Lane fit: {report['lane_fit']['score']}/25 (direct={report['lane_fit']['direct']}, unsupported={report['lane_fit']['unsupported']})")
-    print(f"  Specialty fit: {report['specialty_fit']['score']}/15")
-    print(f"  Business context: {report['business_context']['score']}/25")
-    print(f"  Outcome density: {report['outcome_density']['score']}/20")
+    print(f"  Requirement coverage: {report['requirement_coverage']['score']}/{report['requirement_coverage']['max_score']} (direct={report['requirement_coverage']['direct']}, adjacent={report['requirement_coverage']['adjacent']}, unsupported={report['requirement_coverage']['unsupported']})")
+    print(f"  Keyword coverage: {keyword_coverage['score']}/{keyword_coverage['max_score']} ({keyword_coverage['covered']}/{keyword_coverage['total_keywords']})")
+    print(f"  Lane fit: {report['lane_fit']['score']}/{report['lane_fit']['max_score']} (direct={report['lane_fit']['direct']}, unsupported={report['lane_fit']['unsupported']})")
+    print(f"  Specialty fit: {report['specialty_fit']['score']}/{report['specialty_fit']['max_score']}")
+    print(f"  Business context: {report['business_context']['score']}/{report['business_context']['max_score']}")
+    print(f"  Outcome density: {report['outcome_density']['score']}/{report['outcome_density']['max_score']}")
     print()
     print("Top Missing Keywords")
     if missing_keywords:
@@ -804,6 +842,13 @@ def run_align() -> int:
             print(f"  - {keyword}")
     else:
         print("  - None")
+    if excluded_keywords:
+        print()
+        print("Unsupported platform requirements (do not add without source evidence)")
+        for keyword in excluded_keywords[:5]:
+            print(f"  - {keyword}")
+        if len(excluded_keywords) > 5:
+            print(f"  - And {len(excluded_keywords) - 5} more")
     print()
     print("Recommended Actions")
     for action in actions[:5]:
@@ -871,6 +916,7 @@ def archive_environment_for_command(command_name: str) -> dict[str, str]:
         workflow_type="commercial",
         source_command=command_name,
         archive_reason="command_auto_archive",
+        dedupe_by_content=True,
     )
     env[job_context_archive.SNAPSHOT_ID_ENV] = snapshot.snapshot_id
     env[job_context_archive.SNAPSHOT_PATH_ENV] = str(snapshot.path)
