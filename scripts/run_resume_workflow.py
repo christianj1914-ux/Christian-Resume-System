@@ -6,9 +6,9 @@ from __future__ import annotations
 import argparse
 import os
 import re
+import shutil
 import subprocess
 import sys
-import tempfile
 import zipfile
 from dataclasses import dataclass
 from datetime import datetime
@@ -28,10 +28,13 @@ from config.paths import (
     SCRIPTS_DIR,
     SCRATCH_RENDER_LOGS,
     SOURCE_DIR,
+    OUTPUT_DIR,
 )
 import job_context_archive
 from utils import read_text, remove_linkedin_hyperlinks, validate_job_description
 import workspace_health
+import workflow_step_runner
+from config.keyword_policy import DEFAULT_KEYWORD_POLICY, KEYWORD_POLICIES
 
 LOG_DIR = SCRATCH_RENDER_LOGS
 PYTHON = PYTHON_EXECUTABLE
@@ -53,6 +56,7 @@ DRY_RUN_INVALID_TITLES = {
     "what you will do",
     "what you'll do",
 }
+STEP_TIMEOUT_SECONDS = 600
 
 
 @dataclass(frozen=True)
@@ -66,6 +70,7 @@ class StepResult:
     cover_warnings: list[str]
     preflight_warnings: list[str]
     trace_path: Path | None = None
+    timed_out: bool = False
 
     @property
     def output(self) -> str:
@@ -84,7 +89,7 @@ def write_log(step_name: str, stdout: str, stderr: str) -> Path:
     snapshot_id = os.environ.get("JOB_CONTEXT_SNAPSHOT_ID", "").strip()
     snapshot_line = f"JOB CONTEXT SNAPSHOT: {snapshot_id}\n" if snapshot_id else ""
     path.write_text(
-        f"STEP: {step_name}\n{snapshot_line}\nSTDOUT\n{stdout}\n\nSTDERR\n{stderr}\n",
+        f"STEP: {step_name}\n{snapshot_line}\nSTDOUT\n{stdout or ''}\n\nSTDERR\n{stderr or ''}\n",
         encoding="utf-8",
     )
     return path
@@ -92,51 +97,61 @@ def write_log(step_name: str, stdout: str, stderr: str) -> Path:
 
 def run_step(step_name: str, script_name: str) -> StepResult:
     print(f"\n{step_name}...")
-    result = subprocess.run(
-        [str(PYTHON), str(SCRIPTS_DIR / script_name)],
-        cwd=str(PROJECT_ROOT),
-        capture_output=True,
-        text=True,
+    process_result = workflow_step_runner.run_document_step(
+        step_name=step_name,
+        command=[str(PYTHON), str(SCRIPTS_DIR / script_name)],
+        cwd=PROJECT_ROOT,
+        output_dir=OUTPUT_DIR,
+        log_dir=LOG_DIR,
+        timeout_seconds=STEP_TIMEOUT_SECONDS,
     )
-    log_path = write_log(step_name, result.stdout, result.stderr)
-    if result.stdout.strip():
-        print(result.stdout.strip())
-    output = "\n".join(part for part in (result.stdout, result.stderr) if part)
+    stdout = process_result.stdout
+    stderr = process_result.stderr
+    returncode = process_result.returncode
+    timed_out = process_result.timed_out
+    if process_result.quarantine_path:
+        print(f"Timed-out output quarantined: {process_result.quarantine_path}")
+    log_path = write_log(step_name, stdout, stderr)
+    if stdout.strip():
+        print(stdout.strip())
+    output = "\n".join(part for part in (stdout, stderr) if part)
     trace_match = re.search(r"COVER LETTER TRACE:\s*(.+)", output)
     trace_path = Path(trace_match.group(1).strip()) if trace_match else None
     specificity_warnings: list[str] = []
     cover_warnings: list[str] = []
     preflight_warnings: list[str] = []
-    if result.returncode != 0:
-        print_failure_summary(step_name, result.stdout, result.stderr, log_path)
+    if returncode != 0:
+        print_failure_summary(step_name, stdout, stderr, log_path)
     else:
         try:
             specificity_warnings, cover_warnings, preflight_warnings = repair_generated_docx_outputs(output)
         except Exception as error:  # noqa: BLE001
-            failure_stderr = (result.stderr.rstrip() + "\n" if result.stderr.strip() else "") + f"ERROR: {error}\n"
-            log_path = write_log(step_name, result.stdout, failure_stderr)
-            print_failure_summary(step_name, result.stdout, failure_stderr, log_path)
+            failure_stderr = (stderr.rstrip() + "\n" if stderr.strip() else "") + f"ERROR: {error}\n"
+            log_path = write_log(step_name, stdout, failure_stderr)
+            print_failure_summary(step_name, stdout, failure_stderr, log_path)
             return StepResult(
                 name=step_name,
                 returncode=1,
-                stdout=result.stdout,
+                stdout=stdout,
                 stderr=failure_stderr,
                 log_path=log_path,
                 trace_path=trace_path,
                 specificity_warnings=[],
                 cover_warnings=[],
                 preflight_warnings=[],
+                timed_out=timed_out,
             )
     return StepResult(
         name=step_name,
-        returncode=result.returncode,
-        stdout=result.stdout,
-        stderr=result.stderr,
+        returncode=returncode,
+        stdout=stdout,
+        stderr=stderr,
         log_path=log_path,
         trace_path=trace_path,
         specificity_warnings=specificity_warnings,
         cover_warnings=cover_warnings,
         preflight_warnings=preflight_warnings,
+        timed_out=timed_out,
     )
 
 
@@ -293,6 +308,8 @@ def print_failure_summary(step_name: str, stdout: str, stderr: str, log_path: Pa
 
 
 def failure_kind(result: StepResult) -> str:
+    if result.timed_out:
+        return "outer_timeout"
     output = result.output.lower()
     if "resume gap blocker" in output:
         return "resume_gap_blocker"
@@ -306,8 +323,8 @@ def failure_kind(result: StepResult) -> str:
         return "missing_resume_output"
     if "permissionerror" in output or "being used by another process" in output or "access is denied" in output:
         return "file_locked"
-    if "render_docx" in output or "artifact-tool" in output or "timed out" in output:
-        return "render_or_timeout"
+    if "render_docx" in output or "artifact-tool" in output:
+        return "render_failure"
     if "traceback" in output:
         return "unexpected_traceback"
     return "validation_failure"
@@ -338,6 +355,8 @@ def explain_unresolved(result: StepResult) -> None:
         print("Next action: close the matching Word document in the output or render_check folder, then run again.")
     elif kind == "resume_gap_blocker":
         print("Next action: fix the resume blockers listed above first. The system stopped before building downstream documents that would overstate the fit.")
+    elif kind == "outer_timeout":
+        print("Next action: the step exceeded the ten-minute workflow limit. Review the log and quarantined output before rerunning it.")
     elif kind == "validation_failure":
         print("Next action: review the validation message above. The system stopped to avoid creating a partial or unsafe file.")
     else:
@@ -360,7 +379,7 @@ def run_with_recovery(step_name: str, script_name: str, *, can_rebuild_resume: b
             print("Recovery succeeded.")
         return retry
 
-    if kind in {"render_or_timeout", "unexpected_traceback"}:
+    if kind == "render_failure":
         print("\nRecovery: retrying once in case this was a temporary render or file-system issue.")
         retry = run_step(f"{step_name} retry", script_name)
         if retry.ok:
@@ -512,10 +531,19 @@ def run_dry_run() -> int:
             existing_resumes[0],
             source_resume_text=selected_resume_text,
             audit_status="PASS",
+            keyword_policy=os.environ.get("RESUME_KEYWORD_POLICY", DEFAULT_KEYWORD_POLICY),
+        )
+        print(
+            f"  Tailoring status: {readiness.tailoring_status} "
+            f"(policy: {readiness.keyword_policy})"
         )
         if readiness.hard_blockers:
-            print("  Cover letter can still build, but it should bridge these resume gaps honestly:")
+            print("  Dependent documents would be blocked by the selected keyword policy:")
             for gap in readiness.hard_blockers[:3]:
+                print(f"    - {build_resume.resume_gap_summary_line(gap)}")
+        elif readiness.fit_blockers:
+            print("  Cover letter can build and should bridge these fit gaps honestly:")
+            for gap in readiness.fit_blockers[:3]:
                 print(f"    - {build_resume.resume_gap_summary_line(gap)}")
         else:
             print("  Cover letter build would have the resume it needs.")
@@ -546,11 +574,22 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--include-detailed-guide", action="store_true", help="Also build the deep interview guide.")
     parser.add_argument("--dry-run", action="store_true", help="Validate inputs and print the planned workflow without writing files.")
     parser.add_argument("--skip-cover-letter", action="store_true", help="Skip the cover letter step (for temp/recruiter roles where no cover letter is needed).")
+    parser.add_argument(
+        "--keyword-policy",
+        choices=KEYWORD_POLICIES,
+        default=os.environ.get("RESUME_KEYWORD_POLICY", DEFAULT_KEYWORD_POLICY),
+        help="Keyword gating policy; balanced is the production default.",
+    )
     return parser.parse_args(argv)
 
 
 def main() -> None:
     args = parse_args()
+    os.environ["RESUME_KEYWORD_POLICY"] = getattr(
+        args,
+        "keyword_policy",
+        DEFAULT_KEYWORD_POLICY,
+    )
     if args.resume_only and (args.include_cheat_sheet or args.include_detailed_guide):
         raise SystemExit("--resume-only cannot be combined with interview-output options.")
     workspace_health.ensure_workspace_health_or_exit("The standard commercial workflow")

@@ -6,7 +6,6 @@ from __future__ import annotations
 import argparse
 import re
 import shutil
-import subprocess
 import sys
 import uuid
 from dataclasses import dataclass
@@ -22,9 +21,11 @@ _bootstrap.configure_fresh_pycache(PROJECT_ROOT)
 
 from config.paths import FEDERAL_ESSAY_SOURCE, FEDERAL_JOB_DESCRIPTION, FEDERAL_RESUME_SOURCE, OUTPUT_DIR, PYTHON_EXECUTABLE, SCRIPTS_DIR
 import workspace_health
+import workflow_step_runner
 
 PYTHON = PYTHON_EXECUTABLE
 LOG_DIR = PROJECT_ROOT / "scratch" / "run_logs"
+STEP_TIMEOUT_SECONDS = 600
 
 
 @dataclass(frozen=True)
@@ -34,6 +35,7 @@ class StepResult:
     stdout: str
     stderr: str
     log_path: Path
+    timed_out: bool = False
 
     @property
     def output(self) -> str:
@@ -58,21 +60,32 @@ def write_log(step_name: str, stdout: str, stderr: str) -> Path:
 
 def run_step(step_name: str, script_name: str) -> StepResult:
     print(f"\n{step_name}...")
-    result = subprocess.run(
-        [str(PYTHON), str(SCRIPTS_DIR / script_name)],
-        cwd=str(PROJECT_ROOT),
-        capture_output=True,
-        text=True,
+    process_result = workflow_step_runner.run_document_step(
+        step_name=step_name,
+        command=[str(PYTHON), str(SCRIPTS_DIR / script_name)],
+        cwd=PROJECT_ROOT,
+        output_dir=OUTPUT_DIR,
+        log_dir=LOG_DIR,
+        timeout_seconds=STEP_TIMEOUT_SECONDS,
     )
-    log_path = write_log(step_name, result.stdout, result.stderr)
-    if result.stdout.strip():
-        print(result.stdout.strip())
-    if result.returncode != 0:
+    log_path = write_log(step_name, process_result.stdout, process_result.stderr)
+    if process_result.quarantine_path:
+        print(f"Timed-out output quarantined: {process_result.quarantine_path}")
+    if process_result.stdout.strip():
+        print(process_result.stdout.strip())
+    if process_result.returncode != 0:
         print(f"{step_name}: FAILED (log: {log_path})")
-        print_failure_summary(step_name, result.stdout, result.stderr, log_path)
+        print_failure_summary(step_name, process_result.stdout, process_result.stderr, log_path)
     else:
         print(f"{step_name}: SUCCESS (log: {log_path})")
-    return StepResult(step_name, result.returncode, result.stdout, result.stderr, log_path)
+    return StepResult(
+        step_name,
+        process_result.returncode,
+        process_result.stdout,
+        process_result.stderr,
+        log_path,
+        timed_out=process_result.timed_out,
+    )
 
 
 def print_failure_summary(step_name: str, stdout: str, stderr: str, log_path: Path) -> None:
@@ -99,7 +112,9 @@ def print_failure_summary(step_name: str, stdout: str, stderr: str, log_path: Pa
 def explain_unresolved(result: StepResult) -> None:
     output = result.output.lower()
     print("\nI could not safely repair this federal build automatically.")
-    if "federal_job_description.txt is empty" in output:
+    if result.timed_out:
+        print("Next action: the step exceeded the ten-minute workflow limit. Review the log and quarantined output before rerunning it.")
+    elif "federal_job_description.txt is empty" in output:
         print("Next action: paste one complete federal posting or questionnaire into jobs\\federal_job_description.txt, then run again.")
     elif "agency name or job title" in output:
         print("Next action: add an Agency: or Role: line near the top of jobs\\federal_job_description.txt.")

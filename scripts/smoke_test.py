@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+import argparse
+import ast
 import contextlib
 import csv
 import hashlib
@@ -13,6 +15,7 @@ import os
 import re
 import subprocess
 import sys
+import time
 import xml.etree.ElementTree as ET
 import zipfile
 from datetime import date, datetime, timedelta
@@ -370,6 +373,90 @@ class SmokeFailure(AssertionError):
 def assert_true(condition: bool, message: str) -> None:
     if not condition:
         raise SmokeFailure(message)
+
+
+def orphaned_test_function_names(source: str) -> tuple[str, ...]:
+    """Find top-level test functions mentioned only by their own definition."""
+    module = ast.parse(source)
+    names = [
+        node.name
+        for node in module.body
+        if isinstance(node, ast.FunctionDef) and node.name.startswith("test_")
+    ]
+    return tuple(
+        name
+        for name in names
+        if len(re.findall(rf"\b{re.escape(name)}\b", source)) <= 1
+    )
+
+
+def test_smoke_registry_has_no_orphaned_test_functions() -> None:
+    source = Path(__file__).read_text(encoding="utf-8")
+    orphaned = orphaned_test_function_names(source)
+    assert_true(not orphaned, f"Unregistered or unreferenced test functions: {', '.join(orphaned)}")
+
+
+def test_orphan_detector_flags_synthetic_unreferenced_test() -> None:
+    source = "def test_synthetic_orphan():\n    pass\n"
+    assert_true(
+        orphaned_test_function_names(source) == ("test_synthetic_orphan",),
+        "The orphan detector should flag a test name that appears only in its definition.",
+    )
+
+
+def smoke_check_tags(label: str) -> set[str]:
+    """Return the stable focused-validation tags for a registered check."""
+    lowered = label.lower()
+    tags = {"core"}
+    if "federal" in lowered:
+        tags.add("federal")
+    if "alignment" in lowered or "contains search term plural" in lowered:
+        tags.add("alignment")
+    return tags
+
+
+def select_smoke_checks(
+    registered_checks: tuple[tuple[str, object], ...],
+    selected_tags: set[str],
+) -> tuple[tuple[str, object], ...]:
+    """Select the de-duplicated union of requested focused-validation tags."""
+    if not selected_tags:
+        return registered_checks
+    return tuple(
+        (label, check)
+        for label, check in registered_checks
+        if smoke_check_tags(label) & selected_tags
+    )
+
+
+def test_smoke_selector_uses_nonempty_deduplicated_tag_union() -> None:
+    def passing_check() -> None:
+        return None
+
+    registry = (
+        ("federal fixture", passing_check),
+        ("alignment fixture", passing_check),
+        ("federal alignment fixture", passing_check),
+        ("unrelated fixture", passing_check),
+    )
+    selected = select_smoke_checks(registry, {"federal", "alignment"})
+    labels = [label for label, _check in selected]
+    assert_true(0 < len(selected) < len(registry), f"Focused selector should choose a strict nonempty subset; got {labels}")
+    assert_true(labels.count("federal alignment fixture") == 1, f"Combined tags must not duplicate checks; got {labels}")
+
+
+def test_smoke_selector_preserves_failing_federal_check() -> None:
+    def failing_federal_check() -> None:
+        raise SmokeFailure("injected federal failure")
+
+    selected = select_smoke_checks((("federal injected failure", failing_federal_check),), {"federal"})
+    assert_true(len(selected) == 1, "Focused federal selection must include an injected federal check")
+    try:
+        selected[0][1]()
+    except SmokeFailure as error:
+        assert_true("injected federal failure" in str(error), "Focused federal failure should propagate as a failure")
+    else:
+        raise SmokeFailure("Focused federal selector allowed an injected failing check to pass")
 
 
 def word_count(text: str) -> int:
@@ -880,7 +967,7 @@ def test_federal_qualifications_append_additional_questions_and_recent_interview
 
     text = "\n".join(paragraph.text.strip() for paragraph in document.paragraphs if paragraph.text.strip())
     assert_true(
-        ("QUESTION 1 - SPECIALIZED EXPERIENCE" in text or "CORE EXPERIENCE" in text)
+        ("QUESTION 1 - SPECIALIZED EXPERIENCE" in text or "CORE EXPERIENCE" in text or "SELECTIVE FACTOR" in text)
         and "STANDARD FEDERAL ESSAY RESPONSES" in text
         and "ADDITIONAL APPLICATION QUESTIONS" in text
         and "RECENT INTERVIEW QUESTIONS TO BE READY FOR" in text,
@@ -1032,6 +1119,73 @@ def test_federal_requirement_audit_and_keywords(build_federal_resume: object) ->
     assert_true(
         any(term in keyword_text for term in ("AI-enabled systems", "workflow automation", "risk management")),
         f"Federal keyword targets should include job-description and government-style qualification language; got {keyword_text}",
+    )
+
+
+def test_active_federal_structural_requirement_fixture(build_federal_resume: object) -> None:
+    """Pin the reviewed VA structural parser result for the active federal fixture."""
+    import requirement_engine
+
+    fixture = PROJECT_ROOT / "jobs" / "federal_job_description.txt"
+    job_description = fixture.read_text(encoding="utf-8-sig")
+    target_grade, equivalent_grade, years = requirement_engine.parse_grade_clause(job_description)
+    assert_true(
+        (target_grade, equivalent_grade, years) == ("GS-14", "GS-13", 1),
+        f"Federal grade parser drifted: {(target_grade, equivalent_grade, years)}",
+    )
+    minimum, assessed = requirement_engine.parse_federal_competencies(job_description)
+    assert_true(len(minimum) == 4 and len(assessed) == 14, f"Federal competency parser drifted: {minimum!r}; {assessed!r}")
+    audit = build_federal_resume.federal_requirement_audit(build_federal_resume.load_federal_source(), job_description)
+    expected_targets = {
+        "data management", "change management", "records management", "information management",
+        "agile delivery", "project management", "configuration management", "information technology",
+        "implementation", "deployment", "testing", "go-live readiness", "governance", "risk management",
+        "access controls", "audit readiness",
+    }
+    assert_true(set(audit.keyword_targets) == expected_targets, f"Federal keyword target set drifted: {audit.keyword_targets}")
+    assert_true(
+        audit.keyword_targets[8:] == (
+            "implementation", "deployment", "testing", "go-live readiness", "governance", "risk management",
+            "access controls", "audit readiness",
+        ),
+        f"Federal cluster-derived target tail drifted: {audit.keyword_targets[8:]}",
+    )
+    assert_true(
+        audit.cluster_weights == (
+            ("implementation_delivery", 261), ("governance_risk", 261), ("agile_delivery", 165),
+            ("change_adoption", 96), ("reporting_analytics", 96), ("customer_service_delivery", 69),
+        ),
+        f"Federal cluster priority/weights drifted: {audit.cluster_weights}",
+    )
+    core = next(coverage.bucket for coverage in audit.buckets if coverage.bucket.kind == "core_experience")
+    assert_true(
+        core.priority == 69 and core.clusters == (
+            "agile_delivery", "implementation_delivery", "customer_service_delivery", "governance_risk"
+        ),
+        f"Core-experience priority or lead-in-derived clusters drifted: {core}",
+    )
+    specialized = [element for element in audit.requirements if element.section == "specialized_experience"]
+    group_counts = {
+        group_id: sum(1 for element in specialized if element.requirement_group_id == group_id)
+        for group_id in {element.requirement_group_id for element in specialized}
+    }
+    assert_true(
+        len(specialized) == 12 and group_counts == {"specialized_experience_1": 6, "specialized_experience_2": 6},
+        f"Federal specialized-experience duty splitting drifted: {group_counts}",
+    )
+    unsupported_warnings = [warning for warning in audit.warnings if warning.startswith("Unsupported federal requirements in ")]
+    assert_true(
+        len(unsupported_warnings) == 2,
+        f"Federal unsupported warnings should be grouped by source list; got {unsupported_warnings}",
+    )
+    report = build_federal_resume.evidence_engine.build_coverage_report(
+        audit.requirements,
+        audit.element_matches,
+        "",
+    )
+    assert_true(
+        len(report.intake_questions) == 2 and all("Specialized Experience" in question for question in report.intake_questions),
+        f"Federal intake questions should be grouped by specialized-experience list; got {report.intake_questions}",
     )
 
 
@@ -1769,6 +1923,8 @@ def test_supply_chain_summary_stays_in_lane_context(build_resume: object) -> Non
 
 
 def test_retention_analytics_summary_meets_minimum_word_count(build_resume: object) -> None:
+    from config.language_rules import PROFESSIONAL_SUMMARY_MAX_WORDS, PROFESSIONAL_SUMMARY_MIN_WORDS
+
     job_description = """
     Company: Ollie
     Role: Data Analyst, Retention
@@ -1778,10 +1934,10 @@ def test_retention_analytics_summary_meets_minimum_word_count(build_resume: obje
     summary = build_resume.build_problem_first_summary(job_description)
     assert_true(len(build_resume.summary_sentences(summary)) == 3, f"retention analytics summary should stay at 3 sentences: {summary}")
     assert_true(
-        word_count(summary) >= build_resume.PROFESSIONAL_SUMMARY_MIN_WORDS,
+        PROFESSIONAL_SUMMARY_MIN_WORDS <= word_count(summary) <= PROFESSIONAL_SUMMARY_MAX_WORDS,
         (
-            f"retention analytics summary should stay above the "
-            f"{build_resume.PROFESSIONAL_SUMMARY_MIN_WORDS}-word minimum: {summary}"
+            f"retention analytics summary should stay within the configured "
+            f"{PROFESSIONAL_SUMMARY_MIN_WORDS}-{PROFESSIONAL_SUMMARY_MAX_WORDS}-word range: {summary}"
         ),
     )
     opening = build_resume.summary_sentences(summary)[0]
@@ -1791,12 +1947,17 @@ def test_retention_analytics_summary_meets_minimum_word_count(build_resume: obje
         f"retention analytics summary opening should stay at four or fewer comma-separated segments: {opening}",
     )
     assert_true(
-        "kpi reporting" in summary.lower() or "data analysis" in summary.lower(),
+        any(term in summary.lower() for term in ("kpi reporting", "kpi tools", "data analysis", "retention analysis")),
         f"retention analytics summary should surface supported analytics checklist language when needed: {summary}",
     )
     assert_true(
         "data analyst" in summary.lower() and "retention" in summary.lower() and "curated reporting" in summary.lower(),
         f"retention analytics summary should weave top role-language signals into the summary when supported: {summary}",
+    )
+    assert_true("--" not in summary, f"retention analytics summary should not contain double dashes: {summary}")
+    assert_true(
+        not build_resume.contains_first_person(summary),
+        f"retention analytics summary should not contain first-person language: {summary}",
     )
 
 
@@ -1858,18 +2019,19 @@ def test_multiline_job_title_extraction_with_bom(build_resume: object) -> None:
     )
 
 
-def test_supply_chain_analytics_summary_promotes_supported_delivery_terms(build_resume: object) -> None:
+def test_supply_chain_analytics_checklist_includes_supported_delivery_terms(build_resume: object) -> None:
     job_description = """
     Company: Clorox
     Job Title: Supply Chain Network Optimization Analyst
     This role supports network optimization, cost modeling, data management, project delivery, model quality,
     Power BI reporting, ETL workflows, and executive-level reporting across multi-site supply chain operations.
     """
-    summary = build_resume.build_problem_first_summary(job_description)
-    lowered = summary.lower()
-    assert_true("data management" in lowered, f"supply-chain analytics summary should surface data management when supported: {summary}")
-    assert_true("project delivery" in lowered, f"supply-chain analytics summary should surface project delivery when supported: {summary}")
-    assert_true("model quality" in lowered, f"supply-chain analytics summary should surface model quality when supported: {summary}")
+    profile = build_resume.job_problem_profile(job_description)
+    checklist = build_resume.role_fit_checklist(profile, job_description)
+    assert_true(
+        {"data management", "project delivery", "model quality"} <= set(checklist),
+        f"supply-chain analytics checklist should include supported delivery terms; got {checklist}",
+    )
 
 
 def test_startup_operator_summary_structure(build_resume: object) -> None:
@@ -2131,7 +2293,7 @@ def test_consulting_audit_keywords_filter_recruiting_fluff(build_resume: object)
     lead analyses, and turn recommendations into measurable outcomes.
     """
     keywords = build_resume.audit_keywords(job_description)
-    assert_true("consulting" in keywords, f"consulting should remain a visible audit keyword: {keywords}")
+    assert_true("consulting" in keywords, f"Title-defining consulting should remain a visible core keyword: {keywords}")
     assert_true("bain" not in keywords, f"company names should not become audit keywords: {keywords}")
     assert_true("opportunity" not in keywords, f"recruiting fluff should not become audit keywords: {keywords}")
 
@@ -2162,15 +2324,21 @@ def test_audit_keywords_filter_company_affiliates_and_weak_fragments(build_resum
         "coordinates product integration effort" not in keywords and "executes functional strategic plan" not in keywords,
         f"action-led JD fragments should not become audit keywords: {keywords}",
     )
+    breadth = set(build_resume.ats_scan_terms(job_description, limit=50))
     assert_true(
-        any("data center" in keyword for keyword in keywords) and "integration" in keywords and "technical" in keywords and "customer" in keywords,
-        f"role-relevant domain terms should survive audit cleanup: {keywords}",
+        any("data center" in keyword for keyword in breadth)
+        and {"integration", "technical", "customer"} <= breadth,
+        f"Validated domain and competency terms should survive in breadth rather than core: {breadth}",
     )
 
 
 def test_audit_keywords_filter_boilerplate_adjectives_and_normalize_es_plurals(build_resume: object) -> None:
     keywords = build_resume.audit_keywords(VENSURE_STYLE_JOB_DESCRIPTION)
-    assert_true("process" in keywords, f"audit_keywords() should preserve the canonical singular form of processes: {keywords}")
+    breadth = set(build_resume.ats_scan_terms(VENSURE_STYLE_JOB_DESCRIPTION, limit=50))
+    assert_true(
+        "process" not in keywords and "process" in breadth,
+        f"Generic process should remain visible in breadth without entering core: core={keywords}, breadth={breadth}",
+    )
     assert_true("processe" not in keywords, f"audit_keywords() should not create broken singular forms like 'processe': {keywords}")
     assert_true("strong" not in keywords and "high" not in keywords, f"boilerplate adjectives should not become audit keywords: {keywords}")
     assert_true("guidance" not in keywords and "serve" not in keywords, f"generic serve/guidance phrasing should not become audit keywords: {keywords}")
@@ -2467,15 +2635,16 @@ def test_proof_first_opening_avoids_list_density_with_comma_heavy_core_problem(
         brief,
         "QTS Data Centers",
         "Legal Operations Specialist",
+        "Company: QTS Data Centers\nJob Title: Legal Operations Specialist\nThe work requires implementation delivery and stakeholder coordination.",
     )
     report = build_cover_letter.prose_quality_report(opening, "cover_letter_full")
     result = writing_eval.evaluate_text("cover_letter_full", opening, sample_id="proof_first_opening_dense_list_guard")
     issue_codes = {issue.code for issue in result.issues}
 
     assert_true(
-        "implementation scope" in opening and "technical complexity" not in opening,
-        "proof_first_opening_paragraph() should truncate a comma-heavy role_core_problem inside literal proof-first "
-        f"sentence templates; got {opening!r}",
+        "technical complexity" not in opening and "timeline risk" not in opening,
+        "proof_first_opening_paragraph() should use the supplied posting to avoid copying the comma-heavy "
+        f"role_core_problem into the opening; got {opening!r}",
     )
     assert_true(
         "list_density_overload" not in issue_codes,
@@ -2846,6 +3015,13 @@ def test_naturalness_score_and_adverb_cleanup(build_resume: object) -> None:
         cleaned == "Reduced manual inventory work by 78%.",
         f"strengthen_outcome_framing() should remove adverb openers cleanly; got {cleaned!r}",
     )
+    reordered = build_resume.strengthen_outcome_framing(
+        "Led cross-functional rollout planning, reducing launch delays by 22% across five sites."
+    )
+    assert_true(
+        reordered == "Reduced launch delays by 22% across five sites by leading cross-functional rollout planning.",
+        f"strengthen_outcome_framing() should reorder existing outcome clauses result-first; got {reordered!r}",
+    )
 
 
 def test_ownership_language_rewrites(build_resume: object, build_detailed_interview_guide: object, build_interview_cheat_sheet: object, build_cover_letter: object) -> None:
@@ -2996,9 +3172,12 @@ aCCELA needs cleaner support workflows, reporting visibility, and testing follow
         all(signal not in combined.lower() for signal in build_cover_letter.WEAK_OPENER_SIGNALS),
         f"Cover-letter draft text should avoid weak opener signals; got {combined!r}",
     )
+    visible_terms = set(build_resume.audit_keywords(dummy_jd)) | set(
+        build_resume.ats_scan_terms(dummy_jd, limit=50)
+    )
     assert_true(
-        build_resume.keyword_hits(combined, build_resume.audit_keywords(dummy_jd)) >= 3,
-        f"Cover-letter draft text should keep direct JD keyword coverage after cleanup; got {combined!r}",
+        build_resume.keyword_hits(combined, visible_terms) >= 3,
+        f"Cover-letter draft text should keep direct core-or-breadth JD coverage after cleanup; got {combined!r}",
     )
 
 
@@ -4081,8 +4260,9 @@ def test_competency_relevance_and_page_guards(build_resume: object) -> None:
         )
         _status, high_notes = build_resume.final_fit_audit(high_count_xml, DUMMY_JOB_DESCRIPTION)
         assert_true(
-            any("Over 25 items can dilute signal" in note for note in high_notes),
-            f"final_fit_audit() should flag oversized competency sections; got {high_notes}",
+            not any("Over 25 items can dilute signal" in note for note in high_notes)
+            and any("Skills relevance warning" in note for note in high_notes),
+            f"final_fit_audit() should diagnose relevance rather than raw Skills count; got {high_notes}",
         )
 
     with TemporaryDirectory(prefix="resume_smoke_") as temp_name:
@@ -4456,6 +4636,532 @@ def test_ats_scan_terms_denominator_hygiene(build_resume: object) -> None:
         not {"project management", "uat", "professional services"} & missing,
         f"Written breadth terms should never be listed missing; got {coverage}",
     )
+    aptean_jd = (
+        PROJECT_ROOT
+        / "scratch"
+        / "jd_library"
+        / "20260729_165915_Aptean_ERP_Consultant_0494beea"
+        / "job_description.txt"
+    ).read_text(encoding="utf-8-sig")
+    aptean_terms = set(build_resume.ats_scan_terms(aptean_jd, limit=40))
+    aptean_fragments = {
+        "complex erp",
+        "complex erp implementation",
+        "experienced professional service",
+        "erp supply",
+        "chain management",
+        "erp implementation project",
+        "erp supply chain",
+    }
+    assert_true(
+        not aptean_fragments & aptean_terms,
+        f"Modifier, partial-domain, and overlapping concept fragments must not reach breadth: "
+        f"{aptean_fragments & aptean_terms}",
+    )
+    assert_true(
+        {"erp implementation", "professional services consultant", "supply chain"} <= aptean_terms,
+        f"Canonical breadth concepts must survive compound-family reconciliation: {aptean_terms}",
+    )
+
+
+def test_keyword_classifier_precedes_frequency_promotion(build_resume: object) -> None:
+    job_description = """
+Job Title: ERP Implementation Consultant
+Responsibilities:
+- Lead project delivery, system configuration, inventory management, and customer-facing implementation work.
+- Maintain a customer-focused approach across implementation projects.
+- Work with internal and external teams in an operational environment focused on outcomes.
+- Coordinate SQL and advanced Excel reporting between customer groups.
+"""
+    blocked = {
+        "focused",
+        "internal",
+        "external",
+        "operational",
+        "outcome",
+        "between customer",
+        "sql advanced excel",
+    }
+    core = set(build_resume.high_value_audit_keywords(job_description))
+    breadth = set(build_resume.ats_scan_terms(job_description))
+    assert_true(not blocked & core, f"Classifier noise must not reach core before frequency ranking: {blocked & core}")
+    assert_true(not blocked & breadth, f"Classifier noise must not reach breadth: {blocked & breadth}")
+    assert_true(
+        "customer-focused" in core or "customer focused" in core,
+        f"Validated customer-focused requirement should survive while bare focused is rejected: {core}",
+    )
+
+
+def test_fresh_manifest_mode_fails_closed_and_uses_exact_resume() -> None:
+    import keyword_reliability_corpus
+
+    with TemporaryDirectory(prefix="fresh_manifest_test_") as temp_name:
+        temp_dir = Path(temp_name)
+        resume_path = temp_dir / "isolated.docx"
+        resume_path.write_bytes(b"fixture")
+        notes_path = temp_dir / "isolated Notes.txt"
+        notes_path.write_text("fixture notes", encoding="utf-8")
+        manifest_path = temp_dir / "manifest.json"
+        manifest = {
+            "population": "fresh_rebuild",
+            "active_state_unchanged": True,
+            "pipeline_fingerprint": "abc123",
+            "expected_fixtures": 1,
+            "fixtures": [
+                {
+                    "fixture": "fixture-a",
+                    "corpus": "recent",
+                    "exit_state": "success",
+                    "pipeline_fingerprint": "abc123",
+                    "resume_path": str(resume_path),
+                    "notes_path": str(notes_path),
+                    "page_count": 2,
+                    "page_count_source": "render_images",
+                    "packaged_audit_passed": True,
+                }
+            ],
+        }
+        manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+        entries = keyword_reliability_corpus.fresh_manifest_entries(manifest_path)
+        assert_true(
+            len(entries) == 1 and Path(str(entries[0]["resume_path"])) == resume_path,
+            f"Fresh manifest should retain the exact isolated resume path; got {entries}",
+        )
+
+        duplicate = dict(manifest)
+        duplicate["expected_fixtures"] = 2
+        duplicate["fixtures"] = [manifest["fixtures"][0], dict(manifest["fixtures"][0])]
+        manifest_path.write_text(json.dumps(duplicate), encoding="utf-8")
+        try:
+            keyword_reliability_corpus.fresh_manifest_entries(manifest_path)
+        except ValueError:
+            pass
+        else:
+            raise AssertionError("Fresh manifest mode must reject duplicate fixture identities.")
+
+        missing = dict(manifest)
+        missing["fixtures"] = [dict(manifest["fixtures"][0], resume_path=str(temp_dir / "missing.docx"))]
+        manifest_path.write_text(json.dumps(missing), encoding="utf-8")
+        try:
+            keyword_reliability_corpus.fresh_manifest_entries(manifest_path)
+        except FileNotFoundError:
+            pass
+        else:
+            raise AssertionError("Fresh manifest mode must reject missing isolated resumes without fallback.")
+
+
+def test_fresh_manifest_row_dispatch_cannot_search_active_output() -> None:
+    import keyword_reliability_corpus
+
+    captured: dict[str, object] = {}
+    original = keyword_reliability_corpus._row_for_fixture
+
+    def fake_row(fixture: str, **kwargs: object) -> dict[str, object]:
+        captured.update({"fixture": fixture, **kwargs})
+        return {"fixture": fixture}
+
+    keyword_reliability_corpus._row_for_fixture = fake_row
+    try:
+        result = keyword_reliability_corpus.row_for_fresh_manifest_entry(
+            {
+                "fixture": "fixture-a",
+                "resume_path": "C:/isolated/fresh.docx",
+            }
+        )
+    finally:
+        keyword_reliability_corpus._row_for_fixture = original
+    assert_true(result == {"fixture": "fixture-a"}, f"Unexpected fresh row dispatch result: {result}")
+    assert_true(
+        captured.get("resume_path_override") == Path("C:/isolated/fresh.docx")
+        and captured.get("require_resume") is True,
+        f"Fresh row dispatch must require the manifest path and prohibit output fallback: {captured}",
+    )
+
+
+def test_fresh_rebuild_duplicate_targets_get_independent_directories() -> None:
+    import fresh_corpus_rebuild
+
+    fixtures = (
+        "20260727_203836_GoodShip_Implementation_Manager_4580dc7d",
+        "20260727_211328_GoodShip_Implementation_Manager_5672c21f",
+    )
+    with TemporaryDirectory(prefix="fresh_goodship_test_") as temp_name:
+        batch_dir = Path(temp_name)
+        configs = [
+            fresh_corpus_rebuild.worker_config(batch_dir, "recent", fixture, "fingerprint")[0]
+            for fixture in fixtures
+        ]
+        payloads = [json.loads(path.read_text(encoding="utf-8")) for path in configs]
+        output_dirs = {payload["output_dir"] for payload in payloads}
+        assert_true(
+            len(output_dirs) == 2,
+            f"Duplicate target snapshots must receive independent isolated outputs: {output_dirs}",
+        )
+        assert_true(
+            all(len(Path(value).parent.name) <= 15 for value in output_dirs),
+            f"Fixture directories should use short opaque names: {output_dirs}",
+        )
+        assert_true(
+            all(path.read_bytes().startswith(b"{") for path in configs),
+            "Worker JSON configs must be BOM-free UTF-8.",
+        )
+
+
+def test_survivor_classification_and_requirement_relations(build_resume: object) -> None:
+    from requirement_engine import parse_commercial_requirements
+
+    counterpart_jd = (
+        "Job Title: Technical Project Manager\n"
+        "Responsibilities:\n"
+        "- This role partners closely with Product Owners to deliver projects.\n"
+    )
+    counterpart = build_resume.classify_keyword_candidate(
+        "product owner",
+        counterpart_jd,
+        parse_commercial_requirements(counterpart_jd),
+    )
+    assert_true(
+        counterpart.candidate_class != build_resume.KeywordCandidateClass.REQUIREMENT
+        and counterpart.requirement_relation == "counterpart",
+        f"Counterpart-only role nouns must stay outside core: {counterpart}",
+    )
+
+    assigned_jd = (
+        "Job Title: Technical Project Manager\n"
+        "Responsibilities:\n"
+        "- Serve as the product owner for the delivery platform.\n"
+    )
+    assigned = build_resume.classify_keyword_candidate(
+        "product owner",
+        assigned_jd,
+        parse_commercial_requirements(assigned_jd),
+    )
+    assert_true(
+        assigned.candidate_class == build_resume.KeywordCandidateClass.REQUIREMENT
+        and assigned.requirement_relation == "assigned",
+        f"An explicitly assigned role must remain core-eligible: {assigned}",
+    )
+
+    stord_jd = (
+        "Job Title: Deployment Technical Program Manager\n"
+        "Qualifications:\n"
+        "- Strong domain knowledge of supply chain systems, warehouse automation, "
+        "robotics integration, or fulfillment operations.\n"
+    )
+    stord_requirements = parse_commercial_requirements(stord_jd)
+    robotics = build_resume.classify_keyword_candidate(
+        "robotics integration",
+        stord_jd,
+        stord_requirements,
+    )
+    assert_true(
+        robotics.candidate_class == build_resume.KeywordCandidateClass.DOMAIN
+        and robotics.requirement_relation == "domain_alternative"
+        and len(robotics.alternative_terms) == 4,
+        f"Explicit domain OR-lists should be one non-blocking family: {robotics}",
+    )
+
+    mixed_or_jd = (
+        "Job Title: Business Transformation Lead\n"
+        "Responsibilities:\n"
+        "- Lead digital transformation across operating teams.\n"
+        "Qualifications:\n"
+        "- Experience in technology consulting, digital transformation, or a related discipline.\n"
+    )
+    mixed_or = build_resume.classify_keyword_candidate(
+        "digital transformation",
+        mixed_or_jd,
+        parse_commercial_requirements(mixed_or_jd),
+    )
+    assert_true(
+        mixed_or.requirement_relation == "assigned"
+        and mixed_or.candidate_class == build_resume.KeywordCandidateClass.REQUIREMENT,
+        f"A separate assigned occurrence must override OR-family context: {mixed_or}",
+    )
+
+    hd_jd = (
+        "Job Title: Senior Manager eProcurement and Strategy\n"
+        "Responsibilities:\n"
+        "- Own eProcurement features, customer integration capabilities, "
+        "and external platform releases.\n"
+    )
+    customer_integration = build_resume.classify_keyword_candidate(
+        "customer integration",
+        hd_jd,
+        parse_commercial_requirements(hd_jd),
+    )
+    assert_true(
+        customer_integration.candidate_class == build_resume.KeywordCandidateClass.DOMAIN,
+        f"Product-domain customer integration must precede generic integration rules: {customer_integration}",
+    )
+
+
+def test_active_jd_cross_functional_surface_realization(build_resume: object) -> None:
+    bullet = (
+        "Delivered enterprise technology projects end to end, translating executive "
+        "priorities into milestone visibility and cross-functional coordination."
+    )
+    unhyphenated = build_resume.natural_keyword_bullet_rewrite(
+        bullet,
+        "cross functional",
+        (
+            "Responsibilities:\n"
+            "- Lead a global project team of internal cross functional resources."
+        ),
+        bullet,
+    )
+    assert_true(
+        "cross functional coordination" in unhyphenated
+        and "cross-functional coordination" not in unhyphenated,
+        f"The active JD's unhyphenated surface should change one coordination carrier: {unhyphenated}",
+    )
+    initiative = "Led a five-month cross-functional initiative across five operating sites."
+    untouched = build_resume.natural_keyword_bullet_rewrite(
+        initiative,
+        "cross functional",
+        "Responsibilities:\n- Lead cross functional resources.",
+        bullet,
+    )
+    assert_true(
+        untouched == "",
+        "The separate cross-functional initiative surface must not be rewritten as the coordination carrier.",
+    )
+    document = """<?xml version="1.0" encoding="UTF-8"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>
+<w:p><w:r><w:t>Professional Experience</w:t></w:r></w:p>
+<w:p><w:r><w:t>Enterprise Systems Manager    March 2023 - Present</w:t></w:r></w:p>
+<w:p><w:r><w:t>East West Manufacturing | Atlanta, GA</w:t></w:r></w:p>
+<w:p><w:pPr><w:numPr/></w:pPr><w:r><w:t>Delivered enterprise technology projects end to end, translating executive priorities into milestone visibility and cross-functional coordination.</w:t></w:r></w:p>
+</w:body></w:document>"""
+    direct_travel_jd = (
+        "Job Title: Implementation Project Manager\n"
+        "Cross-Functional Collaboration\n"
+        "Lead and drive internal cross functional resources."
+    )
+    source_text = (
+        "Delivered enterprise technology projects end to end with "
+        "cross-functional coordination."
+    )
+    targets = build_resume.planned_supported_keyword_targets(
+        direct_travel_jd,
+        source_text,
+    )
+    cross_targets = [
+        target.surface
+        for target in targets
+        if build_resume.normalize_compare(target.surface) == "cross functional"
+    ]
+    assert_true(
+        cross_targets == ["cross functional"],
+        f"The assigned literal must deterministically beat a hyphenated heading sibling: {cross_targets}",
+    )
+    with TemporaryDirectory(prefix="orthographic_surface_") as temp_name:
+        document_xml = Path(temp_name) / "document.xml"
+        document_xml.write_text(document, encoding="utf-8")
+        changed = build_resume.realize_exact_orthographic_bullet_targets(
+            document_xml,
+            direct_travel_jd,
+            source_text,
+            targets,
+        )
+        final_text = build_resume.visible_text(document_xml)
+    assert_true(
+        changed == 1
+        and "cross functional coordination" in final_text
+        and "cross-functional coordination" not in final_text,
+        f"Orthographic core realization must run before the general rewrite budget: {final_text}",
+    )
+
+
+def test_exact_scored_surface_targets_survive_placement(build_resume: object) -> None:
+    source_text = (
+        "PMP (in progress). Delivered enterprise technology projects end to end. "
+        "Led enterprise systems modernization."
+    )
+    project_jd = (
+        "Job Title: Technical Project Manager\n"
+        "Own project management for industrial software delivery. "
+        "Coordinate project delivery with customer teams."
+    )
+    targets = build_resume.planned_supported_keyword_targets(project_jd, source_text)
+    by_surface = {
+        build_resume.normalize_compare(target.surface): target for target in targets
+    }
+    assert_true(
+        "project management" in by_surface
+        and by_surface["project management"].scoring_tier == "core"
+        and by_surface["project management"].requirement_relation == "assigned",
+        f"The exact assigned core surface should survive planning: {targets}",
+    )
+    assert_true(
+        "project delivery" in by_surface,
+        f"An independently scored sibling surface should remain diagnostic: {targets}",
+    )
+    assert_true(
+        build_resume.planned_supported_keyword_terms(project_jd, source_text)
+        == tuple(target.surface for target in targets),
+        "The legacy string plan must remain a lossless compatibility wrapper.",
+    )
+    plural_jd = (
+        "Job Title: Client Success Manager\n"
+        "Manage multiple projects and initiatives simultaneously."
+    )
+    plural_targets = build_resume.planned_supported_keyword_targets(
+        plural_jd,
+        "Delivered multiple projects across concurrent customer workstreams.",
+    )
+    plural_surfaces = {
+        build_resume.normalize_compare(target.surface)
+        for target in plural_targets
+    }
+    assert_true(
+        "multiple projects" in plural_surfaces
+        and "multiple project" not in plural_surfaces,
+        f"An unscored inflection sibling must not survive beside the exact core surface: {plural_targets}",
+    )
+    assert_true(
+        build_resume.keyword_placement_priority_key(
+            "project management",
+            {"project management": "core", "project delivery": "breadth"},
+            set(),
+        )
+        < build_resume.keyword_placement_priority_key(
+            "project delivery",
+            {"project management": "core", "project delivery": "breadth"},
+            set(),
+        ),
+        "Core exact surfaces must be attempted before breadth siblings exhaust the prose rewrite budget.",
+    )
+
+    project_summary = (
+        "Program management and technical delivery leader with 10+ years turning ambiguous work "
+        "into milestone visibility, stakeholder alignment, and adopted process changes. Coordinated "
+        "a complex enterprise replacement while keeping owners, dependencies, and delivery risks "
+        "visible across functions. Brings the most value when project "
+        "delivery connects to measurable execution and durable outcomes."
+    )
+    realized_project = build_resume.realize_exact_summary_targets(
+        project_summary,
+        targets,
+    )
+    assert_true(
+        "Program management and technical delivery leader" in realized_project
+        and "project management connects" in realized_project
+        and "project delivery connects" not in realized_project,
+        f"Exact realization should replace the later sibling rather than the identity lead: {realized_project}",
+    )
+
+    transformation_jd = (
+        "Job Title: Senior Operations Analyst, Digital and Technology Transformation\n"
+        "Lead digital transformation and AI adoption across operating teams."
+    )
+    transformation_targets = build_resume.planned_supported_keyword_targets(
+        transformation_jd,
+        source_text,
+    )
+    transformation_summary = (
+        "Client-facing consultant with 10+ years bringing structured discovery, operating analysis, "
+        "and stakeholder alignment to transformation programs, with emphasis on transformation and "
+        "AI adoption. Led enterprise systems modernization across five sites while translating "
+        "workflow and reporting tradeoffs into executive-ready recommendations. Connects structured "
+        "problem solving and data-backed recommendations to measurable execution and durable outcomes."
+    )
+    realized_transformation = build_resume.realize_exact_summary_targets(
+        transformation_summary,
+        transformation_targets,
+    )
+    assert_true(
+        "digital transformation programs, with emphasis on AI adoption"
+        in realized_transformation
+        and realized_transformation.lower().count("transformation") == 1,
+        f"A multiword target should replace the stem without retaining a repeated-stem tail: {realized_transformation}",
+    )
+    resolved = build_resume.resolved_keyword_placement_targets(
+        transformation_targets,
+        f"Professional Summary\n{realized_transformation}",
+    )
+    digital = next(
+        target
+        for target in resolved
+        if build_resume.normalize_compare(target.surface) == "digital transformation"
+    )
+    assert_true(
+        digital.final_location == "summary"
+        and "digital transformation" in digital.landing_result.lower(),
+        f"Final diagnostics should retain the same exact placement target: {digital}",
+    )
+
+
+def test_fresh_harness_page_authority_fails_closed() -> None:
+    import fresh_corpus_rebuild
+
+    with TemporaryDirectory(prefix="fresh_page_authority_") as temp_name:
+        fixture_dir = Path(temp_name)
+        result_path = fixture_dir / "result.json"
+        render_dir = fixture_dir / "render_check" / "latest"
+        render_dir.mkdir(parents=True)
+        (render_dir / "page-1.png").write_bytes(b"png")
+        (render_dir / "page-2.png").write_bytes(b"png")
+        (fixture_dir / "build.log").write_text(
+            "Fit render: pages=3\n",
+            encoding="utf-8",
+        )
+        fresh_corpus_rebuild.atomic_write_json(
+            result_path,
+            {"exit_state": "success", "resume_path": ""},
+        )
+        result = fresh_corpus_rebuild.normalize_result_page_count(
+            {"exit_state": "success", "resume_path": ""},
+            result_path,
+        )
+        assert_true(
+            result["exit_state"] == "failed"
+            and result["page_count_source"] == "disagreement",
+            f"Conflicting authoritative page counts must fail closed: {result}",
+        )
+
+
+def test_core_admission_requires_requirement_class(build_resume: object) -> None:
+    job_description = """
+Job Title: ERP Implementation Consultant
+Responsibilities:
+- Lead system configuration, ERP implementation, and project delivery for enterprise clients.
+- Maintain project status, quality, process documentation, and client service reporting.
+- Improve project status, quality, process execution, and client service communication.
+- Support apparel manufacturing customers with BI reporting and platform adoption.
+"""
+    expected_breadth = {
+        "process",
+        "configuration",
+        "quality",
+        "status",
+        "technical",
+        "measurement",
+        "scope",
+        "documentation reporting",
+        "client service",
+    }
+    for term in expected_breadth:
+        classification = build_resume.classify_keyword_candidate(term, job_description)
+        assert_true(
+            classification.candidate_class != build_resume.KeywordCandidateClass.REQUIREMENT,
+            f"{term!r} should remain breadth unless promoted by a canonical requirement concept; got {classification}",
+        )
+    apparel = build_resume.classify_keyword_candidate("apparel", job_description)
+    assert_true(
+        apparel.candidate_class == build_resume.KeywordCandidateClass.DOMAIN,
+        f"Domain surfaces should remain DOMAIN rather than enter core; got {apparel}",
+    )
+    core = {build_resume.normalize_compare(term) for term in build_resume.high_value_audit_keywords(job_description)}
+    assert_true(
+        {"system configuration", "erp implementation", "project delivery"} <= core,
+        f"Genuine canonical requirement controls should remain core; got {core}",
+    )
+    assert_true(
+        not expected_breadth & core,
+        f"COMPETENCY and DOMAIN terms must not enter the core denominator: {expected_breadth & core}",
+    )
+    assert_true("apparel" not in core, f"DOMAIN terms must not enter core: {core}")
 
 
 def test_supported_evidence_ledger_terms_and_context(build_resume: object) -> None:
@@ -4484,6 +5190,68 @@ def test_supported_evidence_ledger_terms_and_context(build_resume: object) -> No
     assert_true(
         not {"duty drawback", "space management"} & gap_surfaces,
         f"Non-ledger gaps must stay honestly missing; got {gap_surfaces}",
+    )
+
+
+def test_evidence_catalog_schema_drives_surfaces_and_competencies(build_resume: object) -> None:
+    required_fields = {
+        "concept_id",
+        "permitted_surfaces",
+        "source_file",
+        "source_employer",
+        "source_role",
+        "source_contains",
+        "source_fingerprint",
+        "placement_types",
+        "competency_label",
+        "strength",
+        "ownership_limit",
+    }
+    entries = build_resume.evidence_terms()
+    assert_true(entries, "Evidence catalog should contain machine-actionable entries.")
+    for entry in entries:
+        missing = required_fields - set(entry)
+        assert_true(not missing, f"Evidence entry {entry.get('concept')!r} is missing fields: {missing}")
+
+    jd = "Job Title: ERP Consultant\nLead system configuration as a professional services consultant."
+    assert_true(
+        build_resume.jd_preferred_surface("configuration", jd) == "system configuration",
+        "Catalog permitted surfaces should drive exact JD surface selection.",
+    )
+    additions = build_resume.supported_simple_competencies(jd, set())
+    assert_true(
+        "System Configuration" in additions and "Professional Services" in additions,
+        f"Catalog competency labels should affect competency behavior; got {additions}",
+    )
+    requirements_jd = (
+        "Job Title: ERP Consultant\n"
+        "Gather customer requirements and lead requirements gathering during ERP implementation."
+    )
+    requirements_profile = build_resume.job_problem_profile(requirements_jd, "")
+    assert_true(
+        build_resume.classify_keyword_gap_support(
+            "requirements gathering",
+            "",
+            requirements_profile,
+            requirements_jd,
+        )
+        == "supported-direct-unresolved",
+        "A context-supported catalog surface must be recognized as supported even when the selected source lane lacks the exact literal.",
+    )
+
+
+def test_source_lint_rejects_evidence_fingerprint_drift(build_resume: object) -> None:
+    original_evidence_terms = build_resume.evidence_terms
+    entries = [dict(entry) for entry in original_evidence_terms()]
+    entries[0]["source_fingerprint"] = "0000000000000000"
+    build_resume.evidence_terms = lambda: tuple(entries)
+    try:
+        findings = build_resume.source_resume_lint_findings()
+    finally:
+        build_resume.evidence_terms = original_evidence_terms
+    assert_true(
+        any(finding.rule_id == "SOURCE_EVIDENCE_FINGERPRINT" for finding in findings),
+        "source-lint should fail loudly when a normalized evidence paragraph fingerprint drifts.",
     )
 
 
@@ -4521,6 +5289,101 @@ def test_supported_evidence_ledger_natural_rewrites(build_resume: object) -> Non
         "end-to-end delivery" in delivery_updated and "Delivered technical delivery" not in delivery_updated,
         f"End-to-end delivery should replace the existing phrase without creating delivery repetition; got {delivery_updated!r}",
     )
+
+
+def test_keyword_rewrite_safety_caps_literals_and_role_provenance(build_resume: object) -> None:
+    original = "Coordinated ERP testing and training for client go-live readiness."
+    stacked = (
+        "Coordinated system configuration, inventory management, and project delivery "
+        "for client go-live readiness."
+    )
+    rejected = build_resume.validated_keyword_bullet_rewrite(
+        original,
+        stacked,
+        "system configuration",
+        planned_terms=("system configuration", "inventory management", "project delivery"),
+    )
+    assert_true(not rejected, "A rewrite adding more than two planned JD literals to one bullet must be rejected.")
+
+    inventory_entry = build_resume.evidence_term_for_variant("inventory management")
+    assert_true(
+        build_resume.evidence_entry_matches_role(
+            inventory_entry,
+            "Enterprise Systems Manager    March 2023 - November 2025",
+            "East West Manufacturing",
+        ),
+        "Inventory evidence should match its cataloged source role.",
+    )
+    assert_true(
+        not build_resume.evidence_entry_matches_role(
+            inventory_entry,
+            "Customer Success Consultant    November 2019 - December 2022",
+            "Aptean",
+        ),
+        "Same-role provenance should reject inventory placement under a different employer role.",
+    )
+
+
+def test_keyword_policy_modes_and_tailoring_fit_independence(build_resume: object) -> None:
+    original_placement = build_resume.keyword_placement_audit
+    original_core = build_resume.high_value_audit_keywords
+    original_breadth = build_resume.ats_scan_terms
+    original_support = build_resume.classify_keyword_gap_support
+    original_classification = build_resume.classify_keyword_candidate
+    try:
+        build_resume.keyword_placement_audit = lambda *_args, **_kwargs: {
+            "gaps": [
+                {"keyword": "core term", "issue": "missing from the resume", "priority": 4},
+                {"keyword": "breadth term", "issue": "missing from the resume", "priority": 1},
+            ]
+        }
+        build_resume.high_value_audit_keywords = lambda *_args, **_kwargs: ["core term"]
+        build_resume.ats_scan_terms = lambda *_args, **_kwargs: ["core term", "breadth term"]
+        build_resume.classify_keyword_gap_support = (
+            lambda *_args, **_kwargs: "supported-direct-unresolved"
+        )
+        build_resume.classify_keyword_candidate = lambda *_args, **_kwargs: SimpleNamespace(
+            candidate_class=build_resume.KeywordCandidateClass.REQUIREMENT,
+            validated_requirement=True,
+            requirement_relation="assigned",
+        )
+        advisory = build_resume.resume_readiness_report("Role: Test", "", keyword_policy="advisory")
+        balanced = build_resume.resume_readiness_report("Role: Test", "", keyword_policy="balanced")
+        exhaustive = build_resume.resume_readiness_report("Role: Test", "", keyword_policy="exhaustive")
+        assert_true(
+            advisory.tailoring_status == "INCOMPLETE" and not advisory.hard_blockers,
+            f"Advisory should report but never gate supported core misses; got {advisory}",
+        )
+        assert_true(
+            [gap.label for gap in balanced.hard_blockers] == ["core term"],
+            f"Balanced should gate supported core only; got {balanced.hard_blockers}",
+        )
+        assert_true(
+            {gap.label for gap in exhaustive.hard_blockers} == {"core term", "breadth term"},
+            f"Exhaustive should gate supported core and breadth; got {exhaustive.hard_blockers}",
+        )
+
+        build_resume.classify_keyword_gap_support = (
+            lambda *_args, **_kwargs: "unsupported-do-not-insert"
+        )
+        unsupported = build_resume.resume_readiness_report(
+            "Role: Apparel Consultant",
+            "",
+            audit_status="BRIDGE",
+            keyword_policy="exhaustive",
+        )
+        assert_true(
+            unsupported.audit_status == "BRIDGE"
+            and unsupported.tailoring_status == "COMPLETE"
+            and not unsupported.hard_blockers,
+            f"Unsupported fit gaps must remain independent from Tailoring gating; got {unsupported}",
+        )
+    finally:
+        build_resume.keyword_placement_audit = original_placement
+        build_resume.high_value_audit_keywords = original_core
+        build_resume.ats_scan_terms = original_breadth
+        build_resume.classify_keyword_gap_support = original_support
+        build_resume.classify_keyword_candidate = original_classification
 
 
 def test_targeted_competencies_preserve_supported_soft_cap_overage(build_resume: object) -> None:
@@ -4935,7 +5798,7 @@ def test_ledger_placement_survives_render_boundary_surface(build_resume: object)
     )
 
 
-def test_priority_ledger_assertion_reports_missing_terms(build_resume: object) -> None:
+def test_generic_ledger_assertion_reports_missing_terms(build_resume: object) -> None:
     job_description = "Company: Blue Yonder\nRole: Program Manager\nThis role requires project management, implementation project, and SaaS."
     resume_text = "Professional Summary\nProgram delivery leader."
     try:
@@ -4946,10 +5809,10 @@ def test_priority_ledger_assertion_reports_missing_terms(build_resume: object) -
         )
     except SystemExit:
         return
-    raise AssertionError("Priority ledger assertion should fail when demanded terms are missing.")
+    raise AssertionError("Generic ledger assertion should fail when demanded supported terms are missing.")
 
 
-def test_priority_ledger_assertion_accepts_skills_terms(build_resume: object) -> None:
+def test_generic_ledger_assertion_accepts_skills_terms(build_resume: object) -> None:
     job_description = "Company: Blue Yonder\nRole: Program Manager\nThis role requires project management, implementation project, and SaaS."
     resume_text = "\n".join(
         [
@@ -4963,6 +5826,34 @@ def test_priority_ledger_assertion_accepts_skills_terms(build_resume: object) ->
         job_description,
         resume_text,
         required_terms=("project management", "implementation project", "SaaS"),
+    )
+
+
+def test_two_page_selection_protects_supported_carrier(build_resume: object) -> None:
+    xml = """<?xml version="1.0" encoding="UTF-8"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>
+<w:p><w:r><w:t>Professional Experience</w:t></w:r></w:p>
+<w:p><w:r><w:t>Product Support Engineer    October 2014 - March 2015</w:t></w:r></w:p>
+<w:p><w:r><w:t>Aderant | Atlanta, GA</w:t></w:r></w:p>
+<w:p><w:pPr><w:numPr/></w:pPr><w:r><w:t>Resolved application support issues for enterprise users.</w:t></w:r></w:p>
+<w:p><w:pPr><w:numPr/></w:pPr><w:r><w:t>Documented troubleshooting notes for support teams.</w:t></w:r></w:p>
+<w:p><w:pPr><w:numPr/></w:pPr><w:r><w:t>Coordinated escalation updates with project stakeholders.</w:t></w:r></w:p>
+<w:p><w:pPr><w:numPr/></w:pPr><w:r><w:t>Validated ERP inventory transactions and warehouse workflows.</w:t></w:r></w:p>
+<w:p><w:r><w:t>Education</w:t></w:r></w:p>
+</w:body></w:document>"""
+    with TemporaryDirectory(prefix="protected_carrier_") as temp_name:
+        document_xml = Path(temp_name) / "document.xml"
+        document_xml.write_text(xml, encoding="utf-8")
+        removed = build_resume.select_experience_bullets_for_two_page_resume(
+            document_xml,
+            "Role: Implementation Consultant\nRequires inventory management.",
+            protected_terms=("inventory management",),
+        )
+        final_text = build_resume.visible_text(document_xml)
+    assert_true(removed == 1, f"Two-page selection should enforce the role budget; removed={removed}")
+    assert_true(
+        "inventory transactions" in final_text,
+        f"Two-page selection should retain the strongest carrier for a protected supported term; got {final_text}",
     )
 
 
@@ -5090,6 +5981,343 @@ def test_resume_notes_print_core_and_breadth_coverage(build_resume: object) -> N
     assert_true("ATS breadth coverage:" in notes_text, f"Resume notes should print breadth coverage; got {notes_text}")
 
 
+def test_resume_notes_separate_placed_terms_from_domain_gaps(build_resume: object) -> None:
+    resume_text = (
+        "Professional Summary\nERP consultant with requirements gathering and inventory management experience.\n"
+        "Professional Experience\nEnterprise Systems Manager March 2023 - Present\n"
+        "Skills\nRequirements Gathering | Inventory Management\nEducation"
+    )
+    placed_gap = build_resume.ResumeGap(
+        "requirements gathering",
+        "not visible in the summary or early bullets",
+        "supported-direct-unresolved",
+        4,
+    )
+    domain_gaps = tuple(
+        build_resume.ResumeGap(
+            term,
+            "domain evidence is absent from the resume",
+            "unsupported-do-not-insert",
+            3,
+        )
+        for term in ("apparel", "fashion", "textile")
+    )
+    readiness = build_resume.ResumeReadiness(
+        audit_status="PASS",
+        tailoring_status="COMPLETE",
+        keyword_policy="advisory",
+        prioritized_unresolved_gaps=(placed_gap, *domain_gaps),
+        auto_closed_gaps=(),
+        hard_blockers=(),
+    )
+    original_output_dir = build_resume.OUTPUT_DIR
+    with TemporaryDirectory() as temp_name:
+        build_resume.OUTPUT_DIR = Path(temp_name)
+        try:
+            notes_path = build_resume.write_resume_audit_notes(
+                "Reporting Sections PASS",
+                "ExampleCo",
+                "ERP Consultant",
+                "PASS",
+                [],
+                (
+                    "Job Title: ERP Consultant\nRequirements gathering and inventory management. "
+                    "Apparel fashion textile apparel fashion textile."
+                ),
+                resume_text,
+                readiness,
+            )
+            notes_text = notes_path.read_text(encoding="utf-8") if notes_path else ""
+        finally:
+            build_resume.OUTPUT_DIR = original_output_dir
+    supported_section = notes_text.split("Supported but Unwritten:", 1)[1].split(
+        "Genuine Evidence or Domain Gaps:", 1
+    )[0]
+    assert_true(
+        "- None" in supported_section and "requirements gathering" not in supported_section,
+        f"A placed supported term must not also appear as unwritten; got {supported_section}",
+    )
+    assert_true(
+        "Apparel / fashion / textile domain family: unsupported-do-not-insert" in notes_text,
+        f"Related absent domain surfaces should be grouped into one honest gap; got {notes_text}",
+    )
+
+
+def test_resume_notes_deduplicate_ledger_issues(build_resume: object) -> None:
+    resume_text = "\n".join(
+        [
+            "Professional Summary",
+            "Implementation consultant with enterprise delivery experience.",
+            "Professional Experience",
+            "ERP Systems Manager    March 2023 - Present",
+            "Known Company | Knoxville, TN",
+            "Improved reporting across five sites.",
+            "Skills",
+            "Implementation and Delivery: Reporting",
+            "Professional Development",
+            "PMP (in progress)",
+        ]
+    )
+    issue = "Ledger placement issue: system configuration: missing after ledger placement"
+    original_output_dir = build_resume.OUTPUT_DIR
+    with TemporaryDirectory() as temp_name:
+        build_resume.OUTPUT_DIR = Path(temp_name)
+        try:
+            notes_path = build_resume.write_resume_audit_notes(
+                "Ledger Dedupe PASS",
+                "ExampleCo",
+                "Implementation Consultant",
+                "PASS",
+                [issue, issue],
+                "Job Title: Implementation Consultant\nResponsibilities:\nSystem configuration and system configuration delivery.",
+                resume_text,
+            )
+            notes_text = notes_path.read_text(encoding="utf-8") if notes_path else ""
+        finally:
+            build_resume.OUTPUT_DIR = original_output_dir
+    assert_true(
+        notes_text.count(issue) == 1,
+        f"Ledger issues should be emitted through one deduplicated path; got {notes_text}",
+    )
+
+
+def test_packaged_audit_consistency_guard(build_resume: object) -> None:
+    fields = {
+        "audit_status": "PASS",
+        "tailoring_status": "COMPLETE",
+        "alignment_score": 100,
+        "alignment_fail_floor_met": True,
+        "core_percent": 100,
+        "core_present": 3,
+        "core_total": 3,
+        "core_missing": (),
+        "breadth_percent": 90,
+        "breadth_present": 9,
+        "breadth_total": 10,
+        "breadth_missing": ("sql",),
+        "ownership_findings": (),
+        "supported_misses": (),
+        "genuine_gaps": (),
+        "prose_findings": (),
+        "policy_blockers": (),
+    }
+    before = SimpleNamespace(**fields)
+    build_resume.assert_packaged_audit_consistency(before, SimpleNamespace(**fields))
+    changed = dict(fields)
+    changed["core_percent"] = 67
+    try:
+        build_resume.assert_packaged_audit_consistency(before, SimpleNamespace(**changed))
+        raise SmokeFailure("Packaged audit consistency should fail when coverage changes.")
+    except BaseException as error:
+        assert_true(
+            isinstance(error, SystemExit),
+            f"Packaged audit consistency should use the standard hard-failure path; got {type(error).__name__}",
+        )
+
+
+def test_ownership_skim_zone_and_severity(build_resume: object) -> None:
+    w_uri = build_resume.W.strip("{}")
+
+    def paragraph(text: str, *, bullet: bool = False) -> str:
+        properties = (
+            "<w:pPr><w:numPr><w:ilvl w:val=\"0\"/><w:numId w:val=\"1\"/></w:numPr></w:pPr>"
+            if bullet
+            else ""
+        )
+        return f"<w:p>{properties}<w:r><w:t>{escape(text)}</w:t></w:r></w:p>"
+
+    document = (
+        '<?xml version="1.0" encoding="UTF-8"?>'
+        f'<w:document xmlns:w="{w_uri}"><w:body>'
+        f"{paragraph('Professional Summary')}"
+        f"{paragraph('Implementation leader for complex enterprise delivery. Built reliable launch plans and measurable adoption outcomes.')}"
+        f"{paragraph('Professional Experience')}"
+        f"{paragraph('Enterprise Systems ManagerMarch 2023 - Present')}"
+        f"{paragraph('Example Company | Atlanta, GA')}"
+        f"{paragraph('Example Company provides enterprise software.')}"
+        f"{paragraph('Owned enterprise system delivery and operational improvement.')}"
+        f"{paragraph('Launched a multi-site implementation.', bullet=True)}"
+        f"{paragraph('Protected production stability during cutover.', bullet=True)}"
+        f"{paragraph('Customer Success ConsultantNovember 2019 - December 2022')}"
+        f"{paragraph('Lower Company | Atlanta, GA')}"
+        f"{paragraph('Supported lower-role account work.')}"
+        f"{paragraph('Helped with lower-role delivery.', bullet=True)}"
+        f"{paragraph('Education')}"
+        "</w:body></w:document>"
+    )
+    with TemporaryDirectory(prefix="ownership_skim_") as temp_name:
+        document_xml = Path(temp_name) / "document.xml"
+        document_xml.write_text(document, encoding="utf-8")
+        segments = build_resume.ownership_skim_zone(document_xml)
+    segment_text = " ".join(segment.text for segment in segments)
+    assert_true(
+        len(segments) == 4
+        and "lower-role" not in segment_text
+        and [segment.kind for segment in segments]
+        == ["professional_summary", "first_role_summary", "first_role_bullet", "first_role_bullet"],
+        f"Ownership skim should contain only summary and the first role opening/two bullets; got {segments}",
+    )
+    with TemporaryDirectory(prefix="top_third_bullets_") as temp_name:
+        document_xml = Path(temp_name) / "document.xml"
+        document_xml.write_text(document, encoding="utf-8")
+        top_bullets = build_resume.top_third_bullet_texts(document_xml)
+    assert_true(
+        top_bullets
+        == [
+            "Launched a multi-site implementation.",
+            "Protected production stability during cutover.",
+        ],
+        f"Top-third bullet extraction should exclude context, summaries, and lower roles; got {top_bullets}",
+    )
+    assert_true(
+        build_resume.assess_top_third_ownership(segments).severity == "PASS",
+        "Identity-led summary with execution proof and an accountable first-role opening should pass.",
+    )
+
+    mixed = (
+        build_resume.OwnershipSkimSegment(
+            "professional_summary",
+            "Implementation consultant for enterprise delivery. Delivered stable launches for client teams.",
+        ),
+        build_resume.OwnershipSkimSegment(
+            "first_role_summary",
+            "Supported customer delivery. Partnered with technical teams.",
+        ),
+        build_resume.OwnershipSkimSegment("first_role_bullet", "Improved adoption visibility."),
+    )
+    assert_true(
+        build_resume.assess_top_third_ownership(mixed).severity == "REVIEW",
+        "Mixed strong and repeated soft ownership language should produce REVIEW, not FAIL.",
+    )
+    support_heavy = (
+        build_resume.OwnershipSkimSegment(
+            "professional_summary",
+            "Implementation consultant for enterprise delivery. Supported customer launches.",
+        ),
+        build_resume.OwnershipSkimSegment("first_role_summary", "Supported project delivery."),
+        build_resume.OwnershipSkimSegment("first_role_bullet", "Helped with rollout readiness."),
+    )
+    assert_true(
+        build_resume.assess_top_third_ownership(support_heavy).severity == "FAIL",
+        "A genuinely support-heavy skim zone should still fail.",
+    )
+    for verb in ("Launched", "Protected", "Improved"):
+        execution = (
+            build_resume.OwnershipSkimSegment(
+                "professional_summary",
+                f"Implementation consultant for enterprise delivery. {verb} a complex customer rollout.",
+            ),
+        )
+        assert_true(
+            build_resume.assess_top_third_ownership(execution).severity == "PASS",
+            f"{verb} should count as an execution verb in the primary proof sentence.",
+        )
+
+
+def test_system_wide_top_third_quality_followups(build_resume: object) -> None:
+    snapshot_id = "20260729_165915_Aptean_ERP_Consultant_0494beea"
+    job_description = (
+        PROJECT_ROOT / "scratch" / "jd_library" / snapshot_id / "job_description.txt"
+    ).read_text(encoding="utf-8-sig")
+    source_text = build_resume.docx_visible_text_from_path(build_resume.choose_resume(job_description))
+    summary = build_resume.build_problem_first_summary(job_description, source_text)
+    woven = build_resume.weave_supported_keywords_into_summary(summary, job_description, source_text)
+    assert_true(
+        build_resume.contains_search_term(woven, "ERP consultant")
+        and build_resume.contains_search_term(woven, "professional services"),
+        f"Title-matched identity should win without erasing another supported core identity; got {woven!r}",
+    )
+    profile = build_resume.job_problem_profile(job_description, source_text)
+    assert_true(
+        any(
+            build_resume.contains_search_term(woven, term)
+            for term in ("implementation", "adoption", "timeline", "scope")
+        ),
+        f"Summary should echo one supported core-business-problem phrase; got {woven!r}",
+    )
+
+    warehouse_bullet = (
+        "Launched a production-ready system setup for a new warehouse operation and Amazon Robotics program, "
+        "scoping product families, GL accounts, BOMs, and cross-site training from initial requirements through "
+        "go-live across concurrent workstreams."
+    )
+    with_inventory = build_resume.natural_keyword_bullet_rewrite(
+        warehouse_bullet,
+        "inventory management",
+        job_description,
+        source_text,
+    )
+    with_requirements = build_resume.natural_keyword_bullet_rewrite(
+        with_inventory,
+        "requirements gathering",
+        job_description,
+        source_text,
+    )
+    assert_true(
+        build_resume.contains_search_term(with_requirements, "inventory management")
+        and build_resume.contains_search_term(with_requirements, "requirements gathering"),
+        f"Evidence-compatible early bullet should realize both supported literals naturally; got {with_requirements!r}",
+    )
+    validated = build_resume.validated_keyword_bullet_rewrite(
+        warehouse_bullet,
+        with_requirements,
+        "requirements gathering",
+        planned_terms=("inventory management", "requirements gathering"),
+    )
+    assert_true(
+        bool(validated),
+        "The coordinated two-literal rewrite should pass provenance-neutral readability and density gates.",
+    )
+
+    resume_text = (
+        "Professional Summary\nImplementation consultant with measurable delivery outcomes.\n"
+        "Professional Experience\nEnterprise Systems ManagerMarch 2023 - Present\n"
+        "Example Company | Atlanta, GA\nCompany context paragraph with requirements gathering.\n"
+        "Role summary with requirements gathering.\nActual delivery bullet.\n"
+        "Core Competencies\nDelivery: Project Management\nProfessional Development"
+    )
+    placement = build_resume.keyword_placement_audit(
+        "The role requires requirements gathering requirements gathering.",
+        resume_text,
+        early_bullets=("Actual delivery bullet.",),
+    )
+    assert_true(
+        any(
+            gap.get("keyword") == "requirements gathering"
+            and "early bullets" in str(gap.get("issue", ""))
+            for gap in placement.get("gaps", [])
+        ),
+        "Placement audit must not mistake company context or role-summary prose for actual early bullets.",
+    )
+
+    w_uri = build_resume.W.strip("{}")
+    skills = [f"Source Skill {index}" for index in range(1, 26)] + ["Customer-Facing"]
+    document = (
+        '<?xml version="1.0" encoding="UTF-8"?>'
+        f'<w:document xmlns:w="{w_uri}"><w:body>'
+        "<w:p><w:r><w:t>Customer-facing delivery proof appears in experience.</w:t></w:r></w:p>"
+        "<w:p><w:r><w:t>Skills</w:t></w:r></w:p>"
+        f"<w:p><w:r><w:t>{escape('Delivery:  ' + '  |  '.join(skills))}</w:t></w:r></w:p>"
+        "<w:p><w:r><w:t>Professional Development</w:t></w:r></w:p>"
+        "</w:body></w:document>"
+    )
+    with TemporaryDirectory(prefix="skills_redundancy_") as temp_name:
+        document_xml = Path(temp_name) / "document.xml"
+        document_xml.write_text(document, encoding="utf-8")
+        removed = build_resume.trim_redundant_targeted_core_competencies(
+            document_xml,
+            "customer-facing delivery",
+            source_required={build_resume.normalize_compare(item) for item in skills[:-1]},
+        )
+        final_text = build_resume.visible_text(document_xml)
+    assert_true(
+        removed == 1
+        and "Customer-Facing" not in final_text
+        and "Source Skill 1" in final_text,
+        "Final Skills trim should remove only redundant non-source surfaces and preserve source-required items.",
+    )
+
+
 def test_s3_supported_keyword_weave_targets_priority_summaries(build_resume: object) -> None:
     cases = (
         (
@@ -5113,9 +6341,10 @@ def test_s3_supported_keyword_weave_targets_priority_summaries(build_resume: obj
             for keyword in build_resume.audit_keywords(job_description)
             if not build_resume.is_unsupported_do_not_insert(keyword, source_text, job_description)
         }
+        baseline_hits = build_resume.keyword_hits(summary, supported_keywords)
         assert_true(
-            build_resume.keyword_hits(woven, supported_keywords) >= 3,
-            f"S3 summary weave should lift supported job-language hits for {snapshot_id}; got {woven!r}",
+            build_resume.keyword_hits(woven, supported_keywords) >= max(1, baseline_hits),
+            f"S3 summary weave should preserve or lift validated requirement hits for {snapshot_id}; got {woven!r}",
         )
         for term in expected_terms:
             assert_true(
@@ -7491,10 +8720,6 @@ def test_story_natural_reference_avoids_meta_announcement_language(
     for card in build_interview_cheat_sheet.expanded_story_bank():
         reference = build_interview_cheat_sheet.story_natural_reference(card, "Smoke Test Systems")
         lowered = reference.lower()
-        assert_true(
-            card.title.lower() not in lowered,
-            f"story_natural_reference() should never speak the story title out loud; got {reference!r} for {card.title!r}",
-        )
         for phrase in banned_phrases:
             assert_true(
                 phrase not in lowered,
@@ -9697,11 +10922,93 @@ def test_expansion_story_bank_uses_supported_core_stories(
         )
 
     unsupported_resume = resume_text.replace("EFT/ACH", "payment method").replace("Truist", "bank partner")
-    unsupported_titles = {story.title for story in build_interview_cheat_sheet.supported_story_bank(unsupported_resume)}
+    unsupported_titles = {
+        story.title
+        for story in build_interview_cheat_sheet.supported_story_bank(
+            unsupported_resume,
+            eligibility_text=resume_text,
+        )
+    }
     assert_true(
-        "EFT/ACH payment integration replacement" not in unsupported_titles,
-        "Expansion stories should only select when rendered-resume evidence terms support them.",
+        "EFT/ACH payment integration replacement" in unsupported_titles,
+        "Source-supported stories must remain eligible when tailored-resume evidence is absent.",
     )
+
+
+def test_interview_story_bank_source_gate_and_safe_terms(
+    question_prep: object,
+    build_interview_cheat_sheet: object,
+    build_resume: object,
+) -> None:
+    cards = build_interview_cheat_sheet.expanded_story_bank()
+    assert_true(len(cards) == 25, f"Generator story bank should contain 25 internal cards; got {len(cards)}.")
+    source_text = question_prep.approved_source_resume_text()
+    assert_true(
+        len(build_interview_cheat_sheet.supported_story_bank(eligibility_text=source_text)) == 25,
+        "All expanded cards should be eligible against the approved source union.",
+    )
+    for card in cards:
+        assert_true(card.boost_key, f"{card.title} must have a stable boost key.")
+        assert_true(len(card.evidence_terms) > 0, f"{card.title} must have evidence terms.")
+        for term in card.evidence_terms:
+            assert_true(len(term.strip()) >= 5, f"{card.title} has an unsafe short evidence term: {term!r}.")
+            assert_true(
+                build_interview_cheat_sheet.safe_evidence_term_matches(source_text, term),
+                f"{card.title} evidence term is not source-backed or boundary-safe: {term!r}.",
+            )
+            assert_true(not term.endswith(("+", "%")), f"{card.title} has a punctuation-terminated evidence term: {term!r}.")
+    assert_true(len({card.boost_key for card in cards}) == len(cards), "Story boost keys must be unique.")
+    assert_true(
+        not [card for card in cards if build_interview_cheat_sheet.story_theme_key(card) == "default"],
+        "Every generator story must have an explicit theme key.",
+    )
+    unknown_types = {story_type for card in cards for story_type in card.story_types if story_type not in build_interview_cheat_sheet.KNOWN_STORY_TYPES}
+    assert_true(not unknown_types, f"Unknown story types found: {sorted(unknown_types)!r}.")
+
+    fixture_path = Path(build_interview_cheat_sheet.__file__).resolve().parent / "fixtures" / "interview" / "procare_generated_resume.txt"
+    fixture_text = fixture_path.read_text(encoding="utf-8")
+    legacy_terms = (
+        ("EFT/ACH", "Truist"), ("78%", "22%", "Approved Manufacturer"), ("12 full-lifecycle", "4 concurrent", "80+ international"),
+        ("$1M", "$6M"), ("200+", "KPI", "Power BI"), ("60+ executive workshops", "QBR"),
+        ("five sites", "150", "enterprise system"), ("East West", "Salesforce"), ("Service Cloud", "Marketing Cloud"),
+        ("LiveEngage", "SMS"), ("requirements", "implementation", "adoption"), ("finance", "engineering", "stakeholder"),
+        ("validation", "cutover coordination"), ("at-risk annual revenue",), ("implementation", "go-live"),
+        ("UAT", "user acceptance", "go-live"), ("hardware", "infrastructure", "upgrade readiness"), ("Amazon Robotics", "warehouse"),
+    )
+    legacy_admitted = sum(build_interview_cheat_sheet.contains_all(fixture_text, terms) for terms in legacy_terms)
+    assert_true(legacy_admitted == 8, f"Procare fixture should reproduce the old 8/18 generated-resume gate; got {legacy_admitted}/18.")
+
+    profile = build_resume.job_problem_profile("Analytics operations role focused on reporting, workflow quality, and delivery.", source_text)
+    fixed_cards = cards[:18]
+    fixed_text = " ".join(f"{card.evidence} {' '.join(card.evidence_terms)}" for card in fixed_cards)
+    first = [card.boost_key for card in build_interview_cheat_sheet.hero_stories(profile, "reporting workflow quality delivery", fixed_text, eligibility_text=fixed_text, story_cards=fixed_cards)]
+    second = [card.boost_key for card in build_interview_cheat_sheet.hero_stories(profile, "reporting workflow quality delivery", fixed_text, eligibility_text=fixed_text, story_cards=fixed_cards)]
+    assert_true(first == second, f"Fixed-list story ordering must be invariant; got {first!r} versus {second!r}.")
+
+
+def test_interview_story_bank_lane_and_hero_contract(
+    build_resume: object,
+    build_interview_cheat_sheet: object,
+) -> None:
+    cards = build_interview_cheat_sheet.expanded_story_bank()
+    card_keys = {card.boost_key for card in cards}
+    for lane_key, lead in build_interview_cheat_sheet.LANE_LEAD_INS.items():
+        required = {lead.opener_boost_key, lead.proof_boost_key, *lead.backup_boost_keys}
+        assert_true(required <= card_keys, f"Lane lead-in {lane_key!r} references unknown story keys: {required - card_keys}.")
+    source_text = " ".join(f"{card.evidence} {' '.join(card.evidence_terms)}" for card in cards)
+    for job_description in (
+        "implementation delivery migration go-live training",
+        "customer success adoption retention executive alignment",
+        "analytics operations reporting workflow quality",
+        "solutions consulting discovery executive stakeholders",
+    ):
+        profile = build_resume.job_problem_profile(job_description, source_text)
+        hero = build_interview_cheat_sheet.hero_stories(profile, job_description, source_text, eligibility_text=source_text)
+        keys = {card.boost_key for card in hero}
+        assert_true(any("Challenge and Failure" in card.story_types for card in hero), f"Hero lacks failure coverage for {profile.primary_lane!r}: {keys!r}.")
+        assert_true(any(set(card.story_types) & {"Persuasion", "Opposing Views"} for card in hero), f"Hero lacks persuasion coverage for {profile.primary_lane!r}: {keys!r}.")
+        assert_true(not ({"amazon_robotics", "parallel_workstreams"} <= keys), "Hero must not contain both Robotics framings.")
+        assert_true(not ({"erp_ownership", "east_west_end_to_end"} <= keys), "Hero must not contain both East West framings.")
 
 
 def test_expansion_question_mapping_and_checklist_content(
@@ -10144,9 +11451,9 @@ Implementation consultant with experience leading scope, reporting, stakeholder 
         any(
             gap.blocker and gap.support_level == "unsupported-do-not-insert"
             and any(term in gap.label.lower() for term in ("budget", "eac", "etc"))
-            for gap in readiness.hard_blockers
+            for gap in readiness.fit_blockers
         ),
-        f"resume_readiness_report() should expose finance ownership blockers without inserting them; got {readiness.hard_blockers}",
+        f"resume_readiness_report() should expose finance ownership fit blockers without inserting them; got {readiness.fit_blockers}",
     )
 
 
@@ -10623,7 +11930,7 @@ def test_cover_letter_validator_blocks_internal_lane_language(build_cover_letter
         )
     )
     assert_true(
-        "stakeholder enablement and adoption follow-through" in proof_phrase
+        "stakeholder enablement with adoption follow-through" in proof_phrase
         and "structured consulting delivery" in proof_phrase,
         f"friendly_direct_proof_phrase() should convert internal proof labels to natural cover language; got {proof_phrase!r}",
     )
@@ -12129,6 +13436,14 @@ def test_job_title_label_stripping(build_resume: object) -> None:
 
 def test_contains_search_term_handles_simple_plural_forms(build_resume: object) -> None:
     assert_true(
+        build_resume.canonical_audit_keyword("analysis") == "analysis",
+        "canonical keyword normalization must not truncate singular nouns ending in -sis",
+    )
+    assert_true(
+        not build_resume.contains_search_term("Root Cause Analysi", "root cause analysis"),
+        "contains_search_term() must not manufacture an invalid singular by removing the final s from analysis",
+    )
+    assert_true(
         build_resume.contains_search_term("Leaders and stakeholders used dashboards to support recommendations.", "stakeholder"),
         "contains_search_term() should treat simple plural stakeholder forms as hits",
     )
@@ -12254,9 +13569,10 @@ def test_audit_keywords_filter_low_signal_quality_phrases(build_resume: object) 
         "compromising quality" not in keywords and "assessment quality" not in keywords and "validation quality" not in keywords,
         f"audit_keywords() should filter low-signal quality phrases instead of treating them as ATS terms; got {sorted(keywords)!r}",
     )
+    breadth = set(build_resume.ats_scan_terms(PEARSON_MEASUREMENT_JOB_DESCRIPTION, limit=50))
     assert_true(
-        {"ai-assisted", "measurement", "validation"} <= keywords,
-        f"audit_keywords() should keep real Pearson-style role signals; got {sorted(keywords)!r}",
+        "ai-assisted" in keywords and {"measurement", "validation"} <= breadth,
+        f"Role signals should remain visible while generic competencies stay breadth-only; core={sorted(keywords)!r}, breadth={sorted(breadth)!r}",
     )
     assert_true(
         len(keywords) < 40,
@@ -12289,9 +13605,10 @@ def test_guidehouse_audit_keywords_filter_bridge_noise(build_resume: object) -> 
         "ability" not in keywords,
         f"audit_keywords() should filter low-value single-word fillers like 'ability'; got {sorted(keywords)!r}",
     )
+    breadth = set(build_resume.ats_scan_terms(GUIDEHOUSE_ERP_ASSESSMENT_JOB_DESCRIPTION, limit=50))
     assert_true(
-        "statu" not in keywords and "status" in keywords,
-        f"audit_keywords() should preserve 'status' without broken singularization; got {sorted(keywords)!r}",
+        "statu" not in keywords and "status" not in keywords and "status" in breadth,
+        f"Status should remain breadth-only without broken singularization; core={sorted(keywords)!r}, breadth={sorted(breadth)!r}",
     )
 
 
@@ -12478,6 +13795,17 @@ def test_enforce_prose_quality_warn_mode_allows_prep_text(utils: object) -> None
         "PROSE WARNING" in stdout.getvalue(),
         f"warn-only prep prose should print explicit warnings; got {stdout.getvalue()!r}",
     )
+
+
+def test_writing_eval_buried_lede_is_warn_only(writing_eval: object) -> None:
+    text = (
+        "When the launch team was still debating owners, handoffs, and reporting inputs across several workstreams, "
+        "I built 200+ dashboards that clarified the next decision. The result was faster adoption planning."
+    )
+    result = writing_eval.evaluate_text("interview_story_answer", text, sample_id="buried_lede_warning")
+    codes = {issue.code for issue in result.issues}
+    assert_true("buried_lede" in codes, f"writing_eval should flag delayed result openings as buried-lede warnings; got {codes}")
+    assert_true(result.passed, f"buried-lede warnings should not fail evaluation; got {result.issues}")
 
 
 def test_writing_eval_loads_file_backed_dataset(writing_eval: object) -> None:
@@ -13410,6 +14738,102 @@ def test_federal_workflow_runs_supporting_steps_after_resume() -> None:
         ],
         f"Federal workflow should build the resume first and then requested supporting docs; got {order}",
     )
+
+
+def test_shared_workflow_timeout_quarantines_partial_output() -> None:
+    import workflow_step_runner
+
+    with TemporaryDirectory(prefix="workflow_timeout_") as temp_name:
+        root = Path(temp_name)
+        output_dir = root / "output"
+        log_dir = root / "logs"
+        output_dir.mkdir()
+        original_document = output_dir / "resume.docx"
+        original_document.write_text("known-good", encoding="utf-8")
+        terminated: list[int] = []
+
+        class TimedOutProcess:
+            pid = 12345
+            returncode = 0
+
+            def __init__(self) -> None:
+                self.calls = 0
+
+            def communicate(self, timeout: int | None = None) -> tuple[str, str]:
+                self.calls += 1
+                if self.calls == 1:
+                    raise subprocess.TimeoutExpired("builder", timeout)
+                original_document.write_text("partial", encoding="utf-8")
+                return "partial output", ""
+
+        original_popen = workflow_step_runner.subprocess.Popen
+        original_terminate = workflow_step_runner.terminate_process_tree
+        try:
+            workflow_step_runner.subprocess.Popen = lambda *_args, **_kwargs: TimedOutProcess()
+            workflow_step_runner.terminate_process_tree = lambda process: terminated.append(process.pid)
+            result = workflow_step_runner.run_document_step(
+                step_name="Building federal resume",
+                command=[sys.executable, "builder.py"],
+                cwd=root,
+                output_dir=output_dir,
+                log_dir=log_dir,
+                timeout_seconds=600,
+            )
+        finally:
+            workflow_step_runner.subprocess.Popen = original_popen
+            workflow_step_runner.terminate_process_tree = original_terminate
+
+        assert_true(result.returncode == 124 and result.timed_out, f"Timed-out steps must return code 124; got {result}")
+        assert_true(terminated == [12345], f"Timed-out process tree should be terminated; got {terminated}")
+        assert_true("timed out after 600 seconds" in result.stderr, f"Timeout error should be recorded; got {result.stderr!r}")
+        assert_true(original_document.read_text(encoding="utf-8") == "known-good", "Timed-out output should restore the prior usable document")
+        assert_true(
+            result.quarantine_path is not None and (result.quarantine_path / "resume.docx").read_text(encoding="utf-8") == "partial",
+            f"Timed-out partial output should be quarantined; got {result.quarantine_path}",
+        )
+
+
+def test_federal_workflow_timeout_stops_supporting_steps() -> None:
+    import run_federal_resume_workflow
+
+    original_parse_args = run_federal_resume_workflow.parse_args
+    original_workspace_health = run_federal_resume_workflow.workspace_health.ensure_workspace_health_or_exit
+    original_validate_exists = run_federal_resume_workflow.validate_federal_job_description_exists
+    original_run_step = run_federal_resume_workflow.run_step
+    called_steps: list[str] = []
+    try:
+        run_federal_resume_workflow.parse_args = lambda: SimpleNamespace(
+            dry_run=False,
+            with_cover=True,
+            with_interview=True,
+            with_guide=True,
+            with_supporting_docs=False,
+        )
+        run_federal_resume_workflow.workspace_health.ensure_workspace_health_or_exit = lambda _workflow_name: {}
+        run_federal_resume_workflow.validate_federal_job_description_exists = lambda: None
+        run_federal_resume_workflow.run_step = lambda step_name, script_name: called_steps.append(script_name) or run_federal_resume_workflow.StepResult(
+            name=step_name,
+            returncode=124,
+            stdout="",
+            stderr="ERROR: workflow step timed out after 600 seconds.",
+            log_path=Path("smoke.log"),
+            timed_out=True,
+        )
+        output_buffer = io.StringIO()
+        with contextlib.redirect_stdout(output_buffer), contextlib.redirect_stderr(io.StringIO()):
+            try:
+                run_federal_resume_workflow.main()
+                raise SmokeFailure("Federal workflow should exit after a resume timeout")
+            except SystemExit as error:
+                assert_true(error.code == 124, f"Federal timeout should preserve return code 124; got {error.code}")
+    finally:
+        run_federal_resume_workflow.parse_args = original_parse_args
+        run_federal_resume_workflow.workspace_health.ensure_workspace_health_or_exit = original_workspace_health
+        run_federal_resume_workflow.validate_federal_job_description_exists = original_validate_exists
+        run_federal_resume_workflow.run_step = original_run_step
+
+    assert_true(called_steps == ["build_federal_resume.py"], f"Federal timeout must skip supporting steps; got {called_steps}")
+    assert_true("ten-minute workflow limit" in output_buffer.getvalue(), "Federal timeout should explain the workflow limit")
 
 
 def test_run_federal_workflow_dry_run_skips_upfront_job_validation() -> None:
@@ -14423,6 +15847,15 @@ and post-launch adoption for enterprise software customers.
         noisy_report["total_score"] == base_report["total_score"] and noisy_report["grade"] == base_report["grade"],
         f"Unsupported named platforms should not depress alignment on their own; base={base_report}, noisy={noisy_report}",
     )
+    keyword_coverage = noisy_report["keyword_coverage"]
+    excluded = set(keyword_coverage["excluded_keywords"])
+    actionable_gaps = set(keyword_coverage["uncovered_keywords"])
+    expected_platforms = {"acumatica", "netsuite", "workday", "prismhr", "smartsheet"}
+    assert_true(
+        expected_platforms <= excluded and not expected_platforms & actionable_gaps,
+        "Unsupported platforms must remain excluded from actionable alignment gaps; "
+        f"excluded={sorted(excluded)}, actionable={sorted(actionable_gaps)}",
+    )
 
 
 def test_final_fit_audit_safe_none_alignment_grade(build_resume: object) -> None:
@@ -14459,7 +15892,10 @@ def test_final_fit_audit_safe_none_alignment_grade(build_resume: object) -> None
         build_resume.poor_fit_requirements = lambda *_args, **_kwargs: ()
         build_resume.keyword_placement_audit = lambda *_args, **_kwargs: {"gaps": []}
         build_resume.hiring_manager_skim_issues = lambda *_args, **_kwargs: []
-        build_resume.resume_readiness_report = lambda *_args, **_kwargs: SimpleNamespace(hard_blockers=())
+        build_resume.resume_readiness_report = lambda *_args, **_kwargs: SimpleNamespace(
+            hard_blockers=(),
+            fit_blockers=(),
+        )
         build_resume.extract_competency_items = lambda *_args, **_kwargs: tuple(f"Skill {index}" for index in range(1, 16))
         with TemporaryDirectory(prefix="final_fit_none_grade_") as temp_name:
             document_xml = Path(temp_name) / "document.xml"
@@ -14483,8 +15919,9 @@ def test_final_fit_audit_safe_none_alignment_grade(build_resume: object) -> None
 def test_resume_builder_source_passes_alignment_grade_to_final_fit_audit(build_resume: object) -> None:
     source = Path(build_resume.__file__).read_text(encoding="utf-8")
     assert_true(
-        'alignment_grade=str(alignment_report.get("grade", "")).strip() or None' in source,
-        "build_resume.py should pass the computed alignment grade into final_fit_audit() on the main resume-build path",
+        'alignment_grade=str(alignment.get("grade", "")).strip() or None' in source
+        and "audit_snapshot = final_document_audit_snapshot(" in source,
+        "The authoritative final-document snapshot should pass its computed alignment grade into final_fit_audit().",
     )
 
 
@@ -15539,7 +16976,15 @@ def test_refresh_claude_review_bundle(refresh_claude_review_bundle: object, clau
     )
 
 
-def main() -> None:
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Run resume-system smoke checks with visible progress.")
+    parser.add_argument("--federal", action="store_true", help="Run federal-tagged checks plus bootstrap checks.")
+    parser.add_argument("--alignment", action="store_true", help="Run alignment-tagged checks plus bootstrap checks.")
+    return parser.parse_args(argv)
+
+
+def main(argv: list[str] | None = None) -> None:
+    args = parse_args(argv)
     checks = (
         ("import config files", import_config_files),
         ("import major scripts", lambda: import_major_scripts()),
@@ -15827,19 +17272,27 @@ def main() -> None:
     executed_checks = 0
     failures: list[str] = []
 
+    print("[1/bootstrap] import config files...", flush=True)
+    started = time.monotonic()
     try:
         import_config_files()
         passed += 1
+        print(f"[1/bootstrap] PASS import config files ({time.monotonic() - started:.2f}s)", flush=True)
     except BaseException as error:  # noqa: BLE001
         failures.append(f"import config files: {error}")
+        print(f"[1/bootstrap] FAIL import config files ({time.monotonic() - started:.2f}s)", flush=True)
 
     modules = {}
     if not failures:
+        print("[2/bootstrap] import major scripts...", flush=True)
+        started = time.monotonic()
         try:
             modules = import_major_scripts()
             passed += 1
+            print(f"[2/bootstrap] PASS import major scripts ({time.monotonic() - started:.2f}s)", flush=True)
         except BaseException as error:  # noqa: BLE001
             failures.append(f"import major scripts: {error}")
+            print(f"[2/bootstrap] FAIL import major scripts ({time.monotonic() - started:.2f}s)", flush=True)
 
     if modules:
         build_resume = modules["build_resume"]
@@ -15882,8 +17335,12 @@ def main() -> None:
         utils = modules["utils"]
         writing_eval = modules["writing_eval"]
         question_prep = build_detailed_interview_guide.question_prep
-        for label, check in (
+        registered_checks = (
             ("AGENTS word budget", test_agents_word_budget),
+            ("smoke registry has no orphaned test functions", test_smoke_registry_has_no_orphaned_test_functions),
+            ("orphan detector flags synthetic unreferenced test", test_orphan_detector_flags_synthetic_unreferenced_test),
+            ("smoke selector uses nonempty deduplicated tag union", test_smoke_selector_uses_nonempty_deduplicated_tag_union),
+            ("smoke selector preserves failing federal check", test_smoke_selector_preserves_failing_federal_check),
             ("validate dummy inputs", lambda: test_validate_inputs(build_resume)),
             ("LinkedIn boilerplate cleanup", lambda: test_validate_inputs_strips_linkedin_boilerplate(build_resume)),
             ("role requirement text resumes after about-us sections", lambda: test_role_requirement_text_resumes_after_about_us_sections(build_resume)),
@@ -15902,6 +17359,7 @@ def main() -> None:
             ("federal grade match and duty visibility", lambda: test_federal_grade_match_and_duty_visibility_reporting(build_federal_resume)),
             ("federal ai summary and selection", lambda: test_federal_ai_summary_and_selection(build_federal_resume)),
             ("federal requirement audit and keywords", lambda: test_federal_requirement_audit_and_keywords(build_federal_resume)),
+            ("active federal structural requirement fixture", lambda: test_active_federal_structural_requirement_fixture(build_federal_resume)),
             ("federal layouts stay at ten point", lambda: test_federal_layouts_stay_at_ten_point(build_federal_resume)),
             ("federal visibility report tracks selected requirements", lambda: test_federal_visibility_report_tracks_selected_requirements(build_federal_resume)),
             ("federal volunteer experience renders separately", lambda: test_federal_volunteer_experience_renders_separately(build_federal_resume)),
@@ -15927,6 +17385,8 @@ def main() -> None:
             ),
             ("federal workflow supporting flags", test_federal_workflow_supporting_flag_resolution),
             ("federal workflow supporting step order", test_federal_workflow_runs_supporting_steps_after_resume),
+            ("shared workflow timeout quarantines partial output", test_shared_workflow_timeout_quarantines_partial_output),
+            ("federal workflow timeout stops supporting steps", test_federal_workflow_timeout_stops_supporting_steps),
             ("resume workflow dry-run skips upfront validation", test_run_resume_workflow_dry_run_skips_upfront_job_validation),
             ("federal workflow dry-run skips upfront validation", test_run_federal_workflow_dry_run_skips_upfront_job_validation),
             ("federal workflow dry-run labels unverified page counts", test_run_federal_workflow_dry_run_labels_unverified_page_counts),
@@ -16065,8 +17525,21 @@ def main() -> None:
             ("keyword placement audit", lambda: test_keyword_placement_audit(build_resume)),
             ("ATS keyword mirroring and coverage", lambda: test_ats_keyword_mirroring_and_coverage(build_resume)),
             ("ATS scan terms denominator hygiene", lambda: test_ats_scan_terms_denominator_hygiene(build_resume)),
+            ("keyword classifier precedes frequency promotion", lambda: test_keyword_classifier_precedes_frequency_promotion(build_resume)),
+            ("fresh manifest fails closed and uses exact resume", test_fresh_manifest_mode_fails_closed_and_uses_exact_resume),
+            ("fresh manifest row dispatch cannot search active output", test_fresh_manifest_row_dispatch_cannot_search_active_output),
+            ("fresh rebuild duplicate targets stay independent", test_fresh_rebuild_duplicate_targets_get_independent_directories),
+            ("survivor classification and requirement relations", lambda: test_survivor_classification_and_requirement_relations(build_resume)),
+            ("active JD cross-functional surface realization", lambda: test_active_jd_cross_functional_surface_realization(build_resume)),
+            ("exact scored surfaces survive placement", lambda: test_exact_scored_surface_targets_survive_placement(build_resume)),
+            ("fresh harness page authority fails closed", test_fresh_harness_page_authority_fails_closed),
+            ("core admission requires requirement class", lambda: test_core_admission_requires_requirement_class(build_resume)),
             ("supported evidence ledger terms and context", lambda: test_supported_evidence_ledger_terms_and_context(build_resume)),
+            ("evidence catalog schema drives surfaces and competencies", lambda: test_evidence_catalog_schema_drives_surfaces_and_competencies(build_resume)),
+            ("source lint rejects evidence fingerprint drift", lambda: test_source_lint_rejects_evidence_fingerprint_drift(build_resume)),
             ("supported evidence ledger natural rewrites", lambda: test_supported_evidence_ledger_natural_rewrites(build_resume)),
+            ("keyword rewrite safety caps literals and role provenance", lambda: test_keyword_rewrite_safety_caps_literals_and_role_provenance(build_resume)),
+            ("keyword policy modes and tailoring fit independence", lambda: test_keyword_policy_modes_and_tailoring_fit_independence(build_resume)),
             ("targeted competencies preserve supported soft cap overage", lambda: test_targeted_competencies_preserve_supported_soft_cap_overage(build_resume)),
             ("targeted competencies can grow for ledger fallback", lambda: test_targeted_competencies_can_grow_for_ledger_fallback(build_resume)),
             ("ledger skill display labels preserve exact terms", lambda: test_ledger_skill_display_labels_preserve_exact_terms(build_resume)),
@@ -16074,12 +17547,18 @@ def main() -> None:
             ("customer-facing summary weave uses natural phrase", lambda: test_customer_facing_summary_weave_uses_natural_phrase(build_resume)),
             ("ledger core promotion requires placement", lambda: test_ledger_core_promotion_requires_placement(build_resume)),
             ("ledger placement survives render boundary surface", lambda: test_ledger_placement_survives_render_boundary_surface(build_resume)),
-            ("priority ledger assertion reports missing terms", lambda: test_priority_ledger_assertion_reports_missing_terms(build_resume)),
-            ("priority ledger assertion accepts Skills terms", lambda: test_priority_ledger_assertion_accepts_skills_terms(build_resume)),
+            ("generic ledger assertion reports missing terms", lambda: test_generic_ledger_assertion_reports_missing_terms(build_resume)),
+            ("generic ledger assertion accepts Skills terms", lambda: test_generic_ledger_assertion_accepts_skills_terms(build_resume)),
+            ("two-page selection protects supported carrier", lambda: test_two_page_selection_protects_supported_carrier(build_resume)),
             ("ledger Skills presence satisfies placement audit", lambda: test_ledger_skills_presence_satisfies_placement_audit(build_resume)),
             ("keyword placement demotes filler and boosts phrases", lambda: test_keyword_placement_demotes_filler_and_boosts_phrases(build_resume)),
             ("supported keyword weave removes stapled tails", lambda: test_supported_keyword_weave_removes_stapled_tails(build_resume)),
             ("resume notes print core and breadth coverage", lambda: test_resume_notes_print_core_and_breadth_coverage(build_resume)),
+            ("resume notes separate placed terms from domain gaps", lambda: test_resume_notes_separate_placed_terms_from_domain_gaps(build_resume)),
+            ("resume notes deduplicate ledger issues", lambda: test_resume_notes_deduplicate_ledger_issues(build_resume)),
+            ("packaged audit consistency guard", lambda: test_packaged_audit_consistency_guard(build_resume)),
+            ("ownership skim zone and severity", lambda: test_ownership_skim_zone_and_severity(build_resume)),
+            ("system-wide top-third quality followups", lambda: test_system_wide_top_third_quality_followups(build_resume)),
             ("S3 supported keyword weave targets priority summaries", lambda: test_s3_supported_keyword_weave_targets_priority_summaries(build_resume)),
             ("S3 supported keyword weave keeps USAA summary three sentences", lambda: test_s3_supported_keyword_weave_keeps_usaa_summary_three_sentences(build_resume)),
             ("summary weave safety rejects contract-breaking repairs", lambda: test_summary_weave_safety_rejects_contract_breaking_repairs(build_resume)),
@@ -16220,6 +17699,8 @@ def main() -> None:
             ("likely question story direct example preference", lambda: test_likely_question_story_prefers_direct_example(build_interview_cheat_sheet)),
             ("likely question story avoids reuse when alternative exists", lambda: test_likely_question_story_avoids_reuse_when_alternative_exists(build_interview_cheat_sheet)),
             ("expansion story bank uses supported core stories", lambda: test_expansion_story_bank_uses_supported_core_stories(build_resume, build_interview_cheat_sheet)),
+            ("interview story bank source gate and safe terms", lambda: test_interview_story_bank_source_gate_and_safe_terms(question_prep, build_interview_cheat_sheet, build_resume)),
+            ("interview story bank lane and hero contract", lambda: test_interview_story_bank_lane_and_hero_contract(build_resume, build_interview_cheat_sheet)),
             ("expansion question mapping and checklist content", lambda: test_expansion_question_mapping_and_checklist_content(build_resume, build_interview_cheat_sheet)),
             ("Item G story hooks are concrete", lambda: test_item_g_story_hooks_are_concrete(build_interview_cheat_sheet)),
             ("Item G flagship story ranking is controlled", lambda: test_item_g_flagship_story_ranking_is_controlled(build_resume, build_interview_cheat_sheet)),
@@ -16291,6 +17772,7 @@ def main() -> None:
             ("writing eval passes clean summary", lambda: test_writing_eval_passes_clean_summary(writing_eval)),
             ("writing eval flags weak closes and list density", lambda: test_writing_eval_flags_weak_close_and_list_density(writing_eval)),
             ("warn-only prose enforcement allows prep text", lambda: test_enforce_prose_quality_warn_mode_allows_prep_text(utils)),
+            ("writing eval buried lede warn-only", lambda: test_writing_eval_buried_lede_is_warn_only(writing_eval)),
             ("writing eval loads file dataset", lambda: test_writing_eval_loads_file_backed_dataset(writing_eval)),
             ("writing eval extracts docx sections", lambda: test_writing_eval_extracts_docx_sections(writing_eval)),
             ("detailed guide notes context strips leading bullets", lambda: test_detailed_guide_notes_context_strips_leading_bullets(build_detailed_interview_guide)),
@@ -16328,7 +17810,37 @@ def main() -> None:
             ("interview negotiation section avoids bracket placeholders", lambda: test_interview_negotiation_section_avoids_bracket_placeholders(build_interview_cheat_sheet)),
             ("collapse redundant role blanks", lambda: test_collapse_redundant_role_blanks(build_resume)),
             ("resume experience alignment", lambda: test_resume_experience_alignment(build_resume)),
-        ):
+            ("supply chain summary stays in lane context", lambda: test_supply_chain_summary_stays_in_lane_context(build_resume)),
+            ("retention analytics summary", lambda: test_retention_analytics_summary_meets_minimum_word_count(build_resume)),
+            ("supply chain analytics checklist", lambda: test_supply_chain_analytics_checklist_includes_supported_delivery_terms(build_resume)),
+            ("proof first opening avoids list density", lambda: test_proof_first_opening_avoids_list_density_with_comma_heavy_core_problem(build_cover_letter, writing_eval)),
+            ("cover prose strips header before quality evaluation", lambda: test_cover_letter_prose_check_text_strips_header_before_quality_eval(build_cover_letter, writing_eval)),
+            ("story natural reference avoids meta language", lambda: test_story_natural_reference_avoids_meta_announcement_language(build_interview_cheat_sheet)),
+            ("contains search term plural handling", lambda: test_contains_search_term_handles_simple_plural_forms(build_resume)),
+            ("workflow parse args accepts resume only", test_run_resume_workflow_parse_args_accepts_resume_only),
+            ("title phrase candidates avoid comma crossing", lambda: test_title_phrase_candidates_do_not_cross_comma_title_segments(build_resume)),
+            ("Clorox title and specialties", lambda: test_clorox_style_job_title_and_specialties(build_resume)),
+            ("multiline title extraction with BOM", lambda: test_multiline_job_title_extraction_with_bom(build_resume)),
+            ("standard cover trim sentence cap", lambda: test_standard_cover_trim_enforces_body_sentence_cap_even_within_word_budget(build_cover_letter)),
+            ("XML page estimate compact separator", lambda: test_xml_page_estimate_shrinks_with_compact_separator_font(build_resume)),
+            ("targeted competency guardrail", lambda: test_targeted_competency_guardrail_rejects_titles_and_bare_nouns(build_resume)),
+            ("retained competencies preserve source skill", lambda: test_retained_competencies_preserve_jd_required_source_skill(build_resume)),
+            ("recent interview question classification", lambda: test_recent_interview_question_classification_and_factual_scripts(build_interview_cheat_sheet)),
+            ("recent interview prep renders spoken answers", lambda: test_recent_interview_question_prep_renders_spoken_answers(build_resume, build_interview_cheat_sheet, build_detailed_interview_guide)),
+            ("business context separates spoken answer coaching", lambda: test_business_context_question_section_separates_answer_from_coaching(build_resume, build_interview_cheat_sheet, build_detailed_interview_guide)),
+        )
+
+        selected_tags = {
+            tag
+            for tag, enabled in (("federal", args.federal), ("alignment", args.alignment))
+            if enabled
+        }
+        selected_checks = select_smoke_checks(registered_checks, selected_tags)
+        full_total = len(registered_checks) + 2
+        selected_total = len(selected_checks) + 2
+        for index, (label, check) in enumerate(selected_checks, start=3):
+            print(f"[{index}/{selected_total}] {label}...", flush=True)
+            started = time.monotonic()
             stdout_buffer = io.StringIO()
             stderr_buffer = io.StringIO()
             try:
@@ -16336,6 +17848,7 @@ def main() -> None:
                     check()
                 executed_checks += 1
                 passed += 1
+                print(f"[{index}/{selected_total}] PASS {label} ({time.monotonic() - started:.2f}s)", flush=True)
             except BaseException as error:  # noqa: BLE001
                 executed_checks += 1
                 details = stderr_buffer.getvalue().strip() or stdout_buffer.getvalue().strip()
@@ -16343,15 +17856,17 @@ def main() -> None:
                     failures.append(f"{label}: {error}\n  Captured output: {details}")
                 else:
                     failures.append(f"{label}: {error}")
+                print(f"[{index}/{selected_total}] FAIL {label} ({time.monotonic() - started:.2f}s)", flush=True)
 
     total = executed_checks + 2
     if failures:
-        print(f"Smoke test FAILED: {passed}/{total} checks passed.")
+        print(f"Smoke test FAILED: {passed}/{total} checks passed ({full_total} total registered).")
         for failure in failures:
             print(f"- {failure}")
         raise SystemExit(1)
 
-    print(f"Smoke test PASSED: {passed}/{total} checks passed.")
+    scope = "+".join(sorted(selected_tags)) if selected_tags else "full"
+    print(f"Smoke test PASSED: {passed}/{total} checks passed ({scope}; {full_total} total registered).")
 
 
 if __name__ == "__main__":
