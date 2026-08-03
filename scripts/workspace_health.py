@@ -298,7 +298,9 @@ def attempt_question_prep_recovery(project_root: Path = PROJECT_ROOT) -> dict[st
         if candidate_health["status"] != "healthy":
             continue
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        preserved = target.with_name(f"question_prep.pre_recovery_{timestamp}.py")
+        preserved_root = project_root / "backups" / "workspace_health"
+        preserved_root.mkdir(parents=True, exist_ok=True)
+        preserved = preserved_root / f"question_prep.pre_recovery_{timestamp}.py"
         if target.exists():
             shutil.copy2(target, preserved)
         shutil.copy2(candidate, target)
@@ -315,15 +317,11 @@ def attempt_question_prep_recovery(project_root: Path = PROJECT_ROOT) -> dict[st
 
 
 def ensure_workspace_health_or_exit(workflow_name: str, *, project_root: Path = PROJECT_ROOT) -> dict[str, Any]:
-    outcome = attempt_question_prep_recovery(project_root)
-    snapshot = outcome["snapshot"]
+    # Normal workflows, including dry runs, must never overwrite active work.
+    # Recovery remains available only through the explicit --attempt-recovery CLI.
+    snapshot = workspace_snapshot(project_root)
     if snapshot["workspace_ok"]:
-        if outcome["method"] == "git-restore":
-            print("Workspace recovery: restored scripts/question_prep.py from Git before build steps.")
-        elif outcome["method"] and str(outcome["method"]).startswith("backup:"):
-            print(f"Workspace recovery: restored scripts/question_prep.py from {outcome['method'][7:]}.")
-        else:
-            print("Workspace preflight: PASS")
+        print("Workspace preflight: PASS")
         return snapshot
 
     message_lines = [

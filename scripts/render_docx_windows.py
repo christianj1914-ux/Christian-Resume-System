@@ -59,6 +59,10 @@ def find_pdftoppm() -> str:
                 / "pdftoppm.exe"
             )
         )
+    # Prefer the real bundled executable over the command-wrapper shims that
+    # can resolve to a missing DLL or an invalid working directory on Windows.
+    runtime_native = Path.home() / ".cache" / "codex-runtimes" / "codex-primary-runtime" / "dependencies" / "native" / "poppler" / "Library" / "bin" / "pdftoppm.exe"
+    candidates.append(str(runtime_native))
     for name in ("pdftoppm.exe", "pdftoppm", "pdftoppm.cmd"):
         candidates.append(shutil.which(name))
     for candidate in candidates:
