@@ -22,7 +22,7 @@ Use `python tasks.py` as the canonical command surface. For the live command inv
 - Never use LinkedIn page content as source material.
 - Never use old outputs as source material.
 - Never invent content, placeholder content, unsupported metrics, or unsupported ownership.
-- Keep Christian's LinkedIn URL visible in the contact line as plain text only. Do not add an external Word hyperlink relationship for it.
+- For commercial resumes, keep Christian's LinkedIn URL visible in the contact line as plain text only. Do not add an external Word hyperlink relationship for it. Federal resumes do not require LinkedIn.
 - For multi-file coding changes, start with the narrowest safe upstream dependency, prefer reuse and deletion over new layers, validate each boundary before moving downstream, and choose the lowest-token path that preserves correctness.
 
 ## Source Of Truth
@@ -97,7 +97,7 @@ Allowed tailoring moves:
 
 The Professional Summary must:
 
-- stay between 50 and 110 words
+- stay within the range enforced by `scripts/config/language_rules.py` (currently 45 to 70 words)
 - default to 3 recruiter-friendly sentences
 - read like supported proof, not a generic brand statement
 - surface scale, scope, business context, metrics, or outcomes quickly

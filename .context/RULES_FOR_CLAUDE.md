@@ -10,7 +10,7 @@ This file condenses the highest-risk system rules. `AGENTS.md` remains canonical
 - Never invent content, claims, metrics, tools, platforms, responsibilities, company values, culture fit, or outcomes.
 - Use one active job posting in `jobs/job_description.txt` at a time.
 - Preserve job titles, role order, Education, and Professional Development.
-- Keep Christian's LinkedIn URL visible in the resume contact line as plain text only. Do not create an external hyperlink relationship.
+- For commercial resumes, keep Christian's LinkedIn URL visible in the resume contact line as plain text only. Do not create an external hyperlink relationship. Federal resumes do not require LinkedIn.
 - Do not use double dashes anywhere in generated career documents.
 - Do not use first-person pronouns anywhere in resumes.
 
@@ -100,7 +100,7 @@ Do not add a new targeting lane to `TARGETING_LANES` without also adding at mini
 
 The Professional Summary must:
 
-- be 70 to 110 words
+- use the range enforced by `scripts/config/language_rules.py` (currently 45 to 70 words)
 - be recruiter-friendly
 - usually use three sentences
 - prioritize the job's core problems first
