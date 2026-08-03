@@ -431,6 +431,8 @@ def archive_active_context(
     source_command: str = "",
     archive_reason: str = "command_auto_archive",
     snapshot_id: str = "",
+    dedupe_by_content: bool = False,
+    sync_legacy: bool = False,
 ) -> ArchivedJobContext:
     return archive_texts(
         job_description_text=read_text(JOB_DESCRIPTION),
@@ -439,7 +441,8 @@ def archive_active_context(
         source_command=source_command,
         archive_reason=archive_reason,
         snapshot_id=snapshot_id,
-        sync_legacy=True,
+        dedupe_by_content=dedupe_by_content,
+        sync_legacy=sync_legacy,
     )
 
 
@@ -511,8 +514,33 @@ def find_snapshot_id_for_active_context() -> str:
     return ""
 
 
+_DRIFT_WARNING_EMITTED = False
+
+
+def archive_index_drift_message() -> str:
+    """Return a repair hint when index rows and valid snapshot folders diverge."""
+
+    indexed = {
+        row.get("snapshot_id", "").strip()
+        for row in _read_index_raw()
+        if row.get("snapshot_id", "").strip()
+    }
+    on_disk = {
+        path.name
+        for path in SCRATCH_JD_LIBRARY.iterdir()
+        if path.is_dir() and metadata_path_for_snapshot(path.name).exists() and job_description_path_for_snapshot(path.name).exists()
+    } if SCRATCH_JD_LIBRARY.exists() else set()
+    if indexed == on_disk:
+        return ""
+    return "WARNING: Archive index/disk drift detected. Run python tasks.py jd-archive --sync-legacy to reconcile it."
+
+
 def read_index() -> list[dict[str, str]]:
-    sync_legacy_archives()
+    global _DRIFT_WARNING_EMITTED
+    warning = archive_index_drift_message()
+    if warning and not _DRIFT_WARNING_EMITTED:
+        print(warning)
+        _DRIFT_WARNING_EMITTED = True
     return sorted(_read_index_raw(), key=lambda row: row.get("created_at", ""), reverse=True)
 
 

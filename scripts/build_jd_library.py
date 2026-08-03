@@ -13,7 +13,8 @@ import resume_analysis
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Archive and analyze job descriptions.")
     subparsers = parser.add_subparsers(dest="command")
-    subparsers.add_parser("archive", help="Archive the active job description and active application questions.")
+    archive = subparsers.add_parser("archive", help="Archive the active job description and active application questions.")
+    archive.add_argument("--sync-legacy", action="store_true", help="Reconcile legacy archive records before archiving (writes archive metadata).")
     subparsers.add_parser("list", help="List archived job-context snapshots.")
     search = subparsers.add_parser("search", help="Search archived job descriptions.")
     search.add_argument("term")
@@ -24,12 +25,13 @@ def parse_args() -> argparse.Namespace:
     return args
 
 
-def archive_current() -> int:
+def archive_current(*, sync_legacy: bool = False) -> int:
     try:
         snapshot = job_context_archive.archive_active_context(
             workflow_type="commercial",
             source_command="jd-archive",
             archive_reason="manual_archive",
+            sync_legacy=sync_legacy,
         )
     except ValueError:
         print("No active job description to archive.")
@@ -95,7 +97,7 @@ def pattern_summary() -> int:
 def main() -> int:
     args = parse_args()
     if args.command == "archive":
-        return archive_current()
+        return archive_current(sync_legacy=args.sync_legacy)
     if args.command == "search":
         return search_entries(args.term)
     if args.command == "patterns":
