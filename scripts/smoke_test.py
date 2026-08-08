@@ -11990,17 +11990,19 @@ def test_cover_letter_validator_blocks_internal_lane_language(build_cover_letter
             "Christian Estrada",
         ]
     )
+    stderr = io.StringIO()
     try:
-        build_cover_letter.validate_cover_letter_text(
-            bad_text,
-            DUMMY_JOB_DESCRIPTION,
-            "Smoke Test Systems",
-            mode=build_cover_letter.STANDARD_COVER_MODE,
-        )
-    except SystemExit as error:
+        with contextlib.redirect_stderr(stderr):
+            build_cover_letter.validate_cover_letter_text(
+                bad_text,
+                DUMMY_JOB_DESCRIPTION,
+                "Smoke Test Systems",
+                mode=build_cover_letter.STANDARD_COVER_MODE,
+            )
+    except SystemExit:
         assert_true(
-            "internal lane/template language" in str(error),
-            f"validate_cover_letter_text() should explain internal cover language; got {error}",
+            "internal lane/template language" in stderr.getvalue(),
+            f"validate_cover_letter_text() should explain internal cover language; got {stderr.getvalue()}",
         )
         return
     raise SmokeFailure("validate_cover_letter_text() should fail when cover prose leaks internal lane/template language")
@@ -12018,17 +12020,19 @@ def test_cover_letter_validator_blocks_canned_f5_sentences(build_cover_letter: o
             "Christian Estrada",
         ]
     )
+    stderr = io.StringIO()
     try:
-        build_cover_letter.validate_cover_letter_text(
-            bad_text,
-            DUMMY_JOB_DESCRIPTION,
-            "Smoke Test Systems",
-            mode=build_cover_letter.STANDARD_COVER_MODE,
-        )
-    except SystemExit as error:
+        with contextlib.redirect_stderr(stderr):
+            build_cover_letter.validate_cover_letter_text(
+                bad_text,
+                DUMMY_JOB_DESCRIPTION,
+                "Smoke Test Systems",
+                mode=build_cover_letter.STANDARD_COVER_MODE,
+            )
+    except SystemExit:
         assert_true(
-            "configuration choices" in str(error) and "generic motivation" in str(error),
-            f"validate_cover_letter_text() should explain canned F5 prose; got {error}",
+            "configuration choices" in stderr.getvalue() and "generic motivation" in stderr.getvalue(),
+            f"validate_cover_letter_text() should explain canned F5 prose; got {stderr.getvalue()}",
         )
         return
     raise SmokeFailure("validate_cover_letter_text() should fail when canned F5 sentences return")
@@ -12188,17 +12192,19 @@ def test_cover_letter_validator_blocks_generic_experience_summary(build_cover_le
             "Christian Estrada",
         ]
     )
+    stderr = io.StringIO()
     try:
-        build_cover_letter.validate_cover_letter_text(
-            bad_text,
-            DUMMY_JOB_DESCRIPTION,
-            "Smoke Test Systems",
-            mode=build_cover_letter.STANDARD_COVER_MODE,
-        )
-    except SystemExit as error:
+        with contextlib.redirect_stderr(stderr):
+            build_cover_letter.validate_cover_letter_text(
+                bad_text,
+                DUMMY_JOB_DESCRIPTION,
+                "Smoke Test Systems",
+                mode=build_cover_letter.STANDARD_COVER_MODE,
+            )
+    except SystemExit:
         assert_true(
-            "I bring approximately" in str(error),
-            f"validate_cover_letter_text() should explain the banned generic experience summary; got {error}",
+            "I bring approximately" in stderr.getvalue(),
+            f"validate_cover_letter_text() should explain the banned generic experience summary; got {stderr.getvalue()}",
         )
         return
     raise SmokeFailure("validate_cover_letter_text() should fail on the banned generic experience-summary opener")
@@ -12216,18 +12222,20 @@ def test_cover_letter_qc_rejects_lowercase_proof_paragraph(build_cover_letter: o
             "Christian Estrada",
         ]
     )
+    stderr = io.StringIO()
     try:
-        build_cover_letter.assert_cover_letter_qc(
-            text,
-            "Smoke Test Systems",
-            "Implementation Consultant",
-            DUMMY_JOB_DESCRIPTION,
-            mode=build_cover_letter.STANDARD_COVER_MODE,
-        )
-    except SystemExit as error:
+        with contextlib.redirect_stderr(stderr):
+            build_cover_letter.assert_cover_letter_qc(
+                text,
+                "Smoke Test Systems",
+                "Implementation Consultant",
+                DUMMY_JOB_DESCRIPTION,
+                mode=build_cover_letter.STANDARD_COVER_MODE,
+            )
+    except SystemExit:
         assert_true(
-            "malformed lowercase fragment" in str(error),
-            f"assert_cover_letter_qc() should explain lowercase proof failures; got {error}",
+            "malformed lowercase fragment" in stderr.getvalue(),
+            f"assert_cover_letter_qc() should explain lowercase proof failures; got {stderr.getvalue()}",
         )
         return
     raise SmokeFailure("assert_cover_letter_qc() should fail when the proof paragraph starts with a lowercase fragment")
