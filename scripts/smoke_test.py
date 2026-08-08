@@ -12936,10 +12936,15 @@ def test_non_erp_audit_allows_sap_crystal_reports(build_resume: object) -> None:
         raise SmokeFailure(f"SAP Crystal Reports should not trigger the non-ERP blocker: {error}") from error
 
 
-def test_company_profile_stub(build_resume: object) -> None:
+def test_company_profile_registry_behavior(build_resume: object) -> None:
+    known_profile = build_resume.detect_company_profile("Aptean", "")
     assert_true(
-        build_resume.detect_company_profile("Salesforce", "") is None,
-        "detect_company_profile() should remain a no-op stub until implemented",
+        known_profile is not None and known_profile.get("key") == "aptean",
+        f"detect_company_profile() should return the registered Aptean profile; got {known_profile}",
+    )
+    assert_true(
+        build_resume.detect_company_profile("Unregistered Example Company", "") is None,
+        "detect_company_profile() should return None for an unknown company",
     )
 
 
@@ -17752,7 +17757,7 @@ def main(argv: list[str] | None = None) -> None:
             ("named ERP platform scrub clears summary audit", lambda: test_named_erp_platform_scrub_clears_summary_audit(build_resume)),
             ("supported text keeps named platforms outside summary", lambda: test_supported_text_keeps_named_platforms_outside_summary(build_resume)),
             ("non-ERP audit allows SAP Crystal Reports", lambda: test_non_erp_audit_allows_sap_crystal_reports(build_resume)),
-            ("company profile stub", lambda: test_company_profile_stub(build_resume)),
+            ("company profile registry behavior", lambda: test_company_profile_registry_behavior(build_resume)),
             ("hiring manager skim lane terms", lambda: test_hiring_manager_skim_lane_terms(build_resume)),
             ("direct report line avoids people leadership false positive", lambda: test_direct_report_reporting_line_does_not_trigger_people_leadership(build_resume)),
             ("east west summary preserves Aptean ownership", lambda: test_east_west_solution_architecture_summary_preserves_aptean_ownership(build_resume)),

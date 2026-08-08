@@ -7062,17 +7062,11 @@ def build_cover_letter_for_inputs(
 
     supplied_context = relevant_supplied_context(company_name, role_title or "")
     registered_profile = _registered_firm_profile(company_name, role_title or "", job_description, supplied_context)
-    # stub: implement detect_company_profile in build_resume.py before enabling this block.
-    firm_profile = build_resume.detect_company_profile(company_name, job_description) if False else None
     if registered_profile:
         firm_key, profile_config = registered_profile
         debug_print(f"Firm profile matched: {firm_key}", flag="DEBUG_COVER_LETTER")
         debug_print(f"Cover style note: {profile_config.get('cover_style', '')}", flag="DEBUG_COVER_LETTER")
         debug_print(f"Proof emphasis: {profile_config.get('proof_emphasis', '')}", flag="DEBUG_COVER_LETTER")
-    elif firm_profile:
-        debug_print(f"Firm profile matched: {firm_profile['key']}", flag="DEBUG_COVER_LETTER")
-        debug_print(f"Cover style note: {firm_profile.get('cover_note', '')}", flag="DEBUG_COVER_LETTER")
-        debug_print(f"Avoid: {firm_profile.get('avoid', '')}", flag="DEBUG_COVER_LETTER")
 
     audit_status = "PASS"
     final_role_title = clean_role_title(role_title)
