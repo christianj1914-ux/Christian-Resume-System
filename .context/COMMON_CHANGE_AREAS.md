@@ -178,12 +178,12 @@ Common risks:
 
 Inspect:
 
-- `scripts/build_resume.py`: `copy_visual_parts()`, `apply_section_layout()`, `force_document_font()`, `force_styles_font()`, `apply_dense_font_sizing()`, `apply_fit_font_sizing()`, `apply_resume_spacing_rhythm()`, `apply_core_competency_row_spacing()`, `assert_document_font()`
+- `scripts/build_resume.py`: `copy_visual_parts()`, `apply_section_layout()`, `force_styles_font()`, `apply_font_and_size_pass()`, `apply_spacing_and_layout_pass()`, `apply_fit_font_sizing()`, `assert_document_font()`
 - `scripts/render_checks.py`: `render_docx()`
 
 Common risks:
 
-- losing Carlito
+- losing Calibri from commercial resume runs or styles
 - Word default spacing returning
 - three-page resume output
 - broken Core Competencies row spacing
@@ -196,7 +196,7 @@ Common risks:
 Inspect:
 
 - `scripts/utils.py`: `remove_linkedin_hyperlinks()`
-- `scripts/build_resume.py`: `normalize_linkedin_hyperlink_targets()` and the call to `remove_linkedin_hyperlinks()`
+- `scripts/build_resume.py`: the call to `remove_linkedin_hyperlinks()`
 - `scripts/run_resume_workflow.py`: `repair_docx_open_issues()`, `repair_generated_docx_outputs()`
 
 Common risks:

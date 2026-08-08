@@ -24,7 +24,8 @@ The KPMG file is the visual formatting base. Generated resumes should match its 
 
 ## Resume Formatting Rules
 
-- Font: Carlito everywhere.
+- Font ownership is builder-specific. Commercial resumes (`build_resume.py` through `resume_format.py`) and federal resumes (`build_federal_resume.py`) use Calibri. Cover letters, interview cheat sheets, application checklists, general advice, and detailed interview guides use Carlito.
+- Carlito is used as a metric-compatible Calibri substitute where those supporting-document builders need an available redistributable font; this is a font-availability and licensing distinction, not a layout distinction.
 - Margins: 0.5 inch.
 - Body text: 10pt minimum.
 - Section headers: at least 10.5pt and at least 0.5pt larger than body text.

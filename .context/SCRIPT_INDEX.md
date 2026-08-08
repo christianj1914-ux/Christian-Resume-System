@@ -37,12 +37,12 @@ DOCX structure and formatting:
 
 - `unpack_docx()`, `pack_docx()`, `pack_docx_with_page_fit()`: DOCX XML workflow.
 - `copy_visual_parts()`, `apply_section_layout()`: KPMG visual base transfer.
-- `force_document_font()`, `force_styles_font()`: Carlito enforcement.
-- `force_paragraph_single_spacing()`, `force_style_single_spacing()`: spacing enforcement.
-- `apply_dense_font_sizing()`, `apply_fit_font_sizing()`: page-fit font profiles.
-- `apply_resume_alignment()`, `apply_resume_spacing_rhythm()`, `apply_core_competency_row_spacing()`: layout rhythm.
-- `normalize_linkedin_hyperlink_targets()`: LinkedIn target normalization before final plain-text safety.
+- `apply_font_and_size_pass()`, `force_styles_font()`: consolidated Calibri enforcement for commercial resume document runs and styles.
+- `apply_spacing_and_layout_pass()`, `force_style_single_spacing()`: consolidated paragraph and style spacing enforcement.
+- `apply_fit_font_sizing()`: page-fit font profiles used by the packer.
+- `apply_resume_alignment()`: section-aware alignment before the consolidated spacing pass.
 - `remove_linkedin_hyperlinks()` from `utils.py`: removes LinkedIn hyperlink XML and relationship entries.
+- The normative builder-specific font contract lives in `.context/RULES_FOR_CLAUDE.md`.
 
 ## `scripts/resume_analysis.py`
 

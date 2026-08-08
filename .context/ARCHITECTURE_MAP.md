@@ -73,7 +73,7 @@ High-risk changes should preserve:
 - no invented content
 - Word-only output
 - two-page resume fit
-- Carlito font and dense KPMG formatting
+- builder-specific font ownership and dense KPMG resume formatting, with the normative Calibri/Carlito split defined only in `.context/RULES_FOR_CLAUDE.md`
 - mandatory company reorganization sentences
 - role order, job titles, Education, and Professional Development
 - no LinkedIn external hyperlink relationship

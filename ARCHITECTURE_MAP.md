@@ -43,6 +43,7 @@
 - `AGENTS.md` is the compact operating contract. Keep it limited to always-needed rules.
 - `SYSTEM_REFERENCE.md` holds the fuller command and output inventory. Keep it aligned with the real script surface and maturity labels.
 - `CLAUDE.md` and the `.context/` files are the compact external-review system. Keep them aligned with live script behavior, packet modes, prompt commands, and tracker/checklist/workflow changes.
+- `.context/RULES_FOR_CLAUDE.md` is the sole normative source for builder-specific font ownership; architecture maps should reference that contract rather than duplicate the Calibri/Carlito split.
 - LinkedIn content must never be used as resume source material.
 - One active job description belongs in `jobs/job_description.txt` at a time.
 - Word documents are the only final document artifact format. Do not create PDFs.

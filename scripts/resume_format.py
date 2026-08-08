@@ -49,7 +49,6 @@ BRAND_BLUE = "1F4E79"
 BODY_GRAY = "595959"
 LINK_BLUE = "0563C1"
 CONTACT_EMAIL = "christianj1914@gmail.com"
-LINKEDIN_URL = "https://www.linkedin.com/in/cjne/"
 BODY_FONT_SIZE_HP = "20"
 SECTION_SEPARATOR_FONT_SIZE_HP = "20"
 CORE_COMPETENCY_ROW_SEPARATOR_FONT_SIZE_HP = "6"
@@ -500,16 +499,6 @@ def apply_spacing_and_layout_pass(document_xml: Path) -> None:
 
     tree.write(document_xml, encoding="utf-8", xml_declaration=True)
 
-def force_document_font(document_xml: Path, font_name: str = RESUME_FONT) -> None:
-    tree = ET.parse(document_xml)
-    for run in tree.getroot().findall(f".//{W}r"):
-        r_pr = run.find(f"{W}rPr")
-        if r_pr is None:
-            r_pr = ET.Element(f"{W}rPr")
-            run.insert(0, r_pr)
-        set_run_font(r_pr, font_name)
-    tree.write(document_xml, encoding="utf-8", xml_declaration=True)
-
 def force_styles_font(styles_xml: Path, font_name: str = RESUME_FONT) -> None:
     if not styles_xml.is_file():
         return
@@ -524,26 +513,6 @@ def force_styles_font(styles_xml: Path, font_name: str = RESUME_FONT) -> None:
             r_pr = ET.SubElement(style, f"{W}rPr")
         set_run_font(r_pr, font_name)
     tree.write(styles_xml, encoding="utf-8", xml_declaration=True)
-
-def apply_dense_font_sizing(document_xml: Path) -> None:
-    tree = ET.parse(document_xml)
-    for paragraph in tree.getroot().findall(f".//{W}p"):
-        text = re.sub(r"\s+", " ", paragraph_text(paragraph)).strip()
-        if not text:
-            continue
-        if text == "Christian Estrada":
-            target_size = NAME_FONT_SIZE_HP
-        elif normalize_required_section_name(text):
-            target_size = SECTION_FONT_SIZE_HP
-        else:
-            target_size = BODY_FONT_SIZE_HP
-        for run in paragraph.findall(f".//{W}r"):
-            r_pr = run.find(f"{W}rPr")
-            if r_pr is None:
-                r_pr = ET.Element(f"{W}rPr")
-                run.insert(0, r_pr)
-            set_run_size(r_pr, target_size)
-    tree.write(document_xml, encoding="utf-8", xml_declaration=True)
 
 def apply_fit_font_sizing(
     document_xml: Path,
@@ -571,19 +540,6 @@ def apply_fit_font_sizing(
                 r_pr = ET.Element(f"{W}rPr")
                 run.insert(0, r_pr)
             set_run_size(r_pr, target_size)
-    tree.write(document_xml, encoding="utf-8", xml_declaration=True)
-
-def force_paragraph_single_spacing(document_xml: Path) -> None:
-    tree = ET.parse(document_xml)
-    for paragraph in tree.getroot().findall(f".//{W}p"):
-        p_pr = paragraph.find(f"{W}pPr")
-        if p_pr is None:
-            p_pr = ET.Element(f"{W}pPr")
-            paragraph.insert(0, p_pr)
-        spacing = p_pr.find(f"{W}spacing")
-        if spacing is None:
-            spacing = ET.SubElement(p_pr, f"{W}spacing")
-        set_single_spacing(spacing)
     tree.write(document_xml, encoding="utf-8", xml_declaration=True)
 
 def force_style_single_spacing(styles_xml: Path) -> None:
@@ -625,116 +581,6 @@ def apply_resume_alignment(document_xml: Path) -> None:
             set_paragraph_alignment(paragraph, "both")
         elif current_section in {"Education", SKILLS_SECTION_HEADING, "Professional Development"}:
             set_paragraph_alignment(paragraph, "center")
-
-    tree.write(document_xml, encoding="utf-8", xml_declaration=True)
-
-def apply_resume_spacing_rhythm(document_xml: Path) -> None:
-    tree = ET.parse(document_xml)
-    root = tree.getroot()
-    body = root.find(f"{W}body")
-    if body is None:
-        return
-    paragraphs = body.findall(f"{W}p")
-    in_experience = False
-    experience_role_count = 0
-
-    for paragraph in paragraphs:
-        text = re.sub(r"\s+", " ", paragraph_text(paragraph)).strip()
-        set_paragraph_spacing_values(paragraph)
-        if is_blank_paragraph(paragraph):
-            normalize_separator_paragraph(paragraph)
-            continue
-        if not text:
-            continue
-
-        normalized_section = normalize_required_section_name(text)
-        if normalized_section:
-            set_paragraph_spacing_values(paragraph)
-            in_experience = normalized_section == "Professional Experience"
-            experience_role_count = 0
-            continue
-
-        if in_experience and is_role_heading(text):
-            experience_role_count += 1
-            set_paragraph_spacing_values(paragraph)
-            continue
-
-        if text == "Education":
-            in_experience = False
-
-    children = list(body)
-    in_experience = False
-    experience_role_count = 0
-    insert_before: list[ET.Element] = []
-    for child in children:
-        if child.tag != f"{W}p":
-            continue
-        text = re.sub(r"\s+", " ", paragraph_text(child)).strip()
-        normalized_section = normalize_required_section_name(text)
-        if normalized_section:
-            insert_before.append(child)
-            in_experience = normalized_section == "Professional Experience"
-            experience_role_count = 0
-            continue
-        if in_experience and is_role_heading(text):
-            experience_role_count += 1
-            if experience_role_count > 1:
-                insert_before.append(child)
-            continue
-        if text == "Education":
-            in_experience = False
-
-    for child in insert_before:
-        current_children = list(body)
-        index = current_children.index(child)
-        previous = current_children[index - 1] if index > 0 else None
-        if previous is not None and previous.tag == f"{W}p" and is_blank_paragraph(previous):
-            normalize_separator_paragraph(previous)
-            continue
-        body.insert(index, make_separator_paragraph())
-
-    tree.write(document_xml, encoding="utf-8", xml_declaration=True)
-
-def apply_core_competency_row_spacing(document_xml: Path) -> None:
-    tree = ET.parse(document_xml)
-    root = tree.getroot()
-    body = root.find(f"{W}body")
-    if body is None:
-        return
-
-    children = list(body)
-    core_index = None
-    development_index = None
-    for index, child in enumerate(children):
-        if child.tag != f"{W}p":
-            continue
-        text = re.sub(r"\s+", " ", paragraph_text(child)).strip()
-        if is_skills_section_heading(text):
-            core_index = index
-        elif text == "PROFESSIONAL DEVELOPMENT":
-            development_index = index
-            break
-
-    if core_index is None or development_index is None or development_index <= core_index:
-        return
-
-    block = children[core_index + 1 : development_index]
-    competency_rows = [
-        child
-        for child in block
-        if child.tag == f"{W}p" and re.sub(r"\s+", " ", paragraph_text(child)).strip()
-    ]
-    if len(competency_rows) < 2:
-        return
-
-    for row in competency_rows[:-1]:
-        current_children = list(body)
-        row_index = current_children.index(row)
-        next_child = current_children[row_index + 1] if row_index + 1 < len(current_children) else None
-        if next_child is not None and next_child.tag == f"{W}p" and is_blank_paragraph(next_child):
-            normalize_separator_paragraph(next_child, CORE_COMPETENCY_ROW_SEPARATOR_FONT_SIZE_HP)
-            continue
-        body.insert(row_index + 1, make_separator_paragraph(CORE_COMPETENCY_ROW_SEPARATOR_FONT_SIZE_HP))
 
     tree.write(document_xml, encoding="utf-8", xml_declaration=True)
 
@@ -890,21 +736,6 @@ def ensure_header_gap_after_contact(document_xml: Path) -> None:
             body.insert(list(body).index(paragraph) + 1, make_separator_paragraph())
             tree.write(document_xml, encoding="utf-8", xml_declaration=True)
             return
-
-def normalize_linkedin_hyperlink_targets(work_dir: Path) -> int:
-    changed = 0
-    for rels_path in work_dir.rglob("*.rels"):
-        original = rels_path.read_text(encoding="utf-8")
-        updated = re.sub(
-            r'Target="(?:https?://(?:www\.)?)?linkedin\.com/in/cjne/?"',
-            f'Target="{LINKEDIN_URL}"',
-            original,
-            flags=re.I,
-        )
-        if updated != original:
-            rels_path.write_text(updated, encoding="utf-8", newline="")
-            changed += 1
-    return changed
 
 def copy_visual_parts(work_dir: Path, visual_dir: Path) -> int:
     applied = 0
