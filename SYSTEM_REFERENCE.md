@@ -32,6 +32,9 @@ Production-safe commands:
 - `list-archives`
 - `debrief-patterns`
 - `clean-renders`
+- `keyword-corpus --corpus recent|legacy20|outputs`
+- `fresh-keyword-corpus --corpus recent|legacy20 --batch-dir <isolated-path>`
+- `balanced-promotion-report --recent-csv <path> --legacy-csv <path> --output-dir <path>`
 
 Review-heavy commands:
 
@@ -56,6 +59,38 @@ Review-heavy commands:
 - `career-plan`
 
 Run `python tasks.py commands` for the live inventory, maturity labels, and script targets.
+
+Commercial resume keyword policy:
+
+- `--keyword-policy balanced` is the production default; it blocks supported-but-unwritten core
+  terms and warns on breadth.
+- `--keyword-policy advisory` reports all supported misses without blocking dependent documents.
+- `--keyword-policy exhaustive` blocks supported core and breadth misses.
+- Fit status and Tailoring status are separate. Tailoring never appears in filenames; the existing
+  `BRIDGE`, `FAIL`, and `POOR` Fit suffix contract remains unchanged.
+- Use `python tasks.py keyword-corpus --corpus recent` and `--corpus legacy20` for classifier
+  calibration. Add `--ownership-only` for the lightweight corrected skim-zone measurement; use
+  `--corpus outputs --ownership-only` to audit all commercial resume outputs.
+- Core coverage admits only validated requirement concepts. Validated competencies and domain terms
+  remain visible in breadth but cannot block balanced policy.
+- Role-noun classification distinguishes assigned roles from counterpart roles. Explicit OR-lists
+  are scored as one requirement family, with a separate assigned occurrence taking precedence.
+- Balanced blocking requires an assigned, validated requirement with direct approved evidence;
+  adjacent evidence, domain terms, and unsupported gaps remain non-blocking Fit diagnostics.
+- The final packaged DOCX is the audit authority. Resume Notes are written only after the saved
+  document is re-read and its Fit, Tailoring, coverage, alignment, ownership, gap, prose, and policy
+  snapshot matches the assembled state.
+- Ownership auditing reads only the Professional Summary and first visible role opening (role
+  summary plus first two bullets). PASS/REVIEW/FAIL are separate; only ownership FAIL lowers Fit.
+- The authoritative corrected 2026-07-30 fresh-corpus run rebuilt 35/35 fixtures under pipeline
+  fingerprint `5d77e61e5cb630bf039db37e82433c13bd192e36b64baf695da9c02af90af481`.
+  All 35 packaged resumes passed audit equality and rendered at exactly two pages. Balanced-policy
+  safety passed with zero false/non-requirement blockers. Three builds (8.6%) have genuine supported
+  core blockers: Fisher Phillips `operational transformation`, Pragmatike `project management`, and
+  Delta `digital transformation`. Advisory remains the centralized default pending a separately
+  approved placement pass and/or policy change.
+- The archived figure of 47 supported core misses is a historical upper bound only. Default-policy
+  decisions must use an isolated fresh manifest, never archived output files.
 
 ## Output Families
 
@@ -132,4 +167,4 @@ Normal next step after a debrief:
 
 ## Architecture Pointers
 
-See [ARCHITECTURE_MAP.md](ARCHITECTURE_MAP.md) for script ownership and pipeline boundaries.
+See [.context/ARCHITECTURE_MAP.md](.context/ARCHITECTURE_MAP.md) for script ownership and pipeline boundaries.

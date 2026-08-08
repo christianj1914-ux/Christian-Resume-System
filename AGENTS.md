@@ -11,7 +11,7 @@ Every run follows the same four layers:
 3. Processing: lane detection, evidence mapping, keyword audit, employer-context lens, unsupported-claim audit, and output-specific quality checks.
 4. Output: polished Word-only documents plus plain-language build feedback saved to `/output`.
 
-Use `python tasks.py` as the canonical command surface. For the live command inventory and architecture references, use [SYSTEM_REFERENCE.md](SYSTEM_REFERENCE.md) and [ARCHITECTURE_MAP.md](ARCHITECTURE_MAP.md).
+Use `python tasks.py` as the canonical command surface. For the live command inventory and architecture references, use [SYSTEM_REFERENCE.md](SYSTEM_REFERENCE.md) and [.context/ARCHITECTURE_MAP.md](.context/ARCHITECTURE_MAP.md).
 
 ## Invariant Rules
 

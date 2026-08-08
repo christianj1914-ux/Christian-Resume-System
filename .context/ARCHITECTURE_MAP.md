@@ -43,7 +43,7 @@ This is a local Python-based document generation system, not a web app.
 - `scripts/build_general_advice.py`: includes active-job and tracker-performance context in the operating manual.
 - `scripts/build_claude_review_packet.py`: rebuilds `TEMP_FOR_REVIEW.md` from current code and command output with packet modes for broad or subsystem-focused Claude review.
 - `scripts/build_claude_prompt.py`: prints the strict review-pass or plan-pass prompt that matches a packet mode.
-- `scripts/run_resume_workflow.py`: workflow runner with basic recovery, generated DOCX repair for LinkedIn hyperlink issues, and automatic tracker row updates after successful runs.
+- `scripts/run_resume_workflow.py`: workflow runner with bounded per-step recovery: renderer failures retry once, missing resume output rebuilds then retries the dependent step, and outer timeouts fail immediately after quarantining changed DOCX files. It also repairs generated DOCX LinkedIn hyperlink issues and updates the tracker after successful runs.
 - `scripts/post_interview_debrief.py`: structured post-interview note capture that can also update the matching tracker row.
 - `scripts/render_checks.py`: renders generated DOCX files for visual QA.
 - `scripts/smoke_test.py`: Validation-only script that checks imports, lane detection, and language rule integrity without reading a live job description. Run this after any config change or script modification.
@@ -54,6 +54,15 @@ This is a local Python-based document generation system, not a web app.
 - `scripts/modules/employer_playbooks/`: employer-specific interview logic.
 
 ## File Dependency Notes
+
+## Additional Pipeline Boundaries
+
+- `scripts/requirement_engine.py` records assigned requirements and explicit alternative families so counterpart roles and unchosen domain alternatives do not become independent blockers.
+- `scripts/config/keyword_policy.py` is the single keyword-policy interface: command-line overrides take precedence over the environment, which takes precedence over the balanced default.
+- `source/evidence_terms.py` is the employer-anchored evidence catalog for permitted job-description surfaces, source-role provenance, evidence strength, and ownership boundaries.
+- `scripts/keyword_reliability_corpus.py`, `scripts/fresh_corpus_rebuild.py`, and `scripts/balanced_promotion_report.py` measure keyword-policy outcomes across isolated archived-job corpora; they do not change the production default.
+- The saved commercial DOCX is the final audit authority: `build_resume.py` re-reads it, recomputes the audit snapshot, and rejects a packaging mismatch before writing resume notes.
+- Search operations keep tracker `lane_label` and `fit_status` distinct. `build_search_analytics.py` and `build_general_advice.py` consume tracker helpers instead of raw CSV columns.
 
 `build_cover_letter.py` expects a matching resume output to already exist. If no matching resume exists, run `build_resume.py` first.
 
@@ -76,6 +85,6 @@ High-risk changes should preserve:
 - builder-specific font ownership and dense KPMG resume formatting, with the normative Calibri/Carlito split defined only in `.context/RULES_FOR_CLAUDE.md`
 - mandatory company reorganization sentences
 - role order, job titles, Education, and Professional Development
-- no LinkedIn external hyperlink relationship
+- no LinkedIn external hyperlink relationship in commercial resumes; federal resumes do not require LinkedIn
 - tracker lane and fit data staying separate and current
 - Claude packet and prompt docs staying aligned with the live command surface
