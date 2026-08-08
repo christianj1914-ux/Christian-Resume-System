@@ -12,7 +12,7 @@ import build_thank_you
 import business_context
 import interview_context
 import resume_analysis
-from utils import assert_no_template_leakage, discussion_topic_sentence, enforce_prose_quality
+from utils import assert_no_template_leakage, discussion_topic_sentence, enforce_prose_quality, optional_text
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -21,10 +21,6 @@ OUTPUT_DIR = PROJECT_ROOT / "output"
 JOB_DESCRIPTION = JOBS_DIR / "job_description.txt"
 DEBRIEF_HISTORY = JOBS_DIR / "debrief_history.txt"
 COMPANY_RESEARCH = JOBS_DIR / "company_research.txt"
-
-
-def read_text(path: Path) -> str:
-    return path.read_text(encoding="utf-8-sig") if path.exists() else ""
 
 
 def section_value(entry: str, label: str) -> str:
@@ -97,7 +93,7 @@ def post_round_followup_email(role_title: str, company: str, entry: str, news_li
 
 
 def build_post_round() -> Path:
-    job_description = read_text(JOB_DESCRIPTION).strip()
+    job_description = optional_text(JOB_DESCRIPTION)
     if not job_description:
         raise SystemExit("jobs/job_description.txt is empty. Add the active job description first.")
     company = resume_analysis.extract_output_name(job_description)

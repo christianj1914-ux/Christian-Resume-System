@@ -5,30 +5,14 @@ from __future__ import annotations
 
 import re
 import time
-import zipfile
-import xml.etree.ElementTree as ET
 from pathlib import Path
 
 import build_resume
-from utils import fail, read_text
+from utils import docx_visible_text, fail, read_text
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 JOB_DESCRIPTION = PROJECT_ROOT / "jobs" / "job_description.txt"
-
-
-def docx_visible_text(path: Path) -> str:
-    with zipfile.ZipFile(path) as archive:
-        xml_bytes = archive.read("word/document.xml")
-    root = ET.fromstring(xml_bytes)
-    namespace = {"w": "http://schemas.openxmlformats.org/wordprocessingml/2006/main"}
-    paragraphs: list[str] = []
-    for paragraph in root.findall(".//w:p", namespace):
-        text = "".join(node.text or "" for node in paragraph.findall(".//w:t", namespace))
-        text = re.sub(r"\s+", " ", text).strip()
-        if text:
-            paragraphs.append(text)
-    return "\n".join(paragraphs)
 
 
 def main() -> None:

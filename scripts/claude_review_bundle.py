@@ -10,6 +10,7 @@ import re
 import sys
 
 import workspace_health
+from utils import read_text
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -49,10 +50,6 @@ SUPPORTING_TEMPLATE_FILES = (
     "CLAUDE_TASK_TEMPLATE.md",
     "CLAUDE_PROGRESS_CHECK_TEMPLATE.md",
 )
-
-
-def read_text(path: Path) -> str:
-    return path.read_text(encoding="utf-8-sig")
 
 
 def write_text(path: Path, text: str) -> Path:

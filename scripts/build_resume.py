@@ -354,7 +354,6 @@ WORD_NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
 XML_NS = "http://www.w3.org/XML/1998/namespace"
 RELS_NS = "http://schemas.openxmlformats.org/package/2006/relationships"
 ET.register_namespace("w", WORD_NS)
-W = f"{{{WORD_NS}}}"
 R_PKG = f"{{{RELS_NS}}}"
 XML_SPACE = f"{{{XML_NS}}}space"
 
@@ -1251,10 +1250,6 @@ NON_ERP_VISIBLE_PLATFORM_PATTERN = re.compile(
 
 
 
-def paragraph_text(element: ET.Element) -> str:
-    return "".join(node.text or "" for node in element.findall(f".//{W}t"))
-
-
 def visible_text(document_xml: Path) -> str:
     root = ET.parse(document_xml).getroot()
     paragraphs: list[str] = []
@@ -1333,10 +1328,6 @@ def paragraph_infos(document_xml: Path) -> list[ParagraphInfo]:
         if text:
             paragraphs.append(ParagraphInfo(text=text, is_bullet=is_bullet(paragraph)))
     return paragraphs
-
-
-def is_bullet(paragraph: ET.Element) -> bool:
-    return paragraph.find(f"{W}pPr/{W}numPr") is not None
 
 
 def score(text: str, keywords: set[str]) -> int:

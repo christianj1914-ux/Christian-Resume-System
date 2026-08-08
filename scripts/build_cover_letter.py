@@ -49,7 +49,7 @@ from config.paths import COMPANY_RESEARCH, INTERVIEW_NOTES, JOB_DESCRIPTION, JOB
 from modules.employer_playbooks import consulting_bigfour
 import render_checks
 from text_safety import fix_indefinite_articles, sentence_splice_issues, with_indefinite_article as shared_with_indefinite_article
-from utils import assert_no_template_leakage, clean_source_text, debug_print, enforce_prose_quality, fail, join_answer_sentences, optional_text, prose_quality_report, read_text
+from utils import assert_no_template_leakage, clean_source_text, debug_print, enforce_prose_quality, fail, join_answer_sentences, optional_text, paragraph_texts, prose_quality_report, read_text
 
 
 RESUME_FONT = "Carlito"
@@ -3910,16 +3910,6 @@ def write_cover_letter_trace(
     }
     trace_path.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
     return trace_path
-
-
-def paragraph_texts(docx_path: Path) -> list[str]:
-    document = Document(str(docx_path))
-    texts = []
-    for paragraph in document.paragraphs:
-        text = re.sub(r"\s+", " ", paragraph.text).strip()
-        if text:
-            texts.append(text)
-    return texts
 
 
 def visible_resume_text(docx_path: Path) -> str:

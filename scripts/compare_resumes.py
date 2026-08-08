@@ -4,14 +4,12 @@
 from __future__ import annotations
 
 import argparse
-import re
 from pathlib import Path
-from zipfile import ZipFile
-from xml.etree import ElementTree as ET
 
 from docx import Document
 
-from resume_format import REQUIRED_SECTIONS, W, normalize_required_section_name
+from resume_format import REQUIRED_SECTIONS, normalize_required_section_name
+from utils import paragraph_texts
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -24,18 +22,6 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("after", type=Path, help="Later or comparison resume DOCX.")
     parser.add_argument("--format", choices=("text", "docx"), default="text", help="Output format. Default: text.")
     return parser.parse_args()
-
-
-def paragraph_texts(docx_path: Path) -> list[str]:
-    with ZipFile(docx_path) as archive:
-        root = ET.fromstring(archive.read("word/document.xml"))
-    paragraphs = []
-    for paragraph in root.findall(f".//{W}p"):
-        text = "".join(node.text or "" for node in paragraph.findall(f".//{W}t"))
-        text = re.sub(r"\s+", " ", text).strip()
-        if text:
-            paragraphs.append(text)
-    return paragraphs
 
 
 def section_map(paragraphs: list[str]) -> dict[str, list[str]]:

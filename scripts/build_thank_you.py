@@ -20,6 +20,7 @@ from utils import (
     enforce_prose_quality,
     extract_single_discussion_topic,
     normalize_generated_value,
+    optional_text,
 )
 
 
@@ -29,12 +30,6 @@ OUTPUT_DIR = PROJECT_ROOT / "output"
 JOB_DESCRIPTION = JOBS_DIR / "job_description.txt"
 DEBRIEF_HISTORY = JOBS_DIR / "debrief_history.txt"
 DEBRIEF_DELIMITER = "POST-INTERVIEW DEBRIEF CAPTURED"
-
-
-def read_text(path: Path) -> str:
-    if not path.exists():
-        return ""
-    return path.read_text(encoding="utf-8-sig")
 
 
 def clean_filename_piece(value: str) -> str:
@@ -47,7 +42,7 @@ def find_latest_debrief_for_company(company_name: str, debrief_path: Path = DEBR
         structured = interview_context.latest_debrief_entry(PROJECT_ROOT / "jobs", company_name)
         if structured:
             return structured
-    text = read_text(debrief_path)
+    text = optional_text(debrief_path)
     if not text.strip() or not company_name.strip():
         return ""
     entries = [
@@ -177,7 +172,7 @@ def thank_you_body(company_name: str, role_title: str, debrief_entry: str, proof
         interviewer_language = section_value(debrief_entry, "Specific interviewer language about the role")
     followups = section_value(debrief_entry, "Stories that generated follow-up questions")
     intelligence = section_value(debrief_entry, "Insider company intelligence learned")
-    job_description = read_text(JOB_DESCRIPTION)
+    job_description = optional_text(JOB_DESCRIPTION)
     primary_lane = build_resume.job_problem_profile(job_description, "").primary_lane if job_description else "implementation_delivery"
     combined_context = f"{job_description}\n{debrief_entry}"
     context = business_context.extract_business_context(combined_context)
@@ -241,7 +236,7 @@ def thank_you_body(company_name: str, role_title: str, debrief_entry: str, proof
 
 
 def build_thank_you() -> Path:
-    job_description = read_text(JOB_DESCRIPTION).strip()
+    job_description = optional_text(JOB_DESCRIPTION)
     if not job_description:
         raise SystemExit("jobs/job_description.txt is empty. Add the active job description first.")
 

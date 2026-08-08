@@ -12,7 +12,7 @@ from docx import Document
 import interview_context
 import job_search_guidance as guidance
 import resume_analysis
-from utils import assert_no_template_leakage, enforce_prose_quality
+from utils import assert_no_template_leakage, enforce_prose_quality, optional_text
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -20,10 +20,6 @@ JOB_DESCRIPTION = PROJECT_ROOT / "jobs" / "job_description.txt"
 APPLICATIONS_CSV = PROJECT_ROOT / "scratch" / "applications.csv"
 OUTPUT_DIR = PROJECT_ROOT / "output"
 COMPANY_RESEARCH = PROJECT_ROOT / "jobs" / "company_research.txt"
-
-
-def read_text(path: Path) -> str:
-    return path.read_text(encoding="utf-8-sig") if path.exists() else ""
 
 
 def tracker_rows() -> list[dict[str, str]]:
@@ -92,7 +88,7 @@ def followup_email_variants(
 
 
 def build_followup() -> Path:
-    job_description = read_text(JOB_DESCRIPTION).strip()
+    job_description = optional_text(JOB_DESCRIPTION)
     if not job_description:
         raise SystemExit("jobs/job_description.txt is empty. Add the active job description first.")
     company = resume_analysis.extract_output_name(job_description)

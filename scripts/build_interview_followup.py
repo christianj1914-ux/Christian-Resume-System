@@ -16,7 +16,7 @@ import interview_context
 import job_search_guidance as guidance
 import proof_text
 import resume_analysis
-from utils import assert_no_template_leakage, discussion_topic_sentence, enforce_prose_quality
+from utils import assert_no_template_leakage, discussion_topic_sentence, enforce_prose_quality, optional_text
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -25,10 +25,6 @@ OUTPUT_DIR = PROJECT_ROOT / "output"
 JOB_DESCRIPTION = JOBS_DIR / "job_description.txt"
 DEBRIEF_HISTORY = JOBS_DIR / "debrief_history.txt"
 COMPANY_RESEARCH = JOBS_DIR / "company_research.txt"
-
-
-def read_text(path: Path) -> str:
-    return path.read_text(encoding="utf-8-sig") if path.exists() else ""
 
 
 def field_value(entry: str, label: str) -> str:
@@ -59,7 +55,7 @@ def interview_followup_body(
     proof_points: list[str],
     news_line: str = "",
 ) -> tuple[str, str, list[str]]:
-    job_description = read_text(JOB_DESCRIPTION)
+    job_description = optional_text(JOB_DESCRIPTION)
     primary_lane = build_resume.job_problem_profile(job_description, "").primary_lane if job_description else "implementation_delivery"
     role_language = build_thank_you.section_value(debrief_entry, "Specific interviewer language about the role")
     if not role_language:
@@ -103,7 +99,7 @@ def interview_followup_body(
 
 
 def build_interview_followup() -> Path:
-    job_description = read_text(JOB_DESCRIPTION).strip()
+    job_description = optional_text(JOB_DESCRIPTION)
     if not job_description:
         raise SystemExit("jobs/job_description.txt is empty. Add the active job description first.")
 

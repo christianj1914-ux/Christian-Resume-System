@@ -6,22 +6,17 @@ from __future__ import annotations
 from collections import Counter
 from datetime import datetime
 from pathlib import Path
-from zipfile import ZipFile
-from xml.etree import ElementTree as ET
 
 from docx import Document
 
 import resume_analysis
+from utils import docx_visible_text
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 JOB_DESCRIPTION = PROJECT_ROOT / "jobs" / "job_description.txt"
 TARGET_JDS = PROJECT_ROOT / "scratch" / "target_jds"
 OUTPUT_DIR = PROJECT_ROOT / "output"
-WORD_NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
-W = f"{{{WORD_NS}}}"
-
-
 def ensure_target_dir() -> None:
     TARGET_JDS.mkdir(parents=True, exist_ok=True)
     readme = TARGET_JDS / "README.txt"
@@ -30,15 +25,6 @@ def ensure_target_dir() -> None:
             "Place additional target job descriptions as .txt files in this folder for broader skills-gap analysis.\n",
             encoding="utf-8",
         )
-
-
-def docx_visible_text(path: Path) -> str:
-    with ZipFile(path) as archive:
-        root = ET.fromstring(archive.read("word/document.xml"))
-    return "\n".join(
-        "".join(node.text or "" for node in paragraph.findall(f".//{W}t"))
-        for paragraph in root.findall(f".//{W}p")
-    )
 
 
 def job_descriptions() -> list[tuple[str, str]]:

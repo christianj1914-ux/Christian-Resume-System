@@ -49,6 +49,7 @@ from utils import (
     has_great_eight_signal,
     join_answer_sentences,
     optional_text,
+    paragraph_texts,
     read_text,
 )
 
@@ -1085,11 +1086,6 @@ def interview_question_quality_warnings(questions: list[str]) -> list[str]:
                 f"Negative framing: '{question[:60]}' -> Suggested: '{reframe[:60]}'"
             )
     return warnings
-
-
-def paragraph_texts(docx_path: Path) -> list[str]:
-    document = Document(str(docx_path))
-    return [paragraph.text.strip() for paragraph in document.paragraphs if paragraph.text.strip()]
 
 
 def set_default_style(document: Document) -> None:

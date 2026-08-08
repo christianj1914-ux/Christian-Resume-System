@@ -13881,6 +13881,55 @@ def build_minimal_docx(path: Path, paragraphs: list[str]) -> Path:
     return path
 
 
+def test_shared_text_and_docx_reader_contracts(utils: object) -> None:
+    import analyze_job
+    import build_cover_letter
+    import build_interview_cheat_sheet
+    import build_linkedin_update
+    import build_skills_gap
+    import compare_resumes
+    import integration_test
+    import preview_summary
+
+    with TemporaryDirectory(prefix="shared_readers_") as temp_name:
+        temp_root = Path(temp_name)
+        utf8_path = temp_root / "utf8.txt"
+        utf8_path.write_text("\ufeff  required text  \n", encoding="utf-8")
+        utf16_path = temp_root / "utf16.txt"
+        utf16_path.write_text("  fallback text  \n", encoding="utf-16")
+        missing_path = temp_root / "missing.txt"
+        assert_true(utils.read_text(utf8_path) == "required text", "read_text() should strip UTF-8-SIG input")
+        assert_true(utils.read_text(utf16_path) == "fallback text", "read_text() should strip UTF-16 fallback input")
+        assert_true(utils.optional_text(missing_path) == "", "optional_text() should return an empty string for a missing file")
+        try:
+            utils.read_text(missing_path)
+            raise SmokeFailure("read_text() should raise for a missing required file")
+        except FileNotFoundError:
+            pass
+
+        docx_path = build_minimal_docx(temp_root / "whitespace.docx", ["  Alpha   beta  ", "", "Gamma\t delta"])
+        expected_paragraphs = ["Alpha beta", "Gamma delta"]
+        expected_visible_text = "Alpha beta\nGamma delta"
+        assert_true(
+            utils.paragraph_texts(docx_path) == expected_paragraphs,
+            f"paragraph_texts() should collapse internal whitespace and drop empty paragraphs; got {utils.paragraph_texts(docx_path)!r}",
+        )
+        assert_true(
+            utils.docx_visible_text(docx_path) == expected_visible_text,
+            f"docx_visible_text() should join normalized nonempty paragraphs; got {utils.docx_visible_text(docx_path)!r}",
+        )
+        for module in (analyze_job, build_linkedin_update, build_skills_gap, integration_test, preview_summary):
+            assert_true(
+                module.docx_visible_text is utils.docx_visible_text,
+                f"{module.__name__} should use the shared DOCX visible-text reader",
+            )
+        for module in (build_cover_letter, build_interview_cheat_sheet, compare_resumes):
+            assert_true(
+                module.paragraph_texts is utils.paragraph_texts,
+                f"{module.__name__} should use the shared DOCX paragraph reader",
+            )
+
+
 def test_writing_eval_extracts_docx_sections(writing_eval: object) -> None:
     with TemporaryDirectory(prefix="writing_eval_docx_") as temp_name:
         temp_root = Path(temp_name)
@@ -17606,6 +17655,7 @@ def main(argv: list[str] | None = None) -> None:
             ("interview context scoped company filtering", lambda: test_interview_context_scopes_company_context_and_role_variants(interview_context)),
             ("discussion topic helpers", lambda: test_discussion_topic_helpers(utils)),
             ("template leakage validator", lambda: test_template_leakage_validator(utils)),
+            ("shared text and DOCX reader contracts", lambda: test_shared_text_and_docx_reader_contracts(utils)),
             ("thank-you body normalizes discussion topics", lambda: test_thank_you_body_normalizes_discussion_topics(build_thank_you, utils)),
             ("interview followup body", lambda: test_interview_followup_body(build_interview_followup)),
             ("post-round followup normalizes discussion topics", lambda: test_post_round_followup_email_normalizes_discussion_topics(build_post_round, utils)),

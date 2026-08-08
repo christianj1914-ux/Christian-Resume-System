@@ -19,6 +19,7 @@ from pathlib import Path
 
 import claude_review_bundle
 import workspace_health
+from utils import read_text
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -463,10 +464,6 @@ def write_packet_artifacts(mode_name: str, *, skip_checks: bool, output_path: Pa
         build_packet_manifest(mode, packet_path, skip_checks=skip_checks),
     )
     return [packet_path, manifest_path]
-
-
-def read_text(path: Path) -> str:
-    return path.read_text(encoding="utf-8-sig")
 
 
 def append_warning_once(warnings: list[str], message: str) -> None:

@@ -10,6 +10,7 @@ import time
 from pathlib import Path
 from typing import Any
 from xml.etree import ElementTree as ET
+from zipfile import ZipFile
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
@@ -65,6 +66,22 @@ def optional_text(path: Path) -> str:
     if not path.exists():
         return ""
     return read_text(path)
+
+
+def paragraph_texts(docx_path: Path) -> list[str]:
+    with ZipFile(docx_path) as archive:
+        root = ET.fromstring(archive.read("word/document.xml"))
+    paragraphs: list[str] = []
+    for paragraph in root.findall(f".//{W_NS}p"):
+        text = "".join(node.text or "" for node in paragraph.findall(f".//{W_NS}t"))
+        text = re.sub(r"\s+", " ", text).strip()
+        if text:
+            paragraphs.append(text)
+    return paragraphs
+
+
+def docx_visible_text(path: Path) -> str:
+    return "\n".join(paragraph_texts(path))
 
 
 MISSING_RENDER_VALUES = {

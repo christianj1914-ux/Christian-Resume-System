@@ -15,6 +15,7 @@ from pathlib import Path
 
 from config.paths import APPLICATION_QUESTIONS, JOBS_DIR, JOB_DESCRIPTION, SCRATCH_JD_LIBRARY
 import resume_analysis
+from utils import optional_text
 
 
 SNAPSHOT_ID_ENV = "JOB_CONTEXT_SNAPSHOT_ID"
@@ -70,12 +71,6 @@ def normalize_spaces(text: str) -> str:
 def safe_name(value: str, *, max_length: int = 64) -> str:
     cleaned = re.sub(r"[^A-Za-z0-9._-]+", "_", value).strip("._-")
     return cleaned[:max_length] or "Unknown"
-
-
-def read_text(path: Path) -> str:
-    if not path.exists():
-        return ""
-    return path.read_text(encoding="utf-8-sig").strip()
 
 
 def parse_question_blocks(text: str) -> tuple[str, ...]:
@@ -225,10 +220,10 @@ def _normalized_snapshot_metadata(snapshot_id: str) -> dict[str, object] | None:
         return None
 
     existing = _read_metadata_file(metadata_path)
-    job_description_text = read_text(job_path)
+    job_description_text = optional_text(job_path)
     if not job_description_text:
         return None
-    application_questions_text = read_text(application_questions_path_for_snapshot(snapshot_id))
+    application_questions_text = optional_text(application_questions_path_for_snapshot(snapshot_id))
     prompts = parse_question_blocks(application_questions_text)
     created_at = str(existing.get("created_at", "")).strip()
     if not created_at:
@@ -435,8 +430,8 @@ def archive_active_context(
     sync_legacy: bool = False,
 ) -> ArchivedJobContext:
     return archive_texts(
-        job_description_text=read_text(JOB_DESCRIPTION),
-        application_questions_text=read_text(APPLICATION_QUESTIONS),
+        job_description_text=optional_text(JOB_DESCRIPTION),
+        application_questions_text=optional_text(APPLICATION_QUESTIONS),
         workflow_type=workflow_type,
         source_command=source_command,
         archive_reason=archive_reason,
@@ -465,7 +460,7 @@ def current_snapshot_metadata() -> dict[str, object]:
 
 def snapshot_job_description_text(snapshot_id: str) -> str:
     path = job_description_path_for_snapshot(snapshot_id)
-    return read_text(path)
+    return optional_text(path)
 
 
 def path_from_row(row: dict[str, str]) -> Path | None:
@@ -493,15 +488,15 @@ def job_description_text_for_row(row: dict[str, str]) -> str:
         return snapshot_job_description_text(snapshot_id)
     filename = row.get("filename", "").strip()
     if filename:
-        return read_text(SCRATCH_JD_LIBRARY / filename)
+        return optional_text(SCRATCH_JD_LIBRARY / filename)
     return ""
 
 
 def find_snapshot_id_for_active_context() -> str:
-    job_description_text = read_text(JOB_DESCRIPTION)
+    job_description_text = optional_text(JOB_DESCRIPTION)
     if not job_description_text:
         return ""
-    application_questions_text = read_text(APPLICATION_QUESTIONS)
+    application_questions_text = optional_text(APPLICATION_QUESTIONS)
     target_job_hash = sha256_text(job_description_text)
     target_question_hash = sha256_text(application_questions_text)
     rows = read_index()
@@ -546,7 +541,7 @@ def read_index() -> list[dict[str, str]]:
 
 def _import_legacy_named_job_files() -> None:
     for path in sorted(JOBS_DIR.glob(LEGACY_NAMED_JOB_GLOB)):
-        text = read_text(path)
+        text = optional_text(path)
         if not text:
             continue
         archive_texts(
@@ -566,7 +561,7 @@ def _import_legacy_jd_library_rows(legacy_rows: list[dict[str, str]]) -> None:
         if not filename:
             continue
         legacy_path = SCRATCH_JD_LIBRARY / filename
-        text = read_text(legacy_path)
+        text = optional_text(legacy_path)
         if not text:
             continue
         archive_texts(

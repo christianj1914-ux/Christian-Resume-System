@@ -14,8 +14,6 @@ import sys
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from types import SimpleNamespace
-from zipfile import ZipFile
-from xml.etree import ElementTree as ET
 
 import build_detailed_interview_guide
 import build_claude_review_packet
@@ -30,10 +28,8 @@ import federal_supporting_docs
 import prose_engine
 import resume_analysis
 import resume_content
+from utils import docx_visible_text
 
-
-WORD_NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
-W = f"{{{WORD_NS}}}"
 
 SAMPLE_JOB_DESCRIPTION = """
 Company: Acme HealthTech
@@ -59,15 +55,6 @@ and cross-functional delivery across a multi-site environment.
 def assert_true(condition: bool, message: str) -> None:
     if not condition:
         raise AssertionError(message)
-
-
-def docx_visible_text(path: Path) -> str:
-    with ZipFile(path) as archive:
-        root = ET.fromstring(archive.read("word/document.xml"))
-    return "\n".join(
-        "".join(node.text or "" for node in paragraph.findall(f".//{W}t"))
-        for paragraph in root.findall(f".//{W}p")
-    )
 
 
 def assert_federal_wrapper_delegation(
