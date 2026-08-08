@@ -23,6 +23,7 @@ import _bootstrap
 _bootstrap.ensure_script_path()
 
 import argparse
+from collections.abc import Iterable
 import difflib
 import hashlib
 import os

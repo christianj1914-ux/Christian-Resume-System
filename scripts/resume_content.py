@@ -1458,10 +1458,10 @@ def summary_fit_close_sentence(
                 "Brings executive-ready reporting, workflow validation, and continuous-improvement judgment where data "
                 "trust directly affects whether AI-assisted outputs can be used."
             )
-            return (
-                "Best used where reporting depth and operating judgment improve decision speed, workflow clarity, and "
-                "measurable follow-through."
-            )
+        return (
+            "Best used where reporting depth and operating judgment improve decision speed, workflow clarity, and "
+            "measurable follow-through."
+        )
 
     if profile.primary_lane == "program_delivery":
         return (

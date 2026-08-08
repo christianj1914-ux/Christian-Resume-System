@@ -4286,7 +4286,7 @@ def behavioral_answer_scripts(
             f"That is the pattern I would bring to this role by continuing to {role_bridge}",
         )
     )
-    return [
+    answers = [
         PreparedAnswer(
             "Delivery reminder before every answer",
             "Use the word 'because' explicitly when answering why-questions - it triggers a concrete reason and doubles as verbal keyword alignment. Keep short answers to 15-20 seconds. Eliminate fillers: 'as well,' 'you know,' 'also.' Sentences ending on a lower pitch sound confident; ending higher sounds uncertain. Pause before answering - speed is not competence.",
@@ -4451,25 +4451,35 @@ def behavioral_answer_scripts(
         ),
     ]
     story_diversity_warning(
-        question_labels=[answer.prompt for answer in answers],
-        assigned_stories=[achievement, leadership, persuasion, analysis, failure, teamwork, rapid],
+        (
+            ("Why should we hire you?", achievement),
+            ("Ambiguous problem", analysis),
+            ("Rapid learning", rapid),
+            ("Opposing stakeholder views", persuasion),
+            ("Difficult coworker or client", persuasion),
+            ("Failure", failure),
+            ("Different backgrounds", teamwork),
+            ("Influence without authority", persuasion),
+        )
     )
     return answers
 
 
 def story_diversity_warning(
-    question_labels: list[str],
-    assigned_stories: list[StoryCard],
+    assignments: Sequence[tuple[str, StoryCard]],
 ) -> None:
-    story_title_counts = Counter(card.title for card in assigned_stories if card.title)
-    repeated_titles = [title for title, count in story_title_counts.items() if count >= 3]
-    if repeated_titles:
-        for title in repeated_titles:
+    questions_by_story: dict[str, list[str]] = {}
+    for question, card in assignments:
+        if card.title:
+            questions_by_story.setdefault(card.title, []).append(question)
+    for title, questions in questions_by_story.items():
+        if len(questions) >= 3:
             print(
                 f"STORY DIVERSITY WARNING: '{title}' is assigned to "
-                f"{story_title_counts[title]} behavioral questions. "
-                f"Add more story types to the source or accept repeated examples."
+                f"{len(questions)} behavioral questions: {', '.join(questions)}. "
+                "Add more story types to the source or accept repeated examples."
             )
+
 
 
 def validate_behavioral_answer_bank(answer_bank: Sequence[PreparedAnswer]) -> None:

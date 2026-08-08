@@ -7222,6 +7222,45 @@ def test_behavioral_answer_scripts_empty_story_guard(
     assert_true(answers == [], f"behavioral_answer_scripts() should return [] when no stories are available; got {answers!r}")
 
 
+def test_behavioral_answer_scripts_warn_on_actual_story_reuse(
+    build_resume: object,
+    build_interview_cheat_sheet: object,
+) -> None:
+    profile = build_resume.job_problem_profile(DUMMY_JOB_DESCRIPTION, OLLIE_RESUME_TEXT)
+    story = build_interview_cheat_sheet.expanded_story_bank()[0]
+    output = io.StringIO()
+    with contextlib.redirect_stdout(output):
+        answers = build_interview_cheat_sheet.behavioral_answer_scripts(
+            profile,
+            [story],
+            DUMMY_JOB_DESCRIPTION,
+        )
+    warning = output.getvalue()
+    assert_true(answers, "single-story fixture should still build behavioral answers")
+    assert_true(
+        "STORY DIVERSITY WARNING" in warning
+        and story.title in warning
+        and "Why should we hire you?" in warning
+        and "Influence without authority" in warning,
+        f"story reuse warning should identify the reused story and its actual questions; got {warning!r}",
+    )
+
+
+def test_analytics_summary_close_uses_reachable_fallback(build_resume: object) -> None:
+    import resume_content
+
+    sentence = resume_content.summary_fit_close_sentence(
+        SimpleNamespace(primary_lane="analytics_operations"),
+        "Role: Analytics Operations Specialist\nBuild reporting workflows and improve operational visibility.",
+        SimpleNamespace(proof_anchor="dashboards"),
+    )
+    assert_true(
+        sentence
+        == "Best used where reporting depth and operating judgment improve decision speed, workflow clarity, and measurable follow-through.",
+        f"analytics summary should return its outer fallback when no earlier branch matches; got {sentence!r}",
+    )
+
+
 def test_story_sample_answer_separates_coaching_note(
     build_resume: object,
     build_interview_cheat_sheet: object,
@@ -17372,6 +17411,8 @@ def main(argv: list[str] | None = None) -> None:
             ("extended TMAY sections", lambda: test_extended_tmay_sections_build_time_ladder(build_resume, build_detailed_interview_guide)),
             ("extended TMAY uses module-level supersets", lambda: test_extended_tmay_sections_use_module_level_superset(build_resume, build_interview_cheat_sheet, build_detailed_interview_guide)),
             ("behavioral answer scripts empty story guard", lambda: test_behavioral_answer_scripts_empty_story_guard(build_resume, build_interview_cheat_sheet)),
+            ("behavioral answer scripts warn on actual story reuse", lambda: test_behavioral_answer_scripts_warn_on_actual_story_reuse(build_resume, build_interview_cheat_sheet)),
+            ("analytics summary close uses reachable fallback", lambda: test_analytics_summary_close_uses_reachable_fallback(build_resume)),
             ("story sample answer separates coaching note", lambda: test_story_sample_answer_separates_coaching_note(build_resume, build_interview_cheat_sheet, build_detailed_interview_guide)),
             ("story sample answer reuses claim sentence in full", lambda: test_story_sample_answer_reuses_claim_sentence_in_full(build_resume, build_interview_cheat_sheet, build_detailed_interview_guide)),
             ("delivery validator only scans scripted strings", lambda: test_delivery_validator_only_scans_scripted_strings(build_detailed_interview_guide)),
