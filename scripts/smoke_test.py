@@ -14184,6 +14184,86 @@ def test_tracker_status_precedence_blocks_regressions() -> None:
     )
 
 
+def test_tracker_atomic_write_preserves_original_on_row_failure() -> None:
+    import track_applications
+    from unittest.mock import patch
+
+    with TemporaryDirectory(prefix="tracker_atomic_") as temp_name:
+        temp_dir = Path(temp_name)
+        tracker = temp_dir / "applications.csv"
+        original_bytes = b"company,role_title\nOriginal Company,Original Role\n"
+        tracker.write_bytes(original_bytes)
+        original_tracker = track_applications.TRACKER
+        original_scratch_dir = track_applications.SCRATCH_DIR
+        original_writerow = track_applications.csv.DictWriter.writerow
+        write_calls = 0
+
+        def fail_during_rows(writer, row):
+            nonlocal write_calls
+            write_calls += 1
+            if write_calls == 3:
+                raise RuntimeError("interrupted row write")
+            return original_writerow(writer, row)
+
+        try:
+            track_applications.TRACKER = tracker
+            track_applications.SCRATCH_DIR = temp_dir
+            with patch.object(track_applications.csv.DictWriter, "writerow", fail_during_rows):
+                try:
+                    track_applications.write_rows([{"company": "First"}, {"company": "Second"}])
+                    raise SmokeFailure("write_rows() should surface an interrupted row write")
+                except RuntimeError as error:
+                    assert_true(
+                        "interrupted row write" in str(error),
+                        f"write_rows() should preserve the original row-write failure; got {error}",
+                    )
+        finally:
+            track_applications.TRACKER = original_tracker
+            track_applications.SCRATCH_DIR = original_scratch_dir
+
+        assert_true(tracker.read_bytes() == original_bytes, "An interrupted tracker write should leave the original CSV intact")
+        assert_true(
+            not list(temp_dir.glob(".applications.csv.*.tmp")),
+            "An interrupted tracker write should remove its same-directory temporary file",
+        )
+
+
+def test_tracker_atomic_replace_failure_keeps_original_and_backup() -> None:
+    import track_applications
+    from unittest.mock import patch
+
+    with TemporaryDirectory(prefix="tracker_replace_") as temp_name:
+        temp_dir = Path(temp_name)
+        tracker = temp_dir / "applications.csv"
+        backup = tracker.with_suffix(tracker.suffix + ".bak")
+        original_bytes = b"company,role_title\nOriginal Company,Original Role\n"
+        tracker.write_bytes(original_bytes)
+        original_tracker = track_applications.TRACKER
+        original_scratch_dir = track_applications.SCRATCH_DIR
+        try:
+            track_applications.TRACKER = tracker
+            track_applications.SCRATCH_DIR = temp_dir
+            with patch.object(track_applications.os, "replace", side_effect=PermissionError("file is locked")):
+                try:
+                    track_applications.write_rows([{"company": "Replacement"}])
+                    raise SmokeFailure("write_rows() should surface an atomic replacement failure")
+                except PermissionError as error:
+                    assert_true(
+                        "file is locked" in str(error),
+                        f"write_rows() should preserve the replacement failure; got {error}",
+                    )
+        finally:
+            track_applications.TRACKER = original_tracker
+            track_applications.SCRATCH_DIR = original_scratch_dir
+
+        assert_true(tracker.read_bytes() == original_bytes, "A failed atomic replacement should leave the original CSV intact")
+        assert_true(backup.read_bytes() == original_bytes, "A failed atomic replacement should preserve one backup of the original CSV")
+        assert_true(
+            not list(temp_dir.glob(".applications.csv.*.tmp")),
+            "A failed atomic replacement should remove only its temporary file",
+        )
+
+
 def test_interview_negotiation_section_avoids_bracket_placeholders(build_interview_cheat_sheet: object) -> None:
     sections = build_interview_cheat_sheet.negotiation_preparation_section(
         "Acme Health",
@@ -14649,6 +14729,56 @@ def test_workflow_hard_fails_docx_validation_issues() -> None:
                 )
     finally:
         run_resume_workflow.repair_docx_open_issues = original_repair_docx_open_issues
+
+
+def test_workflow_failure_kind_prioritizes_tracebacks() -> None:
+    import run_resume_workflow
+
+    result = run_resume_workflow.StepResult(
+        name="smoke",
+        returncode=1,
+        stdout="Traceback (most recent call last):\nFileNotFoundError: source not found: resume.docx",
+        stderr="",
+        log_path=Path("smoke.log"),
+        specificity_warnings=[],
+        cover_warnings=[],
+        preflight_warnings=[],
+    )
+    assert_true(
+        run_resume_workflow.failure_kind(result) == "unexpected_traceback",
+        "failure_kind() should classify a traceback before matching incidental 'not found:' text",
+    )
+
+
+def test_workflow_failure_kind_uses_specific_missing_and_render_signals() -> None:
+    import run_resume_workflow
+
+    def result_for(output: str):
+        return run_resume_workflow.StepResult(
+            name="smoke",
+            returncode=1,
+            stdout=output,
+            stderr="",
+            log_path=Path("smoke.log"),
+            specificity_warnings=[],
+            cover_warnings=[],
+            preflight_warnings=[],
+        )
+
+    assert_true(
+        run_resume_workflow.failure_kind(result_for("ERROR: Implementation resume not found: source/resume.docx"))
+        == "missing_required_file",
+        "failure_kind() should recognize the known required-file validation message",
+    )
+    assert_true(
+        run_resume_workflow.failure_kind(result_for("Renderer configured at scripts/render_docx_windows.py"))
+        == "validation_failure",
+        "failure_kind() should ignore harmless renderer mentions",
+    )
+    assert_true(
+        run_resume_workflow.failure_kind(result_for("WARNING: render failed for resume.docx")) == "render_failure",
+        "failure_kind() should recognize an actual renderer failure",
+    )
 
 
 def test_run_resume_workflow_dry_run_skips_upfront_job_validation() -> None:
@@ -17600,6 +17730,8 @@ def main(argv: list[str] | None = None) -> None:
             ("tracker add row refreshes existing metadata", test_track_add_row_refreshes_existing_metadata),
             ("tracker refresh uses active-job fit status", test_track_refresh_uses_active_job_fit_status),
             ("tracker status precedence blocks regressions", test_tracker_status_precedence_blocks_regressions),
+            ("tracker atomic write preserves original on row failure", test_tracker_atomic_write_preserves_original_on_row_failure),
+            ("tracker atomic replace failure keeps original and backup", test_tracker_atomic_replace_failure_keeps_original_and_backup),
             ("tracker audit flag derivation", test_tracker_audit_flag_derivation),
             ("tracker refresh warning without matching jd", test_tracker_refresh_warning_without_matching_jd),
             ("tracker row job description prefers snapshot id", test_tracker_row_job_description_prefers_snapshot_id),
@@ -17614,6 +17746,8 @@ def main(argv: list[str] | None = None) -> None:
             ("workflow parses cover warning channels", test_workflow_parses_cover_warning_channels),
             ("tasks auto-archive environment for commercial command", test_tasks_auto_archive_environment_for_commercial_command),
             ("workflow hard-fails docx validation issues", test_workflow_hard_fails_docx_validation_issues),
+            ("workflow failure kind prioritizes tracebacks", test_workflow_failure_kind_prioritizes_tracebacks),
+            ("workflow failure kind uses specific missing and render signals", test_workflow_failure_kind_uses_specific_missing_and_render_signals),
             ("claude packet modes", lambda: test_claude_packet_modes(build_claude_review_packet)),
             ("claude packet self-audit checks task registration", lambda: test_claude_packet_self_audit_checks_task_registration(build_claude_review_packet)),
             ("claude packet self-audit accepts unquoted task mentions", lambda: test_claude_packet_self_audit_accepts_unquoted_task_mentions(build_claude_review_packet)),

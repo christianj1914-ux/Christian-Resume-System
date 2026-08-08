@@ -6,8 +6,11 @@ from __future__ import annotations
 import argparse
 import csv
 from datetime import date
+import os
 from pathlib import Path
 import re
+import shutil
+import tempfile
 
 import job_context_archive
 import resume_analysis
@@ -91,12 +94,33 @@ def read_rows() -> list[dict[str, str]]:
 
 
 def write_rows(rows: list[dict[str, str]]) -> None:
-    SCRATCH_DIR.mkdir(exist_ok=True)
-    with TRACKER.open("w", newline="", encoding="utf-8") as handle:
-        writer = csv.DictWriter(handle, fieldnames=COLUMNS)
-        writer.writeheader()
-        for row in rows:
-            writer.writerow(canonicalize_row(row))
+    SCRATCH_DIR.mkdir(parents=True, exist_ok=True)
+    temp_path: Path | None = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            "w",
+            newline="",
+            encoding="utf-8",
+            dir=SCRATCH_DIR,
+            prefix=f".{TRACKER.name}.",
+            suffix=".tmp",
+            delete=False,
+        ) as handle:
+            temp_path = Path(handle.name)
+            writer = csv.DictWriter(handle, fieldnames=COLUMNS)
+            writer.writeheader()
+            for row in rows:
+                writer.writerow(canonicalize_row(row))
+            handle.flush()
+            os.fsync(handle.fileno())
+
+        if TRACKER.exists():
+            shutil.copy2(TRACKER, TRACKER.with_suffix(TRACKER.suffix + ".bak"))
+        os.replace(temp_path, TRACKER)
+        temp_path = None
+    finally:
+        if temp_path is not None and temp_path.exists():
+            temp_path.unlink()
 
 
 def read_job_description() -> str:

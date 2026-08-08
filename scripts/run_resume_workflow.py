@@ -311,22 +311,22 @@ def failure_kind(result: StepResult) -> str:
     if result.timed_out:
         return "outer_timeout"
     output = result.output.lower()
+    if "traceback" in output:
+        return "unexpected_traceback"
     if "resume gap blocker" in output:
         return "resume_gap_blocker"
     if "jobs/job_description.txt is empty" in output or "job description is empty" in output:
         return "empty_job_description"
     if "could not determine company name or job title" in output:
         return "missing_output_name"
-    if "not found:" in output:
-        return "missing_required_file"
     if "matching resume output not found" in output:
         return "missing_resume_output"
+    if re.search(r"(?m)^error:\s+[^\r\n]*\bnot found:\s*", result.output, re.I):
+        return "missing_required_file"
     if "permissionerror" in output or "being used by another process" in output or "access is denied" in output:
         return "file_locked"
-    if "render_docx" in output or "artifact-tool" in output:
+    if "render failed for" in output or "render check failed" in output:
         return "render_failure"
-    if "traceback" in output:
-        return "unexpected_traceback"
     return "validation_failure"
 
 
