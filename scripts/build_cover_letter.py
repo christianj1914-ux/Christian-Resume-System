@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python3
+#!/usr/bin/env python3
 """
 Build Christian Estrada's tailored DOCX cover letter.
 
@@ -95,10 +95,6 @@ COVER_INTERNAL_TOKEN_PATTERNS: tuple[tuple[str, str], ...] = (
     (r"\bkind of [a-z, ]+ environment where\b", "kind of ... environment where"),
 )
 
-
-def fail(message: str) -> None:
-    print(f"ERROR: {message}", file=sys.stderr)
-    raise SystemExit(message)
 
 FIRM_PROFILE_REGISTRY: dict[str, dict[str, object]] = {
     "bain": {

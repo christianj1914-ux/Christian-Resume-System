@@ -9,3 +9,10 @@ repos:
         language: system
         pass_filenames: false
         types: [python]
+      - id: source-encoding-hygiene
+        name: Source encoding hygiene
+        description: Reject UTF-8 BOMs and mixed line endings in source and documentation.
+        entry: python scripts/check_source_encoding.py
+        language: system
+        pass_filenames: true
+        files: '\\.(py|md)$'

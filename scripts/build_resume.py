@@ -172,7 +172,6 @@ from resume_analysis import (
     role_requirement_text,
     role_specialty_phrase,
     should_deemphasize_erp_for_role,
-    signal_hits,
     story_lens_business_problem,
     story_lens_candidate_story,
     story_lens_identity,
