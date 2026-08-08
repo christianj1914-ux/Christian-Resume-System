@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import re
 import sys
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import date
 from pathlib import Path
 from typing import Mapping, Sequence
@@ -82,6 +82,106 @@ class StoryCard:
     outcome: str
     evidence_terms: tuple[str, ...]
     signals: tuple[str, ...]
+    boost_key: str = ""
+    sensitive_note: str = ""
+
+
+@dataclass(frozen=True)
+class LaneLeadIn:
+    lane: str
+    opener_boost_key: str
+    proof_boost_key: str
+    lead_in: str
+    backup_boost_keys: tuple[str, ...]
+    avoid_note: str = ""
+    checklist_boost_keys: tuple[str, ...] = ()
+
+
+KNOWN_STORY_TYPES = frozenset({
+    "Individual Achievement",
+    "Managing and Leading",
+    "Persuasion",
+    "Analysis and Decision",
+    "Challenge and Failure",
+    "Teamwork",
+    "Rapid Learning",
+    "Ambiguous Problem",
+    "Opposing Views",
+    "Customer Disagreement",
+    # Story type metadata; distinct from the targeting-lane key "process_improvement".
+    "Process Improvement",
+    "Cross-Cultural",
+    "Prioritization",
+    "Receiving Feedback",
+})
+
+
+LANE_LEAD_INS = {
+    "implementation_delivery": LaneLeadIn(
+        lane="implementation_delivery",
+        opener_boost_key="both_sides_breadth",
+        proof_boost_key="east_west_end_to_end",
+        lead_in="I have implemented the same kind of software from both sides of the table. At the vendor I delivered to 80-plus clients, and on the customer side I led a five-site ERP migration end to end.",
+        backup_boost_keys=("parallel_workstreams", "uat_defect", "migration_setback", "cross_site_adoption", "rapid_learning"),
+        avoid_note="Do not tell the 13-month modernization and CEO hardware stories as separate versions of the same engagement in one interview.",
+        checklist_boost_keys=("payment_integration", "amazon_robotics", "inventory_automation", "account_stabilization"),
+    ),
+    "customer_success": LaneLeadIn(
+        lane="customer_success",
+        opener_boost_key="account_stabilization",
+        proof_boost_key="customer_loss",
+        lead_in="I protected about a million dollars in at-risk annual revenue inside a six-million-dollar book, and the loss I learned most from is the account I fixed technically and still lost.",
+        backup_boost_keys=("churn_redirect", "executive_workshops", "crm_visibility", "both_sides_breadth"),
+        avoid_note="Do not claim quota ownership, NRR or GRR attainment, or closed expansion dollars.",
+        checklist_boost_keys=("account_stabilization", "customer_loss"),
+    ),
+    "analytics_operations": LaneLeadIn(
+        lane="analytics_operations",
+        opener_boost_key="inventory_automation",
+        proof_boost_key="payment_integration",
+        lead_in="When everything is urgent I sequence around the critical path. On a hard-date warehouse and Robotics launch I had four workstreams competing, and everything converged on schedule.",
+        backup_boost_keys=("account_stabilization", "dashboards", "parallel_workstreams", "modernization_scope", "uat_defect", "ops_finance", "ceo_hardware"),
+        avoid_note="Name the decision, control, or operating metric first; do not lead with tools alone.",
+        checklist_boost_keys=("inventory_automation", "account_stabilization", "payment_integration"),
+    ),
+    "presales_solution": LaneLeadIn(
+        lane="presales_solution",
+        opener_boost_key="both_sides_breadth",
+        proof_boost_key="ceo_hardware",
+        lead_in="My edge is breadth on both sides of implementation. At the vendor I delivered to 80-plus clients from legacy on-premise to cloud, so I know where implementations break before they do.",
+        backup_boost_keys=("modernization_scope", "executive_workshops", "dashboards", "rapid_learning", "account_stabilization"),
+        avoid_note="Use CART framing: impact, approach, personal contribution, transformation.",
+        checklist_boost_keys=("lifecycle_delivery",),
+    ),
+    # Fallbacks pending real lane-specific content in the markdown bank.
+    "corporate_strategy": LaneLeadIn(
+        lane="corporate_strategy",
+        opener_boost_key="both_sides_breadth",
+        proof_boost_key="ceo_hardware",
+        lead_in="My edge is breadth on both sides of implementation. At the vendor I delivered to 80-plus clients from legacy on-premise to cloud, so I know where implementations break before they do.",
+        backup_boost_keys=("modernization_scope", "executive_workshops", "dashboards", "rapid_learning", "account_stabilization"),
+        avoid_note="Fallback pending real corporate-strategy lead-in content.",
+        checklist_boost_keys=("payment_integration", "account_stabilization", "modernization_scope"),
+    ),
+    "change_enablement": LaneLeadIn(
+        lane="change_enablement",
+        opener_boost_key="both_sides_breadth",
+        proof_boost_key="east_west_end_to_end",
+        lead_in="I have implemented the same kind of software from both sides of the table. At the vendor I delivered to 80-plus clients, and on the customer side I led a five-site ERP migration end to end.",
+        backup_boost_keys=("parallel_workstreams", "uat_defect", "migration_setback", "cross_site_adoption", "rapid_learning"),
+        avoid_note="Fallback pending real change-enablement lead-in content.",
+        checklist_boost_keys=("amazon_robotics", "executive_workshops"),
+    ),
+    "process_improvement": LaneLeadIn(
+        lane="process_improvement",
+        opener_boost_key="both_sides_breadth",
+        proof_boost_key="east_west_end_to_end",
+        lead_in="I have implemented the same kind of software from both sides of the table. At the vendor I delivered to 80-plus clients, and on the customer side I led a five-site ERP migration end to end.",
+        backup_boost_keys=("parallel_workstreams", "uat_defect", "migration_setback", "cross_site_adoption", "rapid_learning"),
+        avoid_note="Fallback pending real process-improvement lead-in content.",
+        checklist_boost_keys=("inventory_automation", "payment_integration", "account_stabilization"),
+    ),
+}
 
 
 @dataclass(frozen=True)
@@ -429,7 +529,7 @@ def interview_workflow_sentence(
             "My usual pattern is to start with the behavior that needs to change, then build the training, feedback, and reinforcement around it."
         ),
         "process_improvement": (
-            f"My usual pattern is to map where {specialty} breaks down, test the fix with the people living in it, and measure whether the work actually gets easier."
+            f"My usual pattern is to map where {specialty} breaks down. Then I test the fix with the people living in it and measure whether the work actually gets easier."
         ),
         "corporate_strategy": (
             "My usual pattern is to make the tradeoffs visible early, then turn the analysis into a path leaders can actually execute."
@@ -791,11 +891,11 @@ def pitch_variants(
     elif spoken_word_count(thirty_second) > 80:
         thirty_second = interview_join(claim, take_proof_sentence(proof), concise_role_target)
 
-    sixty_second = interview_join(claim, career_arc, proof, identity_close)
+    sixty_second = interview_join(claim, human, proof, identity_close)
     if spoken_word_count(sixty_second) < STANDARD_SPOKEN_WORD_RANGE[0]:
-        sixty_second = interview_join(claim, career_arc, proof, concise_role_target, identity_close)
+        sixty_second = interview_join(claim, human, proof, concise_role_target, identity_close)
     elif spoken_word_count(sixty_second) > STANDARD_SPOKEN_WORD_RANGE[1]:
-        sixty_second = interview_join(claim, career_arc, take_proof_sentence(proof), concise_role_target, identity_close)
+        sixty_second = interview_join(claim, human, take_proof_sentence(proof), concise_role_target, identity_close)
 
     ninety_second = interview_join(
         claim,
@@ -895,6 +995,14 @@ def story_human_connection_line(
     theme_key = story_theme_key(card)
     if "Challenge and Failure" in story_types:
         return "The human side of that story was rebuilding confidence after something had gone sideways, not just fixing the process."
+    if "Cross-Cultural" in story_types:
+        return "The human side was meeting people in their operating context so adoption felt understood locally rather than imposed centrally."
+    if "Prioritization" in story_types:
+        return "The human side was giving the team a clear order of operations when every stakeholder felt their work was urgent."
+    if "Receiving Feedback" in story_types:
+        return "The human side was making a visible behavior change after hearing something uncomfortable but useful."
+    if "Process Improvement" in story_types:
+        return "The human side was making the repeatable workflow easier to trust and easier for people to use every day."
     if "Persuasion" in story_types or "Opposing Views" in story_types:
         return "The human side was understanding what each group was protecting so the next step felt credible to everyone involved."
     if any(term in signal_text for term in ("messaging", "workflow", "automation", "chatbot", "nlp")):
@@ -1167,6 +1275,22 @@ def add_body_lines(document: Document, lines: list[str]) -> None:
         run.font.size = Pt(BODY_SIZE)
 
 
+def add_lane_lead_in_section(document: Document, profile: build_resume.JobProblemProfile) -> None:
+    lead = lane_lead_in_for_profile(profile)
+    add_section(document, "Lane Lead-In And Story Priority")
+    add_subsection(document, f"Active lane: {profile.lane_label}")
+    add_body(document, lead.lead_in)
+    add_bullet(document, f"Opener: {lead.opener_boost_key}")
+    add_bullet(document, f"Primary proof: {lead.proof_boost_key}")
+    if lead.avoid_note:
+        add_bullet(document, f"Watch: {lead.avoid_note}")
+    add_subsection(document, "Other lane index")
+    for lane_key, other in LANE_LEAD_INS.items():
+        if lane_key == profile.primary_lane:
+            continue
+        add_bullet(document, f"{other.lane.replace('_', ' ').title()}: opener {other.opener_boost_key}; proof {other.proof_boost_key}.")
+
+
 def add_bullet(document: Document, text: str) -> None:
     paragraph = document.add_paragraph(style=None)
     paragraph.paragraph_format.left_indent = Pt(14)
@@ -1192,7 +1316,22 @@ def mentions(text: str, *terms: str) -> bool:
     return False
 
 
-def contains_all(text: str, fragments: tuple[str, ...]) -> bool:
+def safe_evidence_term_matches(text: str, term: str) -> bool:
+    """Match a source-backed evidence phrase without unsafe substring leakage."""
+    normalized = re.sub(r"\s+", " ", term.strip().lower())
+    if len(normalized) < 5:
+        return False
+    if not normalized:
+        return False
+    escaped = re.escape(normalized)
+    prefix = r"(?<![a-z0-9])" if normalized[0].isalnum() else ""
+    suffix = r"(?![a-z0-9])" if normalized[-1].isalnum() else ""
+    return re.search(prefix + escaped + suffix, text.lower()) is not None
+
+
+def contains_all(text: str, fragments: tuple[str, ...], *, safe: bool = False) -> bool:
+    if safe:
+        return all(safe_evidence_term_matches(text, fragment) for fragment in fragments)
     lowered = text.lower()
     return all(fragment.lower() in lowered for fragment in fragments)
 
@@ -1503,7 +1642,7 @@ def four_value_factors(profile: build_resume.JobProblemProfile, job_description:
     Positioning should lead with Christian's strongest two: domain expertise and execution.
     """
     specialty = build_resume.role_specialty_phrase(job_description, "enterprise systems and implementation")
-    return [
+    answers = [
         f"DOMAIN EXPERTISE: 10+ years in {specialty}. Lead with this because it is Christian's clearest differentiator from generalists and recent grads applying to the same roles.",
         "EXECUTION ABILITY: 80+ client engagements, five-site system ownership, and 200+ reporting tools delivered. Proof that Christian gets things done, not just discusses them.",
         "ENERGY AND ATTITUDE: Surface this through delivery, not claims. Show genuine interest in the company's problem. Smile. Be specific about why this role and this employer.",
@@ -2235,8 +2374,8 @@ def recruiter_screen_pairs(
     }
     ninety_day = first_90_day_plan(profile)
     closest_story = (
-        story_for_type(selected_stories, "Individual Achievement")
-        or story_for_type(selected_stories, "Analysis and Decision")
+        story_for_type(selected_stories, "Individual Achievement", profile)
+        or story_for_type(selected_stories, "Analysis and Decision", profile)
         or (selected_stories[0] if selected_stories else None)
     )
     similar_work = (
@@ -2383,11 +2522,11 @@ def common_interview_answers(
     resume_text: str = "",
     notes_text: str = "",
 ) -> list[PreparedAnswer]:
-    achievement = story_for_type(stories, "Individual Achievement") or stories[0]
-    persuasion = story_for_type(stories, "Persuasion") or achievement
-    analysis = story_for_type(stories, "Analysis and Decision") or achievement
-    rapid = story_for_type(stories, "Rapid Learning") or achievement
-    teamwork = story_for_type(stories, "Teamwork") or persuasion
+    achievement = story_for_type(stories, "Individual Achievement", profile) or stories[0]
+    persuasion = story_for_type(stories, "Persuasion", profile) or achievement
+    analysis = story_for_type(stories, "Analysis and Decision", profile) or achievement
+    rapid = story_for_type(stories, "Rapid Learning", profile) or achievement
+    teamwork = story_for_type(stories, "Teamwork", profile) or persuasion
     questions = [
         PreparedAnswer(
             "Diagnose-before-selling pivot question",
@@ -2809,7 +2948,7 @@ def first_90_day_approach(profile: build_resume.JobProblemProfile) -> list[str]:
 
 
 def expanded_story_bank() -> list[StoryCard]:
-    return [
+    cards = [
         StoryCard(
             title="EFT/ACH payment integration replacement",
             story_types=("Managing and Leading", "Teamwork", "Ambiguous Problem", "Analysis and Decision"),
@@ -2819,7 +2958,7 @@ def expanded_story_bank() -> list[StoryCard]:
             level3_trait="Show what was noticed: the issue was not only technical; ownership was split across four parties, so the work needed one end-to-end delivery path.",
             result="Replaced a fragile payment setup with a compliant, auditable workflow that restored payment process integrity.",
             outcome="Use this for cross-functional project delivery, data or integration risk, banking/payment workflow, and influence without authority.",
-            evidence_terms=("EFT/ACH", "Truist"),
+            evidence_terms=("payment", "integration"),
             signals=("payment", "integration", "bank", "compliance", "finance", "delivery", "risk", "stakeholder"),
         ),
         StoryCard(
@@ -2831,7 +2970,7 @@ def expanded_story_bank() -> list[StoryCard]:
             level3_trait="Show what was noticed: repeated manual touches were creating delay and discrepancy risk, so the workflow was mapped, tested, and tightened before broader use.",
             result="Reduced manual work for the adjustment process by 78% and lowered inventory adjustment discrepancies by 22%.",
             outcome="Use this for process improvement, structured problem solving, and practical systems execution.",
-            evidence_terms=("78%", "22%", "Approved Manufacturer"),
+            evidence_terms=("inventory adjustment",),
             signals=("inventory", "process", "optimization", "efficiency", "operations", "analysis"),
         ),
         StoryCard(
@@ -2843,7 +2982,7 @@ def expanded_story_bank() -> list[StoryCard]:
             level3_trait="Show how unfamiliar workflows were broken into requirements, risks, decision owners, and next actions until the client could move forward.",
             result="Delivered 12 full-lifecycle ERP implementations and managed up to four at a time, becoming a customer-facing implementation consultant and pre-sales resource across complex ERP delivery work.",
             outcome="Use this when asked about learning quickly, ambiguity, or becoming useful before every answer is known.",
-            evidence_terms=("12 full-lifecycle", "4 concurrent", "80+ international"),
+            evidence_terms=("concurrent", "client engagements"),
             signals=("learning", "rapid", "implementation", "requirements", "customer", "erp"),
         ),
         StoryCard(
@@ -2855,7 +2994,7 @@ def expanded_story_bank() -> list[StoryCard]:
             level3_trait="Show what was noticed in the room: the customer needed ownership and a credible recovery path more than another status update.",
             result="Protected $1M+ in at-risk annual revenue and converted shaky relationships back into retained accounts.",
             outcome="Use this for customer trust, escalation recovery, and influencing without authority.",
-            evidence_terms=("$1M", "$6M"),
+            evidence_terms=("at-risk annual revenue", "book of business"),
             signals=("risk", "escalation", "retention", "revenue", "integration", "customer success"),
         ),
         StoryCard(
@@ -2867,7 +3006,7 @@ def expanded_story_bank() -> list[StoryCard]:
             level3_trait="Show how the question behind the data was clarified before building the report.",
             result="Improved visibility into operational performance, customer experience metrics, and process gaps.",
             outcome="Use this for data-driven decision-making, analytical structure, and business-minded reporting.",
-            evidence_terms=("200+", "KPI", "Power BI"),
+            evidence_terms=("dashboards", "Power BI"),
             signals=("analytics", "dashboard", "kpi", "reporting", "data", "visibility"),
         ),
         StoryCard(
@@ -2879,7 +3018,7 @@ def expanded_story_bank() -> list[StoryCard]:
             level3_trait="Show what was noticed: executives needed confidence in outcomes, operators needed workflow clarity, and delivery teams needed decision rights.",
             result="Maintained executive confidence throughout multi-phase delivery programs.",
             outcome="Use this for leadership, executive communication, and working with people from different backgrounds.",
-            evidence_terms=("60+ executive workshops", "QBR"),
+            evidence_terms=("executive business reviews",),
             signals=("executive", "stakeholder", "qbr", "alignment", "roadmap", "leadership"),
         ),
         StoryCard(
@@ -2891,7 +3030,7 @@ def expanded_story_bank() -> list[StoryCard]:
             level3_trait="Show how each group was heard differently before requirements and recommendations were finalized.",
             result="Kept core operations and finance workflows running across a global footprint while improving the ERP system through training, testing, and release readiness.",
             outcome="Use this as the main story for role scope, stakeholder complexity, and practical ownership.",
-            evidence_terms=("five sites", "150", "enterprise system"),
+            evidence_terms=("five sites", "enterprise systems"),
             signals=("implementation", "go-live", "delivery", "testing", "global", "stakeholder"),
         ),
         StoryCard(
@@ -2915,7 +3054,7 @@ def expanded_story_bank() -> list[StoryCard]:
             level3_trait="Show what was noticed: when ownership lived in email threads or spreadsheets, follow-up got blurry, so the work had to move into clearer CRM workflows, test scenarios, and next-step tracking.",
             result="Improved post-go-live follow-through, clearer issue ownership, and more reliable coordination across customer-facing teams.",
             outcome="Use this for Salesforce product ownership, backlog management, UAT, release coordination, and explaining why structured CRM workflows beat spreadsheet tracking.",
-            evidence_terms=("Service Cloud", "Marketing Cloud"),
+            evidence_terms=("salesforce", "marketing cloud"),
             signals=("salesforce", "crm", "digital", "backlog", "uat", "release", "product", "adoption", "workflow", "customer experience"),
         ),
         StoryCard(
@@ -2927,7 +3066,7 @@ def expanded_story_bank() -> list[StoryCard]:
             level3_trait="Show what was noticed: the new channel needed an operating workflow first, including how text conversations opened, routed, closed, and got measured.",
             result="Launched a working SMS support channel and documented the setup so the workflow could be repeated consistently.",
             outcome="Use this for zero-to-one workflow design, practical automation, messaging workflows, conversational AI, or channel adoption.",
-            evidence_terms=("LiveEngage", "SMS"),
+            evidence_terms=("liveengage", "text messaging"),
             signals=("automation", "ai", "chatbot", "messaging", "workflow", "nlp"),
         ),
         StoryCard(
@@ -2951,7 +3090,7 @@ def expanded_story_bank() -> list[StoryCard]:
             level3_trait="Show what was noticed: one group was optimizing speed, another was protecting control, and the answer had to make the tradeoff visible.",
             result="Balanced cost, timeline, and operational impact across competing stakeholder interests.",
             outcome="Use this for opposing views, difficult stakeholders, and influence without authority.",
-            evidence_terms=("finance", "engineering", "stakeholder"),
+            evidence_terms=("finance", "engineering"),
             signals=("opposing", "disagree", "stakeholder", "finance", "operations", "persuasion"),
         ),
         StoryCard(
@@ -2963,7 +3102,7 @@ def expanded_story_bank() -> list[StoryCard]:
             level3_trait="Show the changed behavior: clearer requirements, stronger validation checkpoints, more explicit rollback planning, and earlier stakeholder signoff.",
             result="Reduced production disruption, downstream defects, and implementation risk across concurrent program tracks.",
             outcome="Use this for failure questions. Keep it honest, calm, and focused on what changed.",
-            evidence_terms=("validation", "cutover coordination"),
+            evidence_terms=("validation",),
             signals=("failure", "mistake", "learn", "testing", "validation", "risk"),
         ),
         StoryCard(
@@ -3011,7 +3150,7 @@ def expanded_story_bank() -> list[StoryCard]:
             level3_trait="Show what was noticed: the real risk was not a bug count but the production impact on a live client process, so the conversation stayed anchored on business harm, validation, and release readiness instead of schedule pressure.",
             result="Prevented a production issue that would have disrupted live client operations after go-live.",
             outcome="Use this for delivery risk management, quality validation, cross-functional coordination, or any question about making a difficult go-live call.",
-            evidence_terms=("UAT", "user acceptance", "go-live"),
+            evidence_terms=("user acceptance", "go-live"),
             signals=("uat", "testing", "risk", "delivery", "client management", "validation", "defect", "go-live"),
         ),
         StoryCard(
@@ -3027,7 +3166,7 @@ def expanded_story_bank() -> list[StoryCard]:
             level3_trait="Show what was noticed: leadership thought the project was a software decision, but the real constraint was infrastructure readiness, so the discussion had to shift from features to business exposure if the environment failed under live load.",
             result="Secured infrastructure-readiness alignment early enough to prevent post-deployment performance failures.",
             outcome="Use this for executive persuasion, technical scoping, stakeholder alignment, or surfacing hidden delivery risk before go-live.",
-            evidence_terms=("hardware", "infrastructure", "upgrade readiness"),
+            evidence_terms=("hardware", "infrastructure"),
             signals=("persuasion", "stakeholder", "executive", "hardware", "implementation", "risk", "scope", "infrastructure"),
         ),
         StoryCard(
@@ -3046,11 +3185,152 @@ def expanded_story_bank() -> list[StoryCard]:
             evidence_terms=("Amazon Robotics", "warehouse"),
             signals=("manufacturing", "implementation", "compliance", "delivery", "executive", "stakeholder", "go-live", "complex"),
         ),
+        StoryCard(
+            title="Cross-site rollout to the Mexico teams",
+            story_types=("Cross-Cultural", "Teamwork", "Managing and Leading"),
+            hook="During the East West ERP rollout, two Mexico sites needed to be genuinely ready for go-live, not merely installed.",
+            takeaways=("Recognized that one-size training would leave adoption gaps", "Went on-site in El Paso and Juarez", "Adapted onboarding and compliance steps to the local teams"),
+            evidence="Supported the Mexico sites in person during the East West rollout, adapting onboarding, training, compliance, and financial steps to how the local teams worked.",
+            level3_trait="Show what was noticed: language, process, and on-the-ground differences meant remote-only support would leave gaps.",
+            result="The Mexico sites went live ready, not just installed, and the cross-site rollout held together.",
+            outcome="Use this for cross-cultural collaboration, adoption, multi-site work, and stakeholder empathy.",
+            evidence_terms=("training", "adoption"),
+            signals=("cross-cultural", "cross-site", "Mexico", "training", "adoption", "go-live", "stakeholder"),
+        ),
+        StoryCard(
+            title="Parallel workstream prioritization",
+            story_types=("Prioritization", "Managing and Leading", "Ambiguous Problem"),
+            hook="At East West Manufacturing, a hard-date warehouse and Amazon Robotics launch had four urgent workstreams that could not all be treated as equal.",
+            takeaways=("Locked the data foundation first", "Ran independent GL setup in parallel", "Held training for the final configuration and protected the critical path"),
+            evidence="Sequenced product families, BOMs, GL setup, and site training around the critical path, saying no to changes that put the go-live date at risk.",
+            level3_trait="Show what was noticed: if the data foundation slipped, training and go-live would collapse on top of it.",
+            result="Systems and people converged at go-live on schedule.",
+            outcome="Use this for prioritization, deadline pressure, parallel work, and saying no to date-risking scope.",
+            evidence_terms=("go-live", "training"),
+            signals=("prioritization", "critical path", "parallel", "go-live", "training", "deadline", "scope"),
+        ),
+        StoryCard(
+            title="Redirecting a churning account without arguing",
+            story_types=("Customer Disagreement", "Persuasion", "Opposing Views"),
+            hook="At Aptean, an at-risk account blamed the product and was ready to leave, while the evidence pointed to adoption gaps and stalled custom work.",
+            takeaways=("Diagnosed the root cause with the customer", "Reframed disagreement as a shared fix", "Created a weekly ownership cadence"),
+            evidence="Walked the customer through where usage had dropped and which integration had stalled, then took ownership and worked the actual gaps with them.",
+            level3_trait="Show what was noticed: being right about the root cause would not help if the customer did not feel heard or see a credible path forward.",
+            result="The account moved from churning to retained.",
+            outcome="Use this for difficult customers, conflict, influence, root-cause thinking, and customer recovery.",
+            evidence_terms=("adoption",),
+            signals=("customer", "disagreement", "adoption", "integration", "retention", "persuasion", "conflict"),
+        ),
+        StoryCard(
+            title="Data-migration setback and validation checkpoint",
+            story_types=("Challenge and Failure", "Analysis and Decision", "Rapid Learning"),
+            hook="During the East West data migration, a portion of the data did not map cleanly and was caught later than it should have been.",
+            takeaways=("Owned the miss immediately", "Paused the affected cutover step and rebuilt mapping validation", "Added a checkpoint so the gap could not recur"),
+            evidence="Paused the affected migration step, rebuilt the mapping and validation, re-ran it before production, and added a validation checkpoint.",
+            level3_trait="Show what was noticed: the source data was not as clean as assumed, so the process had to change rather than rely on a later inspection.",
+            result="The data migrated cleanly and the new checkpoint reduced recurrence risk.",
+            outcome="Use this for failure, ownership, resilience, data migration, and learning from a miss.",
+            evidence_terms=("migration", "validation"),
+            signals=("failure", "migration", "validation", "data", "ownership", "learning", "risk"),
+        ),
+        StoryCard(
+            title="Acting on hard communication feedback",
+            story_types=("Receiving Feedback", "Rapid Learning", "Individual Achievement"),
+            hook="During a client engagement, a manager told me my updates ran too long and buried the point.",
+            takeaways=("Accepted the feedback as accurate", "Led with the outcome and offered detail on request", "Practiced the change in meetings and client calls"),
+            evidence="Rebuilt my communication around outcome-first updates and practiced the change deliberately until it became automatic.",
+            level3_trait="Show the behavior change: the answer became the headline first, with the process available only when the audience needed it.",
+            result="Updates became sharper, meetings shorter, and stakeholders came to me first for a clear read.",
+            outcome="Use this for feedback, weaknesses, coachability, self-awareness, and communication growth.",
+            evidence_terms=("adoption",),
+            signals=("feedback", "communication", "coachability", "learning", "concise", "stakeholder"),
+        ),
+        StoryCard(
+            title="East West end-to-end ERP implementation",
+            story_types=("Managing and Leading", "Ambiguous Problem", "Teamwork"),
+            hook="I led the East West ERP implementation and data migration across five sites and more than 150 users.",
+            takeaways=("Aligned operations, finance, and engineering", "Owned onboarding, compliance, financial, and training sessions", "Led ETL and migration to a clean go-live"),
+            evidence="Led the end-to-end ERP implementation and migration, supported the Mexico offices in person, and owned the ETL and data migration through go-live.",
+            level3_trait="Show what was noticed: the work was an alignment problem across sites, functions, and countries, not a software install.",
+            result="The sites went live with systems and people ready together, and the migration landed clean.",
+            outcome="Use this as the implementation lead story for end-to-end ownership, ERP delivery, onboarding, and customer-side execution.",
+            evidence_terms=("five sites", "enterprise systems"),
+            signals=("implementation", "ERP", "migration", "go-live", "five sites", "training", "global", "ownership"),
+            sensitive_note="My role wrapped when the migration finished and the team consolidated.",
+        ),
+        StoryCard(
+            title="Both-sides implementation breadth",
+            story_types=("Individual Achievement", "Rapid Learning", "Ambiguous Problem"),
+            hook="I have delivered the same kind of software from both sides of the table: as a vendor across more than 80 client engagements and as the customer-side implementation owner.",
+            takeaways=("Adapted across legacy on-premise and cloud environments", "Learned varied client workflows quickly", "Connected vendor delivery discipline to customer-side ownership"),
+            evidence="At Aptean, implemented and supported more than 80 clients across varied configurations, then led the East West implementation from the customer side.",
+            level3_trait="Show the differentiator: vendor breadth helps me anticipate where implementations break, while customer-side ownership keeps the work grounded in adoption and operating reality.",
+            result="I bring implementation judgment from both sides of the table.",
+            outcome="Use this as the broad opening hook for implementation, solution consulting, and customer-facing delivery roles.",
+            evidence_terms=("client engagements", "migration"),
+            signals=("both sides", "client engagements", "implementation", "migration", "ERP", "cloud", "discovery"),
+        ),
     ]
+    stable_keys = {
+        "EFT/ACH payment integration replacement": "payment_integration",
+        "High-volume inventory automation": "inventory_automation",
+        "Aptean rapid product learning": "rapid_learning",
+        "$1M+ account stabilization": "account_stabilization",
+        "200+ dashboards and decision visibility": "dashboards",
+        "60+ workshops and QBRs": "executive_workshops",
+        "East West ERP ownership": "erp_ownership",
+        "East West Salesforce visibility": "crm_visibility",
+        "Salesforce backlog and release coordination": "backlog_release",
+        "Zero-to-one SMS support channel": "sms_channel",
+        "Aptean lifecycle delivery": "lifecycle_delivery",
+        "Operations versus finance alignment": "ops_finance",
+        "Failure lesson and stronger validation": "failure_validation",
+        "Customer loss and proactive success lesson": "customer_loss",
+        "13-month modernization complexity": "modernization_scope",
+        "UAT defect catch before go-live": "uat_defect",
+        "CEO hardware scoping conversation": "ceo_hardware",
+        "New warehouse and Amazon Robotics systems launch": "amazon_robotics",
+        "Cross-site rollout to the Mexico teams": "cross_site_adoption",
+        "Parallel workstream prioritization": "parallel_workstreams",
+        "Redirecting a churning account without arguing": "churn_redirect",
+        "Data-migration setback and validation checkpoint": "migration_setback",
+        "Acting on hard communication feedback": "communication_feedback",
+        "East West end-to-end ERP implementation": "east_west_end_to_end",
+        "Both-sides implementation breadth": "both_sides_breadth",
+    }
+    return [replace(card, boost_key=card.boost_key or stable_keys.get(card.title, "")) for card in cards]
 
 
-def hero_stories(profile: build_resume.JobProblemProfile, job_description: str, resume_text: str) -> list[StoryCard]:
-    supported = [card for card in expanded_story_bank() if contains_all(resume_text, card.evidence_terms)]
+MUTUALLY_EXCLUSIVE_GROUPS = (
+    frozenset({"amazon_robotics", "parallel_workstreams"}),
+    frozenset({"erp_ownership", "east_west_end_to_end"}),
+)
+
+
+def story_by_boost_key(stories: Sequence[StoryCard], boost_key: str) -> StoryCard | None:
+    return next((card for card in stories if card.boost_key == boost_key), None)
+
+
+def lane_lead_in_for_profile(profile: build_resume.JobProblemProfile) -> LaneLeadIn:
+    return LANE_LEAD_INS.get(profile.primary_lane, LANE_LEAD_INS["implementation_delivery"])
+
+
+def generated_resume_presence_boost(card: StoryCard, resume_text: str) -> int:
+    """Prefer evidence the interviewer just saw without making it eligibility."""
+    return sum(2 for term in card.evidence_terms if safe_evidence_term_matches(resume_text, term))
+
+
+def hero_stories(
+    profile: build_resume.JobProblemProfile,
+    job_description: str,
+    resume_text: str,
+    *,
+    eligibility_text: str = "",
+    story_cards: Sequence[StoryCard] | None = None,
+) -> list[StoryCard]:
+    gate_text = eligibility_text or question_prep.approved_source_resume_text()
+    candidate_cards = list(story_cards) if story_cards is not None else expanded_story_bank()
+    supported = [card for card in candidate_cards if contains_all(gate_text, card.evidence_terms, safe=True)]
     if not supported:
         return []
 
@@ -3067,21 +3347,78 @@ def hero_stories(profile: build_resume.JobProblemProfile, job_description: str, 
 
     def score(card: StoryCard) -> int:
         bonus = sum(1 for signal in card.signals if signal in lane_bonus)
-        return signal_score(job_description, card.signals) + bonus + quantified_story_boost(card, profile, job_description)
+        return (
+            signal_score(job_description, card.signals)
+            + bonus
+            + quantified_story_boost(card, profile, job_description)
+            + generated_resume_presence_boost(card, resume_text)
+        )
 
-    supported.sort(key=score, reverse=True)
-    return supported[:5]
+    supported.sort(key=lambda card: (-score(card), card.boost_key))
+    selected: list[StoryCard] = []
+    for card in supported:
+        if any(card.boost_key in group and any(existing.boost_key in group for existing in selected) for group in MUTUALLY_EXCLUSIVE_GROUPS):
+            continue
+        selected.append(card)
+        if len(selected) == 5:
+            break
+
+    required_types = ("Challenge and Failure", ("Persuasion", "Opposing Views"))
+    protected_requirements: list[str | tuple[str, ...]] = []
+    for required in required_types:
+        if isinstance(required, tuple):
+            covered = any(any(option in card.story_types for option in required) for card in selected)
+        else:
+            covered = any(required in card.story_types for card in selected)
+        if covered:
+            protected_requirements.append(required)
+            continue
+        replacement = next(
+            (
+                card for card in supported
+                if card not in selected
+                and (required in card.story_types if isinstance(required, str) else any(option in card.story_types for option in required))
+                and not any(card.boost_key in group and any(existing.boost_key in group for existing in selected[:-1]) for group in MUTUALLY_EXCLUSIVE_GROUPS)
+            ),
+            None,
+        )
+        if replacement and selected:
+            for index in range(len(selected) - 1, -1, -1):
+                remaining = selected[:index] + selected[index + 1:]
+                if all(
+                    any(
+                        (requirement in card.story_types if isinstance(requirement, str) else any(option in card.story_types for option in requirement))
+                        for card in remaining
+                    )
+                    for requirement in protected_requirements
+                ):
+                    selected[index] = replacement
+                    break
+        protected_requirements.append(required)
+    return selected[:5]
 
 
-def supported_story_bank(resume_text: str) -> list[StoryCard]:
-    return [card for card in expanded_story_bank() if contains_all(resume_text, card.evidence_terms)]
+def supported_story_bank(resume_text: str = "", *, eligibility_text: str = "") -> list[StoryCard]:
+    gate_text = eligibility_text or resume_text or question_prep.approved_source_resume_text()
+    return [card for card in expanded_story_bank() if contains_all(gate_text, card.evidence_terms, safe=True)]
+
+
+def story_evidence_gaps(text: str, stories: Sequence[StoryCard] | None = None) -> dict[str, tuple[str, ...]]:
+    cards = stories if stories is not None else expanded_story_bank()
+    return {
+        card.boost_key or card.title: tuple(
+            term for term in card.evidence_terms if not safe_evidence_term_matches(text, term)
+        )
+        for card in cards
+        if any(not safe_evidence_term_matches(text, term) for term in card.evidence_terms)
+    }
 
 
 def quantified_story_boost(card: StoryCard, profile: build_resume.JobProblemProfile, job_description: str) -> int:
     """Let memorable quantified stories compete without flattening lane fit."""
-    title = card.title
+    key = card.boost_key
     lane = profile.primary_lane
-    if title == "High-volume inventory automation":
+    if key == "inventory_automation":
         if lane in {"analytics_operations", "process_improvement"} and build_resume.jd_mentions(
             job_description,
             "analytics",
@@ -3098,7 +3435,7 @@ def quantified_story_boost(card: StoryCard, profile: build_resume.JobProblemProf
             return 14
         if lane == "implementation_delivery" and build_resume.jd_mentions(job_description, "workflow", "validation", "data", "process"):
             return 6
-    if title == "$1M+ account stabilization":
+    if key == "account_stabilization":
         if lane == "customer_success":
             return 16
         if lane in {"analytics_operations", "implementation_delivery", "corporate_strategy"} and build_resume.jd_mentions(
@@ -3113,7 +3450,7 @@ def quantified_story_boost(card: StoryCard, profile: build_resume.JobProblemProf
             "delivery",
         ):
             return 12
-    if title == "EFT/ACH payment integration replacement":
+    if key == "payment_integration":
         if lane in {"implementation_delivery", "corporate_strategy"} and build_resume.jd_mentions(
             job_description,
             "integration",
@@ -3139,21 +3476,53 @@ def quantified_story_boost(card: StoryCard, profile: build_resume.JobProblemProf
     return 0
 
 
-def story_for_type(stories: list[StoryCard], story_type: str) -> StoryCard | None:
+def story_for_type(
+    stories: list[StoryCard],
+    story_type: str,
+    profile: build_resume.JobProblemProfile | None = None,
+) -> StoryCard | None:
     if story_type == "Challenge and Failure":
-        # Prefer the churn/loss story when available: it carries a specific, actionable lesson
-        # about proactive customer success that resonates more broadly than a go-live testing
-        # miss, and it performed well in actual interviews (Plataine, June 2026).
-        preferred = next((card for card in stories if card.title == "Customer loss and proactive success lesson"), None)
-        if preferred:
-            return preferred
-        preferred = next((card for card in stories if card.title == "Failure lesson and stronger validation"), None)
+        preferred_keys = ("customer_loss", "failure_validation")
+        if profile and profile.primary_lane in {"implementation_delivery", "change_enablement", "process_improvement"}:
+            preferred_keys = ("migration_setback", "failure_validation", "customer_loss")
+        elif profile and profile.primary_lane == "customer_success":
+            preferred_keys = ("customer_loss", "churn_redirect", "failure_validation")
+        preferred = next((story_by_boost_key(stories, key) for key in preferred_keys), None)
         if preferred:
             return preferred
     return next((card for card in stories if story_type in card.story_types), None)
 
 
 def story_theme_key(card: StoryCard) -> str:
+    keyed_themes = {
+        "payment_integration": "payment_integration",
+        "inventory_automation": "inventory",
+        "rapid_learning": "learning",
+        "account_stabilization": "account",
+        "dashboards": "dashboards",
+        "executive_workshops": "workshops",
+        "erp_ownership": "erp_ownership",
+        "crm_visibility": "crm_visibility",
+        "backlog_release": "backlog_release",
+        "sms_channel": "messaging_automation",
+        "lifecycle_delivery": "lifecycle_delivery",
+        "ops_finance": "ops_finance",
+        "failure_validation": "failure",
+        "customer_loss": "customer_loss",
+        "modernization_scope": "modernization_scope",
+        "uat_defect": "failure",
+        "ceo_hardware": "ceo_hardware",
+        "amazon_robotics": "amazon_robotics",
+        "cross_site_adoption": "cross_site_adoption",
+        "parallel_workstreams": "parallel_workstreams",
+        "churn_redirect": "churn_redirect",
+        "migration_setback": "migration_setback",
+        "communication_feedback": "communication_feedback",
+        "east_west_end_to_end": "erp_ownership",
+        "both_sides_breadth": "both_sides_breadth",
+    }
+    if card.boost_key in keyed_themes:
+        return keyed_themes[card.boost_key]
     lowered = card.title.lower()
     if "inventory" in lowered:
         return "inventory"
@@ -3209,6 +3578,13 @@ def story_specific_bridge(card: StoryCard, profile: build_resume.JobProblemProfi
         "customer_loss": "Bridge: this is the proactive account ownership proof: success in a high-touch customer role means identifying risk before the customer names it, because by the time they raise their hand the decision may already be made.",
         "modernization_scope": "Bridge: this is the scoping realism proof: the most dangerous assumption in a complex implementation is that the customer's environment matches what they believe it to be; surface constraints early, name the real cost directly, and hold expectations across a longer-than-expected delivery.",
         "amazon_robotics": "Bridge: this is the compliance-constrained delivery proof: when a customer or partner has non-negotiable certification requirements, there is no room to learn by doing — every configuration decision upstream has to account for what it unlocks or blocks downstream.",
+        "ceo_hardware": "Bridge: this is the executive-scoping proof: surface the real infrastructure constraint early, translate it into business exposure, and align leadership before the delivery date makes the risk expensive.",
+        "cross_site_adoption": "Bridge: this is the adoption proof: localize the change to the people and operating context that have to live with it, then confirm readiness in practice rather than only in documentation.",
+        "parallel_workstreams": "Bridge: this is the prioritization proof: protect the critical path, parallelize only independent work, and defer changes that would make the hard date less credible.",
+        "churn_redirect": "Bridge: this is the disagreement proof: use evidence to reframe the problem as a shared fix instead of trying to win the argument.",
+        "migration_setback": "Bridge: this is the learning-from-failure proof: own the miss, stop it before production, and change the checkpoint so the same assumption cannot recur.",
+        "communication_feedback": "Bridge: this is the coachability proof: turn uncomfortable feedback into a visible behavior change and practice it until the improvement is reliable.",
+        "both_sides_breadth": "Bridge: this is the adaptability proof: vendor-side breadth plus customer-side ownership makes it easier to anticipate delivery risk and keep adoption grounded in operating reality.",
     }
     return bridges.get(
         key,
@@ -3458,7 +3834,10 @@ def role_specific_track_guidance(
     return None
 
 
-def six_story_type_lines(stories: list[StoryCard]) -> list[str]:
+def six_story_type_lines(
+    stories: list[StoryCard],
+    profile: build_resume.JobProblemProfile | None = None,
+) -> list[str]:
     story_types = (
         "Individual Achievement",
         "Managing and Leading",
@@ -3469,13 +3848,27 @@ def six_story_type_lines(stories: list[StoryCard]) -> list[str]:
     )
     lines: list[str] = []
     for story_type in story_types:
-        card = story_for_type(stories, story_type)
+        card = story_for_type(stories, story_type, profile)
         if card:
             lines.append(f"{story_type}: Use {card.title}. Representative prompt: {representative_prompt(story_type)} What makes it land: {card.outcome}")
         else:
             lines.append(
                 f"{story_type}: No resume-supported story available for this type. "
                 "Build one before the interview using the career events most relevant to this role."
+            )
+    return lines
+
+
+def extended_story_type_lines(
+    stories: list[StoryCard],
+    profile: build_resume.JobProblemProfile | None = None,
+) -> list[str]:
+    lines: list[str] = []
+    for story_type in ("Cross-Cultural", "Prioritization", "Receiving Feedback"):
+        card = story_for_type(stories, story_type, profile)
+        if card:
+            lines.append(
+                f"{story_type}: Use {card.title}. Representative prompt: {representative_prompt(story_type)} What makes it land: {card.outcome}"
             )
     return lines
 
@@ -3488,6 +3881,9 @@ def representative_prompt(story_type: str) -> str:
         "Analysis and Decision": "Tell me about a difficult decision you made with limited information.",
         "Challenge and Failure": "Describe a failure or tough lesson and how you responded.",
         "Teamwork": "Describe a time you worked with someone whose style or background was different from yours.",
+        "Cross-Cultural": "Tell me about a time you adapted your approach across cultures or locations.",
+        "Prioritization": "Tell me about a time you had to prioritize competing urgent work.",
+        "Receiving Feedback": "Tell me about a time you received difficult feedback and changed your behavior.",
     }
     return prompts.get(story_type, "Tell me about a relevant example.")
 
@@ -3508,6 +3904,20 @@ def calibration_question(card: StoryCard, profile: build_resume.JobProblemProfil
         return "Is building SME validation into process changes before go-live a strong discipline here already, or an area to strengthen?"
     if key == "workshops":
         return "How often does this role need to translate the same change differently for leaders, operators, and frontline teams?"
+    if key == "cross_site_adoption":
+        return "Does this role need to adapt enablement across sites, regions, or local operating contexts?"
+    if key == "parallel_workstreams":
+        return "When several workstreams are urgent, is protecting a hard go-live date part of this role's responsibility?"
+    if key == "churn_redirect":
+        return "Does this role regularly need to reframe customer disagreement around evidence and shared ownership?"
+    if key == "migration_setback":
+        return "Is building validation checkpoints into migration and cutover work a priority here?"
+    if key == "communication_feedback":
+        return "Is concise, outcome-first communication an explicit expectation for this role?"
+    if key in {"erp_ownership", "east_west_end_to_end"}:
+        return "Is end-to-end implementation ownership across functions and sites central to this role?"
+    if key == "both_sides_breadth":
+        return "Would vendor-side breadth plus customer-side implementation ownership be useful in this role?"
     if "Managing and Leading" in card.story_types or "Teamwork" in card.story_types:
         return "Is cross-functional coordination and stakeholder alignment a regular part of how this role will need to operate?"
     if "Challenge and Failure" in card.story_types:
@@ -3667,6 +4077,7 @@ def great_eight_story_audit(stories: list[StoryCard]) -> dict[str, str]:
 
 
 def story_bank_bullets(stories: list[StoryCard]) -> list[str]:
+    stories = stories[:12]
     audit_notes = great_eight_story_audit(stories)
     lines: list[str] = []
     for card in stories:
@@ -3704,6 +4115,10 @@ def likely_gaps(job_description: str) -> list[str]:
 
 def role_specific_gaps(profile: build_resume.JobProblemProfile, job_description: str) -> list[str]:
     gaps = likely_gaps(job_description)
+    for label in profile.scope_pace_signals:
+        signal = build_resume.SCOPE_PACE_MISMATCH_LOOKUP.get(label)
+        if signal:
+            gaps.insert(0, f"{label}: {signal['coaching_note']} Proactive line: \"{signal['bridge_sentence']}\"")
     if profile.unsupported_requirements:
         gaps.insert(
             0,
@@ -3858,7 +4273,7 @@ def supported_theme_story(
     if not stories:
         fail("supported_theme_story() requires at least one story")
     scored: list[tuple[int, StoryCard]] = []
-    for story in stories:
+    for story in stories[:12]:
         story_text = " ".join(
             (
                 story.title,
@@ -4038,7 +4453,7 @@ def likely_question_story(item: InterviewQuestion, stories: list[StoryCard], use
         (("gap", "learn", "new", "comfort"), ("Rapid Learning", "Challenge and Failure", "learning")),
     )
     scored: list[tuple[int, StoryCard]] = []
-    for story in stories:
+    for story in stories[:12]:
         score = signal_score(prompt, story.signals)
         story_text = " ".join((story.title, story.hook, " ".join(story.story_types), " ".join(story.signals))).lower()
         if mapped_title and story.title == mapped_title:
@@ -4264,13 +4679,13 @@ def behavioral_answer_scripts(
 ) -> list[PreparedAnswer]:
     if not stories:
         return []
-    achievement = story_for_type(stories, "Individual Achievement") or stories[0]
-    leadership = story_for_type(stories, "Managing and Leading") or achievement
-    persuasion = story_for_type(stories, "Persuasion") or achievement
-    analysis = story_for_type(stories, "Analysis and Decision") or achievement
-    failure = story_for_type(stories, "Challenge and Failure") or achievement
-    teamwork = story_for_type(stories, "Teamwork") or leadership
-    rapid = story_for_type(stories, "Rapid Learning") or achievement
+    achievement = story_for_type(stories, "Individual Achievement", profile) or stories[0]
+    leadership = story_for_type(stories, "Managing and Leading", profile) or achievement
+    persuasion = story_for_type(stories, "Persuasion", profile) or achievement
+    analysis = story_for_type(stories, "Analysis and Decision", profile) or achievement
+    failure = story_for_type(stories, "Challenge and Failure", profile) or achievement
+    teamwork = story_for_type(stories, "Teamwork", profile) or leadership
+    rapid = story_for_type(stories, "Rapid Learning", profile) or achievement
     role_bridge = lane_interview_bridge(profile)
     proof_line = lane_interview_proof_line(profile)
     tell_me_answer = (
@@ -4475,7 +4890,6 @@ def story_diversity_warning(
                 f"{len(questions)} behavioral questions: {', '.join(questions)}. "
                 "Add more story types to the source or accept repeated examples."
             )
-
 
 
 def validate_behavioral_answer_bank(answer_bank: Sequence[PreparedAnswer]) -> None:
@@ -4747,52 +5161,18 @@ def signature_story_for_checklist(
     guide_stories: list[StoryCard] | None = None,
 ) -> StoryCard | None:
     guide_stories = guide_stories or stories
-    quantified_priority_titles = {
-        "analytics_operations": (
-            "High-volume inventory automation",
-            "$1M+ account stabilization",
-            "EFT/ACH payment integration replacement",
-        ),
-        "process_improvement": (
-            "High-volume inventory automation",
-            "EFT/ACH payment integration replacement",
-            "$1M+ account stabilization",
-        ),
-        "implementation_delivery": (
-            "EFT/ACH payment integration replacement",
-            "New warehouse and Amazon Robotics systems launch",
-            "High-volume inventory automation",
-            "$1M+ account stabilization",
-        ),
-        "customer_success": (
-            "$1M+ account stabilization",
-            "Customer loss and proactive success lesson",
-        ),
-        "corporate_strategy": (
-            "EFT/ACH payment integration replacement",
-            "$1M+ account stabilization",
-            "13-month modernization complexity",
-        ),
-    }
-    for title in quantified_priority_titles.get(profile.primary_lane, ()):
-        story = next((card for card in guide_stories if card.title == title), None)
+    lead = lane_lead_in_for_profile(profile)
+    priority_keys = lead.checklist_boost_keys or (
+        lead.opener_boost_key,
+        lead.proof_boost_key,
+        *lead.backup_boost_keys,
+    )
+    for key in priority_keys:
+        story = story_by_boost_key(guide_stories, key)
         if story:
             return story
-    for title in quantified_priority_titles.get(profile.primary_lane, ()):
-        story = next((card for card in stories if card.title == title), None)
-        if story:
-            return story
-
-    priority_titles = {
-        "analytics_operations": ("High-volume inventory automation", "200+ dashboards and decision visibility"),
-        "implementation_delivery": ("EFT/ACH payment integration replacement", "New warehouse and Amazon Robotics systems launch"),
-        "customer_success": ("$1M+ account stabilization", "Customer loss and proactive success lesson"),
-        "presales_solution": ("Aptean lifecycle delivery",),
-        "change_enablement": ("New warehouse and Amazon Robotics systems launch", "60+ workshops and QBRs"),
-        "corporate_strategy": ("EFT/ACH payment integration replacement", "13-month modernization complexity"),
-    }
-    for title in priority_titles.get(profile.primary_lane, ()):
-        story = next((card for card in stories if card.title == title), None)
+    for key in priority_keys:
+        story = story_by_boost_key(stories, key)
         if story:
             return story
     return stories[0] if stories else None
@@ -5476,8 +5856,8 @@ def phone_screen_script_answers(
         )
     }
     closest_story = (
-        story_for_type(selected_stories, "Individual Achievement")
-        or story_for_type(selected_stories, "Analysis and Decision")
+        story_for_type(selected_stories, "Individual Achievement", profile)
+        or story_for_type(selected_stories, "Analysis and Decision", profile)
         or (selected_stories[0] if selected_stories else None)
     )
     role_focus = build_resume.role_specialty_phrase(job_description, candidate_problem_phrase(profile))
@@ -5640,7 +6020,10 @@ def add_recent_interview_question_prep_section(
             build_resume.job_problem_profile(job_description, resume_text), role_title, job_description
         )
     if stories is None:
-        stories = supported_story_bank(resume_text)
+        stories = supported_story_bank(
+            resume_text,
+            eligibility_text=question_prep.approved_source_resume_text(),
+        )
     add_section(document, "Recent Interview Questions To Be Ready For")
     used_titles: set[str] = set()
     for item in items[:5]:
@@ -5696,8 +6079,14 @@ def build_document(company_name: str, role_title: str, job_description: str, res
         role_title,
         job_description,
     )
-    selected_stories = hero_stories(profile, job_description, resume_text)
-    all_stories = supported_story_bank(resume_text)
+    source_evidence_text = question_prep.approved_source_resume_text()
+    selected_stories = hero_stories(
+        profile,
+        job_description,
+        resume_text,
+        eligibility_text=source_evidence_text,
+    )
+    all_stories = supported_story_bank(resume_text, eligibility_text=source_evidence_text)
     interview_scorecard = interview_intelligence.jd_competency_scorecard(job_description, resume_text)
     interview_intelligence.assert_safe_generated_text(
         "\n".join(
@@ -5801,6 +6190,7 @@ def build_document(company_name: str, role_title: str, job_description: str, res
     for line in top_answer_risk_lines(profile, company_name, role_title, context_bundle.round_records, global_round_records)[:3]:
         add_bullet(document, line)
     add_jd_interview_scorecard(document, interview_scorecard)
+    add_lane_lead_in_section(document, profile)
     add_section(document, "Pre-Call Routine")
     for line in pre_interview_routine_lines(role_title, context_bundle.round_records, global_round_records):
         add_bullet(document, line)
@@ -5851,6 +6241,12 @@ def build_document(company_name: str, role_title: str, job_description: str, res
     add_bullet(document, "For each story, lock in three things: the hook, the number or scale anchor, and the result.")
     add_bullet(document, "If you lose the middle, go back to the anchor phrase, then state the result and bridge the answer back to the role.")
     add_bullet(document, "Use the first sentence to name the situation and the last sentence to name why it matters here.")
+    add_section(document, "Six Core Story Types")
+    for line in six_story_type_lines(all_stories, profile):
+        add_bullet(document, line)
+    add_section(document, "Extended Story-Type Reference")
+    for line in extended_story_type_lines(all_stories, profile):
+        add_bullet(document, line)
 
     add_section(document, "Five Story Cards")
     for index, card in enumerate(selected_stories[:5], start=1):

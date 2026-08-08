@@ -21,7 +21,10 @@ PRESALES_SIGNALS = {
     "account growth",
 }
 
-SIMPLE_COMPETENCY_KEYWORDS = (
+# Evidence-backed competency labels and their permitted JD surfaces live in
+# source/evidence_terms.py. This table is only for supplemental presentation
+# competencies that do not represent a cataloged evidence concept.
+SUPPLEMENTAL_COMPETENCY_KEYWORDS = (
     ("Agile Project Management", ("agile", "project management")),
     ("Conversational AI and Chatbot Configuration", ("chatbot", "chatbots", "ai agent", "ai agents", "conversational ai")),
     ("NLP-based Messaging Workflows", ("natural language processing", "nlp", "ai performance metrics")),
@@ -65,7 +68,7 @@ SIMPLE_COMPETENCY_KEYWORDS = (
     ("Order Management", ("order management",)),
 )
 
-CONDITIONAL_COMPETENCY_ITEMS = {
+SUPPLEMENTAL_CONDITIONAL_COMPETENCY_ITEMS = {
     "pre sales and solution consulting": ("pre-sales", "presales", "solution consulting", "sales engineer", "demo", "demos"),
     "supply chain and manufacturing operations": ("supply chain", "manufacturing", "warehouse", "fulfillment", "inventory management", "inventory control"),
     "tableau": ("tableau", "analytics", "dashboard", "data analysis", "reporting"),
@@ -920,6 +923,62 @@ SPECIALTY_GAP_AREAS = (
     },
 )
 
+SCOPE_PACE_MISMATCH_SIGNALS = (
+    {
+        "label": "High-Volume, Fast-Cycle Caseload",
+        "job_terms": (
+            "100 clients",
+            "high volume",
+            "high-volume",
+            "large caseload",
+            "book of business",
+            "fast-paced",
+            "fast paced",
+            "quick turnaround",
+            "short implementation window",
+            "90-day implementation",
+            "90 day implementation",
+            "rapid onboarding",
+        ),
+        "minimum_job_hits": 1,
+        "coaching_note": (
+            "The posting signals a faster, higher-volume caseload than Christian's lower-volume, higher-complexity "
+            "implementation background. Address the pace and volume adaptation proactively in the opening pitch and "
+            "in any caseload question, instead of only conceding it if asked."
+        ),
+        "bridge_sentence": (
+            "The caseload and pace here move faster than the lower-volume, higher-complexity implementations I have owned before, "
+            "and that is part of what interests me about this role: the discipline is the same, one shared view of every account, "
+            "triage by risk and deadline proximity, it just runs on a tighter clock."
+        ),
+    },
+    {
+        "label": "Lower Technical Complexity, Standardized Product",
+        "job_terms": (
+            "out of the box",
+            "out-of-the-box",
+            "no coding required",
+            "no technical background required",
+            "straightforward implementation",
+            "simple configuration",
+            "entry level",
+            "entry-level",
+            "does not require a technical background",
+        ),
+        "minimum_job_hits": 1,
+        "coaching_note": (
+            "The posting signals a simpler, more standardized product than Christian's ERP and enterprise-systems background. "
+            "Frame the depth as a safety margin instead of a mismatch, and show genuine interest in the different day-to-day "
+            "shape of the work rather than letting the panel wonder if he would stay engaged."
+        ),
+        "bridge_sentence": (
+            "This product is more standardized than the ERP environments I have owned, and that is a feature for me, not a letdown: "
+            "it means less time defending scope and more time actually helping the client adopt it and stay confident."
+        ),
+    },
+)
+
+
 TAILORING_EMPHASIS_PROFILES = (
     {
         "key": "launch_migration",
@@ -1194,6 +1253,11 @@ _assert_required_keys(
     SPECIALTY_GAP_AREAS,
     ("label", "job_terms", "resume_terms", "minimum_job_hits"),
     "SPECIALTY_GAP_AREAS",
+)
+_assert_required_keys(
+    SCOPE_PACE_MISMATCH_SIGNALS,
+    ("label", "job_terms", "minimum_job_hits", "coaching_note", "bridge_sentence"),
+    "SCOPE_PACE_MISMATCH_SIGNALS",
 )
 _assert_required_keys(
     STORY_LENSES,

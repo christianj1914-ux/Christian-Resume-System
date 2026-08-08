@@ -169,6 +169,8 @@ from resume_analysis import (
     poor_fit_requirements,
     primary_employer_context,
     primary_story_lens,
+    scope_pace_signal_labels,
+    SCOPE_PACE_MISMATCH_LOOKUP,
     role_requirement_text,
     role_specialty_phrase,
     should_deemphasize_erp_for_role,
@@ -234,6 +236,7 @@ from resume_content import (
     supported_simple_competencies,
     targeted_skill_candidate_is_allowed,
     TailoringEmphasis,
+    write_core_competency_row,
 )
 
 from resume_format import (
@@ -2807,17 +2810,22 @@ def assert_core_competency_run_format(document_xml: Path) -> None:
         if not in_core or ":" not in text:
             continue
 
-        runs = paragraph.findall(f"{W}r")
-        if len(runs) < 2:
+        visible_runs = [
+            (re.sub(r"\s+", " ", paragraph_text(run)).strip(), run.find(f"{W}rPr"))
+            for run in paragraph.findall(f"{W}r")
+            if re.sub(r"\s+", " ", paragraph_text(run)).strip()
+        ]
+        if len(visible_runs) < 2:
             problems.append(f"Skills line was not split into label/items runs: {text}")
             continue
 
-        label_r_pr = runs[0].find(f"{W}rPr")
+        label_text, label_r_pr = visible_runs[0]
         if bool_prop_enabled(label_r_pr, f"{W}b") is not False or bool_prop_enabled(label_r_pr, f"{W}i") is not True:
             problems.append(f"category label is not italic-only: {text.split(':', 1)[0]}")
+        if label_text != f"{text.split(':', 1)[0].strip()}:" or "|" in label_text:
+            problems.append(f"category label run contains Skills items or is malformed: {text}")
 
-        for run in runs[1:]:
-            r_pr = run.find(f"{W}rPr")
+        for _run_text, r_pr in visible_runs[1:]:
             if bool_prop_enabled(r_pr, f"{W}b") is not False or bool_prop_enabled(r_pr, f"{W}i") is not False:
                 problems.append(f"competency item run is not regular text: {text}")
                 break
@@ -3149,7 +3157,7 @@ def trim_redundant_targeted_core_competencies(
         kept = [item for item in items if normalize_compare(item) not in removals]
         if len(kept) != len(items):
             removed += len(items) - len(kept)
-            set_paragraph_text(paragraph, f"{label}:  " + "  |  ".join(kept))
+            write_core_competency_row(paragraph, label, kept)
     if removed:
         tree.write(document_xml, encoding="utf-8", xml_declaration=True)
     return removed
@@ -3813,6 +3821,28 @@ def natural_keyword_bullet_rewrite(
             )
             updated = replace_first_ci(text, re.escape(candidate), replacement_surface)
             return safe_keyword_bullet_candidate(updated, surface)
+
+    if normalized == "data migration":
+        if re.search(r"\bmigration\b", lowered):
+            return safe_keyword_bullet_candidate(
+                replace_first_ci(text, r"\bmigration\b", "data migration"),
+                surface,
+            )
+        if re.search(r"\bSQL-based\b", text):
+            return safe_keyword_bullet_candidate(
+                replace_first_ci(text, r"\bSQL-based\b", "data migration and SQL-based"),
+                surface,
+            )
+        if re.search(r"\bUAT validation\b", text, re.I):
+            return safe_keyword_bullet_candidate(
+                replace_first_ci(text, r"\bUAT validation\b", "data migration and UAT validation"),
+                surface,
+            )
+        if re.search(r"\bsandbox testing\b", text, re.I):
+            return safe_keyword_bullet_candidate(
+                replace_first_ci(text, r"\bsandbox testing\b", "data migration and sandbox testing"),
+                surface,
+            )
 
     if normalized in {"program management", "project management"}:
         if re.search(r"\bconcurrent program tracks\b", lowered):
@@ -7162,6 +7192,7 @@ def build_resume(keyword_policy: str | None = None) -> BuildResult:
                 job_description,
                 source_required=required_source_skills,
             )
+            format_core_competency_runs(document_xml)
 
             final_snapshot = resume_snapshot(document_xml)
             validate_resume_integrity(source_snapshot, final_snapshot, job_description, emphasis)

@@ -766,7 +766,10 @@ def add_recent_interview_question_prep_section(
             build_resume.job_problem_profile(job_description, resume_text), role_title, job_description
         )
     if stories is None:
-        stories = cheat.supported_story_bank(resume_text)
+        stories = cheat.supported_story_bank(
+            resume_text,
+            eligibility_text=question_prep.approved_source_resume_text(),
+        )
     add_section(document, "Recent Interview Questions To Be Ready For")
     used_titles: set[str] = set()
     seen_factual_answers: set[str] = set()
@@ -1443,7 +1446,7 @@ def story_script_answer(
     result = cheat.story_result_sentence(card.result)
     bridge = story_script_bridge(card, profile, company_name, role_title, job_description, interview_notes)
     calibration = story_script_calibration(card, company_name, role_title, job_description, interview_notes)
-    full = cheat.join_answer_sentences(claim, noticing, action, result, bridge, calibration)
+    full = cheat.join_answer_sentences(claim, human_line, noticing, action, result, bridge, calibration)
     alternate = cheat.join_answer_sentences(
         f"What matters in that example is {cheat.lower_clause(card.result)}" if card.result else claim,
         bridge or action,
@@ -1623,7 +1626,7 @@ def six_offer_blocker_lines(
     job_description: str,
 ) -> list[str]:
     specialty = build_resume.role_specialty_phrase(job_description, profile.core_problem)
-    return [
+    blockers = [
         f"Offer blocker 1 - vague fit story: if Christian cannot explain why the {role_title} role at {company_name} matches his pattern of work in two sentences, the interview can end as 'interesting but unclear fit.'",
         f"Offer blocker 2 - generic proof: if answers stay at the level of responsibilities instead of measurable outcomes in {specialty}, the team may assume the execution depth is thinner than the resume suggests.",
         "Offer blocker 3 - weak ownership language: if stories sound like 'we did everything' instead of making Christian's personal judgment and actions visible, confidence drops quickly.",
@@ -1631,6 +1634,13 @@ def six_offer_blocker_lines(
         "Offer blocker 5 - generic why-company answer: if interest sounds copied from any other employer, it weakens trust even when the experience is strong.",
         "Offer blocker 6 - passive close: if the interview ends without explicit interest, a sharp question, and a clear fit recap, the team may remember capability but not conviction.",
     ]
+    for label in profile.scope_pace_signals:
+        signal = build_resume.SCOPE_PACE_MISMATCH_LOOKUP.get(label)
+        if signal:
+            blockers.append(
+                f"Offer blocker 7 - unaddressed scope or pace mismatch ({label}): if Christian only concedes the gap when asked instead of naming why the {role_title} pace or scope genuinely interests him, the panel can read his depth as a mismatch rather than a strength. Proactive line: \"{signal['bridge_sentence']}\""
+            )
+    return blockers
 
 
 def four_trust_questions_audit(
@@ -2017,12 +2027,12 @@ def best_story_for_keyword(
     normalized = build_resume.normalize_compare(keyword)
     for keyword_terms, title_terms in KEYWORD_STORY_HINTS:
         if any(term in normalized for term in keyword_terms):
-            for story in stories:
+            for story in stories[:15]:
                 title = story.title.lower()
                 if any(term in title for term in title_terms):
                     return story
     question, angle, _ = keyword_question_detail(keyword, profile)
-    return max(stories, key=lambda story: cheat.signal_score(f"{keyword} {question} {angle}", story.signals))
+    return max(stories[:15], key=lambda story: cheat.signal_score(f"{keyword} {question} {angle}", story.signals))
 
 
 def keyword_sample_answer(
@@ -2336,6 +2346,9 @@ def add_story_page(
     add_bullet(document, f"Level 3 trait to show: {cheat.spoken_level3_trait_sentence(card.level3_trait)}")
     add_bullet(document, f"Evidence: {card.evidence}")
     add_bullet(document, f"Result: {card.result}")
+    if card.sensitive_note:
+        add_subsection(document, "If Asked About The Transition")
+        add_bullet(document, card.sensitive_note)
     add_subsection(document, "Anchor Facts")
     add_bullet(document, cheat.story_anchor_fact_line(card, profile))
     add_subsection(document, "Adaptation Drills")
@@ -3144,9 +3157,15 @@ def build_document(
     framework_selection = cheat.answer_framework_selection(job_description, interview_notes)
     insights = build_prep_insights(company_name, role_title, job_description, company_research, interview_notes, profile)
     verified_research = verified_company_research_points(company_name, job_description, company_research, interview_notes)
-    stories = cheat.supported_story_bank(resume_text)
+    source_evidence_text = question_prep.approved_source_resume_text()
+    stories = cheat.supported_story_bank(resume_text, eligibility_text=source_evidence_text)
     debrief_summary = debrief_analysis.analyze_entries(context_bundle.round_records, company_name)
-    hero_stories = cheat.hero_stories(profile, job_description, resume_text)
+    hero_stories = cheat.hero_stories(
+        profile,
+        job_description,
+        resume_text,
+        eligibility_text=source_evidence_text,
+    )
     if len(stories) < 6:
         fail("not enough resume-supported stories available for a detailed interview guide")
     if len(hero_stories) < 3:
@@ -3215,6 +3234,7 @@ def build_document(
         add_bullet(document, f"{title}: {description} {fix}")
     add_bluf_answer_bank(document, "JD Scorecard BLUF Answer Bank", scorecard_bluf_answers)
     add_bluf_answer_bank(document, "High-Stakes Prompt Bank", high_stakes_answers)
+    cheat.add_lane_lead_in_section(document, profile)
     add_story_anchor_system_section(document, hero_stories, profile)
     risk_label, risk_warning = cheat.candidate_archetype_assessment(profile, job_description, resume_text, supplied_context, interview_notes)
     add_section(document, "Self-Assessment: Your Likely Interview Risk")
@@ -3338,6 +3358,9 @@ def build_document(
             add_bullet(document, line)
 
         add_page_break(document)
+        add_section(document, "Extended Story-Type Reference")
+        for line in cheat.extended_story_type_lines(stories, profile):
+            add_bullet(document, line)
         add_section(document, "Primary Story Bank With Sample Answers")
         for index, card in enumerate(hero_stories[:5]):
             if index:

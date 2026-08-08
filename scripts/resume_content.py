@@ -11,8 +11,8 @@ from typing import Sequence
 from xml.etree import ElementTree as ET
 
 from config.job_profiles import (
-    CONDITIONAL_COMPETENCY_ITEMS,
-    SIMPLE_COMPETENCY_KEYWORDS,
+    SUPPLEMENTAL_COMPETENCY_KEYWORDS,
+    SUPPLEMENTAL_CONDITIONAL_COMPETENCY_ITEMS,
     TAILORING_EMPHASIS_PROFILES,
 )
 from config.language_rules import (
@@ -32,6 +32,7 @@ from resume_analysis import (
     employer_context_matches,
     extract_job_title,
     evidence_anchor_for_term,
+    evidence_terms,
     high_value_audit_keywords,
     jd_explicitly_requires_erp,
     jd_mentions,
@@ -666,6 +667,8 @@ def rewrite_supported_text(text: str, job_description: str) -> str:
             updated,
             flags=re.I,
         )
+        if re.search(r"\brequirements gathering\b", updated, re.I):
+            updated = re.sub(r"\bbusiness requirements\b", "client needs", updated, flags=re.I)
 
     if jd_mentions(job_description, "product functionality", "solution functionality", "product and solution"):
         updated = re.sub(r"\bsystem solutions\b", "product and solution functionality", updated, flags=re.I)
@@ -885,6 +888,84 @@ def apply_supported_rewrites(document_xml: Path, job_description: str) -> int:
         tree.write(document_xml, encoding="utf-8", xml_declaration=True)
     return changed
 
+RESULT_FIRST_VERB_REWRITES = {
+    "cutting": "Cut",
+    "delivering": "Delivered",
+    "enabling": "Enabled",
+    "improving": "Improved",
+    "increasing": "Increased",
+    "protecting": "Protected",
+    "reducing": "Reduced",
+    "stabilizing": "Stabilized",
+    "turning": "Turned",
+}
+
+RESULT_FIRST_ACTION_REWRITES = {
+    "aligned": "aligning",
+    "built": "building",
+    "coordinated": "coordinating",
+    "created": "creating",
+    "delivered": "delivering",
+    "designed": "designing",
+    "developed": "developing",
+    "executed": "executing",
+    "facilitated": "facilitating",
+    "implemented": "implementing",
+    "led": "leading",
+    "managed": "managing",
+    "owned": "owning",
+    "partnered": "partnering",
+    "supported": "supporting",
+}
+
+
+def result_first_bullet_ordering(text: str) -> str:
+    """Move an existing outcome clause to the front without adding new proof."""
+    cleaned = re.sub(r"\s+", " ", text or "").strip()
+    if not cleaned or not re.search(r"\d|%|\$|\b(?:improved|reduced|increased|stabilized|delivered|enabled|cut|protected|clearer|faster)\b", cleaned, re.I):
+        return text
+
+    context_match = re.match(
+        r"^(?P<context>(?:By|Through|During|After|While|Using)\s+[^,]{8,140}),\s+"
+        r"(?P<result>(?:reduced|increased|improved|stabilized|delivered|enabled|cut|protected|built|turned)\b[^.]+)\.?$",
+        cleaned,
+        re.I,
+    )
+    if context_match:
+        result = context_match.group("result").strip().rstrip(".")
+        context = context_match.group("context").strip()
+        if re.match(r"^By\b", context, re.I):
+            context_body = re.sub(r"^By\s+", "", context, flags=re.I)
+            context_clause = f"by {context_body}"
+        else:
+            context_clause = f"{context[:1].lower()}{context[1:]}"
+        return f"{result[:1].upper()}{result[1:]} {context_clause}."
+
+    clause_match = re.match(
+        r"^(?P<action>(?:Led|Managed|Coordinated|Supported|Partnered|Built|Owned|Delivered|Developed|Created|Implemented|Designed|Facilitated|Aligned|Executed)\b[^.;]{8,150}),\s+"
+        r"(?P<verb>reducing|increasing|improving|stabilizing|delivering|enabling|cutting|protecting|turning)\s+"
+        r"(?P<result>[^.]+)\.?$",
+        cleaned,
+        re.I,
+    )
+    if not clause_match:
+        return text
+
+    action = clause_match.group("action").strip().rstrip(".")
+    verb = clause_match.group("verb").lower()
+    result = clause_match.group("result").strip().rstrip(".")
+    past_verb = RESULT_FIRST_VERB_REWRITES.get(verb)
+    if not past_verb or not result:
+        return text
+    action_clause = re.sub(
+        r"^(Aligned|Built|Coordinated|Created|Delivered|Designed|Developed|Executed|Facilitated|Implemented|Led|Managed|Owned|Partnered|Supported)\b",
+        lambda match: RESULT_FIRST_ACTION_REWRITES.get(match.group(1).lower(), match.group(1).lower()),
+        action,
+        flags=re.I,
+    )
+    return f"{past_verb} {result} by {action_clause[:1].lower()}{action_clause[1:]}."
+
+
 def strengthen_outcome_framing(text: str, job_description: str = "") -> str:
     original = text
     updated = text
@@ -989,6 +1070,7 @@ def strengthen_outcome_framing(text: str, job_description: str = "") -> str:
         if suffix and len(updated) + len(suffix) <= 220:
             updated = updated.rstrip(".") + suffix + "."
 
+    updated = result_first_bullet_ordering(updated)
     updated = preserve_reorg_sentence_at_end(original, updated)
     updated = scrub_erp_language_for_non_erp_text(updated, job_description)
     if len(updated.split()) > len(original.split()) + 6:
@@ -1993,27 +2075,27 @@ def summary_positioning_sentence(
         if emphasis.proof_anchor == "revenue":
             if jd_mentions(job_description, "strategic partner", "trusted advisor", "strategic"):
                 return (
-                    "Solutions consultant with 10+ years leading strategic discovery, executive conversations, and "
-                    "customer-value positioning for enterprise software decisions built to hold up in delivery."
+                    "Solutions consultant with 10+ years turning ambiguous buyer needs into strategic discovery, "
+                    "executive conversations, and enterprise software decisions built to hold up in delivery."
                 )
             return (
-                "Solutions consultant with 10+ years leading technical discovery, executive conversations, and "
-                "customer-value positioning for enterprise software decisions built to hold up in delivery."
+                "Solutions consultant with 10+ years turning ambiguous buyer needs into technical discovery, "
+                "executive conversations, and enterprise software decisions built to hold up in delivery."
             )
         if emphasis.proof_anchor == "ai":
             if jd_mentions(job_description, "strategic partner", "trusted advisor", "strategic"):
                 return (
-                    "Solutions consultant with 10+ years translating service workflows, data questions, and modern "
-                    "automation use cases into credible strategic recommendations for enterprise software buyers."
+                    "Solutions consultant with 10+ years turning service workflows, data questions, and modern "
+                    "automation use cases into credible strategic recommendations enterprise buyers can use."
                 )
             return (
-                "Solutions consultant with 10+ years translating service workflows, data questions, and modern "
-                "automation use cases into credible software recommendations for enterprise buyers."
+                "Solutions consultant with 10+ years turning service workflows, data questions, and modern "
+                "automation use cases into credible software recommendations enterprise buyers can use."
             )
         if jd_mentions(job_description, "service solutions", "service offerings", "service capabilities", "account managers", "sales management", "account expansion", "position and close"):
             return (
-                "Service solutions consultant with 10+ years leading technical discovery, service strategy, and "
-                "expansion support for enterprise customers where the recommendation had to hold up in delivery."
+                "Service solutions consultant with 10+ years turning technical discovery and service strategy into "
+                "enterprise recommendations that support expansion and hold up in delivery."
             )
         if jd_mentions(
             job_description,
@@ -2029,25 +2111,23 @@ def summary_positioning_sentence(
             "proof-of-concept",
         ):
             return (
-                "Pre-sales solutions consultant with 10+ years leading technical discovery and solution proof for "
-                "enterprise integration and data management evaluations, with implementation judgment keeping "
-                "recommendations credible after the sale."
+                "Pre-sales solutions consultant with 10+ years turning technical discovery and solution proof into "
+                "credible integration and data management recommendations that survive delivery."
             )
         if jd_mentions(job_description, "strategic partner", "trusted advisor", "strategic"):
             return (
-                "Pre-sales solutions consultant with 10+ years leading strategic discovery, solution design, and "
-                "product demonstrations for enterprise software evaluations built to stay credible once "
-                "implementation began."
+                "Pre-sales solutions consultant with 10+ years turning strategic discovery, solution design, and "
+                "product demonstrations into enterprise recommendations built to stay credible once implementation began."
             )
         return (
-            "Pre-sales solutions consultant with 10+ years leading technical discovery, solution design, and product "
-            "demonstrations for enterprise software buyers, with implementation judgment keeping recommendations credible."
+            "Pre-sales solutions consultant with 10+ years turning technical discovery, solution design, and product "
+            "demonstrations into enterprise recommendations kept credible by implementation judgment."
         )
     if profile.primary_lane == "customer_success":
         if emphasis.proof_anchor == "revenue":
             return (
-                "Revenue-focused customer success and enterprise software consultant with 10+ years protecting "
-                "adoption, renewal confidence, and account health across complex post-sale customer relationships."
+                "Revenue-focused customer success and enterprise software consultant with 10+ years turning adoption "
+                "risk into renewal confidence and healthier complex post-sale customer relationships."
             )
         if emphasis.proof_anchor == "adoption":
             return (
@@ -2055,8 +2135,8 @@ def summary_positioning_sentence(
                 "adoption planning, and executive follow-through into steadier post-sale customer outcomes."
             )
         return (
-            "Revenue-focused customer success and enterprise software consultant with 10+ years protecting adoption, "
-            "renewal confidence, and account health across complex post-sale customer relationships."
+            "Revenue-focused customer success and enterprise software consultant with 10+ years turning adoption "
+            "risk into renewal confidence and healthier complex post-sale customer relationships."
         )
     if profile.primary_lane == "change_enablement":
         if emphasis.proof_anchor == "ai":
@@ -2139,8 +2219,8 @@ def summary_positioning_sentence(
         )
     if profile.primary_lane == "technical_support_admin":
         return (
-            "Enterprise application support and systems administration professional with 10+ years resolving technical "
-            "issues, access needs, and workflow interruptions across complex user environments."
+            "Enterprise application support and systems administration professional with 10+ years turning technical "
+            "issues, access needs, and workflow interruptions into more reliable user environments."
         )
     if profile.primary_lane == "corporate_strategy":
         return (
@@ -2150,24 +2230,24 @@ def summary_positioning_sentence(
     if profile.primary_lane == "implementation_delivery":
         if emphasis.proof_anchor == "launch":
             return (
-                "Implementation consultant with 10+ years building system and platform setups, migration plans, and go-live "
-                "execution for complex enterprise systems where launch stability mattered immediately."
+                "Implementation consultant with 10+ years turning platform setup, migration planning, and go-live "
+                "execution into stable launches and adoption for complex enterprise systems."
             )
         if emphasis.proof_anchor == "dashboards":
             return (
-                "Implementation consultant with 10+ years combining delivery ownership, reporting design, and data "
-                "validation across enterprise software programs from discovery through go-live and adoption."
+                "Implementation consultant with 10+ years turning delivery ownership, reporting design, and data "
+                "validation into go-live decisions and adoption across enterprise software programs."
             )
         if emphasis.proof_anchor == "adoption":
             return (
-                "Implementation consultant with 10+ years leading software delivery, role-based enablement, and "
-                "cross-functional adoption work across complex enterprise systems and platforms."
+                "Implementation consultant with 10+ years turning software delivery and role-based enablement into "
+                "cross-functional adoption across complex enterprise systems and platforms."
             )
         focus_terms = implementation_priority_terms(job_description)[:3]
         return (
-            "Implementation consultant with 10+ years leading "
+            "Implementation consultant with 10+ years turning "
             + comma_series(focus_terms)
-            + " across complex enterprise systems and platforms from discovery through go-live and post-launch adoption."
+            + " into structured delivery and post-launch adoption across complex enterprise systems."
         )
     return (
         "Customer-facing implementation consultant with 10+ years leading enterprise systems and platforms for complex "
@@ -3518,9 +3598,12 @@ def rename_core_competency_categories(document_xml: Path, job_description: str) 
             continue
         if not in_core or ":" not in text:
             continue
-        current_label = text.split(":", 1)[0].strip()
+        current_label, items_text = text.split(":", 1)
+        current_label = current_label.strip()
         new_label = rewrites.get(current_label)
-        if new_label and replace_paragraph_prefix(paragraph, current_label, new_label):
+        if new_label:
+            items = [item.strip() for item in re.split(r"\s+\|\s+", items_text.strip()) if item.strip()]
+            write_core_competency_row(paragraph, new_label, items)
             changed += 1
 
     if changed:
@@ -3549,12 +3632,21 @@ def normalize_core_competency_capitalization(document_xml: Path) -> int:
         normalized_items = [title_case_skill_phrase(item) for item in items]
         normalized_text = f"{normalized_label}:  " + "  |  ".join(normalized_items)
         if normalized_text != text:
-            set_paragraph_text(paragraph, normalized_text)
+            write_core_competency_row(paragraph, normalized_label, normalized_items)
             changed += 1
 
     if changed:
         tree.write(document_xml, encoding="utf-8", xml_declaration=True)
     return changed
+
+def write_core_competency_row(paragraph: ET.Element, label: str, items: Sequence[str]) -> None:
+    """Rewrite a Skills row as an italic label followed by regular item text."""
+    remove_runs(paragraph)
+    append_run(paragraph, f"{label.strip()}:", italic=True, bold=False)
+    normalized_items = [item.strip() for item in items if item.strip()]
+    if normalized_items:
+        append_run(paragraph, "  " + "  |  ".join(normalized_items), italic=False, bold=False)
+
 
 def format_core_competency_runs(document_xml: Path) -> int:
     tree = ET.parse(document_xml)
@@ -3575,10 +3667,7 @@ def format_core_competency_runs(document_xml: Path) -> int:
 
         label, items_text = text.split(":", 1)
         items = [item.strip() for item in re.split(r"\s+\|\s+", items_text.strip()) if item.strip()]
-        remove_runs(paragraph)
-        append_run(paragraph, f"{label}:", italic=True, bold=False)
-        if items:
-            append_run(paragraph, "  " + "  |  ".join(items), italic=False, bold=False)
+        write_core_competency_row(paragraph, label, items)
         changed += 1
 
     if changed:
@@ -3603,7 +3692,20 @@ def normalize_skills_section_heading(document_xml: Path) -> int:
 
 def supported_simple_competencies(job_description: str, existing_items: set[str]) -> list[str]:
     additions: list[str] = []
-    for skill, triggers in SIMPLE_COMPETENCY_KEYWORDS:
+    catalog_triggers = tuple(
+        (
+            str(entry["competency_label"]),
+            tuple(str(surface) for surface in entry["permitted_surfaces"]),
+        )
+        for entry in evidence_terms()
+        if entry.get("competency_label") and entry.get("permitted_surfaces")
+    )
+    seen_labels: set[str] = set()
+    for skill, triggers in (*catalog_triggers, *SUPPLEMENTAL_COMPETENCY_KEYWORDS):
+        normalized_skill = normalize_compare(skill)
+        if normalized_skill in seen_labels:
+            continue
+        seen_labels.add(normalized_skill)
         if normalize_compare(skill) in existing_items:
             continue
         if jd_mentions(job_description, *triggers):
@@ -3650,11 +3752,9 @@ def irrelevant_competency_items(job_description: str, items: set[str]) -> set[st
     that do NOT match the job description. This preserves domain-specific 
     skills only when their job context is present.
     
-    Note: This uses CONDITIONAL_COMPETENCY_ITEMS (for removal logic).
-    The add_simple_core_competencies function uses SIMPLE_COMPETENCY_KEYWORDS
-    (for addition logic). These are intentionally separate: conditional items
-    are niche/specialized and only removed when context is absent; simple
-    keywords are common and only added when context is present.
+    Cataloged evidence concepts are protected separately. This supplemental
+    table only controls removal of niche presentation items whose context is
+    absent.
     """
     irrelevant: set[str] = set()
     for item in items:
@@ -3664,7 +3764,7 @@ def irrelevant_competency_items(job_description: str, items: set[str]) -> set[st
         ):
             irrelevant.add(item)
             continue
-        triggers = CONDITIONAL_COMPETENCY_ITEMS.get(item)
+        triggers = SUPPLEMENTAL_CONDITIONAL_COMPETENCY_ITEMS.get(item)
         if triggers and not jd_mentions(job_description, *triggers):
             irrelevant.add(item)
     return irrelevant
@@ -3672,7 +3772,15 @@ def irrelevant_competency_items(job_description: str, items: set[str]) -> set[st
 
 def protected_jd_competency_items(job_description: str) -> set[str]:
     protected = {normalize_compare(term) for term in implementation_priority_terms(job_description)}
-    for skill, triggers in SIMPLE_COMPETENCY_KEYWORDS:
+    catalog_triggers = tuple(
+        (
+            str(entry["competency_label"]),
+            tuple(str(surface) for surface in entry["permitted_surfaces"]),
+        )
+        for entry in evidence_terms()
+        if entry.get("competency_label") and entry.get("permitted_surfaces")
+    )
+    for skill, triggers in (*catalog_triggers, *SUPPLEMENTAL_COMPETENCY_KEYWORDS):
         if jd_mentions(job_description, *triggers):
             protected.add(normalize_compare(skill))
     return {item for item in protected if item}
@@ -3987,12 +4095,12 @@ def add_simple_core_competencies(
                 continue
             previous_items = list(items)
             items[weakest_index] = skill
-            set_paragraph_text(target, f"{label}:  " + "  |  ".join(items))
+            write_core_competency_row(target, label, items)
             tree.write(document_xml, encoding="utf-8", xml_declaration=True)
             page_count = estimate_page_count_from_xml(document_xml)
             if page_count and page_count > baseline_page_count:
                 items = previous_items
-                set_paragraph_text(target, f"{label}:  " + "  |  ".join(items))
+                write_core_competency_row(target, label, items)
                 tree.write(document_xml, encoding="utf-8", xml_declaration=True)
                 break
             existing_normalized.discard(normalize_compare(weakest_item))
@@ -4012,12 +4120,12 @@ def add_simple_core_competencies(
             break
         previous_items = list(items)
         items.append(skill)
-        set_paragraph_text(target, f"{label}:  " + "  |  ".join(items))
+        write_core_competency_row(target, label, items)
         tree.write(document_xml, encoding="utf-8", xml_declaration=True)
         page_count = estimate_page_count_from_xml(document_xml)
         if page_count and page_count > baseline_page_count:
             items = previous_items
-            set_paragraph_text(target, f"{label}:  " + "  |  ".join(items))
+            write_core_competency_row(target, label, items)
             tree.write(document_xml, encoding="utf-8", xml_declaration=True)
             break
         added += 1
@@ -4128,7 +4236,7 @@ def add_targeted_core_competencies(
     protected_terms = targeted_ats_terms(job_description)
 
     def write_row(label: str, paragraph: ET.Element, items: list[str]) -> None:
-        set_paragraph_text(paragraph, f"{label}:  " + "  |  ".join(items))
+        write_core_competency_row(paragraph, label, items)
         tree.write(document_xml, encoding="utf-8", xml_declaration=True)
 
     def protected_items_for_current_state() -> set[str]:
@@ -4156,7 +4264,12 @@ def add_targeted_core_competencies(
             items[:] = trimmed_items
             write_row(label, paragraph, items)
         page_count = estimate_page_count_from_xml(document_xml)
-        if page_count and baseline_page_count and page_count > baseline_page_count:
+        if (
+            not allow_over_target
+            and page_count
+            and baseline_page_count
+            and page_count > baseline_page_count
+        ):
             items[:] = previous_items
             write_row(label, paragraph, items)
             return False
@@ -4227,7 +4340,7 @@ def remove_irrelevant_core_competencies(
             else:
                 kept.append(item)
         if len(kept) != len(items):
-            set_paragraph_text(paragraph, f"{label}:  " + "  |  ".join(kept))
+            write_core_competency_row(paragraph, label, kept)
             items = kept
         current_rows.append((paragraph, label, items))
 
@@ -4251,7 +4364,7 @@ def remove_irrelevant_core_competencies(
                 kept = [item for item in items if normalize_compare(item) not in extra_removals]
                 removed += len(items) - len(kept)
                 if len(kept) != len(items):
-                    set_paragraph_text(paragraph, f"{label}:  " + "  |  ".join(kept))
+                    write_core_competency_row(paragraph, label, kept)
 
     if removed:
         tree.write(document_xml, encoding="utf-8", xml_declaration=True)

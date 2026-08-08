@@ -324,7 +324,12 @@ def business_context_audit(text: str, job_description: str, label: str = "output
         warnings.append(f"{label}: output uses too little objective business context from the posting.")
     if has_generic_fluff(text) and business_fact_count(text) < 3:
         warnings.append(f"{label}: generic job-ad language appears without enough business facts, scope, or outcomes.")
-    if not re.search(r"\b(?:customer|client|user|patient|account|business|workflow|revenue|risk|quality|adoption|decision)\b", text, re.I):
+    if not re.search(
+        r"\b(?:customer|client|user|patient|account|business|workflow|revenue|risk|quality|adoption|decision|"
+        r"operations?|inventory|stability|readiness|go-live|launch)\b",
+        text,
+        re.I,
+    ):
         warnings.append(f"{label}: output does not clearly connect Christian's work to a business/customer outcome.")
     return warnings
 

@@ -1609,6 +1609,11 @@ APPROVED_COVER_ACRONYMS = {
     "ERP", "CRM", "SQL", "API", "SOW", "KPI", "QBR", "NLP", "SMS", "BI", "EAC", "ETC",
     "CPQ", "PMI", "SDLC", "SFDC", "UAT", "EFT", "ACH",
 }
+COVER_TOOL_TERM_LABELS = frozenset({"SQL", "Excel", "Looker", "Snowflake", "MixPanel", "Segment", "Zendesk"})
+COVER_TERM_CONTEXT_NOUNS = {
+    "lifecycle": "lifecycle analysis",
+    "validation": "validation work",
+}
 LOW_OVERLAP_DRAFT_POLICY_MESSAGE = (
     "Low-overlap cover DRAFT policy: fewer than 4 job-description keyword hits; keep as review-only "
     "instead of padding unsupported proof."
@@ -1687,6 +1692,8 @@ def cover_allowed_acronyms(
     for token, count in token_counts.items():
         if count >= 2:
             allowed.add(token)
+    for pair in re.findall(r"\b([A-Z]{2,6})/([A-Z]{2,6})\b", job_description or ""):
+        allowed.update(token.upper() for token in pair)
     return allowed
 
 
@@ -3355,7 +3362,7 @@ def friendly_direct_proof_phrase(
         "Product Ownership": "product ownership and requirements translation",
         "Process Improvement": "process improvement and measurable workflow change",
         "Technical Support and Application Administration": "enterprise application support and access administration",
-        "Change Adoption and Enablement": "stakeholder enablement and adoption follow-through",
+        "Change Adoption and Enablement": "stakeholder enablement with adoption follow-through",
         "Client-Side ERP Ownership and Finance Partnership": "client-side ERP ownership with finance partnership",
         "Implementation Delivery": "implementation delivery",
         "Project-Based ERP Delivery": "project-based ERP delivery",
@@ -3380,7 +3387,7 @@ def friendly_direct_proof_phrase(
     if len(phrases) == 1:
         return phrases[0]
     if phrases[0] == "client-side ERP ownership with finance partnership":
-        return f"client-side ERP ownership, finance partnership, and {phrases[1]}"
+        return f"client-side ERP ownership that connects finance partnership to {phrases[1]}"
     if " and " in phrases[0]:
         return f"{phrases[0]}, plus {phrases[1]}"
     return f"{phrases[0]} and {phrases[1]}"
@@ -3404,14 +3411,26 @@ def _clean_jd_hook_candidate(line: str) -> str:
     )
     cleaned = re.sub(r"\s+", " ", cleaned).strip(" -:;.")
     cleaned = re.split(r"(?<=[.!?])\s+", cleaned, maxsplit=1)[0]
+    cleaned = re.split(r"\s*;\s*", cleaned, maxsplit=1)[0]
     cleaned = re.split(r"\s+(?:qualifications?|requirements?|expertise|experience)\s*:\s*", cleaned, maxsplit=1, flags=re.I)[0]
     cleaned = re.sub(r"\s*,\s*(?:as well as|including but not limited to)\b.*$", "", cleaned, flags=re.I)
     cleaned = cleaned.rstrip(" ,;:.")
     if not cleaned:
         return ""
     words = cleaned.split()
-    if len(words) > 22:
-        cleaned = " ".join(words[:22]).rstrip(" ,;:.")
+    if len(words) > 32:
+        boundary: int | None = None
+        for index in range(min(len(words), 32) - 1, 13, -1):
+            token = words[index]
+            if token.rstrip(",") != token:
+                boundary = index + 1
+                break
+            if token.lower() in {"and", "or", "but"}:
+                boundary = index
+                break
+        if boundary is None:
+            return ""
+        cleaned = " ".join(words[:boundary]).rstrip(" ,;:.")
     if not _HOOK_VERB_RE.match(cleaned):
         return ""
     return cleaned[:1].lower() + cleaned[1:]
@@ -3568,6 +3587,17 @@ def role_specific_cover_work_sentence(
         first = specialty_terms[0]
         second = specialty_terms[1] if len(specialty_terms) > 1 else "stakeholder communication"
         third = specialty_terms[2] if len(specialty_terms) > 2 else "delivery follow-through"
+        tool_terms = [term for term in specialty_terms[:3] if term in COVER_TOOL_TERM_LABELS]
+        if tool_terms:
+            process_terms = [term for term in specialty_terms[:3] if term not in COVER_TOOL_TERM_LABELS]
+            tool_phrase = ", ".join(tool_terms[:-1]) + (" and " if len(tool_terms) > 1 else "") + tool_terms[-1]
+            process_phrase = " and ".join(
+                COVER_TERM_CONTEXT_NOUNS.get(term, term) for term in process_terms
+            ) or "clear delivery decisions"
+            return (
+                f"The work calls for using {tool_phrase} to give {process_phrase} "
+                "a clearer decision path from scoping through handoff."
+            )
         return (
             f"The work calls for {first} that keeps {second} clear and uses {third} "
             "to connect scope with launch readiness and handoff discipline."
@@ -4377,23 +4407,23 @@ def _pyramid_opening(company_name: str, role_title: str, job_description: str) -
     specialty = build_resume.role_specialty_phrase(job_description, "enterprise systems and customer delivery")
     level1_by_lane = {
         "presales_solution": (
-            f"{company_name} needs a {role_title} who can turn buyer uncertainty into solution confidence before the deal closes - "
-            "and that is the work I have done for more than ten years."
+            f"{company_name} needs a {role_title} who can turn buyer uncertainty into solution confidence before the deal closes, "
+            "with recommendations that still hold up in delivery."
         ),
         "customer_success": (
-            f"{company_name} needs a {role_title} who can protect account health, guide adoption, and convert escalations into retained trust - "
-            "and that is the work I have done across 80+ international accounts."
+            f"{company_name} needs a {role_title} who can protect account health, guide adoption, and convert escalations into retained trust "
+            "customers can keep building on."
         ),
         "implementation_delivery": (
             f"{company_name} needs a {role_title} who can take {specialty} work from ambiguous requirements to production-ready outcomes "
-            "without losing stakeholder alignment - and that is the pattern I have repeated across more than ten years of enterprise delivery."
+            "without losing stakeholder alignment or adoption after handoff."
         ),
         "change_enablement": (
-            f"{company_name} needs a {role_title} who can make change stick after the announcement - someone who stays in the room long enough "
-            "to convert resistance into adoption. My background is most directly useful in that adoption gap."
+            f"{company_name} needs a {role_title} who can make change stick after the announcement by converting resistance into adoption. "
+            "My background is most directly useful in that adoption gap."
         ),
         "analytics_operations": (
-            f"{company_name} needs a {role_title} who can convert operational data into decisions leaders actually act on - not just reports they acknowledge. "
+            f"{company_name} needs a {role_title} who can convert operational data into decisions leaders actually act on, not just reports they acknowledge. "
             "This is the work behind 200+ dashboards and KPI tools I have built."
         ),
         "process_improvement": (
@@ -4480,29 +4510,29 @@ def _opening_pattern_options(
                 _mission_opening,
             ),
             (
-                "analytics_direct",
+                "analytics_pyramid",
                 lambda company, role, description: lane_key == "analytics_operations",
-                _direct_opening,
+                _pyramid_opening,
             ),
             (
-                "presales_direct",
+                "presales_pyramid",
                 lambda company, role, description: lane_key == "presales_solution",
-                _direct_opening,
+                _pyramid_opening,
             ),
             (
-                "customer_success_direct",
+                "customer_success_pyramid",
                 lambda company, role, description: lane_key == "customer_success",
-                _direct_opening,
+                _pyramid_opening,
             ),
             (
-                "change_direct",
+                "change_pyramid",
                 lambda company, role, description: lane_key == "change_enablement",
-                _direct_opening,
+                _pyramid_opening,
             ),
             (
-                "implementation_direct",
+                "implementation_process_pyramid",
                 lambda company, role, description: lane_key in {"implementation_delivery", "process_improvement"},
-                _direct_opening,
+                _pyramid_opening,
             ),
             (
                 "consulting_direct",
@@ -5044,7 +5074,7 @@ def readiness_bridge_sentence(
 ) -> str:
     profile = build_resume.job_problem_profile(job_description)
     lane_key = effective_lane_key(role_title, job_description, profile)
-    labels = {build_resume.normalize_compare(gap.label) for gap in readiness.hard_blockers}
+    labels = {build_resume.normalize_compare(gap.label) for gap in readiness.fit_blockers}
     if any(
         label in labels
         for label in ("budget", "eac", "etc", "financial forecasting", "financial ownership", "earned value", "p l")
@@ -5705,7 +5735,7 @@ def standard_mission_paragraph(company_name: str, role_title: str, signals: Cove
             role_sentence = ensure_sentence(f"At {company_name}, the {role_title} role centers on {role_clause}")
         else:
             role_sentence = ensure_sentence(f"The {role_title} role centers on {role_clause}")
-        support_sentence = "The role needs clear decisions, aligned owners, and follow-through that holds once the work is live."
+        support_sentence = "The role needs clear decisions, aligned owners, and follow-through people can adopt once the work is live."
         return f"{role_sentence} {support_sentence}".strip()
     elif re.match(r"^building\s+", signals.role_core_function, re.I):
         role_sentence = ensure_sentence(
@@ -5842,7 +5872,7 @@ def communication_paragraph(company_name: str, signals: CoverLetterSignals, avoi
 def soft_close_paragraph(company_name: str, signals: CoverLetterSignals) -> tuple[str, tuple[str, ...]]:
     pain_area = safe_connector_fragment(signals.jd_pain_area) or "highest-priority work"
     close = ensure_sentence(
-        f"I would welcome the chance to discuss how I could support {company_possessive(company_name)} {pain_area} on the team"
+        f"I would welcome the chance to discuss how I could support {company_possessive(company_name)} {pain_area} with clearer decisions, aligned owners, and work the team can adopt"
     )
     close_terms = list(signals.jd_test_environments[:2])
     for term in signals.jd_skill_terms:
@@ -6320,8 +6350,10 @@ def build_document(
         force_bridge=force_bridge,
         job_description=job_description,
     )
-    if readiness and readiness.hard_blockers:
-        warning_note = "Resume bridge gaps to address honestly: " + build_resume.resume_gap_blocker_message(readiness)
+    if readiness and readiness.fit_blockers:
+        warning_note = "Resume bridge gaps to address honestly: " + "; ".join(
+            build_resume.resume_gap_summary_line(gap) for gap in readiness.fit_blockers[:3]
+        )
         plan = replace(
             plan,
             warnings=tuple([*plan.warnings, warning_note]),
@@ -7074,7 +7106,13 @@ def build_cover_letter_for_inputs(
         resume_docx,
         source_resume_text=source_resume_text,
         audit_status=resume_audit_state,
+        keyword_policy=build_resume.active_keyword_policy(),
     )
+    if readiness.hard_blockers:
+        fail(
+            f"{readiness.keyword_policy} keyword policy blocked the cover letter: "
+            + build_resume.resume_gap_blocker_message(readiness)
+        )
     if not final_role_title:
         final_role_title = build_resume.extract_job_title(job_description) or "the role"
         role_warning = "Role title was not extracted cleanly for the cover letter; using a fallback role label."
@@ -7095,7 +7133,7 @@ def build_cover_letter_for_inputs(
         mode=normalized_mode,
         readiness=readiness,
         application_responses=application_responses,
-        force_bridge=bool(readiness and readiness.hard_blockers) or resume_audit_state in {"BRIDGE", "FAIL", "POOR"},
+        force_bridge=bool(readiness and readiness.fit_blockers) or resume_audit_state in {"BRIDGE", "FAIL", "POOR"},
     )
     if role_warning:
         cover_warnings = dedupe_warnings([role_warning, *cover_warnings])

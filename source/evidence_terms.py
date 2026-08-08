@@ -3,7 +3,7 @@
 EVIDENCE_TERMS = [
     {
         "concept": "project management",
-        "variants": ["project management", "program management", "technical program management", "complex project management", "implementation project", "project delivery"],
+        "variants": ["project management", "program management", "technical program management", "complex project management", "implementation project", "project delivery", "program delivery"],
         "anchor": "PMP (in progress); 5-month EFT/ACH program across IT, finance, Aptean, Truist; warehouse + Amazon Robotics launch; five-site coordination",
         "strength": "strong",
     },
@@ -21,7 +21,7 @@ EVIDENCE_TERMS = [
     },
     {
         "concept": "uat",
-        "variants": ["UAT", "user acceptance testing", "acceptance testing"],
+        "variants": ["UAT", "user acceptance testing", "acceptance testing", "user acceptance validation"],
         "anchor": "Epicor Kinetic cutover sandbox testing and UAT validation",
         "strength": "strong",
     },
@@ -51,8 +51,14 @@ EVIDENCE_TERMS = [
     },
     {
         "concept": "professional services",
-        "variants": ["professional services", "professional service"],
+        "variants": ["professional services", "professional service", "professional services consultant", "services consultant"],
         "anchor": "Aptean consultant across 80+ client engagements, discovery to delivery",
+        "strength": "strong",
+    },
+    {
+        "concept": "erp consulting",
+        "variants": ["ERP consultant", "ERP consulting"],
+        "anchor": "Aptean consultant delivering full-lifecycle ERP discovery, configuration, migration, testing, training, and adoption across 80+ client engagements",
         "strength": "strong",
     },
     {
@@ -63,13 +69,13 @@ EVIDENCE_TERMS = [
     },
     {
         "concept": "business process",
-        "variants": ["business process", "business process improvement"],
+        "variants": ["business process", "business process improvement", "continuous improvement", "process improvement"],
         "anchor": "78% manual-work reduction, 22% discrepancy reduction, process redesign standardized across five sites",
         "strength": "strong",
     },
     {
         "concept": "end-to-end delivery",
-        "variants": ["end-to-end delivery", "end-to-end", "end to end"],
+        "variants": ["end-to-end delivery", "end-to-end", "end to end", "discovery to delivery", "discovery-to-delivery", "discovery-to-launch"],
         "anchor": "Discovery-to-go-live ownership; delivered enterprise technology projects end to end",
         "strength": "strong",
     },
@@ -87,13 +93,13 @@ EVIDENCE_TERMS = [
     },
     {
         "concept": "requirements",
-        "variants": ["requirements gathering", "requirements definition", "requirements management"],
+        "variants": ["requirements gathering", "requirements definition", "requirements management", "requirements translation"],
         "anchor": "SOW/FRD; backlog-ready requirements and user stories",
         "strength": "strong",
     },
     {
         "concept": "stakeholder management",
-        "variants": ["stakeholder management", "stakeholder alignment"],
+        "variants": ["stakeholder management", "stakeholder alignment", "stakeholder governance"],
         "anchor": "VP/director decisions; 60+ executive workshops; cross-functional alignment without authority",
         "strength": "strong",
     },
@@ -111,7 +117,7 @@ EVIDENCE_TERMS = [
     },
     {
         "concept": "reporting",
-        "variants": ["reporting", "dashboards", "KPI"],
+        "variants": ["reporting", "dashboards", "KPI", "key performance indicator"],
         "anchor": "200+ SQL KPI dashboards, Crystal Reports, Power BI",
         "strength": "strong",
     },
@@ -141,8 +147,160 @@ EVIDENCE_TERMS = [
     },
     {
         "concept": "global program",
-        "variants": ["global program"],
+        "variants": ["global program", "global programs", "global program delivery", "global scale", "worldwide initiatives"],
         "anchor": "Five-site global manufacturing footprint; cross-site program coordination",
         "strength": "moderate",
     },
+    {
+        "concept": "inventory management",
+        "variants": ["inventory management", "inventory operations"],
+        "anchor": "Inventory workflows, automation, accuracy, and ERP visibility across five manufacturing sites",
+        "strength": "strong",
+    },
+    {
+        "concept": "root cause analysis",
+        "variants": ["root cause analysis", "root-cause analysis", "root cause"],
+        "anchor": "Diagnosed recurring warehouse accuracy and enterprise application issues before implementing fixes",
+        "strength": "strong",
+    },
+    {
+        "concept": "data validation",
+        "variants": ["data validation", "data-validation", "validate data"],
+        "anchor": "ETL and SQL record validation for ERP migration and cutover",
+        "strength": "strong",
+    },
+    {
+        "concept": "customer-facing delivery",
+        "variants": ["customer-facing delivery", "client-facing delivery", "customer-facing", "client-facing", "customer-focused"],
+        "anchor": "80+ international client engagements, daily training, discovery, implementation, and post-go-live support",
+        "strength": "strong",
+    },
+    {
+        "concept": "multiple-project delivery",
+        "variants": ["multiple projects", "multiple implementation projects", "multiple engagements", "multi-project delivery"],
+        "anchor": "Concurrent migration, reporting, training, and client implementation workstreams",
+        "strength": "strong",
+    },
+    {
+        "concept": "process discovery",
+        "variants": ["process discovery", "discovery sessions", "workflow discovery"],
+        "anchor": "Discovery sessions and requirements work translated operating needs into solution designs",
+        "strength": "strong",
+    },
+    {
+        "concept": "operational transformation",
+        "variants": ["operational transformation", "workflow optimization", "process optimization"],
+        "anchor": "ERP modernization and automated inventory workflows reduced manual work and discrepancies",
+        "strength": "strong",
+    },
+    {
+        "concept": "business outcomes",
+        "variants": ["business outcome", "business outcomes", "measurable business outcome", "measurable outcomes"],
+        "anchor": "Measured revenue protection, inventory accuracy, manual-work reduction, and operating visibility",
+        "strength": "strong",
+    },
+    {
+        "concept": "non-technical stakeholder communication",
+        "variants": ["non-technical stakeholders", "non-technical", "stakeholder communication"],
+        "anchor": "Executive workshops, training, release communications, and cross-functional coordination",
+        "strength": "strong",
+    },
+    {
+        "concept": "go-live",
+        "variants": ["go live", "go-live"],
+        "anchor": "Discovery through go-live, cutover readiness, training, and post-launch adoption",
+        "strength": "strong",
+    },
+    {
+        "concept": "executive business reviews",
+        "variants": ["QBR", "quarterly business review", "executive business review"],
+        "anchor": "60+ executive workshops and QBRs aligned roadmaps to adoption and outcomes",
+        "strength": "strong",
+    },
+    {
+        "concept": "statement of work",
+        "variants": ["SOW", "statement of work"],
+        "anchor": "Statements of Work and Functional Requirements Documents established scope and baselines",
+        "strength": "strong",
+    },
+    {
+        "concept": "request for proposal",
+        "variants": ["RFP", "request for proposal"],
+        "anchor": "Authored hundreds of RFP, RFI, and SOW documents for prospective ERP clients",
+        "strength": "strong",
+    },
+    {
+        "concept": "enterprise resource planning",
+        "variants": ["ERP", "enterprise resource planning"],
+        "anchor": "Vendor-side ERP implementation and client-side enterprise ERP ownership",
+        "strength": "strong",
+    },
+    {
+        "concept": "cross-functional delivery",
+        "variants": ["cross-functional", "cross functional", "cross-functional delivery"],
+        "anchor": "Coordinated business users, vendors, finance, product, and technical teams without direct authority",
+        "strength": "strong",
+    },
 ]
+
+
+EVIDENCE_PROVENANCE = {
+    "project management": ("east_west", "Enterprise Systems Manager", "Delivered enterprise technology projects end to end", "226567e5f7a48f1b", ("bullet", "skills"), "Project Management"),
+    "product ownership": ("east_west", "Enterprise Systems Manager", "Served as de facto product owner", "e8605a432ac71141", ("bullet", "skills"), "Product Ownership"),
+    "vendor management": ("east_west", "Enterprise Systems Manager", "Led a five-month cross-functional initiative", "ac77805b10664cc1", ("bullet", "skills"), "Vendor Management"),
+    "uat": ("east_west", "Enterprise Systems Manager", "Protected production stability during migration cutover", "7d6e7bad50cc41b3", ("bullet", "skills"), "User Acceptance Testing (UAT)"),
+    "change management": ("east_west", "Enterprise Systems Manager", "Drove technology adoption", "2ade34ad5afc7b6d", ("bullet", "skills"), "Change Management"),
+    "incident management": ("aderant", "Product Support Engineer", "Stabilized enterprise legal software support", "99e38a0d2a8c3fb0", ("bullet", "skills"), "Incident Management"),
+    "crm": ("aptean", "Customer Success Consultant", "Partnered with Product Management and Product Ownership", "51d040027416fa77", ("bullet", "skills"), "CRM"),
+    "client onboarding": ("aptean", "Customer Success Consultant", "Translated implementation lessons into repeatable customer enablement", "01d55a5a334fb642", ("bullet", "skills"), "Client Onboarding"),
+    "professional services": ("aptean", "Customer Success Consultant", "Protected delivery quality and customer trust", "500a9c63bd8bcca9", ("role_summary", "bullet", "skills"), "Professional Services"),
+    "erp consulting": ("aptean", "Customer Success Consultant", "Protected delivery quality and customer trust", "500a9c63bd8bcca9", ("role_summary", "skills"), "ERP Consulting"),
+    "system configuration": ("aptean", "Customer Success Consultant", "Moved international manufacturing clients", "3e05f9577f9ebf37", ("bullet", "skills"), "System Configuration"),
+    "business process": ("east_west", "Enterprise Systems Manager", "Built automated workflows for high-volume inventory adjustments", "0f344581cc61a2fe", ("bullet", "skills"), "Business Process Improvement"),
+    "end-to-end delivery": ("east_west", "Enterprise Systems Manager", "Delivered enterprise technology projects end to end", "226567e5f7a48f1b", ("bullet", "skills"), "End-to-End Delivery"),
+    "saas": ("aptean", "Customer Success Consultant", "Protected delivery quality and customer trust", "500a9c63bd8bcca9", ("role_summary", "skills"), "SaaS"),
+    "technology adoption": ("east_west", "Enterprise Systems Manager", "Drove technology adoption", "2ade34ad5afc7b6d", ("bullet", "skills"), "Technology Adoption"),
+    "requirements": ("east_west", "Enterprise Systems Manager", "Launched a production-ready system setup", "9f52793746e36ec5", ("bullet", "skills"), "Requirements Gathering"),
+    "stakeholder management": ("east_west", "Enterprise Systems Manager", "Improved VP and director decisions", "8cb7c1037e55a4ac", ("bullet", "skills"), "Stakeholder Management"),
+    "data migration": ("east_west", "Enterprise Systems Manager", "Cut migration and audit risk", "d7dea8e9b5f9ea44", ("bullet", "skills"), "Data Migration"),
+    "integration": ("east_west", "Enterprise Systems Manager", "Led a five-month cross-functional initiative", "ac77805b10664cc1", ("bullet", "skills"), "Integration Coordination"),
+    "reporting": ("east_west", "Enterprise Systems Manager", "Increased operational visibility for leadership", "887e04516ab0ac4c", ("bullet", "skills"), "KPI Reporting"),
+    "pre-sales": ("aptean", "Customer Success Consultant", "Delivered pre-sales product demonstrations", "8d28786c847c4933", ("bullet", "skills"), "Pre-Sales"),
+    "agile": ("aptean", "Customer Success Consultant", "Partnered with Product Management and Product Ownership", "51d040027416fa77", ("bullet", "skills"), "Agile Delivery"),
+    "digital transformation": ("east_west", "Enterprise Systems Manager", "Led enterprise systems modernization", "08f32a65cc49fab1", ("bullet", "summary", "skills"), "Digital Transformation"),
+    "ai adoption": ("east_west", "Enterprise Systems Manager", "Accelerated documentation, reporting, SQL troubleshooting", "22093f52aad31aed", ("bullet", "skills"), "AI Adoption"),
+    "global program": ("east_west", "Enterprise Systems Manager", "Coordinated business users, vendors, and technical stakeholders", "2ae07d77f857ee4a", ("bullet", "skills"), "Global Program Coordination"),
+    "inventory management": ("east_west", "Enterprise Systems Manager", "Built automated workflows for high-volume inventory adjustments", "0f344581cc61a2fe", ("bullet", "skills"), "Inventory Management"),
+    "root cause analysis": ("east_west", "Enterprise Systems Manager", "Built automated workflows for high-volume inventory adjustments", "0f344581cc61a2fe", ("bullet", "skills"), "Root Cause Analysis"),
+    "data validation": ("east_west", "Enterprise Systems Manager", "Cut migration and audit risk", "d7dea8e9b5f9ea44", ("bullet", "skills"), "Data Validation"),
+    "customer-facing delivery": ("aptean", "Customer Success Consultant", "Delivered daily client training", "e671f0a589bfe984", ("role_summary", "bullet", "skills"), "Customer-Facing Delivery"),
+    "multiple-project delivery": ("east_west", "Enterprise Systems Manager", "Coordinated business users, vendors, and technical stakeholders", "2ae07d77f857ee4a", ("bullet", "skills"), "Multi-Project Delivery"),
+    "process discovery": ("aptean", "Customer Success Consultant", "Delivered pre-sales product demonstrations", "8d28786c847c4933", ("bullet", "skills"), "Process Discovery"),
+    "operational transformation": ("east_west", "Enterprise Systems Manager", "Led enterprise systems modernization", "08f32a65cc49fab1", ("bullet", "summary", "skills"), "Operational Transformation"),
+    "business outcomes": ("home_depot", "Support Operations Analyst", "Improved customer experience decision-making", "35f96a4b8914f6fe", ("bullet", "summary", "skills"), "Business Outcomes"),
+    "non-technical stakeholder communication": ("aptean", "Customer Success Consultant", "Kept customer stakeholders informed", "638d895a1713d2fa", ("bullet", "skills"), "Stakeholder Communication"),
+    "go-live": ("east_west", "Enterprise Systems Manager", "Protected production stability during migration cutover", "7d6e7bad50cc41b3", ("bullet", "skills"), "Go-Live Readiness"),
+    "executive business reviews": ("aptean", "Customer Success Consultant", "Protected delivery quality and customer trust", "500a9c63bd8bcca9", ("bullet", "skills"), "Executive Business Reviews and QBRs"),
+    "statement of work": ("aptean", "Customer Success Consultant", "Improved delivery predictability by producing Statements of Work", "27cdfad218dbf1ce", ("bullet", "skills"), "SOW Development"),
+    "request for proposal": ("aptean", "Customer Success Consultant", "Delivered pre-sales product demonstrations", "8d28786c847c4933", ("bullet", "skills"), "RFP Development"),
+    "enterprise resource planning": ("east_west", "Enterprise Systems Manager", "Served as de facto product owner", "e8605a432ac71141", ("role_summary", "bullet", "skills"), "Enterprise Resource Planning (ERP)"),
+    "cross-functional delivery": ("east_west", "Enterprise Systems Manager", "Coordinated business users, vendors, and technical stakeholders", "2ae07d77f857ee4a", ("bullet", "skills"), "Cross-Functional Delivery"),
+}
+
+
+for _entry in EVIDENCE_TERMS:
+    _source_key, _role, _source_contains, _fingerprint, _placements, _competency = EVIDENCE_PROVENANCE[_entry["concept"]]
+    _entry.update(
+        {
+            "concept_id": _entry["concept"].replace(" ", "_").replace("-", "_"),
+            "permitted_surfaces": tuple(_entry["variants"]),
+            "source_file": "Estrada_Resume_Implementation.docx",
+            "source_employer": _source_key,
+            "source_role": _role,
+            "source_contains": _source_contains,
+            "source_fingerprint": _fingerprint,
+            "placement_types": _placements,
+            "competency_label": _competency,
+            "ownership_limit": "Preserve the approved source ownership verb and factual scope.",
+        }
+    )

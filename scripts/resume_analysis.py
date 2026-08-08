@@ -16,6 +16,7 @@ from config.job_profiles import (
     EMPLOYER_CONTEXTS,
     POOR_FIT_REQUIREMENT_AREAS,
     PRESALES_SIGNALS,
+    SCOPE_PACE_MISMATCH_SIGNALS,
     SPECIALTY_GAP_AREAS,
     STORY_LENSES,
     TARGETING_LANES,
@@ -344,6 +345,10 @@ class JobProblemProfile:
     safe_terms: tuple[str, ...]
     specialty_matches: tuple[str, ...] = ()
     specialty_gaps: tuple[str, ...] = ()
+    scope_pace_signals: tuple[str, ...] = ()
+
+
+SCOPE_PACE_MISMATCH_LOOKUP = {str(area["label"]): area for area in SCOPE_PACE_MISMATCH_SIGNALS}
 
 
 CORPORATE_STRATEGY_PROFILE = {
@@ -2704,6 +2709,18 @@ def specialty_gap_requirements(job_description: str, resume_text: str) -> tuple[
             gaps.append(str(area["label"]))
     return tuple(dict.fromkeys(matches)), tuple(dict.fromkeys(gaps))
 
+def scope_pace_signal_labels(job_description: str) -> tuple[str, ...]:
+    """Flag posting language suggesting a faster/higher-volume or lower-complexity role
+    than Christian's enterprise implementation background, so guides and letters can
+    address the mismatch proactively instead of only conceding it if asked."""
+    job_description = role_requirement_text(job_description)
+    hits: list[str] = []
+    for area in SCOPE_PACE_MISMATCH_SIGNALS:
+        if signal_hits(job_description, tuple(area["job_terms"])) >= int(area["minimum_job_hits"]):
+            hits.append(str(area["label"]))
+    return tuple(dict.fromkeys(hits))
+
+
 def job_problem_profile(job_description: str, resume_text: str = "") -> JobProblemProfile:
     original_job_description = job_description
     job_description = role_requirement_text(job_description)
@@ -2770,6 +2787,7 @@ def job_problem_profile(job_description: str, resume_text: str = "") -> JobProbl
         safe_terms=unique_safe_terms,
         specialty_matches=specialty_matches,
         specialty_gaps=specialty_gaps,
+        scope_pace_signals=scope_pace_signal_labels(original_job_description),
     )
 
 

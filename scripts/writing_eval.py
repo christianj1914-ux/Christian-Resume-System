@@ -62,6 +62,10 @@ PREP_ARTIFACTS = {
 LIST_DENSITY_ARTIFACTS = SENDABLE_COVER_ARTIFACTS | SENDABLE_EMAIL_ARTIFACTS | PREP_ARTIFACTS
 FALLBACK_CLAUSE_ARTIFACTS = SENDABLE_COVER_ARTIFACTS | SENDABLE_EMAIL_ARTIFACTS
 CONTAINS_THAT_WARNING_ARTIFACTS = PREP_ARTIFACTS | {"resume_summary"}
+BURIED_LEDE_WARNING_ARTIFACTS = (
+    set(ARTIFACT_CHOICES)
+    - {"generic"}
+)
 
 
 @dataclass(frozen=True)
@@ -345,6 +349,28 @@ def unsafe_fallback_clause_issue(text: str) -> Issue | None:
     )
 
 
+def buried_lede_issue(sentences: list[str]) -> Issue | None:
+    if not sentences:
+        return None
+    first = normalize_text(sentences[0])
+    if word_count(first) < 24:
+        return None
+    early_words = " ".join(first.split()[:14])
+    result_pattern = r"\b(?:built|cut|reduced|increased|improved|stabilized|delivered|enabled|protected|owned|led|clearer|faster|\d|%|\$)\b"
+    if re.search(result_pattern, early_words, re.I):
+        return None
+    if not re.match(r"^(?:When|While|Before|After|During|Through|Across|In|At|As)\b", first, re.I):
+        return None
+    if not re.search(result_pattern, first, re.I):
+        return None
+    return Issue(
+        code="buried_lede",
+        severity="warn",
+        message="Opening sentence delays the result or key point behind setup; lead with the outcome, then add context.",
+        snippet=first,
+    )
+
+
 def read_docx_paragraphs(path: Path) -> list[str]:
     with zipfile.ZipFile(path) as archive:
         root = ET.fromstring(archive.read("word/document.xml"))
@@ -436,6 +462,10 @@ def evaluate_text(artifact: str, text: str, sample_id: str = "inline") -> Evalua
             issues.append(issue)
 
     sentences = split_sentences(normalized_text)
+    if normalized_artifact in BURIED_LEDE_WARNING_ARTIFACTS:
+        buried_issue = buried_lede_issue(sentences)
+        if buried_issue:
+            issues.append(buried_issue)
     for sentence in sentences:
         stripped = sentence.lstrip("\"'([{")
         for code, severity, prefix, message in SENTENCE_START_RULES:

@@ -88,6 +88,7 @@ class PositioningBrief:
     company_specific_fact: str
     gap_honesty_boundary: str
     selected_proof_sentences: list[str]
+    scope_pace_bridge: str = ""
 
 
 APPLICATION_BANNED_PHRASES = (
@@ -183,6 +184,19 @@ def split_into_sentences(text: str) -> list[str]:
             continue
         parts = re.split(r"(?<=[.!?])\s+", normalized_line)
         sentences.extend(part.strip() for part in parts if part.strip())
+    return sentences
+
+
+def _complete_sentences_within(text: str, char_budget: int) -> list[str]:
+    """Return only sentences fully contained in a character-limited source window."""
+    window = text[:char_budget]
+    sentences = split_into_sentences(window)
+    if not sentences or len(text) <= len(window):
+        return sentences
+
+    trimmed_window = window.rstrip()
+    if not re.search(r"[.!?][\"'\u201d\u2019]?$", trimmed_window):
+        return sentences[:-1]
     return sentences
 
 
@@ -756,7 +770,7 @@ def mission_or_context_sentence(company_name: str, company_research_text: str, j
             continue
         if company_name and company_name.lower() in lowered and re.search(r"\b(?:helps|provides|builds|serves|prepares|supports|focuses on|connects)\b", lowered):
             return clean_answer_sentence(sentence)
-    for sentence in split_into_sentences(job_description[:400]):
+    for sentence in _complete_sentences_within(job_description, 400):
         lowered = sentence.lower()
         if looks_like_resume_noise_line(sentence):
             continue
@@ -860,6 +874,10 @@ def build_positioning_brief(
             if profile.unsupported_requirements else ""
         ),
         selected_proof_sentences=extract_selected_proof_sentences(resume_text, job_description, profile),
+        scope_pace_bridge=(
+            build_resume.SCOPE_PACE_MISMATCH_LOOKUP[profile.scope_pace_signals[0]]["bridge_sentence"]
+            if profile.scope_pace_signals else ""
+        ),
     )
     validate_positioning_brief(brief)
     return brief
@@ -1327,7 +1345,8 @@ def build_unique_qualifications_answer(brief: PositioningBrief) -> str:
     for line in evidence_lines:
         if line and line.lower() not in {item.lower() for item in ordered_evidence}:
             ordered_evidence.append(line)
-    candidate_extras = [*ordered_evidence[:3], tech_line]
+    scope_pace_line = clean_answer_sentence(brief.scope_pace_bridge) if brief.scope_pace_bridge else ""
+    candidate_extras = [*ordered_evidence[:3], tech_line, scope_pace_line]
     selected_extras = select_within_word_budget(sentence_one, candidate_extras, closing, 155)
     answer_parts = [sentence_one, *selected_extras, closing]
     answer = " ".join(part for part in answer_parts if part)

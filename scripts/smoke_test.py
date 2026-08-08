@@ -2606,6 +2606,30 @@ def test_mission_or_context_sentence_survives_job_label_header(build_cover_lette
     )
 
 
+def test_mission_or_context_sentence_rejects_hard_truncated_jd_fragment(build_cover_letter: object) -> None:
+    question_prep = build_cover_letter.question_prep
+    candidate = "Cox supports customers through reporting that supports data-driven decisions."
+    cut_point = candidate.index("supports data") + len("supp")
+    prefix = "Role details " * 30
+    prefix = prefix[: 400 - cut_point]
+    job_description = prefix + candidate
+
+    assert_true(
+        job_description[:400].endswith("supp"),
+        "Regression fixture must cut the qualifying sentence mid-word at the 400-character budget.",
+    )
+    assert_true(
+        question_prep._complete_sentences_within(job_description, 400) == [],
+        "_complete_sentences_within() should drop a trailing JD fragment that does not end at a sentence boundary.",
+    )
+    mission = question_prep.mission_or_context_sentence("Cox", "", job_description)
+    assert_true(
+        mission == "",
+        "mission_or_context_sentence() must not turn a hard-truncated JD fragment into sendable cover-letter prose; "
+        f"got {mission!r}",
+    )
+
+
 def test_proof_first_opening_avoids_list_density_with_comma_heavy_core_problem(
     build_cover_letter: object,
     writing_eval: object,
@@ -2720,6 +2744,48 @@ def test_randstad_cover_hook_rejects_raw_jd_fragment(build_cover_letter: object)
             and "  " not in sentence,
             f"Randstad cover hook use site should stay a single clean sentence; got {sentence!r}",
         )
+
+
+def test_jd_concrete_hook_preserves_complete_clause_boundaries(build_cover_letter: object) -> None:
+    bi_line = (
+        "Collaborate with senior leaders in allied and supported functions (e.g., Product, Operations, Finance, Marketing) "
+        "to identify business opportunities & develop the associated informational and data requirements."
+    )
+    csc_line = (
+        "Manage and drive all activities and artifacts from RFP/RFI through delivery and warranty phase in accordance "
+        "with the EVBS Implementation Framework; some work may continue long after commercial Go-Live."
+    )
+    bi_hook = build_cover_letter._clean_jd_hook_candidate(bi_line)
+    csc_hook = build_cover_letter._clean_jd_hook_candidate(csc_line)
+
+    assert_true(
+        bi_hook == (
+            "collaborate with senior leaders in allied and supported functions (e.g., Product, Operations, Finance, Marketing) "
+            "to identify business opportunities & develop the associated informational and data requirements"
+        ),
+        f"BI hook should retain its complete 26-word clause instead of ending at 'associated'; got {bi_hook!r}",
+    )
+    assert_true(
+        csc_hook == (
+            "manage and drive all activities and artifacts from RFP/RFI through delivery and warranty phase in accordance "
+            "with the EVBS Implementation Framework"
+        ),
+        f"CSC hook should stop at the semicolon clause boundary instead of including 'some'; got {csc_hook!r}",
+    )
+    for source_line, hook in ((bi_line, bi_hook), (csc_line, csc_hook)):
+        normalized_source = source_line.lower()
+        normalized_hook = hook.lower()
+        suffix = normalized_source[normalized_source.index(normalized_hook) + len(normalized_hook) :]
+        assert_true(
+            suffix.startswith((".", ";")),
+            f"Hook must end at a real source-clause boundary; source={source_line!r}, hook={hook!r}",
+        )
+
+    no_boundary_line = "Collaborate " + " ".join(f"detail{index}" for index in range(1, 40)) + "."
+    assert_true(
+        build_cover_letter._clean_jd_hook_candidate(no_boundary_line) == "",
+        "An over-limit hook without a safe boundary should be rejected rather than cut at an arbitrary word.",
+    )
 
 
 def test_cover_letter_prose_check_text_strips_header_before_quality_eval(
@@ -3596,6 +3662,56 @@ def test_cover_letter_smoothing_preserves_job_acronyms(build_cover_letter: objec
     )
 
 
+def test_cover_letter_preserves_paired_jd_acronyms(build_cover_letter: object) -> None:
+    job_description = "Manage activities from RFP/RFI through delivery and warranty phase."
+    allowed = build_cover_letter.cover_allowed_acronyms(job_description=job_description)
+    assert_true(
+        {"RFP", "RFI"}.issubset(allowed),
+        f"A paired JD acronym should allow-list both halves even when each appears once; got {allowed}",
+    )
+    smoothed = build_cover_letter.smooth_cover_letter_text(
+        "The work runs from RFP/RFI through delivery.",
+        allowed_acronyms=allowed,
+    )
+    assert_true(
+        "RFP/RFI" in smoothed and "RFP/ through" not in smoothed,
+        f"smooth_cover_letter_text() should preserve a source-supported acronym pair intact; got {smoothed!r}",
+    )
+
+
+def test_role_specific_cover_sentence_handles_tool_terms(build_cover_letter: object) -> None:
+    brief = build_cover_letter.question_prep.PositioningBrief(
+        company_name="Cox",
+        role_title="Business Intelligence Senior Analyst",
+        primary_lane="analytics_operations",
+        employer_type="commercial",
+        mission_or_context="",
+        role_core_problem="",
+        role_problem_phrase="",
+        personal_reason_to_care="",
+        personal_reason_source="",
+        strongest_direct_proofs=[],
+        strongest_bridge_theme="",
+        top_proof_anchors=[],
+        company_specific_fact="",
+        gap_honesty_boundary="",
+        selected_proof_sentences=[],
+    )
+    sentence = build_cover_letter.role_specific_cover_work_sentence(
+        brief,
+        "support lifecycle reporting",
+        "Cox",
+        "Business Intelligence Senior Analyst",
+        "The role requires lifecycle analysis, SQL, and Excel.",
+    )
+    assert_true(
+        "using SQL and Excel to give lifecycle analysis a clearer decision path" in sentence
+        and "keeps SQL clear" not in sentence
+        and "uses Excel to" not in sentence,
+        f"Tool terms must use the tool-aware cover template rather than abstract-noun slots; got {sentence!r}",
+    )
+
+
 def test_cover_letter_smoothing_normalizes_double_dashes(build_cover_letter: object) -> None:
     smoothed = build_cover_letter.smooth_cover_letter_text(
         "JFrog is reinventing DevOps -- and we want you along for the ride."
@@ -4358,10 +4474,112 @@ def test_add_simple_core_competencies_respects_cap(build_resume: object) -> None
             "Role: Implementation Consultant. Requires Agile project management, dashboards, analytics, reporting, and stakeholder communication.",
         )
         remaining = build_resume.resume_snapshot(cap_xml).competency_items
-        assert_true(
-            added == 1 and len(remaining) == 23,
-            f"add_simple_core_competencies() should stop at 23 items; added={added}, remaining={len(remaining)}",
+    assert_true(
+        added == 1 and len(remaining) == 23,
+        f"add_simple_core_competencies() should stop at 23 items; added={added}, remaining={len(remaining)}",
+    )
+
+
+def test_skills_row_rewrites_preserve_italic_label_runs(build_resume: object) -> None:
+    def assert_skills_runs(document_xml: Path, stage: str) -> None:
+        tree = ET.parse(document_xml)
+        in_skills = False
+        skills_rows: list[ET.Element] = []
+        for paragraph in tree.getroot().findall(f".//{build_resume.W}p"):
+            text = re.sub(r"\s+", " ", build_resume.paragraph_text(paragraph)).strip()
+            if build_resume.is_skills_section_heading(text):
+                in_skills = True
+                continue
+            if text == "Professional Development":
+                break
+            if in_skills and ":" in text:
+                skills_rows.append(paragraph)
+        assert_true(skills_rows, f"{stage}: expected a Skills row to inspect")
+        for paragraph in skills_rows:
+            visible_runs = [
+                (
+                    re.sub(r"\s+", " ", build_resume.paragraph_text(run)).strip(),
+                    build_resume.bool_prop_enabled(run.find(f"{build_resume.W}rPr"), f"{build_resume.W}i"),
+                )
+                for run in paragraph.findall(f"{build_resume.W}r")
+                if re.sub(r"\s+", " ", build_resume.paragraph_text(run)).strip()
+            ]
+            text = re.sub(r"\s+", " ", build_resume.paragraph_text(paragraph)).strip()
+            italic_runs = [run_text for run_text, italic in visible_runs if italic is True]
+            assert_true(
+                len(italic_runs) == 1 and italic_runs[0] == f"{text.split(':', 1)[0].strip()}:",
+                f"{stage}: only the Skills label should be italic; got {visible_runs}",
+            )
+            assert_true(
+                all("|" not in run_text for run_text in italic_runs)
+                and all(italic is False for _run_text, italic in visible_runs[1:]),
+                f"{stage}: Skills items must remain non-italic; got {visible_runs}",
+            )
+        build_resume.assert_core_competency_run_format(document_xml)
+
+    with TemporaryDirectory(prefix="resume_smoke_") as temp_name:
+        document_xml = Path(temp_name) / "skills_runs.xml"
+        document_xml.write_text(
+            resume_with_competencies_xml(
+                "Implementation consultant with data migration delivery experience.",
+                [f"Implementation Skill {index}" for index in range(1, 23)],
+            ),
+            encoding="utf-8",
         )
+        build_resume.format_core_competency_runs(document_xml)
+        assert_skills_runs(document_xml, "initial format")
+        simple_added = build_resume.add_simple_core_competencies(
+            document_xml,
+            "This role requires service delivery, presentation, scope, and implementation readiness.",
+        )
+        assert_true(simple_added == 1, f"simple addition fixture should mutate the Skills row; added={simple_added}")
+        assert_skills_runs(document_xml, "simple addition")
+        targeted_added = build_resume.add_targeted_core_competencies(
+            document_xml,
+            ["Data Migration"],
+            "This role requires data migration and implementation readiness.",
+            limit=1,
+            source_required=True,
+        )
+        assert_true(targeted_added == ["Data Migration"], f"targeted addition fixture should mutate the Skills row; got {targeted_added}")
+        assert_skills_runs(document_xml, "targeted addition")
+
+    with TemporaryDirectory(prefix="resume_smoke_") as temp_name:
+        document_xml = Path(temp_name) / "skills_trim.xml"
+        document_xml.write_text(
+            resume_with_competencies_xml(
+                "Implementation consultant with data migration delivery experience.",
+                ["Data Migration", *(f"Skill {index}" for index in range(1, 26))],
+                bullets=["Data Migration supported a reporting workflow."],
+            ),
+            encoding="utf-8",
+        )
+        build_resume.format_core_competency_runs(document_xml)
+        assert_skills_runs(document_xml, "pre-trim format")
+        removed = build_resume.trim_redundant_targeted_core_competencies(
+            document_xml,
+            "This role requires data migration.",
+            source_required=set(),
+        )
+        assert_true(removed == 1, f"late redundancy trim fixture should rewrite one Skills row item; removed={removed}")
+        assert_skills_runs(document_xml, "late redundancy trim")
+
+    with TemporaryDirectory(prefix="resume_smoke_") as temp_name:
+        document_xml = Path(temp_name) / "skills_relevance.xml"
+        document_xml.write_text(
+            resume_with_competencies_xml(
+                "Implementation consultant with data migration delivery experience.",
+                ["Data Migration", *(f"Skill {index}" for index in range(1, 26))],
+            ),
+            encoding="utf-8",
+        )
+        build_resume.format_core_competency_runs(document_xml)
+        removed = build_resume.remove_irrelevant_core_competencies(
+            document_xml,
+            "This role requires data migration.",
+        )
+        assert_true(removed > 0, f"relevance pruning fixture should rewrite the Skills row; removed={removed}")
+        assert_skills_runs(document_xml, "relevance pruning")
 
 
 def test_xml_page_estimate_uses_word_guard(build_resume: object) -> None:
@@ -5288,6 +5506,74 @@ def test_supported_evidence_ledger_natural_rewrites(build_resume: object) -> Non
     assert_true(
         "end-to-end delivery" in delivery_updated and "Delivered technical delivery" not in delivery_updated,
         f"End-to-end delivery should replace the existing phrase without creating delivery repetition; got {delivery_updated!r}",
+    )
+
+    paylocity_bullets = (
+        "Improved data quality and reduced spreadsheet-driven status chasing during migration and post-go-live support.",
+        "Improved data quality by using SQL-based performance reporting to track requests, owners, and next steps.",
+        "Protected Epicor Kinetic readiness through UAT validation and targeted training.",
+        "Protected data validation controls through sandbox testing and targeted training.",
+    )
+    for bullet in paylocity_bullets:
+        updated = build_resume.natural_keyword_bullet_rewrite(
+            bullet,
+            "data migration",
+            "The role requires data migration and implementation delivery.",
+            "ETL/SQL validation checks and cutover coordination support data migration work.",
+            exact_surface=True,
+        )
+        assert_true(
+            updated and "data migration" in updated.lower() and not build_resume.has_same_stem_repetition(updated),
+            f"Data migration should land safely in its supported Paylocity carrier; original={bullet!r}, updated={updated!r}",
+        )
+    already_present = "Protected data migration stability during Epicor Kinetic readiness."
+    assert_true(
+        build_resume.natural_keyword_bullet_rewrite(
+            already_present,
+            "data migration",
+            "The role requires data migration and implementation delivery.",
+            "ETL/SQL validation checks and cutover coordination support data migration work.",
+            exact_surface=True,
+        )
+        == already_present,
+        "An existing data migration phrase should remain unchanged rather than be duplicated.",
+    )
+
+    document_xml_text = '''<?xml version="1.0" encoding="UTF-8"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>
+<w:p><w:r><w:t>Professional Summary</w:t></w:r></w:p>
+<w:p><w:r><w:t>Implementation leader supporting enterprise delivery.</w:t></w:r></w:p>
+<w:p><w:r><w:t>Professional Experience</w:t></w:r></w:p>
+<w:p><w:r><w:t>Enterprise Systems Manager    March 2023 - Present</w:t></w:r></w:p>
+<w:p><w:r><w:t>East West Manufacturing | Knoxville, TN</w:t></w:r></w:p>
+<w:p><w:pPr><w:numPr><w:ilvl w:val="0"/><w:numId w:val="1"/></w:numPr></w:pPr><w:r><w:t>Protected migration stability during Epicor Kinetic readiness by coordinating validation and training.</w:t></w:r></w:p>
+<w:p><w:r><w:t>Skills</w:t></w:r></w:p>
+<w:p><w:r><w:t>Implementation and Delivery:  Testing  |  Training</w:t></w:r></w:p>
+<w:p><w:r><w:t>Professional Development</w:t></w:r></w:p>
+</w:body></w:document>'''
+    placement_target = build_resume.KeywordPlacementTarget(
+        surface="data migration",
+        concept_id="data_migration",
+        scoring_tier="core",
+        requirement_relation="assigned",
+        validating_requirement_text="data migration",
+        support_basis="supported-direct-unresolved",
+        evidence_anchor="ETL/SQL validation checks, cutover coordination",
+        placement_types=("bullet", "skills"),
+    )
+    with TemporaryDirectory(prefix="resume_smoke_") as temp_name:
+        document_xml = Path(temp_name) / "data_migration_ledger.xml"
+        document_xml.write_text(document_xml_text, encoding="utf-8")
+        changed = build_resume.weave_supported_keywords_into_top_bullets(
+            document_xml,
+            "Company: Paylocity\nRole: Senior IT Project Manager\nRequires data migration.",
+            "ETL/SQL validation checks, cutover coordination, and migration stability.",
+            placement_targets=(placement_target,),
+        )
+        final_text = build_resume.visible_text(document_xml)
+    assert_true(
+        changed >= 1 and "data migration stability" in final_text.lower(),
+        f"Ledger placement should rewrite a supported migration bullet instead of falling back to the summary; got {final_text!r}",
     )
 
 
@@ -17544,8 +17830,10 @@ def main(argv: list[str] | None = None) -> None:
             ("cover letter colon smoothing", lambda: test_cover_letter_colon_smoothing(build_cover_letter)),
             ("cover sentence score prioritizes signal density over length", lambda: test_cover_sentence_score_prioritizes_signal_density_over_length(build_cover_letter)),
             ("mission or context sentence survives job label header", lambda: test_mission_or_context_sentence_survives_job_label_header(build_cover_letter)),
+            ("mission or context sentence rejects hard truncated JD fragment", lambda: test_mission_or_context_sentence_rejects_hard_truncated_jd_fragment(build_cover_letter)),
             ("word budget trims opening filler before dense proof", lambda: test_word_budget_trims_opening_filler_before_dense_proof(build_cover_letter)),
             ("Randstad cover hook rejects raw JD fragment", lambda: test_randstad_cover_hook_rejects_raw_jd_fragment(build_cover_letter)),
+            ("JD concrete hook preserves complete clause boundaries", lambda: test_jd_concrete_hook_preserves_complete_clause_boundaries(build_cover_letter)),
             ("cover selection prefers lane direct and keeps ERP for ERP JD", lambda: test_cover_selection_prefers_lane_direct_and_keeps_erp_for_erp_jd(build_cover_letter, build_resume)),
             ("cover opening quality flags article and circularity", lambda: test_cover_opening_quality_flags_article_and_circularity(build_cover_letter)),
             ("consulting story summary avoids list density overload", lambda: test_consulting_story_summary_avoids_list_density_overload(writing_eval, build_resume)),
@@ -17563,6 +17851,8 @@ def main(argv: list[str] | None = None) -> None:
             ("extract company mission ignores federal headers", lambda: test_extract_company_mission_ignores_federal_headers(build_cover_letter)),
             ("federal cover fallback does not invent education mission", lambda: test_federal_cover_fallback_does_not_invent_education_mission(build_cover_letter)),
             ("cover letter smoothing preserves job acronyms", lambda: test_cover_letter_smoothing_preserves_job_acronyms(build_cover_letter)),
+            ("cover letter preserves paired JD acronyms", lambda: test_cover_letter_preserves_paired_jd_acronyms(build_cover_letter)),
+            ("role-specific cover sentence handles tool terms", lambda: test_role_specific_cover_sentence_handles_tool_terms(build_cover_letter)),
             ("cover letter smoothing normalizes double dashes", lambda: test_cover_letter_smoothing_normalizes_double_dashes(build_cover_letter)),
             ("expand short cover opening reaches QC minimum", lambda: test_expand_short_cover_opening_reaches_qc_minimum(build_cover_letter)),
             ("cover communication metric stays lane relevant", lambda: test_cover_communication_metric_stays_lane_relevant(build_cover_letter)),
@@ -17589,6 +17879,7 @@ def main(argv: list[str] | None = None) -> None:
             ("final fit audit accepts presales top role heading", lambda: test_final_fit_audit_accepts_presales_style_top_role_heading(build_resume)),
             ("Guidehouse final fit promotes BRIDGE", lambda: test_final_fit_audit_promotes_bridge_for_guidehouse_fixture(build_resume)),
             ("competency cap after additions", lambda: test_add_simple_core_competencies_respects_cap(build_resume)),
+            ("Skills row rewrites preserve italic label runs", lambda: test_skills_row_rewrites_preserve_italic_label_runs(build_resume)),
             ("XML page estimate word guard", lambda: test_xml_page_estimate_uses_word_guard(build_resume)),
             ("resume non-ERP audit ignores company context", lambda: test_resume_non_erp_audit_ignores_company_context(build_resume)),
             ("planned competency trim integrity", lambda: test_resume_integrity_allows_planned_competency_trim(build_resume)),

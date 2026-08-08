@@ -26,7 +26,7 @@ import render_checks
 import resume_analysis
 from build_skills_database import ResumeSnapshot
 from config.paths import APPLICATION_QUESTIONS, JOB_DESCRIPTION, OUTPUT_DIR
-from utils import read_text
+from utils import fail, read_text
 
 
 BODY_FONT_SIZE = 11
@@ -208,12 +208,18 @@ def unique_qualifications_answer(job_description: str, resume_text: str) -> str:
         bridges.append("pre-sales discovery, product demonstrations, and solution-fit conversations that helped shape competitive buying decisions")
     if re.search(r"\b(?:salesforce|crm|power bi|excel)\b", job_description, re.I):
         bridges.append("hands-on reporting and CRM depth across Salesforce, Excel Power Query, Power BI, SQL, and SAP Crystal Reports")
-    return normalize_spaces(
+    answer = normalize_spaces(
         "What may uniquely qualify me is the combination of solution consulting, operational analytics, and execution discipline. "
         + "That includes "
         + ", ".join(bridges[:-1])
         + f", and {bridges[-1]}."
     )
+    scope_pace_labels = build_resume.scope_pace_signal_labels(job_description)
+    if scope_pace_labels:
+        signal = build_resume.SCOPE_PACE_MISMATCH_LOOKUP.get(scope_pace_labels[0])
+        if signal:
+            answer = normalize_spaces(f"{answer} {signal['bridge_sentence']}")
+    return answer
 
 
 def certifications_answer(snapshot: ResumeSnapshot) -> str:
@@ -229,9 +235,14 @@ def certifications_answer(snapshot: ResumeSnapshot) -> str:
 
 def generic_bridge_answer(job_description: str, resume_text: str) -> str:
     profile = build_resume.job_problem_profile(job_description, resume_text)
-    return normalize_spaces(
+    answer = (
         f"The closest supported evidence for this application is experience in {profile.core_problem}, backed by 80+ client engagements, 200+ reporting tools, 60+ executive workshops and QBRs, and multi-site enterprise systems ownership. Where the requirement is not a direct match, the supported answer should name the gap plainly and connect only to the closest proven delivery, reporting, stakeholder, or implementation evidence."
     )
+    if profile.scope_pace_signals:
+        signal = build_resume.SCOPE_PACE_MISMATCH_LOOKUP.get(profile.scope_pace_signals[0])
+        if signal:
+            answer = f"{answer} {signal['bridge_sentence']}"
+    return normalize_spaces(answer)
 
 
 def latest_resume_state(job_description: str) -> str:
@@ -441,6 +452,20 @@ def build_standard_qualifications_statement() -> QualificationsBuildResult:
     output_target_name = build_resume.extract_output_target_name(job_description)
     role_title = build_resume.extract_job_title(job_description) or "Target Role"
     _, snapshot, resume_text = question_prep.selected_resume_snapshot(job_description)
+    matching_resumes = build_resume.matching_output_files(OUTPUT_DIR, job_description, "Resume.docx")
+    if matching_resumes:
+        readiness = build_resume.resume_readiness_for_output(
+            job_description,
+            matching_resumes[0],
+            source_resume_text=resume_text,
+            audit_status=resume_analysis.output_audit_state(matching_resumes[0]),
+            keyword_policy=build_resume.active_keyword_policy(),
+        )
+        if readiness.hard_blockers:
+            fail(
+                f"{readiness.keyword_policy} keyword policy blocked the qualifications statement: "
+                + build_resume.resume_gap_blocker_message(readiness)
+            )
 
     prompt_state = question_prep.load_application_prompt_state(APPLICATION_QUESTIONS)
     resolved_question_rows = resolve_qualification_question_rows(job_description, prompt_state)
