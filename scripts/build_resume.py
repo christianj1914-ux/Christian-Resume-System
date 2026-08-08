@@ -7006,7 +7006,7 @@ def build_resume(keyword_policy: str | None = None) -> BuildResult:
             paragraphs_rewritten += merge_low_fit_bullets_before_delete(document_xml, job_description)
             paragraphs_rewritten += clean_merged_role_bullets(document_xml)
             role_bullets_removed = remove_condensable_role_bullets(document_xml, job_description)
-            role_bullets_removed += remove_global_low_fit_bullets(document_xml)
+            role_bullets_removed += remove_global_low_fit_bullets(document_xml, job_description)
             competency_categories_renamed = rename_core_competency_categories(document_xml, job_description)
             competency_items_removed = remove_irrelevant_core_competencies(
                 document_xml,

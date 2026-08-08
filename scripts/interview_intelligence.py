@@ -28,29 +28,39 @@ NEAR_TERM_CAREER_ROLES = (
     "Technical Program Manager",
 )
 STRETCH_CAREER_ROLES = ("Business Architect / AI Evangelist",)
+STUDY_ROOT = "Study"
+STUDY_FLASHCARDS_DIR = f"{STUDY_ROOT}/Flashcards"
+STUDY_GUIDES_DIR = f"{STUDY_ROOT}/Guides"
+STUDY_LEARNING_PATH_REFERENCE = f"{STUDY_GUIDES_DIR}/IT_Learning_Path_and_Schedule.docx"
+
+
+def _study_flashcard_reference(track: str) -> str:
+    return f"{STUDY_FLASHCARDS_DIR}/IT_Flashcards_{track}.txt"
+
+
 STUDY_TRACK_REFERENCES = (
-    "Study/IT_Learning_Path_and_Schedule.docx",
-    "Study/IT_Flashcards_AI.txt",
-    "Study/IT_Flashcards_AIAdoption.txt",
-    "Study/IT_Flashcards_AIEngineeringMLOps.txt",
-    "Study/IT_Flashcards_AWS.txt",
-    "Study/IT_Flashcards_BusinessArchitecture.txt",
-    "Study/IT_Flashcards_DataAnalyticsBI.txt",
-    "Study/IT_Flashcards_Foundations.txt",
-    "Study/IT_Flashcards_PMP.txt",
-    "Study/IT_Flashcards_SecurityPlus.txt",
+    STUDY_LEARNING_PATH_REFERENCE,
+    _study_flashcard_reference("AI"),
+    _study_flashcard_reference("AIAdoption"),
+    _study_flashcard_reference("AIEngineeringMLOps"),
+    _study_flashcard_reference("AWS"),
+    _study_flashcard_reference("BusinessArchitecture"),
+    _study_flashcard_reference("DataAnalyticsBI"),
+    _study_flashcard_reference("Foundations"),
+    _study_flashcard_reference("PMP"),
+    _study_flashcard_reference("SecurityPlus"),
 )
 QUESTION_THEME_TRACKS: dict[str, tuple[str, ...]] = {
-    "parallel_project_governance": ("Study/IT_Flashcards_PMP.txt",),
-    "complex_project_leadership": ("Study/IT_Flashcards_PMP.txt",),
-    "ambiguity_delivery": ("Study/IT_Flashcards_PMP.txt",),
-    "ai_passion": ("Study/IT_Flashcards_AI.txt", "Study/IT_Flashcards_AIAdoption.txt"),
-    "saas_ai_company_experience": ("Study/IT_Flashcards_AIAdoption.txt",),
+    "parallel_project_governance": (_study_flashcard_reference("PMP"),),
+    "complex_project_leadership": (_study_flashcard_reference("PMP"),),
+    "ambiguity_delivery": (_study_flashcard_reference("PMP"),),
+    "ai_passion": (_study_flashcard_reference("AI"), _study_flashcard_reference("AIAdoption")),
+    "saas_ai_company_experience": (_study_flashcard_reference("AIAdoption"),),
     "executive_reporting_trust": (
-        "Study/IT_Flashcards_DataAnalyticsBI.txt",
-        "Study/IT_Flashcards_BusinessArchitecture.txt",
+        _study_flashcard_reference("DataAnalyticsBI"),
+        _study_flashcard_reference("BusinessArchitecture"),
     ),
-    "implementation_success": ("Study/IT_Flashcards_DataAnalyticsBI.txt",),
+    "implementation_success": (_study_flashcard_reference("DataAnalyticsBI"),),
 }
 
 
@@ -1300,7 +1310,10 @@ def build_daily_prep_plan(
             "weakness": "high",
         }
         scorecard_instruction = "Use a real meeting, project, or internal opportunity as the scorecard: what competencies would someone be quietly judging?"
-        closing_instruction = "End by naming one new win or learning thread to capture later in the self-inventory; use Study/IT_Learning_Path_and_Schedule.docx when the gap is technical."
+        closing_instruction = (
+            "End by naming one new win or learning thread to capture later in the self-inventory; "
+            f"use {STUDY_LEARNING_PATH_REFERENCE} when the gap is technical."
+        )
 
     for rep_type in focus_rep_types:
         if rep_type in weights:
@@ -1516,11 +1529,11 @@ def build_career_plan(today: date | None = None) -> CareerOperatingPlan:
             label="Formal methodology and technical fluency",
             safe_description=safe_weaknesses[2],
             track_references=(
-                "Study/IT_Learning_Path_and_Schedule.docx",
-                "Study/IT_Flashcards_PMP.txt",
-                "Study/IT_Flashcards_AI.txt",
-                "Study/IT_Flashcards_BusinessArchitecture.txt",
-                "Study/IT_Flashcards_DataAnalyticsBI.txt",
+                STUDY_LEARNING_PATH_REFERENCE,
+                _study_flashcard_reference("PMP"),
+                _study_flashcard_reference("AI"),
+                _study_flashcard_reference("BusinessArchitecture"),
+                _study_flashcard_reference("DataAnalyticsBI"),
             ),
             action="Choose the one track that blocks the current target role first: CAPM/PMP for delivery, AI Innovator and AI-900 for AI fluency, Business Architecture / TOGAF EA Foundation for architecture, or Data Analytics & BI / PL-300 for analytics.",
         ),
@@ -1533,9 +1546,9 @@ def build_career_plan(today: date | None = None) -> CareerOperatingPlan:
             track_references=(
                 "AI Innovator track",
                 "AI-900",
-                "Study/IT_Flashcards_AI.txt",
-                "Study/IT_Flashcards_AIEngineeringMLOps.txt",
-                "Study/IT_Flashcards_EnterpriseAITools.txt",
+                _study_flashcard_reference("AI"),
+                _study_flashcard_reference("AIEngineeringMLOps"),
+                _study_flashcard_reference("EnterpriseAITools"),
             ),
             action="Build enough vocabulary to ask better architecture questions and explain adoption risk without implying hands-on engineering depth.",
         ),
@@ -1544,7 +1557,7 @@ def build_career_plan(today: date | None = None) -> CareerOperatingPlan:
             safe_description="For Business Architect roles, frame current experience as requirements, process, stakeholder alignment, and operating-model translation while the formal architecture language catches up.",
             track_references=(
                 "Track B Business Architecture / TOGAF EA Foundation",
-                "Study/IT_Flashcards_BusinessArchitecture.txt",
+                _study_flashcard_reference("BusinessArchitecture"),
             ),
             action="Practice converting implementation stories into capability, value-stream, stakeholder, and governance language.",
         ),
@@ -1553,7 +1566,7 @@ def build_career_plan(today: date | None = None) -> CareerOperatingPlan:
             safe_description="Analytics strength is strongest when tied to business decisions, KPI visibility, data validation, and reporting outcomes.",
             track_references=(
                 "Track D Data Analytics & BI / PL-300",
-                "Study/IT_Flashcards_DataAnalyticsBI.txt",
+                _study_flashcard_reference("DataAnalyticsBI"),
             ),
             action="Keep analytics answers anchored to decisions improved, not tool-name collecting.",
         ),
@@ -1562,7 +1575,7 @@ def build_career_plan(today: date | None = None) -> CareerOperatingPlan:
             safe_description="For AI adoption roles, lead with enablement, stakeholder trust, workflow fit, and measuring whether people actually change how they work.",
             track_references=(
                 "Track E AI Adoption & Change Management / Prosci / ADKAR",
-                "Study/IT_Flashcards_AIAdoption.txt",
+                _study_flashcard_reference("AIAdoption"),
             ),
             action="Translate the existing adoption stories into change-readiness, champions, training, and feedback-loop language.",
         ),
@@ -1573,9 +1586,9 @@ def build_career_plan(today: date | None = None) -> CareerOperatingPlan:
                 "AWS Cloud track",
                 "Python/foundations track",
                 "Security+ track where the role makes it relevant",
-                "Study/IT_Flashcards_AWS.txt",
-                "Study/IT_Flashcards_Foundations.txt",
-                "Study/IT_Flashcards_SecurityPlus.txt",
+                _study_flashcard_reference("AWS"),
+                _study_flashcard_reference("Foundations"),
+                _study_flashcard_reference("SecurityPlus"),
             ),
             action="Use these tracks to improve technical conversation quality for implementation and architect-adjacent roles.",
         ),

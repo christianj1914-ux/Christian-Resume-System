@@ -25,6 +25,7 @@ import prose_engine
 from resume_analysis import (
     IMPORTANT_SHORT_ATS_TERMS,
     JobProblemProfile,
+    audit_keywords,
     ats_scan_terms,
     clean_job_title,
     contains_search_term,
@@ -3401,7 +3402,11 @@ def remove_condensable_role_bullets(document_xml: Path, job_description: str, ma
         tree.write(document_xml, encoding="utf-8", xml_declaration=True)
     return removed
 
-def remove_global_low_fit_bullets(document_xml: Path, max_remove: int = 4) -> int:
+def remove_global_low_fit_bullets(
+    document_xml: Path,
+    job_description: str,
+    max_remove: int = 4,
+) -> int:
     tree = ET.parse(document_xml)
     root = tree.getroot()
     body = root.find(f"{W}body")

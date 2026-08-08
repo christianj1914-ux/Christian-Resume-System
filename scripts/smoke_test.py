@@ -10181,13 +10181,13 @@ def test_daily_prep_question_bank_checklist(interview_intelligence: object, buil
         f"daily prep checklist should include every applicable bank prompt when no JD filtering applies; got {len(checklist)}",
     )
     first_generic = next((index for index, line in enumerate(checklist) if "Generic Bridge" in line), len(checklist))
-    first_mapped = next((index for index, line in enumerate(checklist) if "Study/IT_" in line), len(checklist))
+    first_mapped = next((index for index, line in enumerate(checklist) if "Study/" in line), len(checklist))
     assert_true(
         first_mapped < first_generic,
         f"career-target-aligned mapped categories should rank above generic_bridge prompts; got {checklist[:5]}",
     )
     valid_refs = set(interview_intelligence.STUDY_TRACK_REFERENCES)
-    mapped_lines = [line for line in checklist if "Study/IT_" in line]
+    mapped_lines = [line for line in checklist if "Study/" in line]
     assert_true(
         mapped_lines
         and all(any(reference in line for reference in valid_refs) for line in mapped_lines),
@@ -15407,7 +15407,7 @@ def test_daily_prep_command_builds_word_plan(build_daily_prep_plan: object, inte
         assert_true(output.exists() and output.suffix == ".docx", f"daily prep builder should create a Word plan; got {output}")
         text = build_daily_prep_plan.document_text(Document(output))
         assert_true("Daily Prep Plan" in text and "On The Job" in text, f"daily prep Word output should render mode and title; got {text!r}")
-        assert_true("Study/IT_Learning_Path_and_Schedule.docx" in text, f"on_the_job mode should reference the Study path; got {text!r}")
+        assert_true("Study/Guides/IT_Learning_Path_and_Schedule.docx" in text, f"on_the_job mode should reference the Study path; got {text!r}")
         interview_intelligence.assert_safe_generated_text(text, interview_intelligence.load_self_inventory())
 
 
@@ -15557,6 +15557,59 @@ def test_career_plan_roles_modes_and_safe_gaps(interview_intelligence: object) -
     interview_intelligence.assert_safe_generated_text(text, inventory)
 
 
+def test_low_fit_bullet_handlers_receive_live_dependencies(build_resume: object) -> None:
+    xml_template = '''<?xml version="1.0" encoding="UTF-8"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>
+<w:p><w:r><w:t>Professional Experience</w:t></w:r></w:p>
+<w:p><w:r><w:t>East West Manufacturing | Knoxville, TN</w:t></w:r></w:p>
+{bullets}
+</w:body></w:document>'''
+
+    def bullet(text: str) -> str:
+        return (
+            '<w:p><w:pPr><w:numPr><w:ilvl w:val="0"/><w:numId w:val="1"/>'
+            f'</w:numPr></w:pPr><w:r><w:t>{text}</w:t></w:r></w:p>'
+        )
+
+    with TemporaryDirectory(prefix="resume_low_fit_") as temp_name:
+        protected_xml = Path(temp_name) / "protected.xml"
+        protected_text = "Applied Codex-assisted automation to improve workflow automation."
+        protected_xml.write_text(xml_template.format(bullets=bullet(protected_text)), encoding="utf-8")
+        removed = build_resume.remove_global_low_fit_bullets(
+            protected_xml,
+            "The role requires AI-assisted workflow automation.",
+        )
+        assert_true(removed == 0, f"JD-protected low-fit bullet should survive; removed={removed}")
+        assert_true(
+            protected_text in build_resume.visible_text(protected_xml),
+            "JD-protected low-fit bullet should remain in document.xml",
+        )
+
+        merge_xml = Path(temp_name) / "merge.xml"
+        merge_xml.write_text(
+            xml_template.format(
+                bullets="\n".join(
+                    (
+                        bullet("Delivered reporting improvements for implementation stakeholders."),
+                        bullet("Designed and executed user enablement programs across the business."),
+                    )
+                )
+            ),
+            encoding="utf-8",
+        )
+        merged = build_resume.merge_low_fit_bullets_before_delete(
+            merge_xml,
+            "The role requires reporting and implementation delivery.",
+        )
+        merged_text = build_resume.visible_text(merge_xml)
+        assert_true(merged == 1, f"East West low-fit bullet should merge without crashing; merged={merged}")
+        assert_true(
+            "supporting user enablement and adoption" in merged_text
+            and "Designed and executed user enablement programs" not in merged_text,
+            f"merged bullet should preserve the absorbed evidence once; got {merged_text!r}",
+        )
+
+
 def test_career_plan_study_tracks_are_real(interview_intelligence: object) -> None:
     plan = interview_intelligence.build_career_plan(today=date(2026, 7, 25))
     text = interview_intelligence._career_plan_render_text(plan)
@@ -15578,6 +15631,13 @@ def test_career_plan_study_tracks_are_real(interview_intelligence: object) -> No
         for reference in gap.track_references:
             if reference.startswith("Study/"):
                 assert_true((PROJECT_ROOT / reference).exists(), f"Study reference should exist: {reference}")
+    for category, references in interview_intelligence.QUESTION_THEME_TRACKS.items():
+        assert_true(references, f"question theme {category!r} should map to at least one Study reference")
+        for reference in references:
+            assert_true(
+                (PROJECT_ROOT / reference).exists(),
+                f"question theme {category!r} should resolve to an existing Study reference: {reference}",
+            )
     interview_intelligence.assert_safe_generated_text(text, interview_intelligence.load_self_inventory())
 
 
@@ -16985,289 +17045,6 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 
 def main(argv: list[str] | None = None) -> None:
     args = parse_args(argv)
-    checks = (
-        ("import config files", import_config_files),
-        ("import major scripts", lambda: import_major_scripts()),
-        ("AGENTS word budget", None),
-        ("validate dummy inputs", None),
-        ("choose resume", None),
-        ("lane profiles and summaries", None),
-        ("first person detector ignores role level i", None),
-        ("summary three sentence structure", None),
-        ("boomi presales summary", None),
-        ("customer success summary capitalization", None),
-        ("customer success portfolio scope", None),
-        ("general consulting lane isolation", None),
-        ("strategy transformation consultant lane override", None),
-        ("S7 lane expansion routes and specializes content", None),
-        ("consulting audit keyword cleanup", None),
-        ("audit keywords filter company affiliates and weak fragments", None),
-        ("audit keywords filter boilerplate adjectives and normalize es plurals", None),
-        ("keyword placement prefers role phrases", None),
-        ("AI bridge evidence config", None),
-        ("construction engineering context and bridge coverage", None),
-        ("alignment score ignores unsupported named platforms", None),
-        ("bridge evidence sweep covers multiple lanes", None),
-        ("summary condense guard", None),
-        ("ERP summary rebalance", None),
-        ("summary anchor retention for change adoption", None),
-        ("alignment score distinguishes lane and domain fit", None),
-        ("cover letter colon smoothing", None),
-        ("cover sentence score prioritizes signal density over length", None),
-        ("mission or context sentence survives job label header", None),
-        ("word budget trims opening filler before dense proof", None),
-        ("Randstad cover hook rejects raw JD fragment", None),
-        ("cover selection prefers lane direct and keeps ERP for ERP JD", None),
-        ("cover opening quality flags article and circularity", None),
-        ("consulting story summary avoids list density overload", None),
-        ("cover letter compaction", None),
-        ("cover letter blocks JD artifacts and warns on switch", None),
-        ("cover letter allows requirements in normal prose", None),
-        ("cover letter sections recognize extended headers", None),
-        ("cover letter plan normalizes slash titles", None),
-        ("change consulting cover letter stays in change lane", None),
-        ("communication metric fragment rejection", None),
-        ("cover letter synthetic JD cleanup", None),
-        ("role title dash not treated as bullet artifact", None),
-        ("cover prompt leak pattern catches maps directly to", None),
-        ("cover close polishes practical fit and AI casing", None),
-        ("naturalness score and adverb cleanup", None),
-        ("ownership language rewrites", None),
-        ("build interview review sections", None),
-        ("positive question framing", None),
-        ("alignment score report", None),
-        ("alignment gate decision", None),
-        ("dynamic header title line", None),
-        ("header dedupe avoids near-duplicate consultant titles", None),
-        ("scope marker injection", None),
-        ("competency relevance and page guards", None),
-        ("final fit audit accepts presales top role heading", None),
-        ("competency cap after additions", None),
-        ("XML page estimate word guard", None),
-        ("resume non-ERP audit ignores company context", None),
-        ("keyword placement audit", None),
-        ("ATS keyword mirroring and coverage", None),
-        ("ATS scan terms denominator hygiene", None),
-        ("keyword placement demotes filler and boosts phrases", None),
-        ("supported keyword weave removes stapled tails", None),
-        ("resume notes print core and breadth coverage", None),
-        ("S3 supported keyword weave targets priority summaries", None),
-        ("build resume uses selected resume text for profile and alignment", None),
-        ("obvious choice positioning", None),
-        ("positioning statement output", None),
-        ("S6 confirmed motivation and dual-sided ERP positioning", None),
-        ("future bridge summary and bullet clause", None),
-        ("startup operator summary structure", None),
-        ("natural top bullet meta penalty", None),
-        ("offer blocker logic", None),
-        ("ats plain text validation", None),
-        ("moment in time context", None),
-        ("customer success opening concrete context", None),
-        ("customer success support paragraph separation", None),
-        ("cover letter uses company specific context", None),
-        ("gap address paragraph", None),
-        ("first 90 days cover sentence", None),
-        ("diagnose before selling framework", None),
-        ("bold diagnostic questions", None),
-        ("preloaded questions", None),
-        ("slot based summary and interview answers", None),
-        ("value compression opening", None),
-        ("pitch variants reuse cover logic", None),
-        ("pitch variants add 15-second claim", None),
-        ("claim-then-prove validator catches delayed openings", None),
-        ("natural voice validation and answer budgets", None),
-        ("natural voice question coverage", None),
-        ("keyword reference uses natural story intro", None),
-        ("industry depth and company-scoped logistics", None),
-        ("human motivation lane coverage", None),
-        ("adjusted profile preserves non-lane fields", None),
-        ("story answer parts preserve spoken alias", None),
-        ("story answer constructors use full keyword", None),
-        ("extended TMAY sections", None),
-        ("extended TMAY uses module-level supersets", None),
-        ("behavioral answer scripts empty story guard", None),
-        ("story sample answer separates coaching note", None),
-        ("story sample answer reuses claim sentence in full", None),
-        ("delivery validator only scans scripted strings", None),
-        ("scripted answer validator rejects unsupported metrics", None),
-        ("AI customer work answer uses confirmed qualitative story", None),
-        ("story sample answer does not call dead STAR selection", None),
-        ("behavioral answer scripts use spoken answers", None),
-        ("interview stage resolution and context parsing", None),
-        ("stage filename suffix composes with detailed guide names", None),
-        ("federal detailed guide wrapper keeps stage params optional", None),
-        ("story adaptation and pre-interview routine helpers", None),
-        ("spoken sentence split preserves leading characters", None),
-        ("spoken nested-list repairs converge without collected issues", None),
-        ("resume degree Master line is canonical", None),
-        ("expansion source resumes and reference docs are durable", None),
-        ("source lint uses docx bullets without context false positives", None),
-        ("source resumes pass docx-aware source lint", None),
-        ("source lint flags stale global notes motivation", None),
-        ("fail severity prose rules have convergent repairs", None),
-        ("bullet overload validation warns without repairing", None),
-        ("resume notes report overloaded bullets without failing", None),
-        ("interview filters filler and claim first answers", None),
-        ("candidate facing outputs avoid raw core problem", None),
-        ("first 90 day plan reuses shared stage source", None),
-        ("application answers use written confirmation and automation boundary", None),
-        ("detailed guide stage patterns and debrief overlay", None),
-        ("interview companion documents reuse shared stage sources", None),
-        ("federal version control scope gate is unconditional", None),
-        ("Foundant summary uses human close", None),
-        ("commercial resume model provenance and render", None),
-        ("canonical catalog preserves provenance identity", None),
-        ("application question pairing detects JD swap", None),
-        ("application question pairing accepts current match after stale archive", None),
-        ("compact anchor phrase handles intermediate scope words", None),
-        ("compact anchor phrase keeps expansion proof anchors", None),
-        ("extract selected proof sentences strips trailing reorg annotation", None),
-        ("application answers rotate selected proof sentences", None),
-        ("Item G story hooks are concrete", None),
-        ("Item G flagship story ranking is controlled", None),
-        ("Item G checklist signature uses full supported pool", None),
-        ("Item G Randstad analytics keeps automation evidence and bridge gate", None),
-        ("repo guidance prefers rehearsed foundation", None),
-        ("pitch helpers handle missing cover letter pitch parts", None),
-        ("read the room opening", None),
-        ("companies refer to same", None),
-        ("debrief active job matching", None),
-        ("compact context budget and diagnosis", None),
-        ("great eight shared utility", None),
-        ("interview cheat sheet static content guards", None),
-        ("late-stage context detection", None),
-        ("interview bullet marker is clean", None),
-        ("why-company and negotiation context", None),
-        ("communication audit context", None),
-        ("story quality audit by type", None),
-        ("lead burial and response calibration", None),
-        ("four trust questions audit", None),
-        ("executive presence signals", None),
-        ("lane specific recording focus", None),
-        ("debrief pattern analysis", None),
-            ("interview followup body", None),
-            ("post-round followup is lane aware", None),
-            ("build skills database", None),
-            ("default question when application questions file is empty", None),
-            ("dry-run reports default question usage", None),
-            ("default questions skip stale pairing check", None),
-            ("explicit stale questions still flagged", None),
-            ("qualifications builder uses question prep response engine", None),
-            ("qualifications builder removes local shadow answer helpers", None),
-            ("standard qualifications answers known questions", None),
-            ("Randstad qualifications avoid descriptor subject and bare numbers", None),
-            ("S5 qualifications why-company fixes archived defects", None),
-            ("startup interview false-positive guard", None),
-            ("application checklist debrief lookup", None),
-            ("general advice active job helpers", None),
-            ("general advice shared sections", None),
-        ("question intent framework", None),
-        ("interview addition helpers", None),
-        ("search progress question is conditional", None),
-        ("salary guide helpers", None),
-        ("proof text rewrites dense cover sentence", None),
-        ("follow-up news and variants", None),
-        ("LinkedIn guidance helpers", None),
-        ("cover letter signals ollie analytics", None),
-        ("cover opening without mission still names company", None),
-        ("cover lane prefers strategy consulting titles", None),
-        ("standard cover mode", None),
-        ("force-bridge standard cover stays natural", None),
-        ("cover letter validator blocks generic experience summary", None),
-        ("cover letter QC rejects lowercase proof paragraph", None),
-        ("long cover mode", None),
-        ("cover letter inherits fail resume name", None),
-        ("ollie cover acceptance", None),
-        ("cover letter validator blocks contractions and double-dashes", None),
-        ("clean but bad cover regressions fail writing eval", None),
-        ("registered firm profile requires real bain name", None),
-        ("bigfour cover opening avoids aspiration phrase", None),
-        ("reset jobs helpers", None),
-        ("job context archive active snapshot includes questions", None),
-        ("cover letter trace records snapshot and selection debug", None),
-        ("run-level ERP scrub formatting", None),
-        ("supported rewrite ERP scrub", None),
-        ("non-ERP audit allows SAP Crystal Reports", None),
-        ("company profile stub", None),
-        ("hiring manager skim lane terms", None),
-        ("Aptean customer success role summary passes prose check", None),
-        ("proof first close uses discuss and has no first person switch", None),
-        ("enterprise CS JD extracts CS terms not analytics fallback", None),
-        ("role bullet budgets meet minimums", None),
-        ("contact constants", None),
-        ("business context module", None),
-        ("audit keywords filter noisy bigrams", None),
-        ("job title label stripping", None),
-        ("thank-you contact line filter", None),
-        ("thank-you proof points skip summary", None),
-        ("company constants", None),
-        ("role heading detection", None),
-        ("writing eval flags system narration", None),
-        ("writing eval passes clean summary", None),
-        ("writing eval loads file dataset", None),
-        ("writing eval extracts docx sections", None),
-        ("summary detectors avoid member and operator false positives", None),
-        ("implementation summary surfaces quality and process language", None),
-        ("detailed guide notes context strips leading bullets", None),
-        ("extract writing examples writes snippets", None),
-        ("tracker refresh uses active-job fit status", None),
-        ("tracker status precedence blocks regressions", None),
-        ("tracker row job description prefers snapshot id", None),
-        ("tracker refresh warning when output missing", None),
-        ("collapse redundant role blanks", None),
-        ("resume experience alignment", None),
-        ("LinkedIn boilerplate cleanup", None),
-        ("role requirement text resumes after about-us sections", None),
-        ("planned competency trim integrity", None),
-        ("federal agency extraction", None),
-        ("federal source load", None),
-        ("federal standard essay responses", None),
-        ("federal summary structure", None),
-        ("federal all nine competencies supported", None),
-        ("federal grade match and duty visibility", None),
-        ("federal requirement audit and keywords", None),
-        ("federal layouts stay at ten point", None),
-        ("federal visibility report tracks selected requirements", None),
-        ("federal standalone agency output name", None),
-        ("federal supporting doc resolution", None),
-        ("federal ATS plain-text warnings split hours and salary", None),
-        ("federal resume plan warns on unverified page count", None),
-        ("commercial builder entrypoints delegate to helpers", None),
-        ("federal workflow supporting flags", None),
-        ("federal workflow supporting step order", None),
-        ("resume workflow dry-run skips upfront validation", None),
-        ("federal workflow dry-run skips upfront validation", None),
-        ("federal workflow dry-run labels unverified page counts", None),
-        ("tasks register federal supporting doc commands", None),
-        ("tasks register interview review command", None),
-        ("onedrive run guard absent", None),
-        ("onedrive run guard present", None),
-        ("resume builder source passes alignment grade to final fit audit", None),
-        ("application checklist fit classification passes alignment grade", None),
-        ("final fit audit safe none alignment grade", None),
-        ("claude packet run command keeps stdout and stderr", None),
-        ("claude packet command cache", None),
-        ("claude packet self-audit checks task registration", None),
-        ("claude packet self-audit accepts unquoted task mentions", None),
-        ("packet excerpt resolution and contract", None),
-        ("tasks auto-archive environment for commercial command", None),
-        ("workflow parses cover warning channels", None),
-        ("workflow hard-fails docx validation issues", None),
-        ("cleanup render checks only targets timestamped nested folders", None),
-        ("bootstrap copy filter preserves render checks module", None),
-        ("bootstrap configure fresh pycache avoids stale timestamp bytecode", None),
-        ("bootstrap gitignore ignores generated bundle manifest", None),
-        ("bootstrap copy filter excludes retired onedrive markers", None),
-        ("bootstrap writes live canonical launchers", None),
-        ("bootstrap retire source launchers skips nested canonical root", None),
-        ("bootstrap reset destination removes nested tree", None),
-        ("cleanup output finders and selective flag", None),
-        ("tasks check prefers latest generated resume", None),
-        ("tasks register cleanup command", None),
-        ("claude prompt rejects residual placeholders", None),
-        ("claude prompt requires current default packet manifest", None),
-        ("claude review bundle builders include expected phrases", None),
-    )
     passed = 0
     executed_checks = 0
     failures: list[str] = []
@@ -17408,6 +17185,7 @@ def main(argv: list[str] | None = None) -> None:
             ("debrief feedback writes review artifacts without inventory mutation", lambda: test_debrief_feedback_writes_review_artifacts_without_inventory_mutation(interview_intelligence)),
             ("daily prep focus file reweights plan", lambda: test_daily_prep_focus_file_reweights_plan(interview_intelligence)),
             ("interview review renders Phase 6 sections", lambda: test_interview_review_renders_phase6_sections(build_interview_review, interview_intelligence)),
+            ("low-fit bullet handlers receive live dependencies", lambda: test_low_fit_bullet_handlers_receive_live_dependencies(build_resume)),
             ("career plan roles modes and safe gaps", lambda: test_career_plan_roles_modes_and_safe_gaps(interview_intelligence)),
             ("career plan Study tracks are real", lambda: test_career_plan_study_tracks_are_real(interview_intelligence)),
             ("career operating plan command builds Word plan", lambda: test_career_operating_plan_command_builds_word_plan(build_career_operating_plan, interview_intelligence)),
