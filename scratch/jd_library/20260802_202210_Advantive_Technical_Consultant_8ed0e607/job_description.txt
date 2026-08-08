@@ -1,0 +1,67 @@
+Company: Advantive
+Job Title: Technical Consultant
+
+
+
+  
+At Advantive, we don’t just make software—we build careers and power the manufacturing and distribution backbone of the global economy. We are growing fast, investing in AI, and building a culture where motivated, curious people rise quickly.
+
+Company Description                                          
+
+At Advantive, we make purpose-built software for specialty manufacturing and distribution businesses that streamline complex processes, optimize operations visibility and throughput, and drive improved quality, profitability, and revenue growth. Deeply embedded in our customers’ businesses, Advantive’s software solutions add value along the full manufacturing and distribution lifecycle.
+
+Our customers, who include corrugated and packaging manufacturers, equipment and supply wholesale distributors, and automotive and other specialty manufacturers, benefit from our solutions that have been honed over decades in the marketplace. We know our customers’ businesses intimately and deliver software to address their needs."                                  
+
+Role Description                                      
+
+As a Technical Consultant, your primary role will be to lead the design and implementation of software solutions that significantly improve client operations. In this position, you will be responsible for understanding client needs, designing tailored solutions, and ensuring successful deployment aligned with strategic objectives. Your ability to communicate effectively, solve problems proactively, and adapt to changing environments will be key to accelerating project delivery and enhancing client satisfaction. You will also cultivate strong relationships with clients, fostering collaboration, and driving continuous process improvements. This role requires a disciplined approach to project management, ensuring high standards of quality and efficiency in all initiatives.                                                                                
+
+Key Responsibilities                               
+
+•           Enhance client value by gathering requirements and designing solutions that streamline operations and improve efficiency                                           
+
+•           Deliver high-quality software implementations, confirmed by rigorous testing and validation, aligning with strategic business goals                                  
+
+•           Accelerate project timelines through proactive problem-solving and rapid adaptation to new technologies and processes                                  
+
+•           Strengthen strategic client relationships and achieve process improvements by leveraging portfolio knowledge and crisp communication skills
+
+•           Travel globally to customer sites for the purpose of system integration, troubleshooting, and training                           
+
+Competencies                                          
+
+•           Analytically savvy & data driven: Proficiency in utilizing data and analytics to make informed decisions and drive business strategies                              
+
+•           Disciplined execution: Detail-oriented and organized, this leader prioritizes effectively, excels at time management, and anticipates well in decision making         
+
+•           Crisp communication: Clear and effective communicators capable of conveying information succinctly and clearly                                       
+
+•           Portfolio knowledge: Understands our portfolio, its features, and capabilities; positions effectively with customers & prospects                                 
+
+•           Requirements gathering: Gathers and analyzes requirements to inform system and process development  
+
+•           Solution design: Designs solutions to address business needs and enhance operational efficiency
+
+•           Experience with server setup, TCP/IP configuration, IIS, web services and implementation and knowledge of Local Area Networks    
+
+Qualifications                                            
+
+•           3+ years hands-on experience working with, configuring, and deploying Manufacturing Execution Systems (MES)
+
+•           Prior knowledge of working with PINpoint MES is preferred
+
+•           Ability to read and work within XML files
+
+•           Working knowledge of Microsoft SQL Server and Stored Procedures
+
+•           Controls and automation programming
+
+•           Knowledge of PLC systems and be able to work with an OPC server
+
+•           Knowledge of PLC programming would be an asset
+
+•           Proficiency using Microsoft Office, including proper document structure, formatting, pivot tables and effective presentations
+
+•           Excellent problem-solving abilities
+
+•           Degree or equivalent certification or work experience in a technical discipline.

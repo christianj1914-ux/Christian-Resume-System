@@ -1,0 +1,15 @@
+{
+  "snapshot_id": "20260728_160319_RevsUp_Technical_Project_Manager_a981509d",
+  "created_at": "2026-07-28T16:03:19",
+  "company": "RevsUp",
+  "role": "Implementation Consultant",
+  "workflow_type": "commercial",
+  "source_command": "trace_backfill",
+  "archive_reason": "trace_backfill",
+  "lane": "program_delivery",
+  "questions_present": false,
+  "question_count": 0,
+  "relative_path": "20260728_160319_RevsUp_Technical_Project_Manager_a981509d",
+  "job_description_sha256": "c23d70a27d6cc9c5d93dcd573870c43ea09153e40a1146c8977a59f544f5ddd8",
+  "application_questions_sha256": ""
+}

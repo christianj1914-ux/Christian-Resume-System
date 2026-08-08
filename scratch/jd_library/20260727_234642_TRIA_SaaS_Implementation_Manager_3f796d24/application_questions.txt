@@ -1,0 +1,5 @@
+# Late-discovered application questions
+# Paste job-specific questions here after the initial run.
+# Use one question per block, with a blank line between questions.
+# These are answered in addition to jobs/application_questions_bank.txt.
+# Clear or archive this file when moving to a new posting.

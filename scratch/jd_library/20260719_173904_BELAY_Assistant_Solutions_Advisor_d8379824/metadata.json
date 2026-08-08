@@ -1,0 +1,15 @@
+{
+  "snapshot_id": "20260719_173904_BELAY_Assistant_Solutions_Advisor_d8379824",
+  "created_at": "2026-07-19T17:39:04",
+  "company": "BELAY",
+  "role": "Implementation Consultant",
+  "workflow_type": "commercial",
+  "source_command": "resume",
+  "archive_reason": "command_auto_archive",
+  "lane": "corporate_strategy",
+  "questions_present": false,
+  "question_count": 0,
+  "relative_path": "20260719_173904_BELAY_Assistant_Solutions_Advisor_d8379824",
+  "job_description_sha256": "5f8c9e2b6d1f1459eb9af6ba850635eb6619994500010460450a71664bafaa09",
+  "application_questions_sha256": ""
+}

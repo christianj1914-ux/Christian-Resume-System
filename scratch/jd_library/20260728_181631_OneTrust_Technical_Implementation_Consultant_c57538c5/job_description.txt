@@ -1,0 +1,106 @@
+Company: OneTrust
+
+
+Job Title: Technical Implementation Consultant
+
+
+
+
+Strength in Trust 
+OneTrust’s mission is to enable innovation through the responsible use of data and AI. We believe that ensuring data is trusted shouldn’t slow teams down—it should accelerate what’s possible. This led us to develop the first technology platform for responsible data use in 2016. Today, with AI representing the latest and most impactful expansion of data yet, OneTrust is once again redefining what responsible innovation looks like. OneTrust, the AI‑Ready Governance Platform™, unifies regulatory intelligence, automation, and connected governance workflows so businesses can continue to move at the speed of AI while ensuring good governance to prevent data misuse at scale. Trusted by thousands of organizations worldwide, OneTrust is shaping the future where trusted data becomes a transformative force for business and society. 
+
+The Challenge
+Due to rapid growth and an increased demand for our platform, OneTrust is seeking a Technical Implementation Consultant. The Technical Implementation Consultant role is one of the key pieces of the OneTrust architecture. After the sales process, consultants are the key contact in driving and building the relationship, implementing the solution and managing the expectations of the customer. Technical Implementation Consultants work across the technical modules. As a Technical Implementation Consultant, you will be responsible for the customer relationship and will work directly with our customers to enhance their overall user experience with the OneTrust platform. The role is one of the most important as it is the bridge between OneTrust and the customer, helping the business grow by identifying product enhancements and relaying them between the customer and OneTrust Product teams.
+
+Your Mission
+As a Technical Implementation Consultant, you will:
+
+Configure and implement solutions across key areas, including: 
+Integrations with third-party systems (APIs, connectors) 
+Insights Dashboard (Power BI reporting and visualization) 
+General platform configuration (SSO, user provisioning, system setup) 
+Data Discovery (data scanning, classification, and inventory mapping) 
+Own end-to-end technical implementation and support customer adoption from kick-off through go-live.
+
+Monitor and analyze the customer’s adoption of our solution features and functionality in order to provide leadership with an understanding of their overall business needs as they relate to our products and improve value realised.
+
+Provide assurance and oversight to customers implementing OneTrust’s platform regarding SaaS implementations including underlying hardware and software architectures.
+
+Triage, prioritise, and drive resolution for escalated technical issues.
+
+Proactively identify, assess, and communicate project risks, including but not limited to delivery timelines, scope changes, customer engagement, and technical constraints.
+
+Use your experience across a broad range of core technologies including HTML, CSS, JavaScript and APIs.
+
+Complete internal and project documentation (including configuration logs and functional specifications).
+
+Seek opportunities in day-to-day workflow to improve quality and efficiency from ideation to deployment.
+
+Document processes and workflows in shareable documents for future use and adoption.
+
+Work closely with UI/UX design, marketing, product management and engineering on project goals and requirements
+
+Be an advocate for our customers by representing their issues to Product Management and Software Engineering with a focus on steering the OneTrust roadmap.
+
+Provide strategic and tactical support for Sales, Professional Services, and Business Development.
+
+You will also act as system and regulatory best practice expert, drawing from a plethora of consulting experience to advise customers on optimization of privacy program.
+
+Act as the customer advocate.
+
+Seamlessly transition ownership and action plan back to involved teams.
+
+Show ownership of issues, engage customers, establish urgent priorities and implement resolution plan.
+
+Able to resolve simple to moderate issues with minimal management intervention.
+
+Ability to interpret and deliver on custom SOW customer projects.
+
+In this role, you will also:
+
+Demonstrate strong tech awareness and problem-solving by gathering client requirements and delivering system-based solutions.
+
+Communicate complex technical concepts clearly to stakeholders, taking a consultative approach to client engagements.
+
+Apply prior SaaS implementation experience to drive successful outcomes.
+
+Demonstrate independent, professional communication tailored to audience expertise; participate in discovery discussions and deliver presentations during project meetings.
+
+Understand and proactively manage project timelines, scope, and dependencies; consistently deliver implementation tasks on time with high quality.
+
+You Are
+A coachable and organized individual with strong communication and critical thinking skills who can understand the needs of the clients and navigate them to success.
+
+Able to work effectively both independently and as part of a collaborative team environment.
+
+Willing to travel 10 – 20%.
+
+Your experience includes:
+
+BA/BS OR MS in Computer Science, Electrical OR Computer Engineering, Web Design/Development, Engineering Management or Information Technology/Systems, with 2-5 years of relevant experience in software development, professional services, solution engineering, technical consulting or an advanced degree in a relevant field
+
+Experience working with HTTP, SSO, SSL certificates, networking, and API integrations
+
+Experience working with HTML, CSS, JavaScript, and Python
+
+Familiarity with Jira/Atlassian Suite
+
+Exposure to other systems such as Salesforce Marketing Cloud, Adobe, Eloqua, and Marketo, ServiceNow
+
+Effective customer-facing relationship-building skills. Proven success in and genuine enthusiasm for working directly with customer(s)
+
+Proven ability to engage across corporate functions (Sales, Professional Services, Support, Customer Success and Product Management)
+
+Previous end-to-end implementation experience, ideally on a SAAS platform/product
+
+Excellent verbal and written communication skills, including the ability to chair meetings or host webinars
+
+Strategic and critical thinking, problem-solving, and decision-making capabilities
+
+Ability to build relationships across stakeholders in marketing, sales, and engineering
+
+Proficiency in Microsoft Office suite (Excel, Word, PowerPoint)
+
+Strong entrepreneurial skills to excel in a complex and rapidly evolving SAAS environment
+
+Working knowledge of implementation practices including configuration, testing, and deployment processes

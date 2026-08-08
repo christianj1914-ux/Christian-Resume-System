@@ -1,0 +1,73 @@
+Company: GoodShip
+
+
+Job Title: Implementation Manager
+
+Who We Are
+GoodShip is the AI engine powering modern transportation networks, empowering transportation teams to optimize spend and service while driving seamless collaboration across internal stakeholders and external partners.
+
+GoodShip unifies data from loads, tenders, contracts, real-time tracking, and market benchmarks to deliver a comprehensive, intelligent view of the transportation network. Embedded intelligence proactively recommends the highest-impact opportunities to save money, improve service, and reduce spot exposure.
+
+Teams can act instantly by renegotiating rates, refining routing guide logic, triggering carrier performance alerts, or running off-cycle bids and full-network RFPs through purpose-built procurement tools that blend automation and intelligence. The result is a continuously optimized freight network that remains agile and resilient in a dynamic market.
+
+We’re backed by A-list venture firms and founders of industry-leading FreightTech companies, and were recently recognized in the TechCrunch AI Disrupters 60. With ample financial backing and strong traction, we’re seeking a driven and experienced Enterprise Sales Director to join us on the ground floor and help bring ultra-modern transportation technology to market.
+
+ 
+About the Role
+As an Implementation Manager on the Sales team, you’ll be the technical architect at the critical intersection of sales and customer success. You’ll partner closely with Account Executives during the sales cycle to design tailored technical solutions, lead high-impact proof-of-concepts, and ensure a seamless transition from closed-won to successful implementation.
+
+This is a high-ownership role that combines technical execution, storytelling, and real-world impact. You’ll report directly to the Senior Manager of Implementations and collaborate across teams to bring clarity to complexity—using data, empathy, and urgency to help shippers unlock the full value of the GoodShip platform.
+
+What You’ll Do
+Drive Sales Velocity Through Technical Excellence
+
+Lead the technical work-stream in enterprise sales cycles, translating prospect goals into compelling GoodShip solutions.
+
+Design and deliver tailored proofs of concept that demonstrate measurable value and accelerate deal closure.
+
+Transform messy, complex prospect data into polished platform use cases.
+
+Perform rapid root-cause analysis to resolve technical objections and keep opportunities moving forward.
+
+Implement data-validation processes that demonstrate GoodShip’s strength and reliability.
+
+Define and document technical requirements, implementation considerations, and success criteria before close.
+
+Build reusable demo environments and POC frameworks that improve sales efficiency.
+
+Serve as a trusted advisor, helping prospects confidently envision their future with GoodShip.
+
+Lead Implementation and Value Delivery
+
+Own technical continuity from contract signature through onboarding and stabilization.
+
+Translate pre-sale discovery and POC learnings into clear implementation roadmaps, milestones, and ownership plans.
+
+Partner with customers to configure workflows, integrate and validate data, and prepare solutions for production use.
+
+Troubleshoot technical blockers and coordinate dependencies across Customer Success, Product, and Engineering.
+
+Validate that the implemented solution delivers against the outcomes established during the sales process.
+
+Document configurations and key technical decisions to support adoption and long-term customer success.
+
+Identify opportunities to expand GoodShip’s value as customer needs evolve.
+
+What You Bring
+4+ years of experience in solutions engineering, pre-sales consulting, technical implementation, or a similar customer-facing role within B2B SaaS.
+
+Experience supporting both pre-sale and post-sale activities, including technical discovery, solution scoping, implementation, and onboarding.
+
+Proficiency in SQL and advanced Excel, with the ability to analyze data and build compelling business cases quickly.
+
+Working knowledge of relational databases and cloud platforms.
+
+Strong project-management skills, with the ability to manage multiple concurrent sales cycles and implementations.
+
+Clear, confident written and verbal communication skills, including the executive presence to present technical and commercial concepts.
+
+Comfort delivering live product demonstrations and navigating technical discussions with customers.
+
+Ability to operate with urgency, precision, and attention to detail in high-stakes customer environments.
+
+Bachelor’s degree in Business, Information Systems, Supply Chain, or a related field—or equivalent practical experience.

@@ -1,0 +1,15 @@
+{
+  "snapshot_id": "20260728_133126_Direct_Travel_Implementation_Consultant_a9257360",
+  "created_at": "2026-07-28T13:31:26",
+  "company": "Direct Travel",
+  "role": "Implementation Consultant",
+  "workflow_type": "commercial",
+  "source_command": "trace_backfill",
+  "archive_reason": "trace_backfill",
+  "lane": "implementation_delivery",
+  "questions_present": false,
+  "question_count": 0,
+  "relative_path": "20260728_133126_Direct_Travel_Implementation_Consultant_a9257360",
+  "job_description_sha256": "786e0abd73c6fd135bfdf7c5f505fea1fe82c9111d9a5c10e36e40a53dc0323d",
+  "application_questions_sha256": ""
+}

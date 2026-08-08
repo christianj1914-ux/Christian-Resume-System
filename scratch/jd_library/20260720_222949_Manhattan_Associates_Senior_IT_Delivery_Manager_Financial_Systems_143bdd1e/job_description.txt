@@ -1,0 +1,73 @@
+Company: Manhattan Associates
+
+
+Job Title: Senior IT Delivery Manager, Financial Systems
+
+
+At Manhattan Associates our supply chain and omnichannel technology positively affect how people work, shop and live – every single day.  Though we all take different paths to get here, everyone shares one belief: We’re good people doing great things.
+
+
+
+
+
+
+We create possibilities that move life and commerce forward
+Welcome to Manhattan. Every day, our supply chain commerce technology connects two billion people to 20 billion consumer choices. In the warehouse, on the road and in the store, we make what was once impossible, possible. If you want to tackle complex problems and redefine markets, you’ve come to the right place.
+
+JOB SUMMARY –
+
+The Senior Manager is an experienced technology leader responsible for managing enterprise services for Finance, Accounting, Legal, and related functions. This role combines strategic vision with hands-on leadership, partnering with business leaders to define needs and priorities while collaborating with ETS teams to deliver platform solutions. The ideal candidate excels in internal customer service, works effectively in diverse teams, and applies standard methodologies for process analysis and technology assessments. They lead cross-functional teams to develop comprehensive business plans covering process lifecycle, technology development, and communication strategies, including training.
+
+MINIMUM REQUIREMENTS –
+
+10+ years of experience managing Finance/Accounting applications (Q2X, OTC, P2P, RTR) with strong business acumen; experience in other G&A functions a plus.
+10+ years in IT service delivery and customer engagement, including complex project management.
+7+ years working with enterprise ERP systems (Workday, Oracle, SAP, MS Dynamics, Salesforce).
+10+ years leading teams; proven ability to build, mentor, and manage onsite and global teams.
+5+ years experience with Agile and Waterfall methodologies; proficiency in Jira, Bitbucket, Confluence, or similar tools.
+5+ years experience n business process modeling, requirements analysis, and documentation.
+5+ years experience with document management platforms (SharePoint, Confluence or similar).
+5+ years using IT ticketing systems (ServiceNow, JIRA, Quality Center).
+5+ years in vendor management and production support.
+5+ years in strategy, roadmap development, and planning.
+Experience negotiating scope and schedules with business and vendor partners.
+ Strong leadership, communication, and stakeholder management skills; ability to convey technical concepts in user-friendly language.
+Demonstrated strategic thinking, problem-solving, and influencing skills.
+Financial acumen with budgeting and compliance experience.
+ITIL, PMP, or similar certifications preferred.
+Expertise in managing third-party contracts and performance.
+Knowledge and application of Lean or Six Sigma principles a plus.
+High proficiency in Microsoft Office Suite, Microsoft Project, PowerPoint, and Visio.
+Ability to prioritize and execute tasks in a fast-paced environment.
+Highly Self-motivated, results-driven, and able to work independently.
+Strong aptitude for learning and adopting new platforms and processes.
+EDUCATION REQUIREMENTS
+
+ Bachelor’s degree in computer science, business administration, or accounting
+Principal Duties and Responsibilities – 
+
+Operate with a “total service” mindset for process and technical health of managed platforms.
+Serve as primary contact for technology services supporting Finance, Accounting, Legal, and Enterprise Mobility (Hardware Sales).
+Lead demand planning; translate business needs into actionable objectives and estimates across ETS teams.
+Develop and maintain service strategies and roadmaps aligned with evolving business requirements.
+Own end-to-end service delivery, ensuring quality and timely execution.
+Oversee and assess business capability requests; translate requirements into scalable Workday Financials solutions aligned with industry and Workday best practices
+Conduct regular service reviews, status updates, and roadmap discussions with stakeholders.
+Monitor and report service delivery metrics; escalate issues as needed.
+Manage service budgets, forecasts, and cost optimization initiatives.
+Ensure compliance with financial controls, audit requirements, and regulatory and governance standards (including SOX).
+Organize, plan, and manage projects across SDLC phases, ensuring quality and schedule adherence.
+Oversee production support requests, and incidents; manage risks and serve as escalation point for critical issues.
+Coordinate technology releases, testing, and deployment activities.
+Lead cross-functional teams including consultants, analysts, and support staff.
+Manage third-party vendors and implementation partners, including contracts, renewals, and scope changes.
+Partner with ETS teams to deliver projects from initiation through closure.
+Drive automation, process optimization, and adoption of best practices.
+Promote feature adoption and guide customers on technology enhancements.
+Full people management responsibilities including hiring, coaching, performance reviews, and terminations.
+If needed:
+Lead requirements sessions to enhance business processes and information flow
+Create process flows, requirement specifications/story definition, diagrams, and charts for engineering teams.
+Configure/administer application/platform
+Coordinate and perform in-depth tests, including end-user reviews and post-implementation support
+Conduct orientation and training for end users on new or modified systems.

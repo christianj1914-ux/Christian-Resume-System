@@ -1,0 +1,74 @@
+Company: Limbic
+
+
+Job Title: Technical Implementation Manager
+
+
+
+About Limbic
+Limbic is the leading clinical AI company for mental healthcare and the world's largest deployment of patient-facing mental health AI. Our technology has supported over half a million patients across the UK and US, helping health systems deliver higher-quality, more accessible, and more efficient care.
+
+We regulated the first AI diagnostic model for adult mental health as a Class IIa medical device. We've published in top-tier journals, won major awards, and advise governments and regulators globally on AI safety, medical devices, and the future of clinical agentic systems.
+
+For a Customer Success professional, this means joining a team at the forefront of transforming behavioral-health access — where your relationships, insights, and execution directly influence how health systems adopt AI, improve workflows, and unlock measurable value for patients and clinicians.
+
+About the Role
+Limbic is looking for a Technical Implementation Manager to lead the onboarding and go-live process for new health system, payer, and payvider partners. You'll be the primary point of contact from contract signature through launch and early adoption — translating clinical workflows, technical requirements, and compliance needs into a smooth, on-time implementation. This is a hands-on, cross-functional role that sits at the intersection of clinical operations, technical delivery, AI agent configuration, and partner relationship management.
+
+This role requires genuine technical fluency, not just project coordination. You'll be diagnosing integration failures, data mapping issues, and configuration problems in real time, and know exactly which team needs to solve them. When something breaks mid-implementation, you're expected to understand what happened and why before you escalate — not simply relay a symptom and wait for someone else to translate it.
+
+What You'll Do
+Own end-to-end implementation for new partners — from kickoff through launch and early post-go-live support
+
+Diagnose root cause when implementations break — distinguishing between a data mapping issue, config error, API/integration failure, or product gap — and route it to the right team
+
+Read logs, API responses, and system behavior well enough to hold a credible, detailed technical conversation with engineering — not just relay a symptom and wait for someone else to translate it
+
+Lead complex, multi-stakeholder technical conversations directly with partner IT, engineering teams, and EHR vendors, including when the failure mode isn't obvious
+
+Write and run scripts or queries (e.g., SQL, Python) to test, validate, or troubleshoot integration and configuration issues before escalating
+
+Own the technical relationship with partner engineering teams directly — you're the primary technical point of contact, not a relay to our engineers
+
+Configure and tune Limbic's AI agents to each partner's clinical protocols, routing logic, and population needs
+
+Serve as the primary partner-facing contact — take a consultative approach, helping shape the right solution rather than just executing a spec
+
+Translate complex technical and clinical concepts into plain language partners can act on
+
+Lead training and rollout for partner teams, ensuring smooth adoption after go-live
+
+Favor rapid deployment and iteration — get a working version live, gather real signal, and improve from there
+
+Partner closely with Product and Engineering on recurring gaps, helping shape fixes rather than re-solving the same issue manually each time
+
+Build and maintain playbooks for repeatable, scalable implementation and agent-configuration processes
+
+What You'll Bring
+5+ years in technical implementation, integration engineering, or solutions consulting — healthcare, health tech, or B2B SaaS preferred
+
+Strong technical troubleshooting instincts — comfortable in API docs, logs, and system architecture, not just spreadsheets and timelines
+
+Ability to write and run scripts or queries (SQL, Python, or similar) to test integrations or debug independently
+
+A track record of being the technical bridge between engineering/product and external partners
+
+Comfort holding a debugging conversation directly with a partner's engineers, without needing one of our engineers on every call
+
+Ability to explain complex technical or clinical ideas in plain, simple language
+
+A consultative, solutions-oriented communication style — comfortable proposing and persuading, not just taking orders
+
+A QA mindset — comfortable writing test cases and validating systems before they touch real users
+
+Strong project management instincts — you build the plan, not just follow one
+
+A "ship it, then improve it" mentality — you'd rather get something live fast and iterate than stall chasing perfection
+
+Bias toward action and comfort with ambiguity — healthcare implementations rarely go exactly to plan
+
+Experience with behavioral health, payer, or ACO/value-based care environments
+
+Familiarity with FHIR APIs, EHR systems (Epic, Cerner), or healthcare data interoperability
+
+Experience working with major national payers, payviders, or large health systems

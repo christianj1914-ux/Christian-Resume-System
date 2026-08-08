@@ -1,0 +1,45 @@
+Company: Automation Direct
+Job Title: ERP Administrator
+
+
+looking to hire an ERP Systems Administrator who operates with self-directed ownership, a strong commitment to collaboration, and the desire to become and thrive as the technical expert over our enterprise applications. This person sees what needs to be done, forecasting and resolving application problems before they impact operations, while building technical expertise, coaching others on best practices, and acting on it. They work with significant autonomy and independent judgment within the established technical direction, collaborating effectively across business operations, vendor partners, and IT teams to ensure the enterprise applications (ERP, PIM, Forecasting, Order Management, and related integrated systems) run reliably, perform optimally, and deliver the value the organization depends on.
+ 
+This person takes active ownership of incidents, application monitoring, enhancement activities, project coordination, testing, training, and troubleshooting. They are technical expert and trusted advisor for these critical systems. They embrace change and ambiguity, adapt rapidly to new technologies and shifting business priorities, and maintain focus amid competing demands.
+What’s important:
+Demonstrates a servant attitude by fostering collaboration, removing obstacles, and prioritizing the success and growth of those around them.
+Operates as a self-winding team member — sees what needs to be done based on an internal understanding of what good service looks like and is internally motivated to act on it rather than waiting for orders or procedures.
+Partners effectively with value-chain stakeholders to align technology, processes, and business objectives while building strong cross-functional relationships.
+Becomes the technical expert in the enterprise application solutions supported, helping the value chain get maximum value from them through their questions and needs.
+Learns quickly and adapts rapidly to new technologies, business processes, and organizational priorities, applying new knowledge with minimal ramp-up time.
+Exhibits strong problem-solving skills and initiative, proactively identifying issues, analyzing root causes, and driving effective solutions to completion.
+Embraces change and continuous improvement, remaining flexible and resilient in evolving environments while helping others navigate transformation.
+Thrives in dynamic and ambiguous situations, maintaining focus, prioritizing effectively, and delivering results amid competing demands and shifting priorities.
+Communicates effectively in both technical and non-technical terms.
+What you’ll do:
+Own all support and operational issues for assigned enterprise applications (ERP, PIM, Forecasting, Order Management, and related integrated systems), driving them to resolution and root cause.
+Build and continuously improve monitoring, alerting, and system-health measurement for enterprise application so problems are forecasted and resolved before impacting operations.
+Partner with vendors and the internal IT operations team to ensure application and overall system performance.
+Engage business operations to analyze requests, question underlying requirements, and craft solutions for system improvements.
+Lead technical coordination and execution on small and medium sized projects, including project management meetings.
+Design, execute, and report on application testing for new system improvements, releases, enhancements, and bug fixes.
+Build and deliver training plans and documentation for new system improvements.
+Deploy software updates and enhancements.
+Develop and maintain operational procedures, support documentation, and knowledge base articles.
+Mentor and train other employees on best support practices for the supported systems.
+ 
+What you’ll need:
+3+ years supporting enterprise applications with direct responsibility for system health, troubleshooting, and vendor coordination (ERP, PIM, Forecasting, WMS, OMS, CRM, or comparable enterprise applications).
+Proficiency administering Windows-based and/or cloud-hosted business applications.
+Proficiency with SQL query development and data analysis.
+Working Competency with Agile, Scrum, or Waterfall project delivery methodologies.
+Experience in ecommerce, distribution, manufacturing, or supply chain environments.
+Demonstrated ability to troubleshoot complex application issues independently, analyze root causes, and architect solutions that prevent recurrence
+Demonstrated history of a proactive approach: anticipating issues, identifying what needs to be done, and acting on it without waiting for direction.
+Understanding accounting, business, and wholesale distribution principles.
+Experience in business requirements elicitation and business analysis.
+Experience utilizing AI-assisted tools for operational support, administration, automation, documentation, testing, or process improvement.
+Would be great if you had:
+Bachelor's degree in Computer Science or related discipline.
+Experience with PowerShell, Python, REST APIs, or other scripting and automation technologies.
+Experience supporting application integrations and middleware platforms.
+Experience with EDI implementation and support.

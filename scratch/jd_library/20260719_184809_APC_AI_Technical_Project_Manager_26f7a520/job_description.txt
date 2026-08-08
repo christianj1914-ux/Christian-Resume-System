@@ -1,0 +1,75 @@
+Company: APC
+
+
+Job Title: AI Technical Project Manager
+
+
+
+Job Overview
+
+We are looking for an experienced AI Technical Project Manager to manage projects under our AI and agentic workflow initiatives. You will work closely with AI engineers, Product Managers, and Backend teams to translate complex AI capabilities into functional, scalable SaaS solutions. A heavy focus of this role is using Jira to organize, monitor, and automate project workflows in an Agile environment.
+
+Essential Job Responsibilities
+
+Agentic AI Project Delivery
+
+Manage end-to-end AI delivery lifecycle activities including discovery, experimentation, evaluation, deployment, monitoring, and iterative optimization of AI-powered SaaS capabilities. 
+Coordinate dependencies across AI engineering, backend engineering, product, QA, data, and platform teams. 
+Ensure AI initiatives meet business, technical, security, and operational readiness requirements prior release. 
+Drive delivery accountability across cross-functional teams ensure AI initiatives are delivered on time, within scope, and aligned business objectives. 
+
+Prioritization & Trade off
+
+Management Partner with Product and Engineering leadership prioritize initiatives, manage competing demands, and balance innovation with operational stability. 
+
+Strategic Execution
+
+Operate effectively in ambiguous, fast-evolving AI environments where requirements, model capabilities, and delivery priorities may shift rapidly. 
+Help teams balance experimentation velocity with enterprise-grade reliability and governance expectations. 
+
+Agile Delivery Operations
+
+Configure and optimize Jira workflows, dashboards, automation, and reporting mechanisms support scalable AI product delivery. 
+Leverage Atlassian Intelligence and workflow automation improve execution transparency and operational efficiency. 
+
+Governance & Risk
+
+Partner with engineering and product leadership ensure AI initiatives align with organizational governance, security, compliance, and risk management standards. 
+
+Technical Bridging
+
+Act as the primary liaison between cross-functional teams, including software developers, designers, engineers, and quality assurance testers, to ensure project success. 
+Communicate project status updates, issues, and risks to stakeholders, including project sponsors, team members, and executive leadership. 
+Foster a collaborative and supportive team environment, promoting open communication, teamwork, and knowledge sharing. 
+Conduct regular project meetings to track progress, resolve issues, and adjust project plans as needed. 
+
+Required Skills & Experience: 
+
+3-5 years TPM experience
+
+2+ years supporting AI/ML or Generative AI product delivery 
+Experience coordinating cross-functional AI initiatives in production SaaS environments 
+
+Jira Expertise
+
+Strong proficiency in JIRA, including JQL, building dashboards, and customizing workflows for Agile teams. 
+
+AI/LLM Understanding
+
+Understanding of the LLM ecosystem, agent frameworks, and the difference between Generative and Agentic AI. 
+
+Technical Competencies
+
+Working understanding of LLM application architectures, including retrieval-augmented generation (RAG), agent orchestration frameworks, vector databases, prompt engineering workflows, and API-driven AI services. 
+Familiarity with cloud-native SaaS environments and AI infrastructure concepts such as inference services, model evaluation pipelines, observability, and CI/CD workflows. 
+Ability to communicate effectively with AI engineers regarding system dependencies, experimentation tradeoffs, and deployment considerations. 
+
+Technical Background
+
+Bachelor’s degree in Computer Science, Engineering, or equivalent experience 
+Experience supporting LLM-based applications, copilots, agentic systems, or AI automation products 
+Familiarity with AI evaluation frameworks and experimentation methodologies 
+Experience working with distributed engineering teams in rapid-release SaaS environments 
+Comfortable operating in iterative AI development environments where experimentation, rapid feedback loops, and evolving model behavior are core aspects of delivery. 
+
+APC is a professional staffing and services organization focused on engaging people and positively impacting lives. As “Professionals serving Professionals”®, we take pride in providing our employees and contractors with the highest level of customer service and support.

@@ -15,6 +15,7 @@ def parse_args() -> argparse.Namespace:
     subparsers = parser.add_subparsers(dest="command")
     archive = subparsers.add_parser("archive", help="Archive the active job description and active application questions.")
     archive.add_argument("--sync-legacy", action="store_true", help="Reconcile legacy archive records before archiving (writes archive metadata).")
+    subparsers.add_parser("refresh-metadata", help="Reclassify archived lanes while preserving historical role labels.")
     subparsers.add_parser("list", help="List archived job-context snapshots.")
     search = subparsers.add_parser("search", help="Search archived job descriptions.")
     search.add_argument("term")
@@ -55,6 +56,12 @@ def list_entries() -> int:
             f"{row['created_at']} | {row['company']} | {row['role']} | {row['lane']} | "
             f"{row['snapshot_id']} | questions={row['questions_present']}"
         )
+    return 0
+
+
+def refresh_metadata() -> int:
+    rows = job_context_archive.refresh_archive_metadata()
+    print(f"Refreshed archive metadata for {len(rows)} snapshot(s); all lanes are populated.")
     return 0
 
 
@@ -100,6 +107,8 @@ def main() -> int:
         return archive_current(sync_legacy=args.sync_legacy)
     if args.command == "search":
         return search_entries(args.term)
+    if args.command == "refresh-metadata":
+        return refresh_metadata()
     if args.command == "patterns":
         return pattern_summary()
     return list_entries()

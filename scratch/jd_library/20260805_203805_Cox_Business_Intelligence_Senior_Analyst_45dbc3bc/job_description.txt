@@ -1,0 +1,54 @@
+Company: Cox
+Job Title: Business Intelligence Senior Analyst
+
+
+
+The Business Intelligence Sr Analyst will serve as a strategic, hands-on partner who connects business strategy to the data that powers it across Cox Automotive’s Fleet Data team. Rather than functioning as a traditional analyst, this person acts as a data strategist and translator - someone who understands the full end-to-end lifecycle of data, from source systems and applications through to downstream destinations such as Tableau dashboards, distributed reports, and external systems. This role collaborates closely with senior leaders to translate data strategy and directives into clear, actionable requirements, and works alongside technical data teams (Data Engineers, Data Architects, and Data Analysts) and non-technical stakeholders (such as Product) to ensure that decisions across the business align with established data strategy, principles, and schema design.
+
+A successful candidate will be comfortable working across multiple systems - mapping and unifying data from disparate sources - and will help ensure that upstream decisions do not compromise downstream data pipelines, reporting, or data integrity. This is a technical role that emphasizes strategic thinking, business context, and strong communication. The Sr Analyst will be expected to remain in the weeds, performing hands-on work while helping safeguard the reliability and consistency of the insights the business depends on.
+
+WHAT YOU'LL DO
+
+Key Focus Areas
+
+Data governance - Help ensure alignment between operational processes and data integrity, enabling consistent and reliable BI insights (for example, standardizing how concepts such as “urgent” work are defined and captured across systems).
+Data strategy support - Serve as the BI point of contact to support adherence to data strategy across business processes and reporting, helping carry out strategic directives received from senior leadership.
+Customer reporting support - Provide backup support for customer reporting and insights, contributing to the significant lift on data integrity and alignment required as multiple systems and data sources are brought together.
+Primary Duties / Key Responsibilities
+
+Collaborate with senior leaders in allied and supported functions (e.g., Product, Operations, Finance, Marketing) to identify business opportunities & develop the associated informational and data requirements.
+Translate data strategy and directives received from leadership into clear, actionable requirements that can be communicated to both technical data teams and non-technical stakeholders.
+Determine data collection, synthesis, and analytical methodologies for investigating identified challenges and opportunities across the data lifecycle - from source systems and applications through to downstream reporting and external destinations.
+Work closely with Data Engineers and Data Architects to help ensure that data is modeled in ways that align with data strategy and that reporting goals remain achievable.
+Recommend and help define criteria and guardrails for non-technical stakeholders to support adherence to data strategy, schema requirements, and data principles - helping prevent upstream changes from breaking downstream data pipelines.
+Devise methods for identifying data patterns and trends, and quality issues - investigating and tracing them to their root cause independently or in partnership with Data Engineers.
+Support work to map, unify, and reconcile data across multiple systems and sources, helping ensure consistency and reliability of unified datasets.
+Deliver well-structured datasets and reports to business leaders and decision-makers for independent analysis.
+Manage and execute entire projects or components of large projects from start to finish, including data gathering, synthesis and modeling, problem solving, and communication of insights and recommendations.
+Ensure all analytical processes adhere to established data governance standards and protocol.
+WHO YOU ARE
+
+Required Experience & Specialized Knowledge and Skills
+
+Bachelor’s degree in Economics, Finance, Mathematics, Statistics, or Data Science and 4 years of related experience; OR a Master’s degree in a related discipline and 2 years of related experience; OR a Ph.D. and 1+ years of related experience. (Master’s degree or above preferred.)
+Familiarity with data modeling principles and techniques, including dimensional modeling, schema design, and normalization. The ability to apply these in implementation is a plus but not required.
+Understanding of the end-to-end data lifecycle - how data flows from source systems and applications through transformation, storage, and downstream destinations such as dashboards, distributed reports, and external systems.
+Experience working across multiple systems and data sources, including the ability to map, unify, and reconcile data from disparate origins.
+Strong analytical thinking, business acumen, and consulting skills, with the ability to translate business context into data requirements.
+Hands-on experience with Business Intelligence platforms such as Tableau, Power BI, MicroStrategy, or Looker, and proficiency in Microsoft Excel for data analysis and reporting.
+Experience with relational databases and data warehouses such as Snowflake, Redshift, SQL Server, or BigQuery, with the ability to write and optimize SQL queries.
+Familiarity with major cloud platforms and their services - such as AWS (including S3), Google Cloud Platform (GCP), or Microsoft Azure - for data storage, processing, and analytics.
+Familiarity with a scripting language, such as Python, for data manipulation, automation, and analytical tasks.
+Basic understanding of version control tools, particularly GitHub, for collaborative development and code management.
+Ability to communicate effectively and build partnerships across both technical and non-technical teams.
+Demonstrated ability to manage and execute projects and deliver results in a fast-paced environment.
+Can travel, up to 5% of the time.
+Note: The ideal tech stack includes Snowflake, AWS (Redshift / Athena), S3, GitHub, Tableau, and Python. This stack is not required - equivalent platforms (e.g., GCP, relational SQL databases, Power BI) are welcome.
+
+Core Competencies
+
+Analytical Thinking: Applies effective analytical techniques and tools to define issues, determine root cause, and create sound alternative solutions in the best interest of the business.
+Business Acumen: Rapidly understands business context and the organization’s position, and translates economic, market, and industry understanding into actionable data requirements and solutions.
+Consulting: Understands stakeholder objectives and project scope, communicates requirements and deliverables, and keeps partners informed on progress and issues.
+Data Gathering and Reporting: Utilizes tools and processes to gather and report data, interprets and explains data clearly and actionably, and develops reports and recommendations for team and management consumption.
+Builds Partnerships & Collaborates with Intent: Builds business-focused working relationships across boundaries, shares relevant information and rationale, and works across teams to achieve shared goals.

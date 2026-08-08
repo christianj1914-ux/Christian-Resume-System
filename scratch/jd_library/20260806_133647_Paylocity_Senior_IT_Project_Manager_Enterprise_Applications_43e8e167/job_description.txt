@@ -1,0 +1,82 @@
+Company: Paylocity 
+Job Title: Senior IT Project Manager Enterprise Applications
+
+
+
+Paylocity is an award-winning provider of cloud-based HR and payroll software solutions, offering the most complete platform for the modern workforce. The company has become one of the fastest-growing HCM software providers worldwide by offering an intuitive, easy-to-use product suite that helps businesses automate and streamline HR and payroll processes, attract and retain talent, and build a strong workplace culture.
+
+
+
+While traditional HR and payroll providers automate basic HR processes such as payroll and benefits administration, Paylocity goes further by developing tools that HR and businesses need to compete for talent and deliver against the expectations of the modern workforce.
+
+
+
+We give our employees what they need to succeed, including great benefits and perks! We offer medical, dental, vision, life, disability, and a 401(k) match, as well as perks that support you, your family, and your finances. And if it’s career development you desire, we provide that, too! At Paylocity, people matter most and have always been at the heart of our business.
+
+When you feel like you belong, work is no longer work – it's personal. At Paylocity, we believe better employees lead to better companies. Workplaces and cultures that care will build the future, and at Paylocity, we’re doing just that. Join us as we change the future and transform your career!
+
+
+
+There are jobs and then there are careers. Since 1997, Paylocity has been hiring talented people, giving them big challenges, and providing the right resources to help them succeed. Our award-winning culture ensures all employees feel truly welcome, appreciated, and free to be themselves. While other companies talk about it, we make it happen. Join Paylocity and launch your career!
+
+
+
+Position Overview 
+
+The Senior IT Project Manager leads complex, high-visibility, enterprise-wide initiatives across systems, infrastructure, integrations, and business applications. This role owns full lifecycle delivery—from strategic planning to execution and operational transition—and partners with senior leaders, architects, and vendors to deliver scalable, high-impact outcomes. The Senior IT PM provides leadership through influence, mentors junior PMs, and drives continuous improvement in delivery frameworks and governance. 
+
+
+
+Primary Responsibilities  
+
+The below represents the primary duties of the position.  Others may be assigned as needed. To perform this job successfully, an individual must be able to perform each essential duty satisfactorily. The requirements listed below are representative of the knowledge, skill, and/or ability required. Reasonable accommodation may be made to enable individuals with disabilities to perform the essential functions.  
+
+
+
+Strategic Leadership & Planning 
+
+Lead large-scale, high-visibility IT projects involving enterprise applications (ERP/CRM), SaaS platforms, integrations, infrastructure, and/or security initiatives. 
+Collaborate with executive sponsors to define project strategy, scope, roadmap, resourcing model, and success metrics. 
+Drive alignment across business units to ensure objectives support organizational priorities. 
+Build comprehensive project artifacts: detailed plans, schedules, budgets/forecasts, communication plans, and change strategies. 
+Project Execution & Delivery 
+
+Oversee day-to-day management of complex workstreams; ensure on-time, on-budget, in-scope delivery with high quality. 
+Direct matrixed teams (BAs, developers, architects, QA, PMs) and vendors/partners through requirements, design, configuration/build, testing/QA/UAT, change management, cutover, hypercare, and operational transition. 
+Implement and enforce governance, stage gates, change control, and QA standards. 
+Maintain ongoing documentation and adjust resources/plans as needed to meet delivery commitments. 
+Leverage data to generate organizational and people insights that inform focus areas and strengthen decision-making. 
+Stakeholder Management & Communication 
+
+Serve as the primary point of contact for stakeholders, executives, and business sponsors. 
+Provide clear, concise communication of status, milestones, risks, issues, decisions, and financials to leadership (including steering committee updates). 
+Facilitate cross-functional workshops, project meetings, retrospectives, and vendor communications; create agendas, decks, minutes, and post-meeting deliverables. 
+Solicit customer feedback where applicable and benchmark external best practices to identify improvement opportunities. 
+Budgeting, Vendor & Resource Management 
+
+Develop and manage project budgets and forecasts; track actuals and variances. 
+Oversee procurement, vendor selection, SOW creation, contract negotiation, and vendor performance. 
+Coordinate resource requests across business units; align capacity with budgets and portfolio priorities. 
+Risk, Issue & Dependency Management 
+
+Proactively identify risks, issues, and dependencies; create mitigation and contingency plans and drive timely resolution. 
+Maintain audit-ready traceability and governance documentation throughout the lifecycle. 
+Process Improvement & Organizational Maturity 
+
+Champion continuous improvement of delivery methodologies (Agile, Waterfall, hybrid), tools, templates, and standards. 
+Recognize internal improvement opportunities and lead teams to design and implement pragmatic solutions. 
+Mentor junior and mid-level PMs; contribute to PMO playbooks and best practices. 
+Demonstrate a commitment to company core values and foster a culture of collaboration and accountability.
+Education and Experience 
+
+Bachelor’s degree in Information Technology, Computer Science, Business, or related field. 
+8+ years of Project Management experience delivering cloud-based, enterprise-level solutions using both Waterfall and Agile methodologies. 
+Professional certifications:  PMP, CAPM, MSP, CSM, or related project management certification. 
+Demonstrated success leading enterprise application implementations; CRM/ERP experience required (Salesforce and/or NetSuite preferred). 
+Expertise with project/Agile tools: Jira, Confluence, Smartsheet, Smartsheet  (or equivalents). 
+Proficiency with Microsoft Office Suite (Outlook, Word, PowerPoint, Excel). 
+Advanced stakeholder management, conflict resolution, budgeting/forecasting, and executive communication skills. 
+Experience mentoring and/or developing others; able to lead through influence in a matrixed, remote environment. 
+Experience in fast-paced, high-growth, or global organizations; familiarity with complex integrations, data migration, security/compliance, and change management. 
+Advanced ability to rapidly understand and evaluate new technologies, business processes, and system architectures, applying that knowledge to guide solution design and delivery. 
+Exceptional written and verbal communication skills, with the ability to distill complex technical issues into clear, actionable insights for executives and senior stakeholders

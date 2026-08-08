@@ -1,0 +1,15 @@
+{
+  "snapshot_id": "20260719_184001_ADP_Senior_Implementation_Consultant_3f075fa2",
+  "created_at": "2026-07-19T18:40:01",
+  "company": "ADP",
+  "role": "Implementation Consultant",
+  "workflow_type": "commercial",
+  "source_command": "resume",
+  "archive_reason": "command_auto_archive",
+  "lane": "implementation_delivery",
+  "questions_present": false,
+  "question_count": 0,
+  "relative_path": "20260719_184001_ADP_Senior_Implementation_Consultant_3f075fa2",
+  "job_description_sha256": "aba5bb684dd3e0ac393fc9e0d5cd0ca5b5b1a883f01ed9a9524e91f45207628a",
+  "application_questions_sha256": ""
+}

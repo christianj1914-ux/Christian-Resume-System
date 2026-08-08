@@ -1,0 +1,15 @@
+{
+  "snapshot_id": "20260719_220941_Trusaic_Implementation_Manager_6eb35ef3",
+  "created_at": "2026-07-19T22:09:41",
+  "company": "Trusaic",
+  "role": "Implementation Consultant",
+  "workflow_type": "commercial",
+  "source_command": "resume",
+  "archive_reason": "command_auto_archive",
+  "lane": "implementation_delivery",
+  "questions_present": false,
+  "question_count": 0,
+  "relative_path": "20260719_220941_Trusaic_Implementation_Manager_6eb35ef3",
+  "job_description_sha256": "4980b70bb27097d47b258e499e68290c9ba9e4f21dd5a12d1884503044cec5c4",
+  "application_questions_sha256": ""
+}

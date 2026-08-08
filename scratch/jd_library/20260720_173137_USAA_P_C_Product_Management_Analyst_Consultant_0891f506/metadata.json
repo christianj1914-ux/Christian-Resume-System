@@ -1,0 +1,15 @@
+{
+  "snapshot_id": "20260720_173137_USAA_P_C_Product_Management_Analyst_Consultant_0891f506",
+  "created_at": "2026-07-20T17:31:37",
+  "company": "USAA",
+  "role": "Implementation Consultant",
+  "workflow_type": "commercial",
+  "source_command": "resume",
+  "archive_reason": "command_auto_archive",
+  "lane": "product_ownership",
+  "questions_present": false,
+  "question_count": 0,
+  "relative_path": "20260720_173137_USAA_P_C_Product_Management_Analyst_Consultant_0891f506",
+  "job_description_sha256": "a40e2a1aa708270f3b12bea01821e08234d291c1b341d6f837651abfd6d97826",
+  "application_questions_sha256": ""
+}

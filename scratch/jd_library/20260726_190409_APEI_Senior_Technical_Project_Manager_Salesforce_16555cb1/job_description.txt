@@ -1,0 +1,73 @@
+Company: APEI
+
+
+Job Title: Senior Technical Project Manager, Salesforce
+
+
+The Senior Technical Project Manager, Salesforce is a senior role within the technology and product organization responsible for the planning, requirements, coordination, and delivery of complex Salesforce initiatives across multiple business units and enterprise systems. Reporting to a Product Development Manager, this role drives cross-functional projects from inception through deployment, manages backlogs and project roadmaps, translates business needs into actionable technical requirements, and provides regular project updates to stakeholders and leadership. Leveraging deep Salesforce administration experience, the Sr. TPM partners with business, technology, and operations teams to coordinate large-scale initiatives involving platform enhancements, integrations, data migration, governance, and process transformation. This role combines the responsibilities of Technical Project Manager, Business Analyst, and Salesforce subject matter expert to ensure the successful delivery of high-quality solutions in a complex enterprise environment.
+
+Responsibilities: 
+
+Execution & Delivery
+
+• Lead large-scale Salesforce projects from initiation through deployment and post-launch support
+• Manage project plans, backlogs, sprint activities, timelines, risks, and dependencies
+• Translate business objectives into actionable requirements, user stories, and acceptance criteria
+• Coordinate Salesforce releases, testing, deployment readiness, and change management activities
+• Track project status, milestones, risks, and deliver regular project updates to stakeholders and leadership
+
+Salesforce Strategy & Governance
+• Partner with Salesforce Administrators, Developers, Architects, and business leaders to deliver scalable solutions
+• Support Salesforce governance, platform optimization, and enterprise CRM best practices
+• Oversee data migration planning, execution, validation, and remediation activities
+• Ensure alignment with security, compliance, data quality, and governance standards
+
+
+Stakeholder & Cross-Functional Leadership
+• Lead cross-departmental stakeholder coordination for large-scale business and technology initiatives
+• Facilitate requirements gathering, solution reviews, prioritization, and decision-making sessions
+• Coordinate work across business, technology, operations, integration, and vendor teams
+• Manage stakeholder communications, project documentation, and executive-level reporting
+
+Continuous Improvement
+• Identify opportunities to improve delivery processes, platform adoption, and operational efficiency
+• Analyze project outcomes, user feedback, and platform performance to recommend enhancements
+• Promote Agile, SDLC, and project management best practices across Salesforce initiatives
+
+Requirements:
+
+• 8+ years of experience in technical project management, business analysis, or product delivery roles
+• Proven track record leading large-scale Salesforce and enterprise technology initiatives
+• Experience managing cross-functional and cross-departmental stakeholders through complex project lifecycles
+• Salesforce Administration experience, including platform capabilities, configuration, security, and governance
+• Strong understanding of Agile delivery methodologies, SDLC, backlog management, and release processes
+• Experience managing Salesforce projects involving integrations, data migration, and business process transformation
+• Strong knowledge of Salesforce ecosystem technologies, including Service Cloud, Experience Cloud, Marketing Cloud, and Omni-Channel
+• Experience coordinating development, QA, administration, integration, and business teams to deliver solutions
+• Ability to translate business requirements into user stories, technical requirements, and actionable project plans
+• Experience managing project risks, dependencies, scope, timelines, budgets, and resource planning
+• Strong understanding of data governance, data quality, and enterprise CRM best practices
+• Experience preparing and delivering project updates, status reports, and executive-level communications
+• Excellent documentation, facilitation, and communication skills with both technical and non-technical audiences
+• Strong organizational skills with the ability to manage multiple priorities in a fast-paced environment
+• Experience supporting higher education, CRM, ERP, LMS, or enterprise cloud platforms preferred
+• Experience supporting multiple Salesforce orgs and complex integrated business processes preferred
+
+PROFESSIONAL EXPECTATIONS & COMPETENCIES:
+
+• Collaborates: Builds and maintains effective partnerships with team members and stakeholders, working collaboratively to achieve shared goals and resolve challenges effectively.
+• Communicates Effectively: Delivers clear, concise, and tailored communications through various modes (e.g., written, verbal, and visual) to meet the unique needs of diverse audiences.
+• Customer Focus: Cultivates strong relationships with internal and external customers by actively listening to their needs and providing timely, customer-centric solutions.
+• Demonstrates Self-Awareness: Regularly seeks and incorporate feedback from peers, leaders, and stakeholders to understand and address personal strengths and areas for growth.
+• Ensures Accountability: Consistently meets deadlines and delivers on commitments, ensuring work quality and aligning with organizational standards.
+• Innovation & Improvement: Encourages forward-thinking solutions, process improvements, and a culture of learning to enhance efficiency and team effectiveness.
+
+Education:
+
+Preferred but not required, bachelor's degree in computer science, Information Systems, Business, or related field.
+Salesforce Platform Administrator license preferred 
+About Us:
+
+Online, on campus and in the workplace, we provide higher education and training to our country’s heroes – military service members, veterans, nurses, government employees, and motivated professionals that want to make a difference. American Public Education, Inc. educates service-minded students, ranging from the military, public service, federal agencies, and nursing communities, through American Public University System (APUS), Hondros College of Nursing (HCON), and Rasmussen University.
+
+It is the policy of American Public Education, Inc. (APEI) to afford equal opportunity to all qualified persons.  We treat all qualified individuals equally as to their recruitment, hiring, assignments, advancements, compensation, and all other terms and conditions of employment. American Public Education, Inc. does not discriminate on the basis of race, color, religion, creed, sex, age, national origin, sexual orientation, or physical, mental, or sensory disability, or any other characteristic protected by law.

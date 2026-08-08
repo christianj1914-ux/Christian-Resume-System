@@ -1,0 +1,15 @@
+{
+  "snapshot_id": "20260805_175106_Cox_Client_Solutions_Consultant_II_64e19455",
+  "created_at": "2026-08-05T17:51:06",
+  "company": "Cox",
+  "role": "Client Solutions Consultant II",
+  "workflow_type": "commercial",
+  "source_command": "resume",
+  "archive_reason": "command_auto_archive",
+  "lane": "implementation_delivery",
+  "questions_present": false,
+  "question_count": 0,
+  "relative_path": "20260805_175106_Cox_Client_Solutions_Consultant_II_64e19455",
+  "job_description_sha256": "d1434c862cd0028669ebf5dba14d74d912d5f9f0d0a41030a73d54fcd55fecb3",
+  "application_questions_sha256": "0c38ca6f6965643d0c64d93216ab2cf8fca7ef42d3d3037504c6b3d3ca5eee63"
+}

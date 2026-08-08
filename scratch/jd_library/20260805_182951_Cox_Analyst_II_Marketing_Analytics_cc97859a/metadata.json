@@ -1,0 +1,15 @@
+{
+  "snapshot_id": "20260805_182951_Cox_Analyst_II_Marketing_Analytics_cc97859a",
+  "created_at": "2026-08-05T18:29:51",
+  "company": "Cox",
+  "role": "Analyst II, Marketing Analytics",
+  "workflow_type": "commercial",
+  "source_command": "resume",
+  "archive_reason": "command_auto_archive",
+  "lane": "analytics_operations",
+  "questions_present": false,
+  "question_count": 0,
+  "relative_path": "20260805_182951_Cox_Analyst_II_Marketing_Analytics_cc97859a",
+  "job_description_sha256": "2745c430faf8c5d2706c9d514b3f33b26724ee79644826b7c0449c31bd7b2d1d",
+  "application_questions_sha256": "0c38ca6f6965643d0c64d93216ab2cf8fca7ef42d3d3037504c6b3d3ca5eee63"
+}

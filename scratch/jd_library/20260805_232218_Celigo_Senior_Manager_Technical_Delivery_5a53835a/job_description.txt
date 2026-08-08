@@ -1,0 +1,73 @@
+Company: Celigo
+Job Title: Senior Manager, Technical Delivery
+
+Integration meets Innovation
+At Celigo, we believe integration should empower — not exhaust — innovation. As a modern Integration and Automation Platform (iPaaS), we’re on a mission to simplify how companies integrate, automate, and optimize processes. Powered by game-changing technology like runtime AI and prebuilt, mission-critical integrations, Celigo is redefining how businesses connect their world.
+The Senior Manager, Technical Delivery is a senior leadership position within Celigo's Professional Services organization, responsible for managing and developing a team of highly skilled Solution Architects and Developers. This role bridges technical depth with people leadership, ensuring that client-facing delivery teams operate with excellence, consistency, and innovation. The ideal candidate is an AI-savvy integration specialist with a deep understanding of iPaaS platforms, enterprise system integration, and modern automation paradigms—who can also inspire, coach, and scale a high-performing technical team.
+The Senior Manager, Technical Delivery serves as both a strategic leader and a technical authority, partnering with Professional Services leadership, Sales, and Product teams to align delivery capabilities with business goals. This individual is expected to champion the adoption of Celigo's agentic services, AI-enabled integration patterns, and iPaaS capabilities across the team and with clients.What would you do if hired?
+People Leadership & Team Development
+
+Directly manage, mentor, and develop a team of Solution Architects and Sr. Developers across the full delivery lifecycle
+Conduct regular 1:1s, performance reviews, career development planning, and skills assessments for all direct reports
+Foster a culture of continuous learning, innovation, and technical excellence within the team
+Identify skill gaps and create targeted development plans, training programs, and certification paths for team members
+Recruit, onboard, and retain top integration talent in alignment with organizational growth goals
+Provide technical guidance and coach the team to be consultative during their engagements
+Technical Delivery & Oversight
+
+Oversee and quality-review the design and delivery of scalable integration solutions using the Celigo integrator.io platform
+Ensure team members follow best practices for API integrations, building AI agents, data transformation, security, governance, and performance optimization
+Lead or contribute to architecture review sessions for complex, highly customized integration engagements
+Serve as an escalation resource for technical blockers on active projects, providing hands-on guidance when needed
+Champion the adoption of Celigo iPaaS, agentic services, MCP servers, and AI-enabled automation across all delivery engagements
+Drive consistency in integration patterns, reusable solution templates, and methodology improvements across the team
+Client Engagement & Stakeholder Management
+
+Engage directly with customers and partners as a senior technical representative during complex or strategic project phases
+Partner with Solution Architects to lead design workshops, business process assessments, and integration roadmap sessions
+Review and validate Statements of Work (SOW), project estimates, and solution designs for accuracy, feasibility, and profitability
+Act as a voice of the customer internally, helping shape product design, delivery methodology, and service offerings
+Support pre-sales activities by providing technical credibility and delivery scoping expertise alongside Sales, Engagement Managers and Solution Architect teams
+Operational Excellence & Strategy
+
+Own delivery KPIs for the team including utilization, customer satisfaction, time-to-value, and quality metrics
+Work with Professional Services leadership to refine and scale delivery methodology, tooling, and documentation standards
+Coordinate with Sales, Product, Customer Success (CX) and Support organizations to ensure seamless customer journeys from pre-sales through post-go-live
+Contribute to internal initiatives such as tiger teams, methodology improvements, and cross-functional knowledge-sharing programs
+Stay current with emerging iPaaS trends, AI/ML integration patterns, and Celigo platform roadmap to inform team strategy and client advisory
+Who are we looking for?
+Skills & Abilities
+
+Exceptional people leadership skills with demonstrated ability to develop, motivate, and retain technical professionals
+Strong problem-solving skills with the ability to navigate complex integration challenges and guide teams through technical ambiguity
+Excellent verbal and written communication skills across technical and non-technical audiences, including executive stakeholders and clients
+Client-facing professionalism with the ability to lead design workshops, advisory sessions, and executive briefings
+Deep business acumen with the ability to connect technical delivery to business outcomes and revenue goals
+Ability to manage multiple competing priorities across a team in a fast-paced, client-driven professional services environment
+Strong ownership mindset with attention to detail and a bias toward action and accountability
+Fast learner with the drive to self-educate on emerging technologies and translate them into practical value for clients and the team
+Ability to translate abstract business requirements into concrete, scalable technical and process solutions
+Collaborative partner who can work across Sales, Product, Support, and Delivery functions to drive customer success
+Technical Skills
+
+Deep understanding of iPaaS architecture patterns, middleware concepts, and cloud integration best practices
+Strong experience with API integrations and API management (REST, SOAP, webhooks, OAuth, token-based authentication)
+Proficiency in or strong familiarity with JavaScript/Node.js for integration scripting, hooks, and transformations
+Experience with ERP system integrations (NetSuite, Acumatica, Microsoft Dynamics, SAP, etc.) and cloud/SaaS platforms (Salesforce, Shopify, Amazon, HubSpot, etc.) is required
+Data transformation expertise across formats including JSON, XML, CSV, EDI, and flat files
+Experience integrating and operationalizing AI/LLM services within enterprise integration workflows
+Familiarity with agentic architectures and orchestration concepts, including Celigo agentic services and MCP servers
+Understanding of integration lifecycle management: requirements, design, build, testing, go-live, and post-production support
+Hands-on experience with legacy integration methods (FTP, ACH, fixed-width files, EDI) is a plus
+Familiarity with enterprise application ecosystems and how integration connects business processes end-to-end
+Education & Experience 
+
+Bachelor's degree in Computer Science, Information Systems, Engineering, Business, or a related field; MBA or MSIS preferred
+12+ years of combined experience in integration development, solution architecture, or technical consulting within enterprise software or iPaaS environments
+7+ years of direct people management experience leading technical delivery teams in a professional services or consulting context
+Proven ability to manage and develop teams of developers and/or solution architects across multiple concurrent customer engagements
+Experience across the full delivery lifecycle from requirements and SOW definition through post-go-live support and knowledge transfer
+Strong background in client-facing delivery with a track record of managing senior stakeholder relationships
+Demonstrated experience with AI-enabled integration patterns, LLMs, agentic services, or MCP server architectures
+Experience with Celigo integrator.io or comparable iPaaS platforms (MuleSoft, Boomi, Workato, Jitterbit, etc.) strongly preferred
+Prior experience in a pre-sales or solution scoping capacity, including contributing to SOWs and project estimates, is a plus

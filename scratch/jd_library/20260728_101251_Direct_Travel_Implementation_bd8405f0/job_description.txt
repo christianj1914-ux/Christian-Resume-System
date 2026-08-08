@@ -1,0 +1,57 @@
+Company: Direct Travel
+
+
+Job Title: Implementation
+
+
+Job Summary
+
+A client facing role who will be responsible for delivering timely and successful customer implementations on behalf of Direct Travel, that supports the onboarding and technical setup of new clients, products, and platforms. This role ensures systems are configured accurately, data is complete and validated, and clients transition smoothly from sales to operations. The ideal candidate brings a blend of technical aptitude, client service, and process coordination, ideally within the travel industry.. This position will coordinate efforts with internal and external resources to meet the objectives of the implementation project, mitigate risks and overcome obstacles to deliver on time results.
+
+ 
+
+Essential Functions:
+Lead & drive structured global project team of internal cross functional resources, maintaining outcomes and timely delivery
+Consultative approach to maintain alignment in contracted scope and DT best practice while securing customer participation and engagement
+Own and maintain well documented and organized project plans, schedules with internal and external stakeholders
+Clear and concise communication skills, written and verbal
+Global awareness and business acumen
+Manage project risk by engaging with key stakeholders and document solution and outcomes
+Escalates critical issues to management team members as required
+Maintain understanding and expertise in process flows and related documents for the business
+Assist, as needed, commercial teams in strategic sales presentations where implementation is on the agenda
+Manage technical implementations for new customers – including but not limited to Avenir platform and integrated tool set
+Manage the setup and configuration of client accounts, tools, and platforms (e.g., GDS, online booking tools, profile systems)
+Gather client overall strategy & requirements and how it interfaces with DT technology value proposition
+Organize design and client deliverables for successful project framework, including (not limited to) travel policies, data mapping, and workflow preferences
+Input and maintain client configurations and user profiles in accordance with project timelines
+Cross-Functional Collaboration
+Collaborate with Sales, Account Management, IT, and Operations to align deliverables and milestones
+Lead internal and external project calls or check-ins related to technology design and activation
+Help facilitate the smooth handoff to operational teams’ post-implementation
+Testing & Quality Assurance
+Conduct system and user acceptance testing of booking tools, profile integrations, and data feeds
+Troubleshoot implementation issues and coordinate resolution with internal teams or vendors
+Identify opportunities for process improvement based on client or internal feedback
+Documentation & Reporting
+Maintain detailed and organized records of all implementation activities and decisions, including technical design for client programming
+Ability to Manage projects creation of project timelines, client deliverable check list, configuration documentation, and client-specific setup guides
+Provide reporting support during implementation (e.g., audit logs, profile completion rates, system checks)
+Other duties as needed
+Support commercial teams as required for strategic accounts
+
+Required Qualifications:
+12+ years of experience in client onboarding, system implementation, or operations support; preferably in the corporate travel or SaaS sectors
+Project Management experience with ability to balance and prioritize deadlines of concurrent projects
+Proven organizational skills with attention to detail
+Excellent communication skills, verbal and written (English required, bilingual a plus)
+Strong skills in MS Office tools, Smartsheet, project tracking tools (e.g., Jira, Asana), and CRM platforms (e.g., Salesforce)
+Familiarity with travel technology and booking platforms such as Spotnana, Concur, Deem, Sabre, Amadeus, or other online booking/GDS tools
+Must be self-motivated and willing to accept change
+Must take ownership of all assigned tasks and project related assignments
+
+Preferred Skills & Certifications:
+Prior experience working at or with a Travel Management Company (TMC) or SaaS sectors
+Exposure to Profile Management Systems and travel reporting tools
+Knowledge of client implementation best practices and ticketing systems
+Bi-lingual skills are a plus

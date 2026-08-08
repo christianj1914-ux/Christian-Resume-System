@@ -1,0 +1,15 @@
+{
+  "snapshot_id": "20260720_221904_Blue_Yonder_Services_Advisor_Services_Pre-Sales_7ac20bbe",
+  "created_at": "2026-07-20T22:19:04",
+  "company": "Blue Yonder",
+  "role": "Implementation Consultant",
+  "workflow_type": "commercial",
+  "source_command": "resume",
+  "archive_reason": "command_auto_archive",
+  "lane": "presales_solution",
+  "questions_present": false,
+  "question_count": 0,
+  "relative_path": "20260720_221904_Blue_Yonder_Services_Advisor_Services_Pre-Sales_7ac20bbe",
+  "job_description_sha256": "930a1ef79d814ae3acb00434c63b81af446d3d051279600183bf5f38d57bce69",
+  "application_questions_sha256": ""
+}

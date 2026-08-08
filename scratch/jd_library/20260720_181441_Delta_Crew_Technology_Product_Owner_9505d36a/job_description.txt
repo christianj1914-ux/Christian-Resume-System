@@ -1,0 +1,51 @@
+Company: Delta
+
+
+Job Title: Crew Technology Product Owner
+
+
+
+How you'll help us Keep Climbing (overview & key responsibilities)
+Now is an exciting time to be part of Delta's Crew Technology team as we enhance the frontline employee experience through new decision making and execution applications.  This is an opportunity to bring new strategies and initiatives to life while retiring legacy apps.  We are seeking a Product Owner to help define the strategy, provide technical expertise, and own all current and future apps supporting tracking functions within Crew Operations. The Product Owner will work across Crew Resources, Operations Management, Flight Ops, In-Flight Service, and IT to ensure development requests are well understood across the enterprise, gain cross-divisional consensus on priorities, and ensure deliverables meet business needs.  To do so, this individual will need to manage end-to-end delivery of multiple projects at once, communicate effectively, build strong cross-divisional partnerships, understand how to write project requirements, and understand the tracker, scheduler, and crew member experience.
+
+
+
+Summary of responsibilities (not comprehensive of all tasks):
+
+Responsible for end-to-end product ownership and delivery duties including understanding the business problem, identifying crew member needs, and developing optimal solutions so that the business derives value from the applications
+Partner with the business to deliver future strategy for back-office applications to enable transformation of crew processes
+Understand the business and technology vision and translate it into strategy and requirements so that products meet the business’s needs
+Work with end users (Flight Attendants, Pilots, Schedulers, Trackers, and the CRW Back Office) to understand their needs and develop product enhancements that provide value to Flight Plans and enterprise and initiative level goals
+Prepare and delivery communications that include ad hoc reports, executive summaries, and formal presentations to senior leaders, so the audience understands status, what is being delivered, and the value it is adding to their specific spaces and areas
+Understand FAR, FAWR, and PWA rules and deliver safe and compliant end-to-end back-office technology solutions in compliance with these rules
+Prioritize product backlog, projects, and initiatives across multiple stakeholder groups so that IT is working on the right things
+Work with senior leadership to deliver added value as part of initiative integration into the crew tracking and technology spaces ensuring alignment across the product, IT and business teams, while identifying opportunities to improve business processes and propose potential action plans
+Build and maintain an executable product roadmap that balances business value, funding, cross-initiative dependencies, and development complexity that guides current and future development
+Write features, epics, and acceptance criteria that enable a smooth handoff to development partners in IT and participate in Agile ceremonies with development teams to provide direction and drive progress
+Define value of new functionality and ensure that the end product meets the needs and goals of CRW and Crew members while ensuring stakeholder alignment across the enterprise
+Lead increment planning to align business priorities with available IT capacity across teams and squads
+Represent CRW Technology in working groups and initiatives that require Tracking technology and business process expertise
+Develop subject matter expertise for crew related data and systems that can be translated into optimal design and development
+Understand the IT development space and serve as its voice in business side conversations, estimation and planning
+Model Delta's Rules of the Road and core values
+Practice safety-conscious behaviors in all operational processes and procedures
+
+What you need to succeed (minimum qualifications)
+Verbally present ideas succinctly and persuasively; demonstrate logical thinking when responding to questions or providing alternative solutions
+Ability to develop presentations that include visuals that advance the story, speak to an executive audience, and influence outcomes
+Experience translating a business vision into written requirements
+Track record of managing products or complex projects successfully
+Ability to lead and influence others responsible for deliverables, including stakeholders from other departments
+Exhibit curiosity and think creatively to help identify solutions
+Proven success in understanding and managing complex processes
+Willingness to become the subject matter expert for your product and take ownership for its development and performance
+Self-starter with the ability to work well with diverse groups in a time sensitive and team environment with minimal supervision
+Results oriented and capable of meeting or exceeding deadlines with attention to detail and follow through
+Currency in user experience best practices and new technology trends
+Embraces diverse people, thinking and styles
+Must be performing satisfactorily in present position (if transferring internally)
+What will give you a competitive edge (preferred qualifications)
+Bachelor’s degree in Business, Economics, Engineering, or Technology
+Experience in creation and design, or management of technology systems
+Prior experience as an agile product manager/owner preferred
+Broad knowledge of Crew Resources, Flight Ops, or Inflight Service preferred

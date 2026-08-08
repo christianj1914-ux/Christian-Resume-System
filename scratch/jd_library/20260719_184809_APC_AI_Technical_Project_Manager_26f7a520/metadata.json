@@ -1,0 +1,15 @@
+{
+  "snapshot_id": "20260719_184809_APC_AI_Technical_Project_Manager_26f7a520",
+  "created_at": "2026-07-19T18:48:09",
+  "company": "APC",
+  "role": "Implementation Consultant",
+  "workflow_type": "commercial",
+  "source_command": "resume",
+  "archive_reason": "command_auto_archive",
+  "lane": "program_delivery",
+  "questions_present": false,
+  "question_count": 0,
+  "relative_path": "20260719_184809_APC_AI_Technical_Project_Manager_26f7a520",
+  "job_description_sha256": "47be5fcc4f139b6eb83452f8d7889c493a0e8ab96ea373ae3738ddecbb14f7fe",
+  "application_questions_sha256": ""
+}

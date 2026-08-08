@@ -1,0 +1,15 @@
+{
+  "snapshot_id": "20260720_184346_Advyzon_Technical_Consultant_137f41db",
+  "created_at": "2026-07-20T18:43:46",
+  "company": "Advyzon",
+  "role": "Implementation Consultant",
+  "workflow_type": "commercial",
+  "source_command": "resume",
+  "archive_reason": "command_auto_archive",
+  "lane": "implementation_delivery",
+  "questions_present": false,
+  "question_count": 0,
+  "relative_path": "20260720_184346_Advyzon_Technical_Consultant_137f41db",
+  "job_description_sha256": "f295138025de1e60464383f32baba71d042e789b47afd073a9a9868afceeda23",
+  "application_questions_sha256": ""
+}

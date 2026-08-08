@@ -1,0 +1,48 @@
+Company: Direct Travel
+
+
+Job Title: Senior Technical Implementation Consultant
+
+
+Job Summary
+
+The Senior Technical Implementation Consultant is a client facing role that supports the onboarding and technical setup of new clients, products, and platforms. This role ensures systems are configured accurately, data is complete and validated, and clients transition smoothly from sales to operations. The ideal candidate brings a blend of technical aptitude, client service, and process coordination, ideally within the travel industry.
+
+Essential Functions
+
+Manage technical implementations for new customers – including but not limited to Avenir platform and integrated tool set
+Manage the setup and configuration of client accounts, tools, and platforms (e.g., GDS, online booking tools, profile systems)
+Gather client overall strategy & requirements and how it interfaces with DT technology value proposition
+Organize design and client deliverables for successful project framework, including (not limited to) travel policies, data mapping, and workflow preferences
+Input and maintain client configurations and user profiles in accordance with project timelines
+Cross-Functional Collaboration
+Collaborate with Sales, Account Management, IT, and Operations to align deliverables and milestones
+Lead internal and external project calls or check-ins related to technology design and activation
+Help facilitate the smooth handoff to operational teams’ post-implementation
+Testing & Quality Assurance
+Conduct system and user acceptance testing of booking tools, profile integrations, and data feeds
+Troubleshoot implementation issues and coordinate resolution with internal teams or vendors
+Identify opportunities for process improvement based on client or internal feedback
+Documentation & Reporting
+Maintain detailed and organized records of all implementation activities and decisions, including technical design for client programming
+Ability to Manage projects creation of project timelines, client deliverable check list, configuration documentation, and client-specific setup guides
+Provide reporting support during implementation (e.g., audit logs, profile completion rates, system checks)
+Other duties as needed
+Support commercial teams as required for strategic accounts
+
+Required Qualifications
+
+12+ years of experience in client onboarding, system implementation, or operations support; preferably in the travel, SaaS, or hospitality sectors
+Familiarity with travel technology and booking platforms such as Spotnana, Concur, Deem, Sabre, Amadeus, or other online booking/GDS tools
+Demonstrate leadership and accountability in as project lead or in project support
+Project Management experience and competencies with ability to balance and prioritize deadlines of concurrent projects
+Excellent attention to detail, organization, and verbal/written communication
+Strong skills in MS Office tools, Smartsheet, project tracking tools (e.g., Jira, Asana), and CRM platforms (e.g., Salesforce)
+English language
+
+Preferred Skills & Certifications
+
+Prior experience working at or with a Travel Management Company (TMC) or SaaS sectors
+Exposure to Profile Management Systems and travel reporting tools
+Knowledge of client implementation best practices and ticketing systems
+Bi-lingual skills are a plus

@@ -1,0 +1,43 @@
+Company: Eve
+
+
+Job Title: Legal Implementation Consultant
+
+
+
+
+Eve is redefining legal technology for plaintiff law firms, and we're building the team that will take us there. We help firms handle more cases, recover more for clients, and grow with AI that works across every stage of a case, from intake through resolution. The next generation of great plaintiff firms will be AI-Native, and Eve is how they get there. But what makes Eve different isn't just the product. It's how we build it. If you're someone who takes ownership, stays curious, and wants to build AI that's already changing how law is practiced, this is where you belong.
+
+Product-market fit: Eve is trusted by over 1000+ law firms, and we’re growing fast.
+
+Backed by top investors: We’ve raised over $160M from world-class partners including Spark Capital, Andreessen Horowitz(A16z), Menlo Ventures, and Lightspeed.
+
+Built by a world-class team: Engineers, designers, and operators from places like Scale, Meta, Airbnb, Cruise, Square, Rubrik, and Lyft are building Eve from the ground up.
+
+AI-Native from day one: We’re on the bleeding edge of AI, collaborating directly with teams at OpenAI and Anthropic to build best-in-class AI workflows tailored for legal work.
+
+Explosive growth: We are growing 2X revenue Quarter over Quarter.
+
+What You'll Do
+
+Implementation Support: Guide customers through successful onboarding and implementation of Eve's solutions, ensuring smooth adoption and time to value
+Customer Training: Develop and deliver comprehensive training programs to help customers effectively utilize Eve's product suite
+Solution Optimization: Work with customers to understand their workflows and configure Eve's solutions to meet their specific needs
+Success Metrics: Track and report on key implementation metrics and customer success indicators
+Cross-functional Collaboration: Partner with sales, product, and engineering teams to ensure customer requirements are met and feedback is incorporated
+
+What We're Looking For
+
+Customer Success Experience: 3+ years experience in customer onboarding, implementation, or success roles
+Technical Aptitude: Strong understanding of SaaS platforms and ability to explain technical concepts to non-technical users
+Communication: Exceptional ability to present clearly and concisely to both business and technical stakeholders
+Problem-Solving: Strong analytical capabilities to design and deliver solutions for customer challenges
+Cross-Functional Collaboration: Skilled at working across teams to drive customer success and desired outcomes
+
+Preferred Qualifications
+
+Experience in legal tech, AI, or data-driven enterprise products
+Passion for customer success and building long-term partnerships
+Excellence in project management and organizational skills
+Ability to work in a dynamic, fast-paced environment
+Strong dedication to customer satisfaction and success

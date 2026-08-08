@@ -1,0 +1,15 @@
+{
+  "snapshot_id": "20260720_222949_Manhattan_Associates_Senior_IT_Delivery_Manager_Financial_Systems_143bdd1e",
+  "created_at": "2026-07-20T22:29:49",
+  "company": "Manhattan Associates",
+  "role": "Implementation Consultant",
+  "workflow_type": "commercial",
+  "source_command": "resume",
+  "archive_reason": "command_auto_archive",
+  "lane": "program_delivery",
+  "questions_present": false,
+  "question_count": 0,
+  "relative_path": "20260720_222949_Manhattan_Associates_Senior_IT_Delivery_Manager_Financial_Systems_143bdd1e",
+  "job_description_sha256": "f0b2c424911966eb821ecfdd202d5f7c5f3cda56b25198c3e3bb0e554f4b3300",
+  "application_questions_sha256": ""
+}

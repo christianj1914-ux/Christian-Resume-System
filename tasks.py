@@ -243,6 +243,7 @@ TASKS: dict[str, Task] = {
         False,
     ),
     "jd-archive": Task("Archive the active job description.", ("scripts/build_jd_library.py", "archive"), True),
+    "jd-archive-refresh": Task("Refresh archived job-description metadata.", ("scripts/build_jd_library.py", "refresh-metadata")),
     "jd-patterns": Task("Show job-description library patterns.", ("scripts/build_jd_library.py", "patterns"), False),
     "interview": Task("Build the standard interview cheat sheet directly.", ("scripts/build_interview_cheat_sheet.py",)),
     "guide": Task("Build the detailed interview guide directly. Optional flags: --stage <key> [--interviewer-context PATH].", ("scripts/build_detailed_interview_guide.py",)),

@@ -1,0 +1,15 @@
+{
+  "snapshot_id": "20260729_182822_Aptean_Implementation_Consultant_cef84a83",
+  "created_at": "2026-07-29T18:28:22",
+  "company": "Aptean",
+  "role": "Implementation Consultant",
+  "workflow_type": "commercial",
+  "source_command": "trace_backfill",
+  "archive_reason": "trace_backfill",
+  "lane": "implementation_delivery",
+  "questions_present": false,
+  "question_count": 0,
+  "relative_path": "20260729_182822_Aptean_Implementation_Consultant_cef84a83",
+  "job_description_sha256": "f64f776dd4fa68ddfdb391bc70676ee5476e47c4ab3debfe9e2018237cf72311",
+  "application_questions_sha256": ""
+}

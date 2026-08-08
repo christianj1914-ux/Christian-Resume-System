@@ -1,0 +1,76 @@
+Company: CreatorIQ
+
+
+Job Title: Strategic Solutions Consultant
+
+
+
+
+CreatorIQ is the operating system for creator-led growth trusted by more than 1,300 global brands and agencies.
+
+We’re on a mission to make businesses more human, and humans more impactful. We operate by our values — be intentional, pursue excellence every day, embrace the journey together, and be a good human — every day. CreatorIQ has earned the title of best companies to work for in multiple programs, including BuiltIn LA and NY. It’s been named a Fastest-Growing Company in North America on the Deloitte Technology Fast 500™ for four years, was named a leader in IDC MarketScape: Worldwide Influencer Marketing Platforms for Large Enterprises in 2025, was named a Leader by The Forrester New Wave™: Influencer Marketing Solutions, and has been consistently recognized by G2 as a Leader, and is rated 5 stars on Influencer MarketingHub. We operate in a flexible work model that combines both in-person and remote work to boost collaboration, enhance innovation, and adapt to individual work styles.
+
+We're seeking passionate, innovative minds to join our journey. Be a part of our dynamic team and let's transform the industry together!
+
+Strategic Solutions Consultant
+CreatorIQ's Strategic Solutions Consultant (SCs) are trusted technical advisors embedded in the sales cycle for our largest, most complex strategic accounts. These are top-tier global brands with layered organizations, sophisticated tech stacks, and high expectations.
+
+Blending deep technical fluency, architectural thinking, and consultative selling, SEs partner with Sales and cross-functional teams to dissect a prospect's ecosystem from the ground up, uncovering root needs that often span multiple teams, systems, and business units. They design end-to-end solutions that map CreatorIQ's platform to real business outcomes, and they present those solutions with equal confidence to a room of API engineers, a CMO, or a procurement committee.
+
+SCs are the product and platform experts in the room, trusted by prospects, customers, and internal stakeholders alike to cut through complexity, articulate clear business value, and guide high-stakes buying decisions to close.
+
+ 
+What you'll do:
+
+Partner with Sales to lead deep, multi-stakeholder discovery across technical, marketing, and executive audiences, uncovering the real business problems beneath surface-level requirements
+
+Map complex organizational structures, workflows, and integration landscapes to architect tailored CreatorIQ solutions across departments and teams
+
+Design and deliver high-impact product demonstrations, custom workshops, and white-glove trials aligned to each account's strategic objectives
+
+Develop compelling, account-specific presentations and collateral for both technical and non-technical stakeholders
+
+Serve as the technical authority on CreatorIQ's API capabilities (REST/GraphQL), platform architecture, data model, and integration framework
+
+Articulate CreatorIQ's AI and machine learning capabilities, helping prospects understand how intelligent features drive measurable business outcomes
+
+Own and drive security questionnaires, InfoSec reviews, and compliance documentation, partnering with internal Security and Legal teams to deliver thorough, timely responses
+
+Translate discovery insights into actionable, architecture-informed recommendations for brands and campaigns
+
+Partner with Account Executives and cross-functional teams to develop strategic, differentiated RFP/RFI/security questionnaire responses
+
+Maintain deep expertise in CreatorIQ's platform, integrations, API surface, AI capabilities, and product roadmap
+
+Adapt your message fluidly, from walking engineers through API documentation to presenting ROI narratives to C-suite executives
+
+ 
+Who you are and what you'll need for this position:
+
+5+ years in Solutions Consulting, Sales Engineering, or a consultative pre-sales role with meaningful time on large, complex enterprise accounts (SaaS required)
+
+Hands-on familiarity with REST and/or GraphQL APIs with the ability to speak credibly about integrations, data flows, and technical architecture
+
+Working knowledge of AI/ML concepts and genuine curiosity about how AI is reshaping marketing technology
+
+Experience with MCP (Model Context Protocol), AI agents, and agentic integration patterns, with the ability to advise enterprise clients on how these capabilities fit into their technology roadmap
+
+Experience managing security questionnaires, InfoSec reviews, and compliance processes as part of enterprise sales cycles
+
+Demonstrated ability to navigate complex, multi-stakeholder organizations and build trust from practitioners to C-suite
+
+Strong storyteller and presenter who translates technical architecture into clear, compelling executive-level business value
+
+Confidently leads customer meetings independently with authority, strong presentation skills, and the ability to command the room
+
+Naturally curious and analytical; you dig past the stated requirement to find the root problem
+
+Confident and composed in ambiguity; you bring structure where there is none and make progress without perfect information
+
+Experience in influencer marketing, social media, or selling to enterprise marketing/brand teams is a strong plus
+
+Methodical in preparation, yet adaptable in execution
+
+High ownership, accountability, and a collaborative instinct
+
+Motivated to continuously deepen your expertise in CreatorIQ's platform and the broader industry

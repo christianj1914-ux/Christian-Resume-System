@@ -1,0 +1,15 @@
+{
+  "snapshot_id": "20260720_095932_LHH_Supply_Chain_Operations_Manager_5e27ca16",
+  "created_at": "2026-07-20T09:59:32",
+  "company": "LHH",
+  "role": "Implementation Consultant",
+  "workflow_type": "commercial",
+  "source_command": "resume",
+  "archive_reason": "command_auto_archive",
+  "lane": "process_improvement",
+  "questions_present": false,
+  "question_count": 0,
+  "relative_path": "20260720_095932_LHH_Supply_Chain_Operations_Manager_5e27ca16",
+  "job_description_sha256": "e4836093de658a095b6727f516a017491dc3787189ae0db296e01208a625712b",
+  "application_questions_sha256": ""
+}

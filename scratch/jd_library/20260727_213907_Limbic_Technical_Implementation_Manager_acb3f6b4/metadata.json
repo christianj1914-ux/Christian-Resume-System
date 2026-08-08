@@ -1,0 +1,15 @@
+{
+  "snapshot_id": "20260727_213907_Limbic_Technical_Implementation_Manager_acb3f6b4",
+  "created_at": "2026-07-27T21:39:07",
+  "company": "Limbic",
+  "role": "Implementation Consultant",
+  "workflow_type": "commercial",
+  "source_command": "trace_backfill",
+  "archive_reason": "trace_backfill",
+  "lane": "implementation_delivery",
+  "questions_present": false,
+  "question_count": 0,
+  "relative_path": "20260727_213907_Limbic_Technical_Implementation_Manager_acb3f6b4",
+  "job_description_sha256": "7adaf6f51949e9f29db1d46317dbe8fc43f5af48b633bb51fb5815902159ba28",
+  "application_questions_sha256": ""
+}

@@ -1,0 +1,35 @@
+How many years of related post-secondary and/or professional education have you completed?
+
+How many years of direct relevant experience do you have related to the job duties of this position?
+
+Briefly describe your relevant experience demonstrating how it directly relates to the position.
+
+How many years of business-related experience do you have with public agencies or cooperatives?
+
+Is there anything else that may uniquely qualify you for this specific position?
+
+Please list all certifications and licenses you currently hold relevant to this position.
+
+Please list all software packages, systems, and programs for which you rate your skills at an intermediate or higher level, as it directly relates to position requirements.
+
+Briefly describe your level of demonstrated effective communication, formal public speaking, presentation experience, group facilitation or training skills, as it relates to the duties of this position.
+
+Why are you interested in joining this company?
+
+Describe the typical customer you support, including industry(s), employee count, and main stakeholder roles.
+
+How many concurrent implementations have you worked on at any given time and what was the average length of an implementation process?
+
+How do you measure performance and success during a software implementation?
+
+We are looking for people who are personally and/or professionally passionate about AI. Please briefly explain how you have put it to work for you in either or both areas of your life.
+
+Tell us about a complex project or program you led where there was no clear delivery playbook, template, or established way of working. What was the business/customer outcome you were accountable for, what was ambiguous at the start, and how did you create enough structure for the team to move forward? Please include how you handled the first few weeks, what operating rhythm or artifacts you created, who you needed to influence, and what the final outcome was.
+
+Describe a time when a customer, executive stakeholder, or internal partner expected something that the product/platform/team could not actually deliver as promised. What was the gap between expectation and reality, how did you diagnose the issue, and how did you communicate the tradeoffs or bad news? Please include who was involved, how you protected trust, what decision or path forward you drove, and what you learned from the situation.
+
+Do you have experience working for a SaaS or technology company with an AI product or service? If yes, please briefly describe your experience.
+
+Can you describe your experience in project leadership roles for complex initiatives? What were some of the challenges you faced, and how did you address them?
+
+Could you share details about your experience leading training strategies for large-scale technology or enterprise system implementations? What types of projects have you worked on, and what was your role?

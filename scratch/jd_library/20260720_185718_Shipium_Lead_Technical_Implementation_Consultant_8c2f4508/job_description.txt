@@ -1,0 +1,59 @@
+Company: Shipium
+
+
+Job Title: Lead Technical Implementation Consultant
+
+
+
+About the job
+Shipium builds technical infrastructure for complex supply chains.
+Modern operators turn to Shipium when they want to turn their supply chain into a strategic value driver. Shipium's platform provides cloud infrastructure and leading AI capabilities that optimize costs and scale automation.
+
+
+We’re building tech that connects previously fragmented systems and automates complex supply chain decisions to deliver speed and value across operations.
+
+
+Founded in 2019 by supply chain technology experts from Amazon and Zulily, the company is on a mission to help every eCommerce company provide its customers a great delivery experience while simultaneously reducing their costs to fulfill orders.
+
+
+Lead Technical Implementation Consultant
+
+About the role
+
+Are you a technical delivery expert who thrives at the intersection of complex software configuration, strategic solutioning, and team mentorship? Do you love the challenge of bridging the gap between cutting-edge product engineering and real-world customer operations?
+As the Lead Technical Implementation Consultant at Shipium, you won't just follow a deployment checklist—you will own the technical execution lifecycle. Operating with full autonomy, you will manage post-contract integration projects across our enterprise product portfolio. You will act as the primary technical anchor for our implementation team, driving modern, AI-augmented workflows and leveling up internal capabilities while ensuring our customers experience a seamless, rapid time-to-value.
+If you are looking for a high-impact role where you can engineer scalable processes, mentor a growing team, and directly influence product development, we want to talk to you.
+
+
+What you'll do
+
+Technical Solutioning & Architecture
+
+Deep-Dive Solutioning: Embed Solutions Architect methodologies into the delivery lifecycle, performing deep functional and operational solutioning for enterprise customers.
+API Configuration: Configure the Shipium platform and APIs, reviewing technical setups in detail to guide customers toward industry best practices.
+Strategic Trade-offs: Partner with Engineering, Product, and Solutions Engineering teams to navigate complex technical trade-offs based on your deep knowledge of our product suite.
+Customization Scoping: Collaborate with the Professional Services and Pre-Sales teams to scope, estimate, and develop proposals for custom configurations.
+Project Management & Process Optimization
+
+Process Engineering: Build, document, and implement scalable, clean project implementation methodologies and standard operating procedures (SOPs).
+End-to-End Delivery: Own the technical implementation from initial kick-off through post-go-live "hyper care" before handing off to Customer Success.
+Risk Management: Deconstruct complex timeline issues into actionable components; proactively identify and communicate technical blockers or risks to stakeholders.
+Team Leadership & Cross-Functional Collaboration
+
+Team Level-Up: Serve as the technical anchor for the Implementation team—coaching, mentoring, and training team members on advanced technical workflows.
+Feedback Loop Champion: Act as a strategic partner to Product and Engineering, championing customer needs to directly influence the product roadmap.
+Scale the Team: Participate in the hiring and interview process as we scale, while continuously creating and distributing documentation on integration best practices.
+Qualifications
+
+Required Experience & Tech Proficiency
+
+SaaS Expertise: 7+ years of related technical experience in a fast-paced SaaS environment.
+Supply Chain/Logistics Background: Proven track record in a customer-facing technical implementation, software delivery, or solutions architecture role within the supply chain tech space (WMS, OMS, TMS, or Multi-Carrier Shipping Platforms highly preferred).
+AI-Augmented Workflow: Required proficiency in utilizing AI tools to accelerate daily workflows, code generation, troubleshooting, or documentation. Direct experience leveraging the Claude/Anthropic ecosystem for technical problem-solving and data parsing is highly preferred.
+Core Systems: Strong proficiency with JIRA, Confluence, and modern project management systems.
+Education: Bachelor’s degree, or an equivalent combination of education and experience.
+Core Competencies
+
+Technical Mastery: Ability to deeply understand, apply, and cross-train others on complex technical architectures and APIs.
+Ownership & Adaptability: A self-starter mindset; thrives under pressure, adapts readily to changing environments, and holds themselves and collaborators accountable.
+Exceptional Communication: Comfortably presents highly technical solutions to both executive stakeholders and engineering teams alike.

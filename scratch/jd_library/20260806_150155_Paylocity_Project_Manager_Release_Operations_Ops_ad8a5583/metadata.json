@@ -1,0 +1,15 @@
+{
+  "snapshot_id": "20260806_150155_Paylocity_Project_Manager_Release_Operations_Ops_ad8a5583",
+  "created_at": "2026-08-06T15:01:55",
+  "company": "Paylocity",
+  "role": "Project Manager Release Operations Ops",
+  "workflow_type": "commercial",
+  "source_command": "resume",
+  "archive_reason": "command_auto_archive",
+  "lane": "program_delivery",
+  "questions_present": false,
+  "question_count": 0,
+  "relative_path": "20260806_150155_Paylocity_Project_Manager_Release_Operations_Ops_ad8a5583",
+  "job_description_sha256": "13215230c66c077c6a5a9cb5ef77117cbf6086601a05a5f08a7a6b229c6e0c23",
+  "application_questions_sha256": "0c38ca6f6965643d0c64d93216ab2cf8fca7ef42d3d3037504c6b3d3ca5eee63"
+}

@@ -1,0 +1,68 @@
+Company: Toast
+
+
+Job Title: Senior Analyst, Retail RevOps: GTM Analytics & Territory Design 
+
+
+
+About the job
+Toast creates technology to help restaurants and retailers succeed in a digital world. Retail is Toast's biggest bet and we are growing rapidly. The opportunity is massive, and the category is ours to define. You'll have the backing of Toast's scale, brand, and resources—and the decisions you make in this role will shape how Toast competes in retail for years to come.
+
+As a Senior Analyst, Retail Revenue Operations, you will be the primary architect of how we segment markets and carve territories to fuel our aggressive retail growth. This role sits at the critical intersection of GTM strategy, data analytics, and sales execution. You won't just maintain existing structures; you will use data to design equitable, high-yield sales territories, optimize field capacity, and build the infrastructure that allows our sales org to scale seamlessly.
+
+Your first mandate is redesigning Retail's territory motion end-to-end—moving from manual, spreadsheet-based planning to automated, algorithmic models built within Salesforce, Snowflake, and Sigma. As that infrastructure matures, your scope expands across the broader Retail analytics agenda: market intelligence, prioritization models, and decision-support tooling.
+
+A Day In The Life (Responsibilities)
+
+Analytics, Reporting & Decision Support
+
+Develop scalable analyses across sales execution, pipeline health, account prioritization, market coverage, territory performance, sales productivity, and growth planning. 
+Create decision support tools surfacing whitespace, high-priority accounts, coverage gaps, outreach penetration, funnel performance, and execution opportunities. 
+Conduct TAM, segment, and coverage analyses guiding leadership investments and scaling. 
+Build and maintain scalable enrichment workflows cleaning, classifying, and enhancing prospect and account data using LLMs. 
+Develop territory and account prioritization models using sales performance, volume potential, market characteristics, business attributes, and field capacity. 
+Own third-party market data strategy: vendor evaluation, procurement support, relationship management, and data quality oversight. 
+Translate ambiguous business questions into structured approaches, insights, and recommendations for stakeholders. 
+
+Strategic Territory Design & Market Coverage
+
+Design and execute advanced territory models that optimize sales coverage, ensure rep equity, and maximize market penetration across new retail segments and geographies. 
+Lead the annual and mid-year territory carving processes, translating leadership’s high-level capacity targets into balanced, data-driven books of business. 
+Develop territory visualization and mapping tools giving sales teams visibility into market coverage, prospect density, whitespace, and prioritization opportunities. 
+Partner directly with sales leadership to evaluate territory health, diagnosing under-covered markets, capacity bottlenecks, and expansion opportunities. 
+Conduct TAM, segmentation, and propensity-to-buy analyses to guide leadership on where to deploy the next dollar of sales investment. 
+
+Data Automation & Infrastructure
+
+Migrate legacy territory planning workflows into scalable systems across Salesforce (Enterprise Territory Management), Snowflake, and Sigma. 
+Build SQL/Python automations to improve data quality, automate scoring models, and streamline account-to-territory routing. 
+Manage territory data loads, mapping configurations, and rule exceptions in partnership with central business technology teams. 
+Enrich and classify prospect data using LLMs and third-party data vendors to sharpen our account prioritization models. 
+
+Governance & Performance Analytics
+
+Serve as the Retail SME on market coverage, rules of engagement (ROE), and territory analytics. 
+Build automated tools monitoring ROE exceptions, partnering with central governance to improve compliance workflows and automate conflict resolutions. 
+Measure territory productivity, providing leadership with dashboards that track pipeline health, quota attainment by territory type, and outreach penetration. 
+
+What You’ll Need To Thrive (Requirements)
+
+5+ years of experience in revenue operations, sales strategy, or GTM analytics, with a proven track record of owning territory design, market segmentation, or capacity planning. 
+Demonstrated experience carving territories using data-driven methodologies (e.g., account value scoring, geographic density, travel time, or historic conversion rates). 
+Advanced SQL skills and experience within modern cloud data warehouses (Snowflake, BigQuery, or Redshift) to manipulate massive, ambiguous datasets. 
+Experience building dashboards, reports, analytics tools, or workflows supporting decision-making (Tableau, Sigma, Hex, or equivalent). 
+Experience using AI or LLMs for data enrichment, classification, workflow automation, prospecting, or decision support tools. 
+Hands-on experience with Salesforce CRM and Territory Management tools (Salesforce ETM or equivalent. 
+Strong stakeholder management skills, with the confidence to advise sales leaders on territory equity and defend design decisions with data. 
+An entrepreneurial mindset—the ability to independently structure ambiguous problems and turn them into operational workflows. 
+Bachelor's degree in a quantitative field or equivalent experience. 
+
+What Will Help You Stand Out (Preferred Skills)
+
+Experience migrating a fast-growing sales organization away from spreadsheet-based territory models into automated infrastructure. 
+Proficiency in Python for spatial analysis, mapping/GIS visualizations, or data pipelines. 
+Experience leveraging AI/LLMs for account enrichment and propensity modeling. 
+
+AI at Toast
+
+At Toast, one of our company values is that we're hungry to build and learn. We believe learning new AI tools empowers us to build for our customers faster, more independently, and with higher quality. We provide these tools across all disciplines, from Engineering and Product to Sales and Support, and are inspired by how our Toasters are already driving real value with them. The people who thrive here are those who embrace changes that let us build more for our customers; it’s a core part of our culture.

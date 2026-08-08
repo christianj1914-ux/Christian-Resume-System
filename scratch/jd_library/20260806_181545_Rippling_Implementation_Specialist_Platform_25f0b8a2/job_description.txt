@@ -1,0 +1,37 @@
+Company: Rippling 
+Job Title: Implementation Specialist, Platform
+
+
+Rippling’s Professional Services team is responsible for ensuring customers see incredible business transformations by maximizing the value of our core Platform- including custom workflows, advanced reports/analytics, permission profiles, and approvals. 
+
+Professional Services engagements are consultative and customized based on the customers’ unique needs/pain points.
+
+The ideal candidate is a customer advocate, product advocate, and natural problem solver. This role specifically, is technical. A candidate who is strong in Excel/ SQL and is curious about technology and platforms will succeed. 
+
+What you will do 
+Ensure our customers are set up for success with our core platform:
+Discover our customers' business needs and priorities
+Solution customer’s business needs/priorities via workflows, reports, permissions and approvals
+Build custom workflows, formula fields (requires you to build queries in RQL), advanced reports, permission profiles, and approvals 
+Train customers on the core platform
+Deliver to key KPI’s: project completions, CSAT, and adoption/exit gate adherence
+Work cross-functionally with CX, product, and marketing to maximize product adoption.
+Design and document new use cases for our platform. 
+Train our internal and external teams through webinars
+Contribute to our knowledge base and serve as a subject matter expert on the Platform 
+Actively contribute to the development of new Platform features 
+Coordinate with product and engineering teams to support new use cases. 
+Assist with user testing and beta programs for new features. 
+What you will need
+2+ years of SaaS experience in professional services, implementation, or customer success
+An ability to build relationships with customers
+An ability to manage a book of business and control the customer’s implementation experience
+A curiosity for product/technology
+Strong preference 
+Experience writing your own SQL queries
+Prior experience working at an HR/IT SaaS company 
+Ruthless prioritization and time management
+Strong attention to detail and ability to solve complex, interdependent problems
+Boundless energy to help other teams and your customers...all with a “can-do” attitude!
+Flexible to scaling and changing organizations and responsibilities
+Experience working with product and engineering teams to build and launch new products or features

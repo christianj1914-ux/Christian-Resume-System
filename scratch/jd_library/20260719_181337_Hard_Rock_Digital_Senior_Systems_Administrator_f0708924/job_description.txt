@@ -1,0 +1,54 @@
+Company: Hard Rock Digital
+
+
+Job Title: Senior Systems Administrator
+
+
+
+What are we building?
+
+Hard Rock Digital is a team focused on becoming the best online sportsbook, casino, and social gaming company in the world. We're building a team that resonates passion for learning, operating and building new products and technologies for millions of consumers. We care about each customer's interaction, experience, behavior, and insight and strive to ensure we're always acting authentically.
+
+
+Rooted in the kindred spirits of Hard Rock and the Seminole Tribe of Florida, the new Hard Rock Digital taps a brand known the world over as the leader in gaming, entertainment, and hospitality. We're taking that foundation of success and bringing it to the digital space - ready to join us?
+
+
+What’s the position?
+
+We are seeking a Senior Systems Administrator to join our Finance Operations team with primary responsibility for the administration, support, training, and maintenance of our financial systems. This role will maintain system security, user access and roles, integrations, workflows, and overall platform governance.
+
+
+We’re looking for someone with experience in administering Oracle Fusion Cloud ERP and EPM, Navan, Sovos, Payment Providers, and Uber Business. Experience administering NetSuite, Blackline, and Planful systems is a plus.
+
+
+This team member will play a key role in cross-functional projects by gathering and analyzing business requirements, designing and implementing system solutions, and supporting system enhancements, upgrades, and process improvements. We are looking for someone who is highly analytical and detail-oriented who can bridge finance and technology to optimize system performance and drive operational efficiency.
+
+
+What will you do?
+Act as a supporting administrator for the financial systems, including user access, security roles, system configurations, and integration support.
+Partner with financial system stakeholders and other Senior Systems Administrators to maintain, enhance, and automate financial systems and processes.
+Support the monitoring of segregation of duties, user access controls, and compliance with SOX/Gaming. within the financial systems.
+Participate in system testing for new products and launches to ensure financial system integrity and reporting accuracy.
+Support configuring, maintaining, and validating data for integrations between financial systems.
+Assist with reporting needs and ad hoc system queries from accounting and finance stakeholders.
+Support user training, documentation, and troubleshooting across financial systems.
+Identify opportunities to automate manual tasks and improve system workflows.
+Additional projects and tasks as assigned.
+
+
+What are we looking for?
+
+5+ years of experience in financial systems administration
+Familiarity with accounting operations and internal control environments.
+Proficiency in administering systems such as Oracle Fusion Cloud ERP and EPM, Navan, Sovos, Payment Providers, Uber Business, Planful, NetSuite, Blackline, or similar ERP/finance tools.
+Proficient in AI-powered development and productivity tools, including Anthropic’s Claude, Claude Cowork, Claude Code, GitHub, and Visual Studio.
+Strong documentation and training skills.
+Ability to balance day-to-day administration with long-term projects and enhancements.
+Self-starter with a high degree of accountability and attention to detail.
+Experience supporting teams across time zones is a plus.
+
+
+
+Roster of Uniques
+
+We care deeply about every interaction our customers have with us, and trust and empower our staff to own and drive their experience. Our vision for our business and customers is built on fostering a diverse and inclusive work environment where regardless of background or beliefs you feel able to be authentic and bring all your talent into play. We want to celebrate you being you (we are an equal opportunity employer).

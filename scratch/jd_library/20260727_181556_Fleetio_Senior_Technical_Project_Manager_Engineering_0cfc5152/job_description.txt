@@ -1,0 +1,62 @@
+Company: Fleetio
+
+
+Job Title: Senior Technical Project Manager, Engineering
+
+
+
+
+Remote - USA, CAN, MEX
+A little about us…Fleetio is a modern software platform that helps thousands of organizations worldwide manage their fleet operations. Transportation technology is a hot market, and we’re leading the charge with raving fans and new customers signing up every day. We raised $450M in our Series D funding round in March of 2025 and are on an exciting trajectory as a company. Fleetio is also a proud founding member of the Rails Foundation!
+
+More about our team and company:
+
+Fleetio overview video: https://www.youtube.com/watch?v=YoXyXTFWbkg
+Our careers page: https://www.fleetio.com/careers
+Fleetio's Engineering organization is looking for a Senior Technical Project Manager to be the founding project management hire supporting our most strategic technical delivery work. This is a day-zero role: the position does not exist today, and you will be the one to define how world-class project management operates inside our product and engineering organization.
+
+Your primary focus will be supporting our Solutions Engineering capability — a new team that delivers custom technical solutions, integrations, and statements of work for our largest enterprise accounts and most strategic deals. This work is central to Fleetio's growth strategy: landing our biggest prospects and retaining the customers most important to our business. You will secondarily support our Platform Engineering organization, bringing the same delivery rigor to complex, cross-functional infrastructure and platform initiatives.
+
+Your mandate is project management excellence, executed at a senior level: driving accountability, setting and tracking milestones, managing dependencies, maintaining clear communication plans, and ensuring the projects you run land on time. You will bring your own proven playbook — along with the trust and autonomy to implement it from day one.
+
+If you are an experienced technical project manager who is energized by building from scratch, comfortable operating scrappy while you stand up better systems, and motivated by delivering visible impact for major customers, we would love to connect with you!
+
+This is a remote opportunity and is open to candidates located in the United States, Canada, or Mexico.
+
+More About Our Engineering Team and Company
+Watch our culture videos: https://fleet.io/culture
+Engineering culture, interview process and videos: https://www.fleetio.com/careers/engineering
+Fleetio Go overview video: https://www.fleetio.com/go
+More about the Fleetio platform: https://www.fleetio.com/features
+API docs: developer.fleetio.com
+Test drive Fleetio to get an even better feel for what we're building: https://www.fleetio.com/register
+Who You Are
+You are a seasoned technical project manager with a bias for action and an intrinsic motivation to build — even when the environment isn't perfect yet. You have deep experience delivering in enterprise software organizations, and you pair that with the flexibility and growth mindset to thrive where processes and tooling are still being defined. You run your own discovery, identify what a project needs to succeed, and put it in place.
+
+You are credible in highly technical rooms. Your strength is facilitation: you lead trade-off conversations between engineers and customers, manage technical dependencies with confidence, and translate technical constraints into clear business communication for executives. You build trust quickly across a broad stakeholder base — from individual engineers to executive leadership — and you have a track record of delivering multiple concurrent projects on time, delighting customers along the way.
+
+This role reports to the VP of Engineering.
+
+Your Impact
+Serve as the founding project manager for the Engineering organization, standing up project cadence, tracking, and reporting practices from day one.
+Drive delivery of Solutions Engineering projects for our most strategic enterprise accounts — custom plans, integrations, and statement-of-work-based engagements involving internal engineers, external contract engineers, or a blend of both.
+Facilitate successful statement of work inception: ensure the right people are in the room for scoping, deliverables, estimation, and milestone definition, and hold the project accountable to what was committed.
+Support Platform Engineering initiatives with the same delivery discipline: milestone tracking, dependency management, risk management, and clear stakeholder communication.
+Deliver weekly business updates to executive and senior leadership across product and engineering, including the VP of Engineering and directors.
+Partner closely with Customer Success and Solutions Consulting — the customer-facing owners of day-to-day relationships — to drive clear expectations, well-organized asks, and strong business cases; join customer calls directly when brought in.
+Establish and maintain a clear communication plan for every project so no stakeholder is left guessing.
+Assess our project management tooling, work effectively around gaps while they exist, and make recommendations on how to set up our tooling for long-term success (with support teams available for configuration).
+Your Experience
+7+ years of technical project or program delivery experience, with at least 3 years operating at a senior level.
+Proven ability to run multiple complex projects in parallel across cross-functional teams.
+Demonstrable track record of building broad stakeholder alignment and trust from scratch, including regular reporting to and interaction with executive leadership.
+Experience delivering customer-impacting technical work in enterprise software environments — ideally including professional services, SOW-based, or custom-delivery engagements with repeat clients.
+Strong technical fluency: able to facilitate architecture and integration trade-off discussions, manage technical dependencies, and hold your own in rooms with senior engineers and technical customer stakeholders.
+Excellent written and verbal communication, with the ability to tailor project status, risk, and impact to any audience from engineers to executives.
+A self-directed operating style: you bring established PM best practices with you and implement them through your own discovery, thriving in environments where you get to define how projects are run.
+Considered a Plus
+Hands-on background in software engineering, infrastructure, or architecture.
+Experience coordinating blended delivery teams (internal engineers + external contractors).
+Experience supporting platform engineering, SRE, DevOps, or infrastructure organizations.
+Experience standing up project management practices or tooling in an organization that didn't have them.
+Familiarity with fleet, transportation, logistics, or adjacent B2B SaaS domains.

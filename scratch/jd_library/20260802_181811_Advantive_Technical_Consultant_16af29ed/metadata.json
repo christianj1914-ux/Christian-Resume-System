@@ -1,0 +1,15 @@
+{
+  "snapshot_id": "20260802_181811_Advantive_Technical_Consultant_16af29ed",
+  "created_at": "2026-08-02T18:18:11",
+  "company": "Advantive",
+  "role": "Implementation Consultant",
+  "workflow_type": "commercial",
+  "source_command": "interview",
+  "archive_reason": "command_auto_archive",
+  "lane": "implementation_delivery",
+  "questions_present": false,
+  "question_count": 0,
+  "relative_path": "20260802_181811_Advantive_Technical_Consultant_16af29ed",
+  "job_description_sha256": "9441ae2f4ed617d0bae9dee52c9a600abc51e2fad057927a281425d31506ed1f",
+  "application_questions_sha256": "0c38ca6f6965643d0c64d93216ab2cf8fca7ef42d3d3037504c6b3d3ca5eee63"
+}

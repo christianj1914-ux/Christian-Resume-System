@@ -6,6 +6,7 @@ from __future__ import annotations
 import csv
 import hashlib
 import json
+import sys
 import os
 import re
 import uuid
@@ -179,10 +180,12 @@ def _safe_role_title(job_description_text: str) -> str:
 
 
 def _safe_lane(job_description_text: str) -> str:
-    try:
-        return str(resume_analysis.job_problem_profile(job_description_text, "").primary_lane).strip()
-    except Exception:
-        return ""
+    """Return a populated lane or raise; archive writes must not hide failures."""
+
+    lane = str(resume_analysis.job_problem_profile(job_description_text, "").primary_lane).strip()
+    if not lane:
+        raise ValueError("Archive lane classification returned an empty value")
+    return lane
 
 
 def _default_snapshot_id(company: str, role: str) -> str:
@@ -209,7 +212,12 @@ def _row_from_metadata(metadata: dict[str, object]) -> dict[str, str]:
     }
 
 
-def _normalized_snapshot_metadata(snapshot_id: str) -> dict[str, object] | None:
+def _normalized_snapshot_metadata(
+    snapshot_id: str,
+    *,
+    persist: bool = True,
+    require_complete: bool = False,
+) -> dict[str, object] | None:
     snapshot_id = snapshot_id.strip()
     if not snapshot_id:
         return None
@@ -217,11 +225,15 @@ def _normalized_snapshot_metadata(snapshot_id: str) -> dict[str, object] | None:
     metadata_path = metadata_path_for_snapshot(snapshot_id)
     job_path = job_description_path_for_snapshot(snapshot_id)
     if not metadata_path.exists() or not job_path.exists():
+        if require_complete:
+            raise RuntimeError(f"Archive snapshot {snapshot_id} is missing metadata or job description")
         return None
 
     existing = _read_metadata_file(metadata_path)
     job_description_text = optional_text(job_path)
     if not job_description_text:
+        if require_complete:
+            raise RuntimeError(f"Archive snapshot {snapshot_id} has an empty job description")
         return None
     application_questions_text = optional_text(application_questions_path_for_snapshot(snapshot_id))
     prompts = parse_question_blocks(application_questions_text)
@@ -232,7 +244,7 @@ def _normalized_snapshot_metadata(snapshot_id: str) -> dict[str, object] | None:
         "snapshot_id": snapshot_id,
         "created_at": created_at,
         "company": _safe_company_name(job_description_text),
-        "role": _safe_role_title(job_description_text),
+        "role": str(existing.get("role", "")).strip() or _safe_role_title(job_description_text),
         "workflow_type": str(existing.get("workflow_type", "commercial") or "commercial"),
         "source_command": str(existing.get("source_command", "")),
         "archive_reason": str(existing.get("archive_reason", "")),
@@ -243,7 +255,7 @@ def _normalized_snapshot_metadata(snapshot_id: str) -> dict[str, object] | None:
         "job_description_sha256": sha256_text(job_description_text),
         "application_questions_sha256": sha256_text(application_questions_text),
     }
-    if metadata != existing:
+    if persist and metadata != existing:
         metadata_path.write_text(json.dumps(metadata, indent=2) + "\n", encoding="utf-8")
     return metadata
 
@@ -258,6 +270,45 @@ def _snapshot_rows_from_disk() -> list[dict[str, str]]:
         metadata = _normalized_snapshot_metadata(path.name)
         if metadata:
             rows.append(_row_from_metadata(metadata))
+    return rows
+
+
+def refresh_archive_metadata() -> list[dict[str, str]]:
+    """Refresh all archive lanes atomically while retaining historical roles."""
+
+    pending: list[tuple[str, dict[str, object]]] = []
+    failures: list[str] = []
+    if not SCRATCH_JD_LIBRARY.exists():
+        return []
+    for path in sorted(SCRATCH_JD_LIBRARY.iterdir()):
+        if not path.is_dir():
+            continue
+        snapshot_id = path.name
+        try:
+            metadata = _normalized_snapshot_metadata(
+                snapshot_id,
+                persist=False,
+                require_complete=True,
+            )
+            if metadata is None or not str(metadata.get("lane", "")).strip():
+                raise RuntimeError("lane is empty")
+            pending.append((snapshot_id, metadata))
+        except Exception as error:  # noqa: BLE001 - report every archive record that cannot be refreshed.
+            job_text = optional_text(job_description_path_for_snapshot(snapshot_id)).replace("\n", " ").strip()
+            detail = f"{snapshot_id}: {error}; job description begins {job_text[:200]!r}"
+            print(f"ERROR: Archive metadata refresh failed for {detail}", file=sys.stderr)
+            failures.append(detail)
+    if failures:
+        raise RuntimeError("Archive metadata refresh aborted:\n" + "\n".join(failures))
+
+    rows: list[dict[str, str]] = []
+    for snapshot_id, metadata in pending:
+        metadata_path_for_snapshot(snapshot_id).write_text(
+            json.dumps(metadata, indent=2) + "\n",
+            encoding="utf-8",
+        )
+        rows.append(_row_from_metadata(metadata))
+    _write_index(rows)
     return rows
 
 

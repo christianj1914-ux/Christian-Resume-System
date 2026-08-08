@@ -1,0 +1,15 @@
+{
+  "snapshot_id": "20260727_233608_TRIA_SaaS_Implementation_Manager_466ad321",
+  "created_at": "2026-07-27T23:36:08",
+  "company": "TRIA",
+  "role": "Implementation Consultant",
+  "workflow_type": "commercial",
+  "source_command": "resume",
+  "archive_reason": "command_auto_archive",
+  "lane": "implementation_delivery",
+  "questions_present": false,
+  "question_count": 0,
+  "relative_path": "20260727_233608_TRIA_SaaS_Implementation_Manager_466ad321",
+  "job_description_sha256": "d81a25dd4626a402afcfacd237332314386a55f867e911c9c210bf739b8ee470",
+  "application_questions_sha256": "0c38ca6f6965643d0c64d93216ab2cf8fca7ef42d3d3037504c6b3d3ca5eee63"
+}

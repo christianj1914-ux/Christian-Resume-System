@@ -1,0 +1,15 @@
+{
+  "snapshot_id": "20260726_185301_Procare_Implementation_Manager_9cf29495",
+  "created_at": "2026-07-26T18:53:01",
+  "company": "Procare",
+  "role": "Implementation Consultant",
+  "workflow_type": "commercial",
+  "source_command": "resume",
+  "archive_reason": "command_auto_archive",
+  "lane": "implementation_delivery",
+  "questions_present": false,
+  "question_count": 0,
+  "relative_path": "20260726_185301_Procare_Implementation_Manager_9cf29495",
+  "job_description_sha256": "1675569e265fb675d5c2a1c5153dbeac266b49c493fceca376f3f4ec4b176bf1",
+  "application_questions_sha256": ""
+}

@@ -6,7 +6,7 @@
   "workflow_type": "commercial",
   "source_command": "trace_backfill",
   "archive_reason": "trace_backfill",
-  "lane": "implementation_delivery",
+  "lane": "process_improvement",
   "questions_present": false,
   "question_count": 0,
   "relative_path": "20260624_221256_Manager_Project_Integration_-_Merchandising_Manager_Project_Integration_-_Merchandising_fa11ebc4",

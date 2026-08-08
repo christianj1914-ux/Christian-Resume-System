@@ -1,0 +1,15 @@
+{
+  "snapshot_id": "20260728_164701_Barracuda_Implementation_Consultant_6a4e7c6d",
+  "created_at": "2026-07-28T16:47:01",
+  "company": "Barracuda",
+  "role": "Implementation Consultant",
+  "workflow_type": "commercial",
+  "source_command": "trace_backfill",
+  "archive_reason": "trace_backfill",
+  "lane": "customer_success",
+  "questions_present": false,
+  "question_count": 0,
+  "relative_path": "20260728_164701_Barracuda_Implementation_Consultant_6a4e7c6d",
+  "job_description_sha256": "258cbbfa39653800ec7f8517d1450e636e74fbe7506702d9f9a2c8b80537bcf1",
+  "application_questions_sha256": ""
+}

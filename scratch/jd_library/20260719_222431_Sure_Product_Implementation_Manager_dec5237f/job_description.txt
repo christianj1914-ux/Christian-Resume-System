@@ -1,0 +1,38 @@
+Company: Sure
+
+
+Job Title: Product Implementation Manager
+
+
+Join Sure: Building the AI-Native Infrastructure for Insurance
+
+Founded in 2015, Sure builds the technology rails and network that power insurance transactions between carriers, brands, and consumers. Today we operate the insurance industry's first truly AI-native platform, with built-in AI at every layer: our platform, our process, and our safety standards. More than $1 billion in premium flows through Sure annually, and the embedded insurance market we're building for is projected to reach $700 billion by 2030. Are you up for the challenge?
+
+How We Do It
+
+We work with carriers, MGAs, and the world's most recognized brands to launch sophisticated embedded insurance programs in weeks, not months, without compromising compliance and security. As an enterprise SaaS provider, Sure is the foundational technology layer for modern insurance, delivering coverage to consumers at the moment of need.
+
+
+We're growing!
+
+Sure is looking for a Product Implementation Manager (PIM) to join our Customer Success team and own the end-to-end implementation lifecycle for partner programs — from requirements gathering through launch. The PIM is accountable for the customer program, works closely with Engineering, Product and Design (EPD) and the Customer Success Manager (CSM.)
+
+This is a high-visibility role at a company that moves fast and ships the insurance programs that real customers interact with every day. You'll work directly with some of the most innovative brands and carriers in insurance, serving as the person who makes launches happen. If you thrive at the intersection of client relationships, cross-functional coordination, and delivery execution — and you want to see your work go live in products that reach millions of people — this role was built for you.
+
+What you'll do
+
+Own the overall program timeline end-to-end, coordinating with EPD and the Sprint Planner to keep delivery on track
+Gather and document partner requirements into clear deliverables that EPD can execute on; hand off solutioning when technical decisions arise
+Serve as the primary day-to-day partner contact during implementation projects that continue throughout the lifecycle of the partnership
+Track and communicate project health proactively — flag delays, blockers, and scope risks early and drive resolution
+Craft clear, well-written deliverables including meeting agendas, minutes, and business reviews for internal and external stakeholders
+Maintain a tight feedback loop with the assigned CSM and accurate records in Sure's CRM (Attio)
+
+
+What we're looking for
+
+5+ years in implementation, project management, or program delivery — ideally in fintech, insurtech, or a SaaS platform environment
+Strong written and verbal communication; comfortable owning partner-facing calls and written recaps at an executive level
+Experience managing concurrent projects in fast-moving, cross-functional environments
+Able to operate with influence across Engineering, Product, and Sales without direct authority
+Familiarity with Notion, Linear, or Attio a plus

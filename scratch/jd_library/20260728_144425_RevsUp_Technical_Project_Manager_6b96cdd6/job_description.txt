@@ -1,0 +1,103 @@
+Company: RevsUp
+
+
+Job Title: Technical Project Manager
+
+
+RevsUp represents a privately-held Local Government SaaS startup that provides AI Front Desk tools, integrated with Constituent Relationship Management and workflow capabilities, for municipalities across the country, providing millions of citizens with critical services 24/7.
+
+
+This ~60-employee, Series A company ($28 million in total funding), named a 2025 GovTech 100 company, is hiring its first dedicated Sr. Technical Project Manager to lead new customer deployments across the platform — owning implementation from kickoff through activation and setting the standard for the team that will follow.
+
+
+You’ll translate complex government use cases into well-structured implementation plans, build customer-specific workflows in a no-code environment, configure and tune AI agents, and partner with engineering on integrations. This is a fully remote (U.S.) role with occasional travel (cited at 15–20%, though typically less).
+
+
+Solution
+
+A civic technology company that offers AI-powered solutions to enhance local government operations and constituent engagement.
+
+
+Its platform includes tools like CRM & Workflows, AI Search & Chat, and VoiceAI, designed to automate administrative tasks, streamline communication, and provide residents with 24/7 access to services.
+
+
+By digitizing processes and reducing manual workloads, the platform helps municipalities improve efficiency and service delivery.
+
+
+Role
+
+The first dedicated Technical Project Manager; you’ll own post-sale implementation, define tooling and best practices, and help build and coach the function as it scales.
+Individual contributor role, fully remote (U.S.), with occasional travel (~15–20%); proximity to a major airport is a plus.
+$135K to $175K+ base, commensurate with previous performance. Plus 10% performance bonus, with equity, healthcare, unlimited PTO, and remote flexibility.
+You’ll own end-to-end implementation: project plans and milestones, customer discovery, no-code workflow build, AI agent configuration and tuning, system integrations, training, and go-live.
+Top candidates have 6+ years in SaaS implementation, onboarding, technology adoption consulting, or project management. Technology-adoption / implementation consulting and GovTech backgrounds are of particular interest.
+Must bring deep, dedicated project management experience and the ability to establish process amid ambiguity; building from scratch rather than following an existing playbook (startup DNA strongly preferred).
+Comfortable with technical concepts (APIs, integrations, user permissions, data imports) and able to build trust and communicate clearly across roles and seniority levels in government settings.
+Clear runway to grow into a leadership role or to continue as a high-impact senior individual contributor.
+
+
+Culture
+
+CEO was named to the “Who’s Who in Emerging Tech” by City & State New York.
+One county chief says, “the AI chatbot has transformed how we serve residents … using multiple languages has been a game-changer.”
+Backed by investors who continue to support the company’s long-term vision.
+A mission-driven environment where the work directly impacts how governments serve their people.
+
+
+Official Job Description
+
+We’re looking for a Sr. Technical Project Manager to lead new customer deployments across the platform, ensuring a seamless, value-driven onboarding experience.
+
+
+You’ll translate complex use cases into well-structured implementation plans, coordinate internal and external stakeholders, excel in product knowledge and technical configuration, and manage projects from kickoff through activation.
+
+
+You’ll work closely with Customer Success Managers, Product, Sales, and Engineering to deliver on-time, high-quality launches that make governments successful and confident in their investment.
+
+
+Project Management
+
+Own end-to-end implementation of platform capabilities across the customer lifecycle, from initial onboarding and scope execution through post-onboarding feature and module adoption in partnership with the CS.
+Create and manage detailed project plans, milestones, and success criteria.
+Coordinate cross-functionally to align expectations and deliver deployments on schedule.
+Track and report implementation progress to internal stakeholders and customers.
+Identify and mitigate risks, proactively communicating blockers and dependencies.
+
+
+Customer Onboarding
+
+Lead discovery sessions with customers to document processes, requirements, and goals.
+Translate requirements into actionable configuration and data setup plans.
+Deliver tailored training and documentation to ensure successful handoff to live operations.
+Ensure each customer reaches “value realization” milestones, can demonstrate success with their first live use cases, and is well-positioned for positive ongoing management by their CSM.
+
+
+Technical Configuration
+
+Build customer-specific workflows in our no-code environment to model their processes, including form design, routing logic, approvals, and notifications.
+Configure and tune AI agents to ingest and fit each customer’s content and use cases; validate quality and troubleshoot throughout build and go-live.
+Partner with engineering to stand up integrations with customer systems, owning the field mapping, data flow requirements and design, and end-to-end testing.
+
+
+Cross-Functional Collaboration
+
+Work with Product and Engineering to define configuration requirements and ensure readiness of new features.
+Partner with Sales and CS to ensure smooth handoffs at kickoff and at activation and fluid implementation of post-onboarding project work and feature adoption.
+Contribute feedback from implementations to improve templates, tools, and product usability.
+
+
+Process Improvement
+
+Maintain and continuously improve implementation templates, playbooks, and metrics.
+Contribute to defining best practices for discovery, testing, and go-live readiness.
+Help scale the implementation process as the customer base grows.
+
+
+Qualifications
+
+6+ years of experience in SaaS implementation, onboarding, technology adoption consulting, or project management (GovTech experience a plus, but not required).
+Strong organizational and communication skills; proven ability to manage multiple projects simultaneously.
+Comfortable working with technical concepts (APIs, integrations, user permissions, data imports).
+Ability to build trust with government partners and communicate clearly across roles and seniority levels.
+PMP or similar project management certification is a plus but not required.
+Demonstrated passion for emerging technologies and their real-world applications.

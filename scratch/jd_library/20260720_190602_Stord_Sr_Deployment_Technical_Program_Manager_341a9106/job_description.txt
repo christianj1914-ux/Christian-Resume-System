@@ -1,0 +1,65 @@
+Company: Stord
+
+
+Job Title: Sr Deployment Technical Program Manager
+
+
+Stord is The Consumer Experience Company, powering seamless checkout through delivery for today's leading brands. Stord is rapidly growing and is on track to double our revenue in the next 18 months. To meet and exceed this target, Stord is strategically scaling teams across the entire company, and seeking energetic experts to help us achieve our mission.
+
+By combining comprehensive commerce-enablement technology with high-volume fulfillment services, Stord provides brands a platform to compete with retail giants. Stord manages over $10 billion of commerce annually through its fulfillment, warehousing, transportation, and operator-built software suite including OMS, Pre- and Post-Purchase, and WMS platforms. Stord is leveling the playing field for all brands to deliver the best consumer experience at scale.
+
+With Stord, brands can increase cart conversion, improve unit economics, and drive sustained customer loyalty. Stord’s end-to-end commerce solutions combine best-in-class omnichannel fulfillment and shipping with leading technology to ensure fast shipping, reliable delivery promises, easy access to more channels, and improved margins on every order.
+
+Hundreds of leading DTC and B2B companies like AG1, True Classic, Native, Seed Health, quip, goodr, Sundays for Dogs, and more trust Stord to deliver industry-leading consumer experiences on every order. Stord is headquartered in Atlanta with facilities across the United States, Canada, and Europe. Stord is backed by top-tier investors including Kleiner Perkins, Franklin Templeton, Founders Fund, Strike Capital, Baillie Gifford, and Salesforce Ventures.
+
+Stord is seeking an execution-driven Senior Deployment TPM to bridge the gap between Stord Labs—our 10,000 square foot micro-fulfillment innovation center —and our massive multi-client production network. While the core innovation team validates new robotics and operational designs within the lab, your mandate is to take those validated experiments and scale them out.  You will manage the deployment of automation into pilot sites  and lead network-wide rollouts. Additionally, you will focus heavily on process development and continuous improvement on the warehouse floor, ensuring that new technologies do not just drop into existing workflows, but fundamentally optimize how our facilities operate
+
+You will operate at the center of a complex ecosystem spanning robotics vendors, operations, internal product and engineering teams, and executive stakeholders. Your mandate is to ensure operational continuity across all of these interfaces—removing friction, accelerating decision-making, and maintaining a disciplined pipeline from experimentation to enterprise-scale rollout.
+
+This is a role for a systems-oriented program leader who thrives in ambiguity, understands deeply technical environments, and can translate between research, engineering, and operations without losing speed or precision.
+What You'll Do:
+Network Scaling & Deployment
+
+Pilot to Production Integration: Take validated technologies and workflows from the lab environment and seamlessly integrate them into pilot deployments at live production facilities.
+
+Deployment Playbooks: Develop comprehensive, scalable deployment playbooks for hardware installations, facility layout modifications, and labor management transitions.
+
+Capital Project Execution: Manage the cost, schedule, and risk management of large-scale automation deployments across multiple distribution centers, ensuring minimal disruption to ongoing customer service levels.
+
+Process Development & Optimization
+
+Workflow Engineering: Re-engineer existing facility processes to accommodate new capabilities like multi-pass picking , dynamic slotting , and co-mingled inventory strategies.
+
+Continuous Improvement: Lead Lean/Six Sigma initiatives on the warehouse floor to optimize travel distance, material flow, and throughput capacity alongside new automation deployments.
+
+Standard Operating Procedures (SOPs): Create, document, and train local facility management teams and warehouse associates on the new operational standards defined by Stord Labs.
+
+Cross-Functional Orchestration
+
+Stakeholder Alignment: Act as the primary bridge connecting the lab’s core innovation team, local facility General Managers, and Stord’s executive leadership.
+
+Vendor Management: Oversee on-site hardware vendor installations, site acceptance testing (SAT), and user acceptance testing (UAT) during the pilot and rollout phases.
+
+Basic Qualifications:
+Bachelor’s degree in Computer Science, Industrial Engineering, Supply Chain, or a related technical discipline.
+
+8+ years of experience in Technical Program Management, Engineering Management, or complex cross-functional delivery roles.
+
+Demonstrated experience managing hardware/software integration programs in operational or logistics environments.
+
+Deep understanding of time-and-motion studies, facility layout (AutoCAD), and physical material flow.
+
+Strong domain knowledge of supply chain systems, warehouse automation, robotics integration, or fulfillment operations.
+
+Proven experience leading vendor management processes, including RFPs, evaluation frameworks, and strategic partnership development.
+
+Strong execution discipline across agile, sprint-based, or similar iterative delivery methodologies.
+
+Ability to travel up to 30% of time supporting rollout.
+
+Bonus Points:
+Prior experience in innovation labs, R&D environments, or advanced manufacturing/automation programs.
+
+Familiarity with warehouse data ecosystems and system architectures (WMS, OMS, WES, WCS).
+
+Exposure to data science, simulation, or digital twin initiatives supporting operational optimization or AI-driven forecasting.

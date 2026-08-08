@@ -1,0 +1,15 @@
+{
+  "snapshot_id": "20260720_223424_Manhattan_Associates_Senior_Enablement_Consultant_20779b99",
+  "created_at": "2026-07-20T22:34:24",
+  "company": "Manhattan Associates",
+  "role": "Implementation Consultant",
+  "workflow_type": "commercial",
+  "source_command": "resume",
+  "archive_reason": "command_auto_archive",
+  "lane": "analytics_operations",
+  "questions_present": false,
+  "question_count": 0,
+  "relative_path": "20260720_223424_Manhattan_Associates_Senior_Enablement_Consultant_20779b99",
+  "job_description_sha256": "3c94b4eee4857a8779d23c4018d9b46c021dd9847bdfe1c1a356907fa3dd9a78",
+  "application_questions_sha256": ""
+}

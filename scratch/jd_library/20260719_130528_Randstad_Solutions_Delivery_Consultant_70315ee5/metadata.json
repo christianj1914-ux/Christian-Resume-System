@@ -1,0 +1,15 @@
+{
+  "snapshot_id": "20260719_130528_Randstad_Solutions_Delivery_Consultant_70315ee5",
+  "created_at": "2026-07-19T13:05:28",
+  "company": "Randstad",
+  "role": "Implementation Consultant",
+  "workflow_type": "commercial",
+  "source_command": "resume",
+  "archive_reason": "command_auto_archive",
+  "lane": "analytics_operations",
+  "questions_present": false,
+  "question_count": 0,
+  "relative_path": "20260719_130528_Randstad_Solutions_Delivery_Consultant_70315ee5",
+  "job_description_sha256": "e8b4e5c01f6edae552b52f66b36781a11a433422ed487fdf537762e9a0d0e372",
+  "application_questions_sha256": ""
+}

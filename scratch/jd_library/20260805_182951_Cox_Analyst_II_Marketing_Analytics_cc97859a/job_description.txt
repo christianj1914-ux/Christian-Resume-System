@@ -1,0 +1,51 @@
+Company: Cox
+Job Title: Analyst II, Marketing Analytics
+
+
+
+
+The Analyst II, Marketing Analytics develops and executes reporting, visualization, and analysis for assigned campaigns and products. Working within a defined scope across a subset of brands and products, this role builds and maintains dashboards and reports, prepares data for analysis, and conducts campaign performance analysis that supports data-driven decisions.
+
+This role works closely with analytics teammates and marketing stakeholders to deliver accurate, timely reporting and clear visualizations. The ideal candidate executes independently within scope, applies sound analytical technique, and communicates findings clearly to support the team’s insights and recommendations.
+
+What You’ll Do
+
+Reporting & Data Visualization
+
+Develop and maintain dashboards and reports for assigned products and campaigns using tools such as Tableau, Power BI, or DOMO.
+Design and develop analytics and visualizations that offer clear visibility into campaign performance.
+Execute recurring reporting on a defined schedule, ensuring accuracy and consistency.
+Apply visualization best practices for readability and stakeholder usability.
+Campaign Performance Analysis
+
+Analyze the performance of assigned campaigns across owned and paid channels, including email, digital, social, and SEO/SEM.
+Conduct pre- and post-campaign analysis and support target list development.
+Generate performance insights and share reports highlighting cross-channel effectiveness.
+Support attribution and ROI reporting for assigned campaigns.
+Data Preparation & Quality
+
+Extract and prepare data from enterprise sources such as Snowflake and Google Analytics using SQL.
+Build data workflows that support recurring reporting and analysis.
+Perform data validation and quality checks to ensure the accuracy of datasets used for analysis.
+Document report logic and metric definitions to support consistency and reuse.
+Collaboration & Development
+
+Partner with analytics teammates and marketing stakeholders to meet reporting needs within assigned scope.
+Present findings clearly to support team analyses and recommendations.
+Learn and apply new tools, techniques, and best practices in marketing analytics and data visualization.
+
+Minimum:
+
+Bachelor’s degree in related discipline and 2 years’ experience in a related field. The right candidate could also have a different combination, such as a master’s degree and up to 2 years’ experience; or 6 years’ experience in a related field.
+Experience in marketing analytics or business intelligence, including reporting and data visualization.
+Experience preparing and analyzing data to support marketing decisions.
+Analytical Thinking (Foundational): applies analytical techniques to interpret data and reach sound conclusions.
+Drive for Results: delivers accurate, timely work and meets deadlines.
+Build Relationships: collaborates effectively with teammates and stakeholders.
+Focus on Customers: keeps stakeholder needs central to reporting and analysis.
+Communicate Effectively: presents findings clearly to teammates and stakeholders
+Proficient in data visualization and reporting tools such as Tableau, Power BI, or DOMO.
+Working knowledge of SQL for extracting and preparing data (e.g., Snowflake, Google Analytics).
+Familiarity with web and marketing analytics platforms such as Adobe Analytics and Google Analytics.
+Familiarity with Salesforce CRM, Marketing Cloud, and Data Cloud
+Proficient in Microsoft Excel and PowerPoint.

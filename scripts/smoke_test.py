@@ -12789,6 +12789,67 @@ def test_job_context_archive_active_snapshot_includes_questions() -> None:
     )
 
 
+def test_job_context_archive_refresh_preserves_role_and_aborts_on_classifier_failure() -> None:
+    import job_context_archive
+
+    original_archive_root = job_context_archive.SCRATCH_JD_LIBRARY
+    original_index_path = job_context_archive.INDEX_PATH
+    original_sync_complete = job_context_archive._SYNC_COMPLETE
+    original_classifier = job_context_archive.resume_analysis.job_problem_profile
+    try:
+        with TemporaryDirectory(prefix="jd_archive_refresh_") as temp_name:
+            archive_root = Path(temp_name) / "scratch" / "jd_library"
+            job_context_archive.SCRATCH_JD_LIBRARY = archive_root
+            job_context_archive.INDEX_PATH = archive_root / "index.csv"
+            job_context_archive._SYNC_COMPLETE = True
+            snapshot = job_context_archive.archive_texts(
+                job_description_text=DUMMY_JOB_DESCRIPTION,
+                snapshot_id="snapshot_a",
+                sync_legacy=False,
+            )
+            metadata_path = snapshot.path / "metadata.json"
+            metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+            metadata["role"] = "Historical Role Label"
+            metadata["lane"] = ""
+            metadata_path.write_text(json.dumps(metadata, indent=2) + "\n", encoding="utf-8")
+
+            rows = job_context_archive.refresh_archive_metadata()
+            refreshed = json.loads(metadata_path.read_text(encoding="utf-8"))
+
+            def classifier_failure(*_args: object, **_kwargs: object) -> object:
+                raise ValueError("simulated classifier failure")
+
+            job_context_archive.resume_analysis.job_problem_profile = classifier_failure
+            failed = False
+            try:
+                job_context_archive.refresh_archive_metadata()
+            except RuntimeError as error:
+                failed = "snapshot_a" in str(error) and "simulated classifier failure" in str(error)
+            finally:
+                job_context_archive.resume_analysis.job_problem_profile = original_classifier
+    finally:
+        job_context_archive.SCRATCH_JD_LIBRARY = original_archive_root
+        job_context_archive.INDEX_PATH = original_index_path
+        job_context_archive._SYNC_COMPLETE = original_sync_complete
+        job_context_archive.resume_analysis.job_problem_profile = original_classifier
+
+    assert_true(refreshed["role"] == "Historical Role Label", f"refresh must preserve role labels; got {refreshed}")
+    assert_true(bool(refreshed["lane"]), f"refresh must reclassify a populated lane; got {refreshed}")
+    assert_true(rows[0]["lane"] == refreshed["lane"], f"refresh must rebuild the index from metadata; got {rows}")
+    assert_true(failed, "refresh must abort and identify the snapshot when lane classification fails")
+
+
+def test_all_archived_job_metadata_have_lanes() -> None:
+    metadata_paths = sorted((PROJECT_ROOT / "scratch" / "jd_library").glob("*/metadata.json"))
+    empty = [
+        path.parent.name
+        for path in metadata_paths
+        if not str(json.loads(path.read_text(encoding="utf-8")).get("lane", "")).strip()
+    ]
+    assert_true(bool(metadata_paths), "archive lane check requires archived job metadata")
+    assert_true(not empty, f"every archived job metadata record must have a lane; empty: {empty}")
+
+
 def test_cover_letter_trace_records_snapshot_and_selection_debug(build_cover_letter: object) -> None:
     application_responses = (
         build_cover_letter.question_prep.QualificationsResponse(
@@ -17751,6 +17812,8 @@ def main(argv: list[str] | None = None) -> None:
             ("bigfour cover opening avoids aspiration phrase", lambda: test_bigfour_cover_opening_avoids_aspiration_phrase(build_cover_letter)),
             ("reset jobs helpers", lambda: test_reset_jobs_helpers(reset_jobs)),
             ("job context archive active snapshot includes questions", test_job_context_archive_active_snapshot_includes_questions),
+            ("job context archive refresh preserves roles and stops on classifier failure", test_job_context_archive_refresh_preserves_role_and_aborts_on_classifier_failure),
+            ("all archived job metadata has lanes", test_all_archived_job_metadata_have_lanes),
             ("cover letter trace records snapshot and selection debug", lambda: test_cover_letter_trace_records_snapshot_and_selection_debug(build_cover_letter)),
             ("run-level ERP scrub formatting", lambda: test_run_level_erp_scrub_preserves_formatting(build_resume)),
             ("supported rewrite ERP scrub", lambda: test_supported_rewrite_scrubs_erp_language(build_resume)),

@@ -1,0 +1,15 @@
+{
+  "snapshot_id": "20260729_165451_Fisher_Phillips_Business_Process_Optimization_Specialist_f241981a",
+  "created_at": "2026-07-29T16:54:51",
+  "company": "Fisher Phillips",
+  "role": "Implementation Consultant",
+  "workflow_type": "commercial",
+  "source_command": "trace_backfill",
+  "archive_reason": "trace_backfill",
+  "lane": "process_improvement",
+  "questions_present": false,
+  "question_count": 0,
+  "relative_path": "20260729_165451_Fisher_Phillips_Business_Process_Optimization_Specialist_f241981a",
+  "job_description_sha256": "6c3d753bf07e5a33b2af4395a68e82887ee1b377e788020c088bf90b4daf2feb",
+  "application_questions_sha256": ""
+}

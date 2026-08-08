@@ -1,0 +1,15 @@
+{
+  "snapshot_id": "20260722_124038_Adobe_Implementation_Consultant_ef4c1f61",
+  "created_at": "2026-07-22T12:40:38",
+  "company": "Adobe",
+  "role": "Implementation Consultant",
+  "workflow_type": "commercial",
+  "source_command": "trace_backfill",
+  "archive_reason": "trace_backfill",
+  "lane": "presales_solution",
+  "questions_present": false,
+  "question_count": 0,
+  "relative_path": "20260722_124038_Adobe_Implementation_Consultant_ef4c1f61",
+  "job_description_sha256": "c62d9582c8a48dee64d928846b62b417d5700a64c7794b27ba6ac0931f75331a",
+  "application_questions_sha256": ""
+}

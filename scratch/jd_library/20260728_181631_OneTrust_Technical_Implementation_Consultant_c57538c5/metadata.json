@@ -1,0 +1,15 @@
+{
+  "snapshot_id": "20260728_181631_OneTrust_Technical_Implementation_Consultant_c57538c5",
+  "created_at": "2026-07-28T18:16:31",
+  "company": "OneTrust",
+  "role": "Implementation Consultant",
+  "workflow_type": "commercial",
+  "source_command": "trace_backfill",
+  "archive_reason": "trace_backfill",
+  "lane": "implementation_delivery",
+  "questions_present": false,
+  "question_count": 0,
+  "relative_path": "20260728_181631_OneTrust_Technical_Implementation_Consultant_c57538c5",
+  "job_description_sha256": "854020592869f2d1d17aba3b971da122c3edbd5accd5a434b693b50074932c7a",
+  "application_questions_sha256": ""
+}

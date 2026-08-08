@@ -1,0 +1,15 @@
+{
+  "snapshot_id": "20260727_212222_Pragmatike_Technical_Project_Manager_Industrial_Software_489b702a",
+  "created_at": "2026-07-27T21:22:22",
+  "company": "Pragmatike",
+  "role": "Implementation Consultant",
+  "workflow_type": "commercial",
+  "source_command": "trace_backfill",
+  "archive_reason": "trace_backfill",
+  "lane": "program_delivery",
+  "questions_present": false,
+  "question_count": 0,
+  "relative_path": "20260727_212222_Pragmatike_Technical_Project_Manager_Industrial_Software_489b702a",
+  "job_description_sha256": "9b00a60596d95cb7eea7763bcf7d91bc946cdf6cddb24fd640730d1e5c7b73ff",
+  "application_questions_sha256": ""
+}

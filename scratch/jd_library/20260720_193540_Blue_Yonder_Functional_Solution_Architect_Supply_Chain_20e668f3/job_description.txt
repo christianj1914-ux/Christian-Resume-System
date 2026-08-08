@@ -1,0 +1,46 @@
+Company: Blue Yonder
+
+
+Job Title: Functional Solution Architect, Supply Chain
+
+
+
+Location: US Remote
+
+Travel: up to 30% to customer sites as needed
+
+Synonymous Business Title (s): Solution Architect
+
+Overview:
+You will lead end-to-end solution delivery across Blue Yonder Network product areas — from business process design and configuration through go‑live support. Acting as the primary liaison between project teams, customers, and internal Product Management, you will translate business requirements into functional specifications, identify expansion opportunities, and ensure successful knowledge transfer to operations and customer teams.
+What You'll Be Doing:
+Lead end-to-end delivery of solutions across Blue Yonder Network product areas, including business process design, system configuration, testing, deployment and go‑live support.
+Serve as the primary liaison between project teams, customer stakeholders and internal Product Management; manage expectations and facilitate timely decisions.
+Elicit, analyse and translate business requirements into clear functional specifications, configuration guides and acceptance criteria.
+Design and document solution blueprints, process flows, integration patterns and deployment approaches that meet functional and non‑functional requirements.
+Drive configuration and system setup activities, ensuring solutions are aligned to business process requirements and product capabilities.
+Support and lead workshops, user acceptance testing (UAT), training sessions and knowledge-transfer activities; create handover documentation for support and operations teams.
+Identify and quantify expansion and upsell opportunities based on customer processes and solution fit; communicate opportunities to Sales/Product Management.
+Coordinate cross-functional teams (implementation, QA, product, support) to resolve technical issues, risks and blockers.
+Define cutover, migration and rollback plans; provide on-site or remote go‑live support and stabilization until ownership is transferred.
+Create and maintain project artifacts: functional specs, configuration matrices, runbooks, test cases, and post‑implementation reviews.
+Mentor junior architects and consultants; promote repeatable patterns and best practices to improve delivery efficiency and quality.
+What We're Looking For:
+Required Skills
+4+ years’ experience delivering end‑to‑end customer solutions (adjust for seniority as needed).
+Proven experience working on implementation/configuration projects and supporting go‑lives, preferably for supply‑chain, logistics or network SaaS platforms.
+Strong skills in business process mapping and translating processes into system configuration and functional specifications.
+Demonstrated customer-facing experience — workshops, UAT, executive briefings and training.
+Experience coordinating cross-functional delivery teams and managing stakeholder expectations.
+Excellent written and verbal communication skills; ability to present technical concepts to non-technical audiences.
+Technical Skills
+Solution design and functional specification authoring
+System configuration and implementation best practices
+Integration technologies and patterns (APIs, EDI, webhooks, messaging)
+Data mapping, transformation and validation techniques
+Basic scripting or SQL for troubleshooting and data fixes
+Familiarity with cloud-hosted SaaS environments, deployment and operational handover
+Test planning and UAT support
+Observability and incident handover basics
+Education
+Bachelor’s degree in Computer Science, Information Systems, Business, Supply Chain or related field — or equivalent experience.

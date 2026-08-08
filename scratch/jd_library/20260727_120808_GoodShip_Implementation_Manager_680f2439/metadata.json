@@ -1,0 +1,15 @@
+{
+  "snapshot_id": "20260727_120808_GoodShip_Implementation_Manager_680f2439",
+  "created_at": "2026-07-27T12:08:08",
+  "company": "GoodShip",
+  "role": "Implementation Consultant",
+  "workflow_type": "commercial",
+  "source_command": "guide",
+  "archive_reason": "command_auto_archive",
+  "lane": "presales_solution",
+  "questions_present": false,
+  "question_count": 0,
+  "relative_path": "20260727_120808_GoodShip_Implementation_Manager_680f2439",
+  "job_description_sha256": "4174fac5b4e55dd9fcbbba7c7e3afa83d3ffd60700b75ac3517698f853215ac1",
+  "application_questions_sha256": ""
+}

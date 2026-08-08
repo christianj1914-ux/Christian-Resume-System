@@ -1,0 +1,15 @@
+{
+  "snapshot_id": "20260805_222324_Kamstrup_Customer_Technical_Project_Manager_55cd2131",
+  "created_at": "2026-08-05T22:23:24",
+  "company": "Kamstrup",
+  "role": "Customer Technical Project Manager",
+  "workflow_type": "commercial",
+  "source_command": "resume",
+  "archive_reason": "command_auto_archive",
+  "lane": "program_delivery",
+  "questions_present": false,
+  "question_count": 0,
+  "relative_path": "20260805_222324_Kamstrup_Customer_Technical_Project_Manager_55cd2131",
+  "job_description_sha256": "afe79d28a477b8cb7b725b1129c813ae4473da081124dd767b34015a067dc79a",
+  "application_questions_sha256": "0c38ca6f6965643d0c64d93216ab2cf8fca7ef42d3d3037504c6b3d3ca5eee63"
+}

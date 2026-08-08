@@ -1,0 +1,15 @@
+{
+  "snapshot_id": "20260720_193540_Blue_Yonder_Functional_Solution_Architect_Supply_Chain_20e668f3",
+  "created_at": "2026-07-20T19:35:40",
+  "company": "Blue Yonder",
+  "role": "Implementation Consultant",
+  "workflow_type": "commercial",
+  "source_command": "resume",
+  "archive_reason": "command_auto_archive",
+  "lane": "implementation_delivery",
+  "questions_present": false,
+  "question_count": 0,
+  "relative_path": "20260720_193540_Blue_Yonder_Functional_Solution_Architect_Supply_Chain_20e668f3",
+  "job_description_sha256": "38f48c71eec81b340e14131215427b15990de33a4140fda7bdaa301b27914be0",
+  "application_questions_sha256": ""
+}

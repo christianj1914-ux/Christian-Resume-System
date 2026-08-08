@@ -1,0 +1,15 @@
+{
+  "snapshot_id": "20260720_192038_HD_Supply_Senior_Manager_eCommerce_Operations_4d047d1c",
+  "created_at": "2026-07-20T19:20:38",
+  "company": "HD Supply",
+  "role": "Implementation Consultant",
+  "workflow_type": "commercial",
+  "source_command": "resume",
+  "archive_reason": "command_auto_archive",
+  "lane": "program_delivery",
+  "questions_present": false,
+  "question_count": 0,
+  "relative_path": "20260720_192038_HD_Supply_Senior_Manager_eCommerce_Operations_4d047d1c",
+  "job_description_sha256": "c290a613fd16786ac74eb86ca9fb15703cea92e8f167607664fbefc80dea4c18",
+  "application_questions_sha256": ""
+}

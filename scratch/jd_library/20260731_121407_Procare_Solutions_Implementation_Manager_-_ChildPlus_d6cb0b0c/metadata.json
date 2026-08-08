@@ -1,0 +1,15 @@
+{
+  "snapshot_id": "20260731_121407_Procare_Solutions_Implementation_Manager_-_ChildPlus_d6cb0b0c",
+  "created_at": "2026-07-31T12:14:07",
+  "company": "Procare Solutions",
+  "role": "Implementation Consultant",
+  "workflow_type": "commercial",
+  "source_command": "trace_backfill",
+  "archive_reason": "trace_backfill",
+  "lane": "implementation_delivery",
+  "questions_present": false,
+  "question_count": 0,
+  "relative_path": "20260731_121407_Procare_Solutions_Implementation_Manager_-_ChildPlus_d6cb0b0c",
+  "job_description_sha256": "240431c632d32eb208aa514466eb07ac1473e838ba421aff3efeecf0db4ac1c6",
+  "application_questions_sha256": ""
+}

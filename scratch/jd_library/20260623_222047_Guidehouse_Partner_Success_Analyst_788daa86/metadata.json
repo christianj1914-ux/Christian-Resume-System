@@ -6,7 +6,7 @@
   "workflow_type": "commercial",
   "source_command": "trace_backfill",
   "archive_reason": "trace_backfill",
-  "lane": "implementation_delivery",
+  "lane": "analytics_operations",
   "questions_present": false,
   "question_count": 0,
   "relative_path": "20260623_222047_Guidehouse_Partner_Success_Analyst_788daa86",
