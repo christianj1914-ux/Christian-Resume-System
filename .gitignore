@@ -28,3 +28,5 @@ scratch/*
 .context/CODEX_HANDOFF_verify_and_commit.md
 .context/CODEX_HANDOFF_full_qualifications_coverage.md
 .context/CODEX_MASTER_SPEC_qualifications_and_commits.md
+.context/CODEX_SPEC_late_questions_and_answer_quality.md
+personal/

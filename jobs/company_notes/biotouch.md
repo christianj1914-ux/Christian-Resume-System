@@ -57,6 +57,21 @@ None supplied.
 - Said that I may hear back in one to 2 weeks as it is early on in the interview process, so it seems that I did not do well
 - Interviewer said they are early on in the process, and will follow-up in 1 to 2 weeks if I made it to last round. Did not seem promising.
 
+### Competencies Probed
+None supplied.
+
+### Answer Ratings
+None supplied.
+
+### Hedge Observations
+None supplied.
+
+### New Story Candidates
+None supplied.
+
+### Development Area Signals
+None supplied.
+
 ### Stories That Generated Follow-Up Questions
 - How comfortable are you with Excel? Tell me about a time you dealt with training others? Tell me about your technical projects?
 

@@ -106,6 +106,21 @@ you came across as qualified, relevant, and probably worth advancing, but your d
 ### Feedback Received
 None supplied.
 
+### Competencies Probed
+None supplied.
+
+### Answer Ratings
+None supplied.
+
+### Hedge Observations
+None supplied.
+
+### New Story Candidates
+None supplied.
+
+### Development Area Signals
+None supplied.
+
 ### Stories That Generated Follow-Up Questions
 None supplied.
 

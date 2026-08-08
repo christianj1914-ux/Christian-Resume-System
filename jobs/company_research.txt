@@ -21,3 +21,16 @@ POST-INTERVIEW NOTE [6/19/2026]: M-Tech Systems - Project Consultant, round 1, o
   - Tier 1 ramp (first 3-4 months): support function across 2-3 active projects
   - Tasks: UAT testing, data validation, documentation
   - Goal: absorb the industry, the system, and the client culture before owning modules
+
+POST-INTERVIEW NOTE [08/04/2026]: Procare Solutions - Professional Services Consultant, round 2, outcome pending.
+- Role is Professional Services Consultant, not Implementation Manager - ChildPlus or standard Procare Implementation Manager as previously assumed; Nancy = Manager of Operations, Professional Services, Courtney = Supervisor, Professional Services
+- Caseload appears to be roughly 100 clients within a 90-day implementation window, materially higher volume than the 3-5 concurrent customers described in the recruiter screen for the other Procare reqs
+- ProCare is actively investing in AI internally and reacts well to concrete, hands-on AI examples
+- Client base (childcare centers, school districts) is described by the interviewers themselves as chaotic, understaffed, and requiring flexibility from the vendor side
+- Procare's own product is described by the interviewers as out of the box, very straightforward, and not highly complex, a materially lighter build than the ERP platforms Christian has owned
+- Role language:
+  - childcare centers and school districts, chaotic, understaffed, missed calls, need flexibility
+  - I always want someone when we interview them to understand our audience. We have to be flexible.
+  - Professional Services Consultant, not Implementation Manager
+  - roughly 100-client caseload inside a 90-day implementation window
+  - Sounds like you had a methodology that you managed and customized when needed. (Nancy, after the implementation walkthrough)
