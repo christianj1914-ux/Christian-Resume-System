@@ -70,20 +70,6 @@ class CheatSheetResult:
     output_docx: Path
 
 
-@dataclass(frozen=True)
-class StoryCard:
-    title: str
-    story_types: tuple[str, ...]
-    hook: str
-    takeaways: tuple[str, str, str]
-    evidence: str
-    level3_trait: str
-    result: str
-    outcome: str
-    evidence_terms: tuple[str, ...]
-    signals: tuple[str, ...]
-    boost_key: str = ""
-    sensitive_note: str = ""
 
 
 @dataclass(frozen=True)
@@ -184,10 +170,6 @@ LANE_LEAD_INS = {
 }
 
 
-@dataclass(frozen=True)
-class InterviewQuestion:
-    question: str
-    angle: str
 
 
 @dataclass(frozen=True)
@@ -857,12 +839,6 @@ def assert_claim_then_prove_answer(
         fail(f"{label} failed claim-then-prove validation: {'; '.join(issues)}")
 
 
-def assert_full_spoken_answer(label: str, text: str, *, min_words: int = 35) -> None:
-    cleaned = re.sub(r"\s+", " ", text).strip()
-    if spoken_word_count(cleaned) < min_words:
-        fail(f"{label} is too short to sound like a full spoken answer")
-    if INSTRUCTIONAL_OPENING_RE.search(cleaned):
-        fail(f"{label} still reads like coaching instructions instead of a spoken answer")
 
 
 def pitch_variants(
@@ -1329,11 +1305,6 @@ def safe_evidence_term_matches(text: str, term: str) -> bool:
     return re.search(prefix + escaped + suffix, text.lower()) is not None
 
 
-def contains_all(text: str, fragments: tuple[str, ...], *, safe: bool = False) -> bool:
-    if safe:
-        return all(safe_evidence_term_matches(text, fragment) for fragment in fragments)
-    lowered = text.lower()
-    return all(fragment.lower() in lowered for fragment in fragments)
 
 
 def detect_panel_context(job_description: str, interview_notes: str) -> bool:
@@ -1607,9 +1578,6 @@ def add_jd_interview_scorecard(document: Document, scorecard: Sequence[interview
                     run.font.size = Pt(BODY_SIZE)
 
 
-def signal_score(job_description: str, signals: tuple[str, ...]) -> int:
-    lowered = job_description.lower()
-    return sum(1 for signal in signals if signal.lower() in lowered)
 
 
 def fit_label(profile: build_resume.JobProblemProfile, resume_docx: Path) -> str:
@@ -1627,13 +1595,6 @@ def fit_label(profile: build_resume.JobProblemProfile, resume_docx: Path) -> str
     return "Stretch Fit"
 
 
-def adjusted_profile_for_role(
-    profile: build_resume.JobProblemProfile,
-    role_title: str,
-    job_description: str,
-) -> build_resume.JobProblemProfile:
-    lane_key = build_resume.effective_lane_key(role_title, job_description, profile)
-    return build_resume.adjust_profile_for_lane(profile, lane_key)
 
 
 def four_value_factors(profile: build_resume.JobProblemProfile, job_description: str) -> list[str]:
@@ -2947,358 +2908,6 @@ def first_90_day_approach(profile: build_resume.JobProblemProfile) -> list[str]:
     return [f"{label}: {text}" for label, text in first_90_day_plan(profile).stages]
 
 
-def expanded_story_bank() -> list[StoryCard]:
-    cards = [
-        StoryCard(
-            title="EFT/ACH payment integration replacement",
-            story_types=("Managing and Leading", "Teamwork", "Ambiguous Problem", "Analysis and Decision"),
-            hook="At East West Manufacturing, a five-month EFT/ACH payment integration replacement had to restore reliable, compliant payments across IT, finance, Aptean, and Truist Bank.",
-            takeaways=("Mapped the full payment chain", "Aligned four parties without direct authority", "Kept compliance and auditability visible from the start"),
-            evidence="At East West, I owned the scope, milestones, and cross-functional coordination for an EFT/ACH replacement involving internal IT, global finance, Aptean, and Truist Bank.",
-            level3_trait="Show what was noticed: the issue was not only technical; ownership was split across four parties, so the work needed one end-to-end delivery path.",
-            result="Replaced a fragile payment setup with a compliant, auditable workflow that restored payment process integrity.",
-            outcome="Use this for cross-functional project delivery, data or integration risk, banking/payment workflow, and influence without authority.",
-            evidence_terms=("payment", "integration"),
-            signals=("payment", "integration", "bank", "compliance", "finance", "delivery", "risk", "stakeholder"),
-        ),
-        StoryCard(
-            title="High-volume inventory automation",
-            story_types=("Individual Achievement", "Analysis and Decision", "Ambiguous Problem"),
-            hook="At East West Manufacturing, high-volume inventory adjustments were manual and error-prone, and Approved Manufacturer List maintenance needed the same controlled audit trail.",
-            takeaways=("Structured the messy workflow before building", "Validated the fix against operational reality", "Turned the work into measurable business improvement"),
-            evidence="At East West, built automated, auditable workflows for high-volume inventory adjustments and Approved Manufacturer List maintenance.",
-            level3_trait="Show what was noticed: repeated manual touches were creating delay and discrepancy risk, so the workflow was mapped, tested, and tightened before broader use.",
-            result="Reduced manual work for the adjustment process by 78% and lowered inventory adjustment discrepancies by 22%.",
-            outcome="Use this for process improvement, structured problem solving, and practical systems execution.",
-            evidence_terms=("inventory adjustment",),
-            signals=("inventory", "process", "optimization", "efficiency", "operations", "analysis"),
-        ),
-        StoryCard(
-            title="Aptean rapid product learning",
-            story_types=("Rapid Learning", "Challenge and Failure", "Individual Achievement"),
-            hook="At Aptean, 80+ international client engagements required fast credibility across a complex ERP product and varied manufacturing workflows.",
-            takeaways=("Learned through client problems, not abstract study", "Built a repeatable discovery rhythm", "Converted product complexity into clearer customer decisions"),
-            evidence="Managed 80+ international client engagements through 12 full-lifecycle ERP implementations, carrying up to four concurrent deliveries from discovery through data migration, UAT, and post-go-live support.",
-            level3_trait="Show how unfamiliar workflows were broken into requirements, risks, decision owners, and next actions until the client could move forward.",
-            result="Delivered 12 full-lifecycle ERP implementations and managed up to four at a time, becoming a customer-facing implementation consultant and pre-sales resource across complex ERP delivery work.",
-            outcome="Use this when asked about learning quickly, ambiguity, or becoming useful before every answer is known.",
-            evidence_terms=("concurrent", "client engagements"),
-            signals=("learning", "rapid", "implementation", "requirements", "customer", "erp"),
-        ),
-        StoryCard(
-            title="$1M+ account stabilization",
-            story_types=("Persuasion", "Challenge and Failure", "Customer Disagreement"),
-            hook="At Aptean, several accounts inside a $6M+ book were sliding toward churn, with roughly $1M in annual revenue at risk.",
-            takeaways=("Created one accountable path through the issue", "Listened for the real business pain behind the escalation", "Kept product, development, and customer stakeholders focused on resolution"),
-            evidence="At Aptean, consolidated case ownership, led structured working sessions, and coordinated product and development teams around complex failures.",
-            level3_trait="Show what was noticed in the room: the customer needed ownership and a credible recovery path more than another status update.",
-            result="Protected $1M+ in at-risk annual revenue and converted shaky relationships back into retained accounts.",
-            outcome="Use this for customer trust, escalation recovery, and influencing without authority.",
-            evidence_terms=("at-risk annual revenue", "book of business"),
-            signals=("risk", "escalation", "retention", "revenue", "integration", "customer success"),
-        ),
-        StoryCard(
-            title="200+ dashboards and decision visibility",
-            story_types=("Analysis and Decision", "Individual Achievement", "Ambiguous Problem"),
-            hook="200+ KPI dashboards and reporting tools had to turn performance, workflow friction, and trend signals into clearer operating decisions.",
-            takeaways=("Clarified the decision the report needed to support", "Translated operational questions into usable metrics", "Made the output practical for leaders and operators"),
-            evidence="Built 200+ dashboards, KPI reports, and analytics tools using SQL, Crystal Reports, and Power BI.",
-            level3_trait="Show how the question behind the data was clarified before building the report.",
-            result="Improved visibility into operational performance, customer experience metrics, and process gaps.",
-            outcome="Use this for data-driven decision-making, analytical structure, and business-minded reporting.",
-            evidence_terms=("dashboards", "Power BI"),
-            signals=("analytics", "dashboard", "kpi", "reporting", "data", "visibility"),
-        ),
-        StoryCard(
-            title="60+ workshops and QBRs",
-            story_types=("Managing and Leading", "Persuasion", "Teamwork"),
-            hook="At Aptean, 60+ executive workshops and QBRs had to keep delivery stakeholders aligned when each group cared about different outcomes.",
-            takeaways=("Read each stakeholder group differently", "Made tradeoffs visible", "Kept the conversation tied to business objectives"),
-            evidence="Facilitated 60+ executive workshops and quarterly business reviews focused on roadmap alignment, adoption needs, and business priorities.",
-            level3_trait="Show what was noticed: executives needed confidence in outcomes, operators needed workflow clarity, and delivery teams needed decision rights.",
-            result="Maintained executive confidence throughout multi-phase delivery programs.",
-            outcome="Use this for leadership, executive communication, and working with people from different backgrounds.",
-            evidence_terms=("executive business reviews",),
-            signals=("executive", "stakeholder", "qbr", "alignment", "roadmap", "leadership"),
-        ),
-        StoryCard(
-            title="East West ERP ownership",
-            story_types=("Managing and Leading", "Ambiguous Problem", "Teamwork"),
-            hook="At East West, a five-site ERP environment supporting 150+ users had to keep adoption, data, and operational trust intact.",
-            takeaways=("Put structure around ambiguous needs", "Balanced operations, finance, and engineering priorities", "Protected adoption through training and validation"),
-            evidence="Owned ERP strategy, administration, and continuous improvement across five sites and more than 150 users.",
-            level3_trait="Show how each group was heard differently before requirements and recommendations were finalized.",
-            result="Kept core operations and finance workflows running across a global footprint while improving the ERP system through training, testing, and release readiness.",
-            outcome="Use this as the main story for role scope, stakeholder complexity, and practical ownership.",
-            evidence_terms=("five sites", "enterprise systems"),
-            signals=("implementation", "go-live", "delivery", "testing", "global", "stakeholder"),
-        ),
-        StoryCard(
-            title="East West Salesforce visibility",
-            story_types=("Analysis and Decision", "Teamwork", "Process Improvement"),
-            hook="At East West, migration teams needed clearer request and project visibility without letting follow-up disappear into spreadsheet tracking.",
-            takeaways=("Kept the operating view inside the system", "Connected CRM visibility to ERP and reporting work", "Made owner and next step easier to see across teams"),
-            evidence="Used Salesforce alongside ERP data and SQL-backed reporting to track requests, surface owner and next step, and give business teams clearer visibility into customer and project activity during migration and post-go-live support.",
-            level3_trait="Show what was noticed: when teams updated side trackers instead of the system, the real blocker was not effort but visibility and ownership.",
-            result="Improved cross-functional coordination and reduced manual status chasing during migration and post-go-live support.",
-            outcome="Use this for Salesforce adoption, digital mindset, and explaining why system-based workflow visibility is stronger than spreadsheet-driven coordination.",
-            evidence_terms=("East West", "Salesforce"),
-            signals=("salesforce", "crm", "visibility", "reporting", "workflow", "adoption", "digital", "operations"),
-        ),
-        StoryCard(
-            title="Salesforce backlog and release coordination",
-            story_types=("Analysis and Decision", "Managing and Leading", "Teamwork"),
-            hook="Customer-facing CRM and digital-workflow changes had to stay useful for customers and support teams instead of becoming another spreadsheet-driven status exercise.",
-            takeaways=("Translated noisy requests into backlog-ready work", "Used testing and release discipline to protect adoption", "Kept the workflow visible in system rather than in side trackers"),
-            evidence="Turned business needs into backlog-ready requirements, coordinated UAT, and validated releases across Salesforce customer and marketing workflows.",
-            level3_trait="Show what was noticed: when ownership lived in email threads or spreadsheets, follow-up got blurry, so the work had to move into clearer CRM workflows, test scenarios, and next-step tracking.",
-            result="Improved post-go-live follow-through, clearer issue ownership, and more reliable coordination across customer-facing teams.",
-            outcome="Use this for Salesforce product ownership, backlog management, UAT, release coordination, and explaining why structured CRM workflows beat spreadsheet tracking.",
-            evidence_terms=("salesforce", "marketing cloud"),
-            signals=("salesforce", "crm", "digital", "backlog", "uat", "release", "product", "adoption", "workflow", "customer experience"),
-        ),
-        StoryCard(
-            title="Zero-to-one SMS support channel",
-            story_types=("Individual Achievement", "Analysis and Decision", "Rapid Learning"),
-            hook="At The Home Depot, customers had no way to reach support over text, and the pilot team had to stand up an SMS support channel from zero.",
-            takeaways=("Designed the workflow before scaling", "Configured repeatable messaging steps", "Documented the setup so the channel could be repeated"),
-            evidence=f"Configured LivePerson LiveEngage chat and text workflows, automated greetings and closings, AI-assisted chatbot logic, and early channel-usage monitoring for the {COMPANY_HOME_DEPOT} SMS pilot.",
-            level3_trait="Show what was noticed: the new channel needed an operating workflow first, including how text conversations opened, routed, closed, and got measured.",
-            result="Launched a working SMS support channel and documented the setup so the workflow could be repeated consistently.",
-            outcome="Use this for zero-to-one workflow design, practical automation, messaging workflows, conversational AI, or channel adoption.",
-            evidence_terms=("liveengage", "text messaging"),
-            signals=("automation", "ai", "chatbot", "messaging", "workflow", "nlp"),
-        ),
-        StoryCard(
-            title="Aptean lifecycle delivery",
-            story_types=("Individual Achievement", "Managing and Leading", "Ambiguous Problem"),
-            hook="At Aptean, 80+ manufacturing clients needed ambiguous business needs translated into practical ERP scope, delivery, and adoption.",
-            takeaways=("Started with discovery before solutioning", "Converted requirements into scope and milestones", "Stayed with clients through go-live and hypercare"),
-            evidence="Led discovery, requirements definition, configuration, data migration, integration, testing, go-live, and post-go-live support.",
-            level3_trait="Show how vague asks were translated into SOWs, functional requirements, test plans, and delivery checkpoints.",
-            result="Helped international clients move through full lifecycle ERP implementation with clearer scope and lower delivery risk.",
-            outcome="Use this for implementation, consulting delivery, and structuring ambiguous work.",
-            evidence_terms=("requirements", "implementation", "adoption"),
-            signals=("discovery", "requirements", "solution", "design", "implementation", "consulting"),
-        ),
-        StoryCard(
-            title="Operations versus finance alignment",
-            story_types=("Persuasion", "Teamwork", "Opposing Views"),
-            hook="At East West, the central issue was getting several internal teams and the vendor onto one decision path for the business tradeoff.",
-            takeaways=("Listened for the constraint behind each position", "Made tradeoffs explicit", "Recommended the option that protected the business outcome"),
-            evidence="Led cross-functional discovery, surfaced the tradeoffs, and negotiated priorities with vendors and internal stakeholders.",
-            level3_trait="Show what was noticed: one group was optimizing speed, another was protecting control, and the answer had to make the tradeoff visible.",
-            result="Balanced cost, timeline, and operational impact across competing stakeholder interests.",
-            outcome="Use this for opposing views, difficult stakeholders, and influence without authority.",
-            evidence_terms=("finance", "engineering"),
-            signals=("opposing", "disagree", "stakeholder", "finance", "operations", "persuasion"),
-        ),
-        StoryCard(
-            title="Failure lesson and stronger validation",
-            story_types=("Challenge and Failure", "Analysis and Decision", "Rapid Learning"),
-            hook="During East West release-readiness work, unclear requirements and weak validation could turn a solvable system issue into a larger adoption problem.",
-            takeaways=("Own the miss without over-explaining", "Show the control that changed afterward", "Connect the lesson to better delivery risk management"),
-            evidence="Led go-live readiness, sandbox testing, user acceptance validation, issue triage, and release readiness across ERP work.",
-            level3_trait="Show the changed behavior: clearer requirements, stronger validation checkpoints, more explicit rollback planning, and earlier stakeholder signoff.",
-            result="Reduced production disruption, downstream defects, and implementation risk across concurrent program tracks.",
-            outcome="Use this for failure questions. Keep it honest, calm, and focused on what changed.",
-            evidence_terms=("validation",),
-            signals=("failure", "mistake", "learn", "testing", "validation", "risk"),
-        ),
-        StoryCard(
-            title="Customer loss and proactive success lesson",
-            story_types=("Challenge and Failure", "Customer Disagreement", "Persuasion"),
-            hook="At Aptean, an inherited customer relationship had to be recovered after a broken implementation, even though resolving every technical issue did not save the account.",
-            takeaways=(
-                "Owned the relationship directly rather than managing it through escalation",
-                "Negotiated feature acceleration to rebuild trust faster than a standard roadmap allowed",
-                "Learned that waiting for a customer to raise concerns means the decision is already made",
-            ),
-            evidence="Took ownership of an at-risk account at a manufacturing ERP company where an incorrectly configured integration had eroded trust; met with the customer president weekly and worked across product and development to accelerate key roadmap items from a six-month timeline into a two-month beta release.",
-            level3_trait="Show what was noticed: the customer needed a clear owner and a credible path forward, not another status update. Then show what changed: reaching out before a customer has a reason to complain, not after, because by the time someone raises their hand the decision is often already made.",
-            result="Resolved every technical issue the customer had raised. The account still churned when the customer chose a cheaper competitor. The loss clarified the proactive customer success model applied in every engagement afterward.",
-            outcome="Use this for failure questions, customer churn questions, or any question about proactive account management and what was learned from a loss. It is the strongest story for roles where customer health ownership is an explicit expectation.",
-            evidence_terms=("at-risk annual revenue",),
-            signals=("failure", "churn", "loss", "customer", "proactive", "retention", "account", "escalation", "discovery", "executive", "consulting", "transformation", "enablement"),
-        ),
-        StoryCard(
-            title="13-month modernization complexity",
-            story_types=("Ambiguous Problem", "Managing and Leading", "Persuasion"),
-            hook="At Aptean, a four-to-seven-month modernization engagement became 13 months when discovery uncovered infrastructure too outdated for modern software.",
-            takeaways=(
-                "Surfaced a constraint the customer had not anticipated and could not work around",
-                "Aligned CEO and upper management on real costs before any software work could begin",
-                "Kept the engagement alive through a 13-month delivery when the scope was set for four to seven months",
-            ),
-            evidence="Led a full ERP modernization engagement where requirements gathering revealed tens of thousands of dollars in required hardware upgrades before implementation could begin. I delivered a satisfied customer and billable customization work through an engagement that ran nearly three times the standard timeline.",
-            level3_trait="Show what was noticed: the customer asked for software, but the real constraint was infrastructure. Show what was done: named the problem directly to leadership instead of softening it, managed expectations through a significantly longer delivery, and kept the customer confident enough to stay.",
-            result="Delivered a satisfied customer after a 13-month engagement scoped at four to seven months. The extended timeline opened billable customization work that would not have existed in a standard delivery.",
-            outcome="Use this for most complex implementation, stakeholder alignment under pressure, managing scope surprises, or expectations management with executive audiences who did not anticipate the real cost or timeline of the work they asked for.",
-            evidence_terms=("implementation", "go-live"),
-            signals=("complex", "implementation", "timeline", "stakeholder", "executive", "scope", "modernization", "discovery", "consulting", "transformation"),
-        ),
-        StoryCard(
-            title="UAT defect catch before go-live",
-            story_types=("Challenge and Failure", "Persuasion", "Analysis and Decision"),
-            hook="During Aptean UAT, a defect would have broken a live client workflow if it reached production.",
-            takeaways=(
-                "Named the go-live risk directly instead of softening it",
-                "Coordinated root-cause work quickly across development and product partners",
-                "Protected the client outcome even when that meant slowing the timeline",
-            ),
-            evidence="Identified a critical defect during user acceptance testing, led triage with development, validated the fix, and withheld go-live approval until the workflow was safe.",
-            level3_trait="Show what was noticed: the real risk was not a bug count but the production impact on a live client process, so the conversation stayed anchored on business harm, validation, and release readiness instead of schedule pressure.",
-            result="Prevented a production issue that would have disrupted live client operations after go-live.",
-            outcome="Use this for delivery risk management, quality validation, cross-functional coordination, or any question about making a difficult go-live call.",
-            evidence_terms=("user acceptance", "go-live"),
-            signals=("uat", "testing", "risk", "delivery", "client management", "validation", "defect", "go-live"),
-        ),
-        StoryCard(
-            title="CEO hardware scoping conversation",
-            story_types=("Persuasion", "Customer Disagreement", "Managing and Leading"),
-            hook="At Aptean, an executive sponsor needed to see outdated infrastructure as a business risk before ERP work could move forward.",
-            takeaways=(
-                "Diagnosed the real blocker before talking solutions",
-                "Framed hardware upgrades as implementation risk rather than IT preference",
-                "Kept leadership, vendors, and technical teams aligned on readiness",
-            ),
-            evidence="Scoped server and hardware requirements with leadership, vendors, and IT teams to confirm compatibility, capacity, security, and upgrade readiness before ERP deployment.",
-            level3_trait="Show what was noticed: leadership thought the project was a software decision, but the real constraint was infrastructure readiness, so the discussion had to shift from features to business exposure if the environment failed under live load.",
-            result="Secured infrastructure-readiness alignment early enough to prevent post-deployment performance failures.",
-            outcome="Use this for executive persuasion, technical scoping, stakeholder alignment, or surfacing hidden delivery risk before go-live.",
-            evidence_terms=("hardware", "infrastructure"),
-            signals=("persuasion", "stakeholder", "executive", "hardware", "implementation", "risk", "scope", "infrastructure"),
-        ),
-        StoryCard(
-            title="New warehouse and Amazon Robotics systems launch",
-            story_types=("Individual Achievement", "Managing and Leading", "Ambiguous Problem"),
-            hook="At East West Manufacturing, a new warehouse operation and Amazon Robotics program had to be production-ready by go-live across concurrent systems workstreams.",
-            takeaways=(
-                "Treated product families, GL accounts, BOMs, and training as parallel workstreams",
-                "Sequenced the work so systems and users were ready at cutover",
-                "Delivered production readiness without needing formal authority over every contributor",
-            ),
-            evidence="At East West, launched a production-ready system setup for a new warehouse operation and Amazon Robotics program, scoping product families, GL accounts, BOMs, and cross-site training from initial requirements through go-live.",
-            level3_trait="Show what was noticed: this was not one task but several concurrent workstreams that all had to converge by go-live.",
-            result="Delivered a production-ready go-live with the systems and the people ready at the same time.",
-            outcome="Use this for high-stakes cross-functional delivery, most complex project, manufacturing execution, and parallel workstream ownership.",
-            evidence_terms=("Amazon Robotics", "warehouse"),
-            signals=("manufacturing", "implementation", "compliance", "delivery", "executive", "stakeholder", "go-live", "complex"),
-        ),
-        StoryCard(
-            title="Cross-site rollout to the Mexico teams",
-            story_types=("Cross-Cultural", "Teamwork", "Managing and Leading"),
-            hook="During the East West ERP rollout, two Mexico sites needed to be genuinely ready for go-live, not merely installed.",
-            takeaways=("Recognized that one-size training would leave adoption gaps", "Went on-site in El Paso and Juarez", "Adapted onboarding and compliance steps to the local teams"),
-            evidence="Supported the Mexico sites in person during the East West rollout, adapting onboarding, training, compliance, and financial steps to how the local teams worked.",
-            level3_trait="Show what was noticed: language, process, and on-the-ground differences meant remote-only support would leave gaps.",
-            result="The Mexico sites went live ready, not just installed, and the cross-site rollout held together.",
-            outcome="Use this for cross-cultural collaboration, adoption, multi-site work, and stakeholder empathy.",
-            evidence_terms=("training", "adoption"),
-            signals=("cross-cultural", "cross-site", "Mexico", "training", "adoption", "go-live", "stakeholder"),
-        ),
-        StoryCard(
-            title="Parallel workstream prioritization",
-            story_types=("Prioritization", "Managing and Leading", "Ambiguous Problem"),
-            hook="At East West Manufacturing, a hard-date warehouse and Amazon Robotics launch had four urgent workstreams that could not all be treated as equal.",
-            takeaways=("Locked the data foundation first", "Ran independent GL setup in parallel", "Held training for the final configuration and protected the critical path"),
-            evidence="Sequenced product families, BOMs, GL setup, and site training around the critical path, saying no to changes that put the go-live date at risk.",
-            level3_trait="Show what was noticed: if the data foundation slipped, training and go-live would collapse on top of it.",
-            result="Systems and people converged at go-live on schedule.",
-            outcome="Use this for prioritization, deadline pressure, parallel work, and saying no to date-risking scope.",
-            evidence_terms=("go-live", "training"),
-            signals=("prioritization", "critical path", "parallel", "go-live", "training", "deadline", "scope"),
-        ),
-        StoryCard(
-            title="Redirecting a churning account without arguing",
-            story_types=("Customer Disagreement", "Persuasion", "Opposing Views"),
-            hook="At Aptean, an at-risk account blamed the product and was ready to leave, while the evidence pointed to adoption gaps and stalled custom work.",
-            takeaways=("Diagnosed the root cause with the customer", "Reframed disagreement as a shared fix", "Created a weekly ownership cadence"),
-            evidence="Walked the customer through where usage had dropped and which integration had stalled, then took ownership and worked the actual gaps with them.",
-            level3_trait="Show what was noticed: being right about the root cause would not help if the customer did not feel heard or see a credible path forward.",
-            result="The account moved from churning to retained.",
-            outcome="Use this for difficult customers, conflict, influence, root-cause thinking, and customer recovery.",
-            evidence_terms=("adoption",),
-            signals=("customer", "disagreement", "adoption", "integration", "retention", "persuasion", "conflict"),
-        ),
-        StoryCard(
-            title="Data-migration setback and validation checkpoint",
-            story_types=("Challenge and Failure", "Analysis and Decision", "Rapid Learning"),
-            hook="During the East West data migration, a portion of the data did not map cleanly and was caught later than it should have been.",
-            takeaways=("Owned the miss immediately", "Paused the affected cutover step and rebuilt mapping validation", "Added a checkpoint so the gap could not recur"),
-            evidence="Paused the affected migration step, rebuilt the mapping and validation, re-ran it before production, and added a validation checkpoint.",
-            level3_trait="Show what was noticed: the source data was not as clean as assumed, so the process had to change rather than rely on a later inspection.",
-            result="The data migrated cleanly and the new checkpoint reduced recurrence risk.",
-            outcome="Use this for failure, ownership, resilience, data migration, and learning from a miss.",
-            evidence_terms=("migration", "validation"),
-            signals=("failure", "migration", "validation", "data", "ownership", "learning", "risk"),
-        ),
-        StoryCard(
-            title="Acting on hard communication feedback",
-            story_types=("Receiving Feedback", "Rapid Learning", "Individual Achievement"),
-            hook="During a client engagement, a manager told me my updates ran too long and buried the point.",
-            takeaways=("Accepted the feedback as accurate", "Led with the outcome and offered detail on request", "Practiced the change in meetings and client calls"),
-            evidence="Rebuilt my communication around outcome-first updates and practiced the change deliberately until it became automatic.",
-            level3_trait="Show the behavior change: the answer became the headline first, with the process available only when the audience needed it.",
-            result="Updates became sharper, meetings shorter, and stakeholders came to me first for a clear read.",
-            outcome="Use this for feedback, weaknesses, coachability, self-awareness, and communication growth.",
-            evidence_terms=("adoption",),
-            signals=("feedback", "communication", "coachability", "learning", "concise", "stakeholder"),
-        ),
-        StoryCard(
-            title="East West end-to-end ERP implementation",
-            story_types=("Managing and Leading", "Ambiguous Problem", "Teamwork"),
-            hook="I led the East West ERP implementation and data migration across five sites and more than 150 users.",
-            takeaways=("Aligned operations, finance, and engineering", "Owned onboarding, compliance, financial, and training sessions", "Led ETL and migration to a clean go-live"),
-            evidence="Led the end-to-end ERP implementation and migration, supported the Mexico offices in person, and owned the ETL and data migration through go-live.",
-            level3_trait="Show what was noticed: the work was an alignment problem across sites, functions, and countries, not a software install.",
-            result="The sites went live with systems and people ready together, and the migration landed clean.",
-            outcome="Use this as the implementation lead story for end-to-end ownership, ERP delivery, onboarding, and customer-side execution.",
-            evidence_terms=("five sites", "enterprise systems"),
-            signals=("implementation", "ERP", "migration", "go-live", "five sites", "training", "global", "ownership"),
-            sensitive_note="My role wrapped when the migration finished and the team consolidated.",
-        ),
-        StoryCard(
-            title="Both-sides implementation breadth",
-            story_types=("Individual Achievement", "Rapid Learning", "Ambiguous Problem"),
-            hook="I have delivered the same kind of software from both sides of the table: as a vendor across more than 80 client engagements and as the customer-side implementation owner.",
-            takeaways=("Adapted across legacy on-premise and cloud environments", "Learned varied client workflows quickly", "Connected vendor delivery discipline to customer-side ownership"),
-            evidence="At Aptean, implemented and supported more than 80 clients across varied configurations, then led the East West implementation from the customer side.",
-            level3_trait="Show the differentiator: vendor breadth helps me anticipate where implementations break, while customer-side ownership keeps the work grounded in adoption and operating reality.",
-            result="I bring implementation judgment from both sides of the table.",
-            outcome="Use this as the broad opening hook for implementation, solution consulting, and customer-facing delivery roles.",
-            evidence_terms=("client engagements", "migration"),
-            signals=("both sides", "client engagements", "implementation", "migration", "ERP", "cloud", "discovery"),
-        ),
-    ]
-    stable_keys = {
-        "EFT/ACH payment integration replacement": "payment_integration",
-        "High-volume inventory automation": "inventory_automation",
-        "Aptean rapid product learning": "rapid_learning",
-        "$1M+ account stabilization": "account_stabilization",
-        "200+ dashboards and decision visibility": "dashboards",
-        "60+ workshops and QBRs": "executive_workshops",
-        "East West ERP ownership": "erp_ownership",
-        "East West Salesforce visibility": "crm_visibility",
-        "Salesforce backlog and release coordination": "backlog_release",
-        "Zero-to-one SMS support channel": "sms_channel",
-        "Aptean lifecycle delivery": "lifecycle_delivery",
-        "Operations versus finance alignment": "ops_finance",
-        "Failure lesson and stronger validation": "failure_validation",
-        "Customer loss and proactive success lesson": "customer_loss",
-        "13-month modernization complexity": "modernization_scope",
-        "UAT defect catch before go-live": "uat_defect",
-        "CEO hardware scoping conversation": "ceo_hardware",
-        "New warehouse and Amazon Robotics systems launch": "amazon_robotics",
-        "Cross-site rollout to the Mexico teams": "cross_site_adoption",
-        "Parallel workstream prioritization": "parallel_workstreams",
-        "Redirecting a churning account without arguing": "churn_redirect",
-        "Data-migration setback and validation checkpoint": "migration_setback",
-        "Acting on hard communication feedback": "communication_feedback",
-        "East West end-to-end ERP implementation": "east_west_end_to_end",
-        "Both-sides implementation breadth": "both_sides_breadth",
-    }
-    return [replace(card, boost_key=card.boost_key or stable_keys.get(card.title, "")) for card in cards]
 
 
 MUTUALLY_EXCLUSIVE_GROUPS = (
@@ -3307,8 +2916,6 @@ MUTUALLY_EXCLUSIVE_GROUPS = (
 )
 
 
-def story_by_boost_key(stories: Sequence[StoryCard], boost_key: str) -> StoryCard | None:
-    return next((card for card in stories if card.boost_key == boost_key), None)
 
 
 def lane_lead_in_for_profile(profile: build_resume.JobProblemProfile) -> LaneLeadIn:
@@ -3398,9 +3005,6 @@ def hero_stories(
     return selected[:5]
 
 
-def supported_story_bank(resume_text: str = "", *, eligibility_text: str = "") -> list[StoryCard]:
-    gate_text = eligibility_text or resume_text or question_prep.approved_source_resume_text()
-    return [card for card in expanded_story_bank() if contains_all(gate_text, card.evidence_terms, safe=True)]
 
 
 def story_evidence_gaps(text: str, stories: Sequence[StoryCard] | None = None) -> dict[str, tuple[str, ...]]:
@@ -3476,21 +3080,6 @@ def quantified_story_boost(card: StoryCard, profile: build_resume.JobProblemProf
     return 0
 
 
-def story_for_type(
-    stories: list[StoryCard],
-    story_type: str,
-    profile: build_resume.JobProblemProfile | None = None,
-) -> StoryCard | None:
-    if story_type == "Challenge and Failure":
-        preferred_keys = ("customer_loss", "failure_validation")
-        if profile and profile.primary_lane in {"implementation_delivery", "change_enablement", "process_improvement"}:
-            preferred_keys = ("migration_setback", "failure_validation", "customer_loss")
-        elif profile and profile.primary_lane == "customer_success":
-            preferred_keys = ("customer_loss", "churn_redirect", "failure_validation")
-        preferred = next((story_by_boost_key(stories, key) for key in preferred_keys), None)
-        if preferred:
-            return preferred
-    return next((card for card in stories if story_type in card.story_types), None)
 
 
 def story_theme_key(card: StoryCard) -> str:
@@ -3952,22 +3541,8 @@ def cart_answer(card: StoryCard, profile: build_resume.JobProblemProfile) -> lis
     ]
 
 
-def should_use_cart(company_name: str, role_title: str, job_description: str) -> bool:
-    return bool(
-        build_resume.is_consulting_job_description(job_description)
-        or re.search(r"\b(?:vp|director|head of|senior director)\b", role_title, re.I)
-        or build_resume.jd_mentions(
-            job_description,
-            "executive stakeholders",
-            "board",
-            "C-suite",
-            "leadership alignment",
-        )
-    )
 
 
-def uses_star_answer_framework(company_name: str, job_description: str) -> bool:
-    return build_resume.jd_mentions(job_description, "star method", "situation task action result")
 
 
 def pyramid_answer(card: StoryCard, profile: build_resume.JobProblemProfile) -> list[str]:
@@ -3983,37 +3558,8 @@ def pyramid_answer(card: StoryCard, profile: build_resume.JobProblemProfile) -> 
     ]
 
 
-def spoken_caar_answer(card: StoryCard, profile: build_resume.JobProblemProfile) -> str:
-    parts = [
-        concrete_story_opening(card),
-    ]
-    if card.level3_trait:
-        parts.append(spoken_level3_trait_sentence(card.level3_trait))
-    if card.evidence:
-        parts.append(story_evidence_sentence(card.evidence))
-    if card.result:
-        parts.append(story_result_sentence(card.result))
-    bridge = story_specific_bridge(card, profile).replace("Bridge: ", "")
-    if bridge and spoken_word_count(interview_join(*parts, bridge)) <= STANDARD_SPOKEN_WORD_RANGE[1]:
-        parts.append(bridge[:1].upper() + bridge[1:])
-    return interview_join(*parts)
 
 
-def spoken_cart_answer(card: StoryCard, profile: build_resume.JobProblemProfile) -> str:
-    parts = [
-        concrete_story_opening(card),
-        cart_takeaway_sentence(card),
-    ]
-    if card.evidence:
-        parts.append(story_evidence_sentence(card.evidence))
-    if card.level3_trait:
-        parts.append(spoken_level3_trait_sentence(card.level3_trait))
-    if card.result:
-        parts.append(story_result_sentence(card.result))
-    bridge = story_specific_bridge(card, profile).replace("Bridge: ", "")
-    if bridge and spoken_word_count(interview_join(*parts, bridge)) <= STANDARD_SPOKEN_WORD_RANGE[1]:
-        parts.append(bridge[:1].upper() + bridge[1:])
-    return interview_join(*parts)
 
 
 def cart_takeaway_sentence(card: StoryCard) -> str:
@@ -4029,39 +3575,8 @@ def cart_takeaway_sentence(card: StoryCard) -> str:
     )
 
 
-def spoken_pyramid_answer(card: StoryCard, profile: build_resume.JobProblemProfile) -> str:
-    parts = [
-        "Yes, I have handled that kind of situation by structuring the problem first and then using evidence and stakeholder alignment to move toward a practical outcome",
-        concrete_story_opening(card),
-    ]
-    if card.level3_trait:
-        parts.append(spoken_level3_trait_sentence(card.level3_trait))
-    if card.evidence:
-        parts.append(story_evidence_sentence(card.evidence))
-    if card.result:
-        parts.append(story_result_sentence(card.result))
-    bridge = story_specific_bridge(card, profile).replace("Bridge: ", "")
-    if bridge and spoken_word_count(interview_join(*parts, bridge)) <= STANDARD_SPOKEN_WORD_RANGE[1]:
-        parts.append(bridge[:1].upper() + bridge[1:])
-    return interview_join(*parts)
 
 
-def spoken_story_answer(
-    card: StoryCard,
-    profile: build_resume.JobProblemProfile,
-    company_name: str = "",
-    role_title: str = "",
-    job_description: str = "",
-) -> str:
-    if uses_star_answer_framework(company_name, job_description):
-        answer = spoken_pyramid_answer(card, profile)
-    elif should_use_cart(company_name, role_title, job_description):
-        answer = spoken_cart_answer(card, profile)
-    else:
-        answer = spoken_caar_answer(card, profile)
-    answer = prose_engine.spoken_register(answer).text
-    assert_full_spoken_answer(f"{card.title} story answer", answer, min_words=40)
-    return answer
 
 
 def great_eight_story_audit(stories: list[StoryCard]) -> dict[str, str]:
@@ -4436,50 +3951,6 @@ def likely_questions(profile: build_resume.JobProblemProfile, job_description: s
     return questions[:8]
 
 
-def likely_question_story(item: InterviewQuestion, stories: list[StoryCard], used_titles: set[str] | None = None) -> StoryCard:
-    used_titles = used_titles or set()
-    prompt = f"{item.question} {item.angle}".lower()
-    mapped_title = closest_anchor_story_title(item.question, item.angle)
-    lifecycle_terms = ("implementation", "go-live", "configuration", "readiness", "lifecycle", "rollout")
-    enhancement_terms = ("upgrade", "customization", "service pack", "already live", "enhancement")
-    hints: tuple[tuple[tuple[str, ...], tuple[str, ...]], ...] = (
-        (("data", "metric", "report", "excel", "sql", "validate"), ("Analysis and Decision", "KPI", "dashboard", "reporting")),
-        (("risk", "stabilize", "difficult", "escalation", "customer"), ("Challenge and Failure", "Persuasion", "account stabilization", "recovery")),
-        (("train", "training", "adoption", "enablement"), ("Teamwork", "workshop", "QBR", "adoption")),
-        (("discovery", "demo", "solution", "buyer"), ("Persuasion", "pre-sales", "discovery", "solution")),
-        (("implementation", "go-live", "configuration", "readiness"), ("Individual Achievement", "implementation", "go-live", "Aptean")),
-        (("technical", "project", "integration", "api", "migration"), ("Rapid Learning", "ERP", "migration", "technical")),
-        (("stakeholder", "competing", "priority", "influence"), ("Persuasion", "Teamwork", "alignment")),
-        (("gap", "learn", "new", "comfort"), ("Rapid Learning", "Challenge and Failure", "learning")),
-    )
-    scored: list[tuple[int, StoryCard]] = []
-    for story in stories[:12]:
-        score = signal_score(prompt, story.signals)
-        story_text = " ".join((story.title, story.hook, " ".join(story.story_types), " ".join(story.signals))).lower()
-        if mapped_title and story.title == mapped_title:
-            score += 100
-        for question_terms, story_terms in hints:
-            if any(term in prompt for term in question_terms):
-                if any(term.lower() in story_text for term in story_terms):
-                    score += 8
-        if any(term in prompt for term in lifecycle_terms):
-            if "aptean" in story_text:
-                score += 10
-            if "east west" in story_text:
-                score -= 4
-        if any(term in prompt for term in enhancement_terms):
-            if "east west" in story_text:
-                score += 10
-        if story.title in used_titles:
-            # Large enough to lose to any unused story regardless of keyword
-            # bonuses above, so a story only repeats within the same question
-            # list when every other story has truly been used already. A
-            # small penalty here let the same story answer two different
-            # questions verbatim in the same interview, which is exactly the
-            # "sounds rehearsed" failure mode this tool exists to avoid.
-            score -= 1000
-        scored.append((score, story))
-    return max(scored, key=lambda item_score: item_score[0])[1]
 
 
 def question_story_angle(
@@ -5103,24 +4574,6 @@ def questions_to_ask(
     return final_questions
 
 
-def closest_anchor_story_title(prompt: str, angle: str = "") -> str:
-    text = f"{prompt} {angle}".lower()
-    mapping = (
-        (("walk me through", "implementation you owned", "full lifecycle"), "Aptean lifecycle delivery"),
-        (("scope creep", "changing requirements", "sow", "frd"), "Aptean lifecycle delivery"),
-        (("data migration", "go-live risk", "integration risk", "payment", "validation"), "EFT/ACH payment integration replacement"),
-        (("went wrong", "failure", "lost the account", "mistake"), "Customer loss and proactive success lesson"),
-        (("ambiguity", "ambiguous", "methodology", "run a project"), "Aptean lifecycle delivery"),
-        (("largest project", "most complex project", "no formal authority"), "EFT/ACH payment integration replacement"),
-        (("warehouse", "amazon robotics"), "New warehouse and Amazon Robotics systems launch"),
-        (("manual work", "process improvement", "inventory"), "High-volume inventory automation"),
-        (("sms", "liveengage", "new workflow", "zero"), "Zero-to-one SMS support channel"),
-        (("at-risk", "churn", "recovery", "retention"), "$1M+ account stabilization"),
-    )
-    for terms, title in mapping:
-        if any(term in text for term in terms):
-            return title
-    return ""
 
 
 def delivery_watch_list_lines() -> tuple[str, ...]:

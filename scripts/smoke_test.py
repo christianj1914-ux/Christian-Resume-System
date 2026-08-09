@@ -396,6 +396,24 @@ def test_smoke_registry_has_no_orphaned_test_functions() -> None:
     assert_true(not orphaned, f"Unregistered or unreferenced test functions: {', '.join(orphaned)}")
 
 
+def test_pyflakes_has_no_undefined_names_or_redefinitions() -> None:
+    result = subprocess.run(
+        [sys.executable, "-m", "pyflakes", "scripts"],
+        cwd=PROJECT_ROOT,
+        capture_output=True,
+        text=True,
+    )
+    diagnostics = "\n".join(
+        line
+        for line in (result.stdout + "\n" + result.stderr).splitlines()
+        if "undefined name" in line or "redefinition of" in line
+    )
+    assert_true(
+        not diagnostics,
+        f"pyflakes reported undefined names or redefinitions:\n{diagnostics}",
+    )
+
+
 def test_orphan_detector_flags_synthetic_unreferenced_test() -> None:
     source = "def test_synthetic_orphan():\n    pass\n"
     assert_true(
@@ -17762,6 +17780,7 @@ def main(argv: list[str] | None = None) -> None:
         registered_checks = (
             ("AGENTS word budget", test_agents_word_budget),
             ("smoke registry has no orphaned test functions", test_smoke_registry_has_no_orphaned_test_functions),
+            ("pyflakes has no undefined names or redefinitions", test_pyflakes_has_no_undefined_names_or_redefinitions),
             ("orphan detector flags synthetic unreferenced test", test_orphan_detector_flags_synthetic_unreferenced_test),
             ("smoke selector uses nonempty deduplicated tag union", test_smoke_selector_uses_nonempty_deduplicated_tag_union),
             ("smoke selector preserves failing federal check", test_smoke_selector_preserves_failing_federal_check),
