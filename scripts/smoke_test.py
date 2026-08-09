@@ -17307,7 +17307,26 @@ def test_cleanup_output_finders_and_selective_flag() -> None:
 
             stale_outputs = cleanup_output.find_stale_output_files()
             stale_renders = cleanup_output.find_stale_render_folders()
-            parsed_args = cleanup_output.parse_args(["--selective"])
+            parsed_args = cleanup_output.parse_args(["--selective", "--prune-bundles", "--prune-bundles-execute"])
+
+            for index in range(60):
+                for document_type in ("Resume", "Cover Letter", "Interview Cheat Sheet"):
+                    path = output_dir / f"Christian Estrada - Company {index} - Consultant PASS {document_type}.docx"
+                    path.write_text("docx", encoding="utf-8")
+                    os.utime(path, (stale_timestamp, stale_timestamp))
+            rippling_resume = output_dir / "Christian Estrada - Rippling - Implementation Consultant (Platform & Data) FAIL Resume.docx"
+            rippling_guide = output_dir / "Christian Estrada - Rippling - Implementation Consultant (Platform & Data) FAIL Detailed Interview Guide DRAFT.docx"
+            dematic_hr = output_dir / "Christian Estrada - Dematic - Solution Consultant FAIL Detailed Interview Guide (HR Screen) DRAFT.docx"
+            dematic_hiring = output_dir / "Christian Estrada - Dematic - Solution Consultant FAIL Detailed Interview Guide (Hiring Manager).docx"
+            for path in (rippling_resume, rippling_guide, dematic_hr, dematic_hiring):
+                path.write_text("docx", encoding="utf-8")
+                os.utime(path, (stale_timestamp, stale_timestamp))
+            families, preserved, removals = cleanup_output.bundle_cleanup_plan(output_dir.glob("*.docx"))
+            preview = cleanup_output.save_bundle_preview(families, preserved, removals)
+            archive_path, manifest_path = cleanup_output.archive_deletion_set(
+                [stale_file], {stale_file.resolve(): "smoke cleanup archive"}, "smoke",
+            )
+            archive_artifacts_created = preview.exists() and archive_path.exists() and manifest_path.exists()
     finally:
         cleanup_output.PROJECT_ROOT = original_project_root
         cleanup_output.OUTPUT_DIR = original_output_dir
@@ -17322,8 +17341,18 @@ def test_cleanup_output_finders_and_selective_flag() -> None:
         f"cleanup_output.find_stale_render_folders() should reuse the safe render-folder policy; got {stale_renders}",
     )
     assert_true(
-        parsed_args.selective,
-        "cleanup_output.parse_args() should accept the --selective flag",
+        parsed_args.selective and parsed_args.prune_bundles and parsed_args.prune_bundles_execute,
+        "cleanup_output.parse_args() should accept cleanup selection and pruning flags",
+    )
+    assert_true(
+        60 <= len(families) <= 150 and archive_artifacts_created,
+        "bundle cleanup should create a bounded preview and a verified archive manifest",
+    )
+    assert_true(
+        cleanup_output.output_family_key(rippling_resume) == cleanup_output.output_family_key(rippling_guide)
+        and cleanup_output.output_family_key(dematic_hr) == cleanup_output.output_family_key(dematic_hiring)
+        and cleanup_output.output_family_key(Path("Question_Bank_Audit_2026-07-28.docx")) is None,
+        "bundle parser should preserve role-name parentheses, collapse interview rounds, and exempt standalone documents",
     )
 
 
