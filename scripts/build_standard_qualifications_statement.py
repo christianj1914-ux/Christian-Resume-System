@@ -17,8 +17,8 @@ from docx import Document
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.shared import Inches, Pt, RGBColor
 
-import build_interview_cheat_sheet
 import build_resume
+import interview_story_engine
 import question_bank_audit
 import question_prep
 import prose_engine
@@ -355,10 +355,10 @@ def build_recent_interviewer_scripts(
     """
     if not items:
         return ()
-    profile = build_interview_cheat_sheet.adjusted_profile_for_role(
+    profile = interview_story_engine.adjusted_profile_for_role(
         build_resume.job_problem_profile(job_description, resume_text), role_title, job_description
     )
-    stories = build_interview_cheat_sheet.supported_story_bank(resume_text)
+    stories = interview_story_engine.supported_story_bank(resume_text)
     used_titles: set[str] = set()
     scripts: list[tuple[str, str]] = []
     for item in items:
@@ -367,13 +367,13 @@ def build_recent_interviewer_scripts(
                 question_prep.interviewer_question_factual_script(item.prompt, job_description, resume_text)
             ).text
         else:
-            story = build_interview_cheat_sheet.likely_question_story(
-                build_interview_cheat_sheet.InterviewQuestion(item.prompt, item.answer_angle),
+            story = interview_story_engine.likely_question_story(
+                interview_story_engine.InterviewQuestion(item.prompt, item.answer_angle),
                 list(stories),
                 used_titles,
             )
             used_titles.add(story.title)
-            spoken = build_interview_cheat_sheet.spoken_story_answer(
+            spoken = interview_story_engine.spoken_story_answer(
                 story, profile, company_name, role_title, job_description
             )
         if "Fill in" in spoken:

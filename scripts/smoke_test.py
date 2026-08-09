@@ -7376,17 +7376,19 @@ def test_adjusted_profile_for_role_preserves_non_lane_fields(
     build_resume: object,
     build_interview_cheat_sheet: object,
 ) -> None:
+    import interview_story_engine
+
     profile = build_resume.job_problem_profile(DUMMY_JOB_DESCRIPTION, OLLIE_RESUME_TEXT)
-    original_effective_lane_key = build_resume.effective_lane_key
+    original_effective_lane_key = interview_story_engine.effective_lane_key
     try:
-        build_resume.effective_lane_key = lambda *args, **kwargs: "presales_solution"
+        interview_story_engine.effective_lane_key = lambda *args, **kwargs: "presales_solution"
         adjusted = build_interview_cheat_sheet.adjusted_profile_for_role(
             profile,
             "Senior Solutions Architect",
             PROCORE_JOB_DESCRIPTION,
         )
     finally:
-        build_resume.effective_lane_key = original_effective_lane_key
+        interview_story_engine.effective_lane_key = original_effective_lane_key
 
     assert_true(
         adjusted.primary_lane == "presales_solution",
@@ -17356,6 +17358,22 @@ def test_cleanup_output_finders_and_selective_flag() -> None:
     )
 
 
+def test_interview_story_engine_reexports_shared_symbols() -> None:
+    import build_interview_cheat_sheet
+    import build_standard_qualifications_statement
+    import interview_story_engine
+
+    assert_true(
+        build_interview_cheat_sheet.expanded_story_bank is interview_story_engine.expanded_story_bank
+        and build_interview_cheat_sheet.spoken_story_answer is interview_story_engine.spoken_story_answer,
+        "cheat-sheet compatibility imports should re-export shared story-engine functions",
+    )
+    assert_true(
+        "interview_story_engine" in build_standard_qualifications_statement.__dict__,
+        "qualifications statements should import the neutral story engine directly",
+    )
+
+
 def test_tasks_register_cleanup_command() -> None:
     import tasks
 
@@ -18204,6 +18222,7 @@ def main(argv: list[str] | None = None) -> None:
             ("claude review bundle refresh", lambda: test_claude_review_bundle_refresh(claude_review_bundle)),
             ("claude refresh bundle", lambda: test_refresh_claude_review_bundle(refresh_claude_review_bundle, claude_review_bundle)),
             ("cleanup output finders and selective flag", test_cleanup_output_finders_and_selective_flag),
+            ("interview story engine preserves cheat-sheet re-exports", test_interview_story_engine_reexports_shared_symbols),
             ("tasks check prefers latest generated resume", test_tasks_check_prefers_latest_generated_resume),
             ("tasks register cleanup command", test_tasks_register_cleanup_command),
             ("interview negotiation section avoids bracket placeholders", lambda: test_interview_negotiation_section_avoids_bracket_placeholders(build_interview_cheat_sheet)),

@@ -6446,6 +6446,30 @@ def build_interview_cheat_sheet_for_inputs(
     return CheatSheetResult(company_name, role_title, resume_docx, actual_output)
 
 
+# Compatibility re-exports: shared story selection and spoken-answer logic now live in
+# the neutral module so qualifications and federal workflows do not import this builder.
+from interview_story_engine import (  # noqa: E402
+    InterviewQuestion,
+    StoryCard,
+    adjusted_profile_for_role,
+    assert_full_spoken_answer,
+    closest_anchor_story_title,
+    contains_all,
+    expanded_story_bank,
+    likely_question_story,
+    should_use_cart,
+    signal_score,
+    spoken_caar_answer,
+    spoken_cart_answer,
+    spoken_pyramid_answer,
+    spoken_story_answer,
+    story_by_boost_key,
+    story_for_type,
+    supported_story_bank,
+    uses_star_answer_framework,
+)
+
+
 def main() -> None:
     result = build_interview_cheat_sheet()
     print(f"Company: {result.company_name}")
