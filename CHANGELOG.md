@@ -6,6 +6,10 @@ When feeding a new improvement prompt to Codex, add the entry to this changelog 
 
 ## Improvement Series
 
+### 2026-08-09 - Integrated validated remediation into main
+
+Fast-forwarded the validated 77-commit cleanup and reliability branch into `main`, then re-ran the full suite at 493/493 in 2m54s. The active Rippling commercial workflow completed with a two-page Calibri resume, no Carlito leakage, and a clean ATS check; its 91/115 tailoring audit remains intentionally review-only rather than being overridden during integration. Archived the completed integration and document-quality planning records, and recorded the exact Randstad training-evidence boundary: core training programs, onboarding, and release communications are supported; policy training, strategic delivery, and delivery-based wording are not.
+
 ### 2026-08-08 - Closed audit, cleanup, and import-isolation remediation
 
 Files changed: archive metadata and workflow helpers, source-hygiene checks, output cleanup, the neutral interview story engine, federal import-isolation smoke coverage, documentation, and `CHANGELOG.md`.

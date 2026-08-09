@@ -1,6 +1,10 @@
 # Codex Next Work: Deferred Follow-Up
 
-The reliability, federal parsing, alignment, archive, output-cleanup, story-engine, and federal-isolation work is complete. The latest full validation passed **493/493** on August 8, 2026. Output cleanup removed 60 legacy PDFs and reduced `output/` from 523 to 431 entries; the 475-record job-description archive has zero empty lanes.
+The reliability, federal parsing, alignment, archive, output-cleanup, story-engine, and federal-isolation work is complete and integrated into `main`. The post-merge full validation passed **493/493** on August 9, 2026 in 2m54s. Output cleanup removed 60 legacy PDFs and reduced `output/` from 523 to 431 entries; the 475-record job-description archive has zero empty lanes.
+
+## Resolved evidence boundary: Randstad training
+
+The approved Implementation source resume supports building and maintaining **core training programs**, onboarding, and release communications that reduce resistance to system change. It does not support **policy training**, **strategic delivery**, or **delivery-based** language. Use the confirmed training evidence only where a live posting calls for it; do not generalize the claim or add new source language.
 
 ## Deferred: search-term semantics
 
