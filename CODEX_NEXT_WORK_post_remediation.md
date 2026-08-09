@@ -1,6 +1,6 @@
-# Codex Next Work: Post-Remediation Follow-Up
+# Codex Next Work: Deferred Follow-Up
 
-The reliability, federal parsing, alignment, archive, and federal workflow-timeout work is complete. The latest full validation passed **475/475** in **6m58s** on August 3, 2026. The prior run passed 475/475 in 7m27s, so the slower validation timing is reproducible in this environment.
+The reliability, federal parsing, alignment, archive, output-cleanup, story-engine, and federal-isolation work is complete. The latest full validation passed **493/493** on August 8, 2026. Output cleanup removed 60 legacy PDFs and reduced `output/` from 523 to 431 entries; the 475-record job-description archive has zero empty lanes.
 
 ## Deferred: search-term semantics
 
@@ -19,4 +19,6 @@ Do not change validation behavior as part of this completed reliability batch. P
 - Federal workflow steps now share the ten-minute timeout, process-group termination, output quarantine, and return-code-124 behavior with the commercial workflow.
 - The active federal fixture remains pinned at 12 specialized duties, 4 minimum and 14 assessed competencies, and the reviewed cluster weights and keyword tail.
 - The 45-to-70-word summary range is the resolved product contract.
-- Completed remediation reviews and the superseded interview scorecard are archived under `docs/specs/archive/`.
+- The neutral interview story engine is the sole implementation of shared story selection and spoken-answer logic; the cheat-sheet module retains compatibility re-exports only.
+- `build_federal_resume` imports neither `build_interview_cheat_sheet` nor `build_cover_letter` in a clean interpreter.
+- The smoke suite now enforces pyflakes undefined-name and redefinition diagnostics alongside its existing runtime checks.

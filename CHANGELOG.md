@@ -6,6 +6,16 @@ When feeding a new improvement prompt to Codex, add the entry to this changelog 
 
 ## Improvement Series
 
+### 2026-08-08 - Closed audit, cleanup, and import-isolation remediation
+
+Files changed: archive metadata and workflow helpers, source-hygiene checks, output cleanup, the neutral interview story engine, federal import-isolation smoke coverage, documentation, and `CHANGELOG.md`.
+
+Why: The system needed durable protections against silent archive lane loss, unsafe output accumulation, workflow hangs, duplicate story implementations, and accidental reintroduction of commercial builders into the federal import path.
+
+What changed: Repaired and guarded all 475 archived job-description lanes; added safe, manifest-backed output cleanup that removed 60 legacy PDFs and reduced `output/` from 523 to 431 entries; hardened source encoding and static checks; extracted shared story logic to a neutral module while preserving byte-identical generated documents; and added a clean-interpreter federal isolation check. Commit `f66729c` remains a validated integrated baseline and is intentionally not rewritten. Removing the duplicate cover-letter `fail()` helper changed test-visible diagnostics, so tests now assert stderr rather than `SystemExit` text.
+
+Verify: Run `python tasks.py validate` and require 493 or more passing checks; confirm the active federal fixture remains pinned, a clean `build_federal_resume` import loads neither commercial builder, and archive metadata lanes equal live classification for the deterministic closeout sample.
+
 ### 2026-06-11 - Hardened explicit-proof tailoring across standard and federal workflows
 
 Files changed: `scripts/build_resume.py`, `scripts/resume_content.py`, `scripts/build_cover_letter.py`, `scripts/build_interview_cheat_sheet.py`, `scripts/build_federal_resume.py`, `scripts/resume_analysis.py`, `scripts/render_checks.py`, `scripts/smoke_test.py`, `Claude Review/CLAUDE.md`, `Claude Review/RESUME_SYSTEM_BRIEF.md`, `Claude Review/RULES_FOR_CLAUDE.md`, `Claude Review/COMMON_CHANGE_AREAS.md`, `CHANGELOG.md`
