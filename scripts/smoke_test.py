@@ -17374,6 +17374,28 @@ def test_interview_story_engine_reexports_shared_symbols() -> None:
     )
 
 
+def test_federal_resume_import_stays_isolated_from_commercial_builders() -> None:
+    environment = os.environ.copy()
+    environment["PYTHONPATH"] = str(SCRIPT_DIR)
+    probe = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            "import sys, build_federal_resume; "
+            "raise SystemExit(int('build_interview_cheat_sheet' in sys.modules or 'build_cover_letter' in sys.modules))",
+        ],
+        cwd=PROJECT_ROOT,
+        env=environment,
+        capture_output=True,
+        text=True,
+    )
+    assert_true(
+        probe.returncode == 0,
+        "build_federal_resume should not import commercial interview or cover-letter builders in a clean interpreter; "
+        f"stderr={probe.stderr!r}",
+    )
+
+
 def test_tasks_register_cleanup_command() -> None:
     import tasks
 
@@ -18223,6 +18245,7 @@ def main(argv: list[str] | None = None) -> None:
             ("claude refresh bundle", lambda: test_refresh_claude_review_bundle(refresh_claude_review_bundle, claude_review_bundle)),
             ("cleanup output finders and selective flag", test_cleanup_output_finders_and_selective_flag),
             ("interview story engine preserves cheat-sheet re-exports", test_interview_story_engine_reexports_shared_symbols),
+            ("federal resume import stays isolated from commercial builders", test_federal_resume_import_stays_isolated_from_commercial_builders),
             ("tasks check prefers latest generated resume", test_tasks_check_prefers_latest_generated_resume),
             ("tasks register cleanup command", test_tasks_register_cleanup_command),
             ("interview negotiation section avoids bracket placeholders", lambda: test_interview_negotiation_section_avoids_bracket_placeholders(build_interview_cheat_sheet)),
