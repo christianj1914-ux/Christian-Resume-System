@@ -1,0 +1,82 @@
+#separator:tab
+#html:false
+#tags column:3
+Object storage	S3	aws
+Block storage for EC2	EBS	aws
+Shared file storage	EFS	aws
+Archive / cold storage	S3 Glacier	aws
+Serverless compute	Lambda	aws
+Virtual machines	EC2	aws
+Managed relational database	RDS (or Aurora)	aws
+Managed NoSQL database	DynamoDB	aws
+In-memory cache	ElastiCache	aws
+DNS service	Route 53	aws
+Content delivery network	CloudFront	aws
+Load balancer	ELB	aws
+Automatic capacity scaling	Auto Scaling Groups	aws
+Identity and permissions	IAM	aws
+Managed encryption keys	KMS	aws
+Stateful firewall (instance level)	Security Group	aws
+Stateless firewall (subnet level)	Network ACL	aws
+Message queue for decoupling	SQS	aws
+Pub/sub notifications	SNS	aws
+Metrics and monitoring	CloudWatch	aws
+API and account activity auditing	CloudTrail	aws
+The 6 Well-Architected pillars	Operational Excellence, Security, Reliability, Performance Efficiency, Cost Optimization, Sustainability	aws
+Shared responsibility: AWS secures	The cloud itself (hardware, facilities)	aws
+Shared responsibility: you secure	Your data and configuration in the cloud	aws
+Region vs Availability Zone	Region = geographic area; AZ = isolated data center(s) within it	aws
+Best for hosting a static website	S3	aws
+EC2 pricing models	On-demand, Reserved / Savings Plans, Spot	aws
+Spot instances	Cheap but interruptible capacity	aws
+What is an AMI	Amazon Machine Image (an EC2 template)	aws
+S3 storage classes	Standard, IA, One Zone-IA, Glacier, Intelligent-Tiering	aws
+S3 durability	Eleven nines (99.999999999%)	aws
+Default S3 bucket access	Private	aws
+Public vs private subnet	Has a route to an Internet Gateway or not	aws
+Internet Gateway	Gives a VPC internet access	aws
+NAT Gateway	Outbound internet for private subnets	aws
+IAM user vs role	Long-term identity vs assumed temporary credentials	aws
+IAM policy format	A JSON permissions document	aws
+Is IAM regional or global	Global	aws
+CloudFormation	Infrastructure as code	aws
+ALB vs NLB	Layer 7 (HTTP) vs Layer 4 load balancer	aws
+Multi-AZ vs read replica	Failover / HA vs read scaling	aws
+Lambda max runtime	15 minutes	aws
+API Gateway	A managed front door for APIs	aws
+Step Functions	Serverless workflow orchestration	aws
+Cognito	User authentication for your apps	aws
+Secrets Manager	Stores and rotates secrets	aws
+Trusted Advisor	Best-practice and cost checks	aws
+AWS support plans	Basic, Developer, Business, Enterprise	aws
+Edge location	A CloudFront cache point of presence	aws
+Direct Connect	A dedicated private link to AWS	aws
+Default security group behavior	Deny inbound, allow all outbound	aws
+Aurora	AWS high-performance managed relational database	aws
+AZs per region (typical minimum)	Three or more	aws
+EBS vs instance store	Persistent vs ephemeral	aws
+S3 versioning	Keeps multiple versions of an object	aws
+S3 lifecycle policy	Auto-move or expire objects by age	aws
+S3 encryption options	SSE-S3, SSE-KMS, SSE-C	aws
+Route 53 routing policies	Simple, weighted, latency, failover, geolocation	aws
+VPC peering	Privately connect two VPCs	aws
+Transit Gateway	Hub connecting many VPCs and networks	aws
+VPC endpoint	Private access to AWS services (no internet)	aws
+STS	Security Token Service (temporary credentials)	aws
+IAM group	A set of users sharing policies	aws
+Resource-based policy	A policy attached to a resource, e.g. an S3 bucket	aws
+EventBridge	An event bus for routing events	aws
+SQS FIFO queue	Ordered, exactly-once delivery	aws
+Kinesis	Real-time streaming data	aws
+Athena	Query data in S3 using SQL	aws
+Redshift	Managed data warehouse	aws
+Glue	Managed ETL service	aws
+Fargate	Serverless containers	aws
+CloudWatch Logs	Centralized log storage and queries	aws
+Elastic Beanstalk	PaaS that deploys and manages your app	aws
+What an AMI is	Amazon Machine Image, an EC2 template	aws
+EBS snapshot	A point-in-time backup stored in S3	aws
+Cross-region replication (S3)	Copies objects to another region	aws
+Savings Plans	Discount for a usage commitment	aws
+WAF vs Shield	App-layer filtering vs DDoS protection	aws
+Well-Architected Tool	Reviews a workload against the pillars	aws

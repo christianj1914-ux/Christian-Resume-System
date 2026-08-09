@@ -1,0 +1,65 @@
+#separator:tab
+#html:false
+#tags column:3
+Tell me about a failure or mistake	Story 9, the East West data-migration setback. Owned it, rebuilt validation, migrated clean, added a checkpoint. For CSM roles use Story 18, the account you fixed and still lost.	interview_stories
+Tell me about a conflict or disagreement	Story 8, redirecting a churning account. Disagreed on root cause, did not argue, reframed as a shared fix, kept the account.	interview_stories
+Tell me about receiving hard feedback	Story 10. A manager said your updates ran long and buried the point. You rebuilt to outcome-first and practiced it deliberately.	interview_stories
+Tell me about working across cultures	Story 6, the Mexico sites. On-site in El Paso and Juarez, adapted training so they went live ready, not just installed.	interview_stories
+Everything was urgent. How did you prioritize?	Story 7. Four workstreams, hard date. Locked the data foundation first, parallelized independent work, held training for the final config.	interview_stories
+What is your most complex project?	Story 15, the 13-month modernization scoped for four to seven. Discovery found infrastructure, not software, was the blocker.	interview_stories
+Tell me about a tough call under pressure	Story 16. UAT found a defect that would break a live client workflow, so you held go-live until it was validated.	interview_stories
+Tell me about persuading an executive	Story 17. Told a CEO his project could not start on his infrastructure, framed as implementation risk not IT preference.	interview_stories
+Tell me about influence without authority	Story 1, the four-party EFT/ACH replacement, or Story 21, operations versus finance. Both are alignment with no formal power.	interview_stories
+Tell me about a process you improved	Story 3, inventory automation. 78 percent less manual work, 22 percent fewer discrepancies, with an audit trail.	interview_stories
+Tell me about building something from nothing	Story 5, the zero-to-one SMS support channel at Home Depot, designed and documented so it could be repeated.	interview_stories
+How do you ramp on something unfamiliar?	Story 22. Learned the ERP through live client problems, not documentation. 12 full-lifecycle implementations, up to four at once.	interview_stories
+Tell me about saving an at-risk account	Story 4. Roughly $1M at risk in a $6M book. Consolidated ownership, structured working sessions, retained the accounts.	interview_stories
+Tell me about working with data	Story 13, the 200-plus dashboards. Define the decision before touching the data, then build the smallest view that makes the next action obvious.	interview_stories
+Tell me about communicating with executives	Story 14, the 60-plus workshops and QBRs. Executives want outcome confidence, operators want workflow clarity, delivery wants decision rights.	interview_stories
+Tell me about driving adoption	Story 19. Shadow spreadsheets were a visibility gap, not laziness. Made the system show owner and next step.	interview_stories
+Tell me about managing requirements	Story 20. Requests were dying in email threads, so you moved them into backlog-ready work with acceptance criteria, UAT, and release validation.	interview_stories
+Tell me about an end-to-end implementation	Story 11, East West. Five sites, 150-plus users, onboarding through ETL to a clean go-live on Aptean Intuitive.	interview_stories
+What makes you different from other candidates?	Story 12. You have delivered the same kind of software from both sides of the table: vendor to 80-plus clients, and customer leading a five-site migration.	interview_stories
+Why did you leave your last role?	One neutral line: my role wrapped when the migration finished and the team consolidated. Then move back to the work.	interview_stories
+Story 1 claim line	A five-month EFT/ACH replacement across internal IT, global finance, Aptean, and Truist Bank, restoring a compliant, auditable payment workflow.	interview_stories
+Story 2 claim line	Launched production-ready systems for a new warehouse and Amazon Robotics program, with systems and people ready at the same time.	interview_stories
+Story 3 claim line	Automated high-volume inventory adjustments: 78 percent less manual work and 22 percent fewer discrepancies.	interview_stories
+Story 4 claim line	Protected roughly $1M in at-risk annual revenue inside a $6M book by consolidating case ownership.	interview_stories
+Story 5 claim line	Stood up Home Depot's SMS support channel from zero and documented it so it could be repeated.	interview_stories
+Story 6 claim line	Supported the Mexico sites in person in El Paso and Juarez so they went live ready, not just installed.	interview_stories
+Story 7 claim line	Four workstreams urgent at once against a hard date. Locked the data foundation first and hit go-live on schedule.	interview_stories
+Story 8 claim line	An at-risk account blamed the product. Reframed it as a shared fix using evidence, and kept the account.	interview_stories
+Story 9 claim line	Caught a data-mapping gap later than ideal, owned it, rebuilt validation, migrated clean, added a checkpoint.	interview_stories
+Story 10 claim line	Told my updates ran long. Rebuilt to outcome first, detail on request. Meetings got shorter.	interview_stories
+Story 11 claim line	Led the ERP implementation and data migration that moved East West, a five-site global manufacturer, onto Aptean Intuitive.	interview_stories
+Story 12 claim line	Implemented and supported 80-plus clients across the US, Midwest, and Europe, from legacy on-premise to cloud.	interview_stories
+Story 13 claim line	Built 200-plus dashboards and KPI reports in SQL, Crystal Reports, and Power BI, always starting from the decision.	interview_stories
+Story 14 claim line	Facilitated 60-plus executive workshops and QBRs and held executive confidence through multi-phase programs.	interview_stories
+Story 15 claim line	Delivered a satisfied customer through a 13-month modernization scoped at four to seven months.	interview_stories
+Story 16 claim line	Found a UAT defect that would have broken a live client workflow and held go-live until it was validated.	interview_stories
+Story 17 claim line	Convinced a CEO his approved project could not start on his existing infrastructure, and got readiness funded.	interview_stories
+Story 18 claim line	Resolved every technical issue an at-risk account raised. They churned anyway to a cheaper competitor.	interview_stories
+Story 19 claim line	Teams tracked work in side spreadsheets, so I made the system show owner and next step instead.	interview_stories
+Story 20 claim line	Turned email-thread requests into backlog-ready work with acceptance criteria, UAT, and release validation.	interview_stories
+Story 21 claim line	Operations wanted speed, finance wanted control, and I had authority over neither. Made the tradeoff visible.	interview_stories
+Story 22 claim line	Ramped on an unfamiliar ERP through live client problems and delivered 12 full-lifecycle implementations.	interview_stories
+Implementation role: which story opens?	Story 12 breadth as the hook, Story 11 East West as the proof.	interview_stories
+Implementation role: exact first line	I have implemented the same kind of software from both sides of the table. At the vendor I delivered to 80-plus clients, and on the customer side I led a five-site ERP migration end to end.	interview_stories
+CSM role: which story opens?	Story 4, the $1M recovery, as the hook. Story 18, the account you lost, as the depth.	interview_stories
+CSM role: exact first line	I protected about a million dollars in at-risk annual revenue inside a six-million-dollar book, and the loss I learned most from is the account I fixed technically and still lost.	interview_stories
+Program management role: which story opens?	Story 7, parallel workstreams, as the hook. Story 1, EFT/ACH, as the cross-functional proof.	interview_stories
+Program management role: exact first line	When everything is urgent I sequence around the critical path. On a hard-date warehouse and Robotics launch I had four workstreams competing, and everything converged on schedule.	interview_stories
+Pre-sales role: which story opens?	Story 12 breadth in PREP mode, Story 17 the CEO conversation as proof. Use CART framing throughout.	interview_stories
+Pre-sales role: exact first line	My edge is breadth on both sides of implementation. At the vendor I delivered to 80-plus clients from legacy on-premise to cloud, so I know where implementations break before they do.	interview_stories
+Which two stories must never share an interview?	Story 15 and Story 17. Same engagement from two angles, and using both makes your range look narrower.	interview_stories
+CSM lane: what must you never claim?	Quota ownership, NRR or GRR attainment, or closed expansion dollars. You are commercially aware and post-sale revenue-adjacent.	interview_stories
+The four story modes	Full (Hook, Noticing, Action, Result, Bridge, Calibration, 60 to 90s). CART (Context, Approach, Role, Transformation) for consulting and senior. Short (result plus one line). PREP (Point, Reason, Example, Point) for under 20 seconds.	interview_stories
+What does CART stand for?	Context, impact first. Approach, how you structured the thinking. Role, your personal contribution without overstating authority. Transformation, what changed and why it matters here.	interview_stories
+What does PREP stand for?	Point, Reason, Example, Point. Use it for yes/no questions and anything under 20 seconds.	interview_stories
+The default story shape	Hook, Noticing, Action, Result, Bridge, Calibration. Hook names the problem, Noticing shows judgment before acting, Action and Result prove it with scope and numbers, Bridge and Calibration tie it to the role.	interview_stories
+The one delivery rule	Meat first, then stop. Claim, then proof, then bridge. Say the point in your first two sentences and let them ask.	interview_stories
+Your five tells to kill	Buried outcome, stream of consciousness, hedging qualifiers, warm-up wandering, and volunteering salary.	interview_stories
+If you run past 90 seconds, what went wrong?	You added setup. Cut back to claim, proof, bridge.	interview_stories
+Do you follow a formal methodology?	Yes, you just do not label it: discovery, scope and requirements, stakeholder alignment, milestone plan with checkpoints, build and validate, cutover and go-live, adoption. Say it plainly and it reads as judgment.	interview_stories
+How many full-mode stories per interview?	Two is the ceiling. Everything else goes short or PREP. Do not reuse a story across rounds in the same loop.	interview_stories
+Your 20-second umbrella pitch	I take ambiguous cross-functional work, program, product, process, or system, and turn it into structured delivery that gets adopted. My best work is where business, operations, and technology meet, and I have owned that from both the vendor and the customer side.	interview_stories

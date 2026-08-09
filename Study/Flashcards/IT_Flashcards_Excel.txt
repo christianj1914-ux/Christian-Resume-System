@@ -1,0 +1,30 @@
+#separator:tab
+#html:false
+#tags column:3
+Jump to edge of data	Ctrl + Arrow key	excel
+Select to edge of data	Ctrl + Shift + Arrow	excel
+Go to last used cell	Ctrl + End	excel
+AutoSum	Alt + =	excel
+Toggle absolute reference ($)	F4	excel
+Insert today's date	Ctrl + ;	excel
+Format Cells dialog	Ctrl + 1	excel
+Make a Table	Ctrl + T	excel
+Toggle filters	Ctrl + Shift + L	excel
+Edit the active cell	F2	excel
+Fill selection with entry	Ctrl + Enter	excel
+Select column / row	Ctrl + Space / Shift + Space	excel
+Switch worksheets	Ctrl + PgUp / PgDn	excel
+Sum with a condition	SUMIF / SUMIFS	excel
+Count with a condition	COUNTIF / COUNTIFS	excel
+Modern lookup	XLOOKUP (prefer over VLOOKUP)	excel
+Flexible lookup	INDEX + MATCH	excel
+Handle formula errors	IFERROR(formula, fallback)	excel
+Logical test	IF(condition, true, false)	excel
+Remove extra spaces	TRIM()	excel
+Join text	CONCAT or & (a1 & b1)	excel
+Dynamic array functions	UNIQUE, FILTER, SORT	excel
+Summarize data interactively	PivotTable	excel
+Clean and reshape data	Power Query (Get and Transform)	excel
+Lock headers while scrolling	Freeze Panes	excel
+Highlight cells by rule	Conditional Formatting	excel
+Best practice	Keep raw data separate; use Tables and named columns	excel

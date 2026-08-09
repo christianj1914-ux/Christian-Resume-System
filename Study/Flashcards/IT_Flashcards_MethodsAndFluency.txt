@@ -1,0 +1,49 @@
+#separator:tab
+#html:false
+#tags column:3
+Agile core value	Respond to change over following a plan; working software over documentation	methods_fluency
+Scrum roles	Product Owner, Scrum Master, Developers	methods_fluency
+Scrum events	Sprint, Daily Scrum, Sprint Review, Retrospective	methods_fluency
+Sprint length	One to four weeks	methods_fluency
+PSM I	Professional Scrum Master I (Scrum.org), an easy high-value cert	methods_fluency
+Scrum Master role	A servant leader who removes impediments	methods_fluency
+User story format	As a role, I want a goal, so that a benefit	methods_fluency
+Definition of Done	Shared criteria that make work complete	methods_fluency
+Velocity	Work a team completes per sprint	methods_fluency
+Kanban	Visualize work and limit work in progress	methods_fluency
+Agile vs waterfall	Iterative and adaptive vs sequential and plan-driven	methods_fluency
+Lean, in one line	Eliminate waste and maximize value flow	methods_fluency
+The 8 wastes (DOWNTIME)	Defects, Overproduction, Waiting, Non-used talent, Transport, Inventory, Motion, Extra processing	methods_fluency
+Six Sigma	Reduce variation and defects using data	methods_fluency
+DMAIC	Define, Measure, Analyze, Improve, Control	methods_fluency
+Lean Six Sigma belts	Yellow, Green, Black	methods_fluency
+5 Whys	Ask why repeatedly to reach root cause	methods_fluency
+Kaizen	Continuous, incremental improvement	methods_fluency
+Value stream mapping	Diagram the flow to find waste	methods_fluency
+Systems engineering	Designing and integrating a complex system end to end	methods_fluency
+INCOSE / CSEP	The systems engineering body and its Certified Systems Engineering Professional cert	methods_fluency
+MBSE	Model-Based Systems Engineering: models, not documents, as the source of truth	methods_fluency
+Design-to-cost	Treating cost as a design constraint from the start	methods_fluency
+Technical Program Manager	Drives cross-team technical delivery end to end	methods_fluency
+e-Procurement	Buying through digital sourcing and purchasing platforms	methods_fluency
+Source-to-pay platforms	SAP Ariba, Coupa, Jaggaer, Oracle	methods_fluency
+RFx	RFI (information), RFP (proposal), RFQ (quote)	methods_fluency
+e-auction	Suppliers bid competitively online to lower price	methods_fluency
+Punch-out catalog	Buyer's system links into a supplier's catalog to order	methods_fluency
+Python (talk level)	A general-purpose language for scripting, automation, and data	methods_fluency
+PowerShell (talk level)	Microsoft's scripting language for Windows automation and admin	methods_fluency
+REST API	A web API using HTTP methods (GET, POST, PUT, DELETE) and JSON	methods_fluency
+API endpoint	A specific URL you call to use a service	methods_fluency
+JSON	The lightweight data format most APIs exchange	methods_fluency
+Webhook	An HTTP callback fired when an event happens	methods_fluency
+ETL	Extract, Transform, Load: move and reshape data between systems	methods_fluency
+SQL	The language for querying relational databases	methods_fluency
+Descriptive vs predictive analytics	What happened vs what is likely to happen	methods_fluency
+P&L	Profit and Loss statement: revenue minus costs	methods_fluency
+ROI	Return on Investment: gain versus cost	methods_fluency
+CapEx vs OpEx	Capital (assets) vs operating (ongoing) expense	methods_fluency
+Business case	A justification tying cost to expected value	methods_fluency
+Consultative selling	Diagnose the customer's problem before you prescribe	methods_fluency
+Discovery (sales)	Ask questions to understand needs before pitching	methods_fluency
+Customer success (CSM)	Driving adoption, retention, and expansion after the sale	methods_fluency
+Churn	Customers lost over a period	methods_fluency

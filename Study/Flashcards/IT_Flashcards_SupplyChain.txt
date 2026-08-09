@@ -1,0 +1,36 @@
+#separator:tab
+#html:false
+#tags column:3
+Cost modeling	Building your own estimate of what something should cost, from the ground up	supply_chain
+Should-cost formula	Materials + Labor + Manufacturing Overhead + Other + Margin	supply_chain
+Should-cost worked example	$55 material + $30 labor + $25 overhead = $110, plus 15% margin = $126.50	supply_chain
+Total Cost of Ownership (TCO)	The whole life cost, not just the purchase price	supply_chain
+TCO short formula	Purchase Price + Maintenance + Operating Cost + Risk Cost	supply_chain
+Why TCO beats price-only	20 to 35% better cost outcomes; a cheap sticker can cost more to own	supply_chain
+Parametric costing	Estimate cost from a driver via a statistical relationship (e.g., cost per pound)	supply_chain
+Activity-based costing	Allocate overhead by the activities a product actually consumes	supply_chain
+Cost breakdown structure	An itemized view of every cost component in a price	supply_chain
+Most negotiable cost lines	Margin, then labor and overhead, then logistics	supply_chain
+Least negotiable cost line	Raw materials (usually market-driven)	supply_chain
+Evidence-based negotiation	Argue from a cost build-up, not from budget pressure	supply_chain
+SCOR model	Plan, Source, Make, Deliver, Return, Enable	supply_chain
+Source-to-pay	Sourcing, contract, procure, and pay end to end	supply_chain
+SAP Ariba	A leading source-to-pay platform (a tool category, not a skill)	supply_chain
+Contract lifecycle management	Request, author, negotiate, execute, manage, renew	supply_chain
+Cost avoidance vs cost savings	Preventing a future cost increase vs reducing a budgeted spend	supply_chain
+Lean supply	Eliminate waste; reduce inventory and lead time; pull-based flow	supply_chain
+Supplier risk types	Financial, single-source, geographic, capacity, quality, cyber	supply_chain
+FAR	Federal Acquisition Regulation (US government buying rules)	supply_chain
+DFARS	The Defense supplement to the FAR	supply_chain
+ITAR / EAR	US export controls on defense and dual-use items	supply_chain
+Incoterms	Standard terms for who pays and bears risk in shipping	supply_chain
+Category management	Managing a whole spend category strategically	supply_chain
+Spend analysis	Analyzing where the money actually goes	supply_chain
+Three-way match	PO, goods receipt, and invoice must agree before payment	supply_chain
+Direct vs indirect spend	Goes into the product vs supports the business	supply_chain
+Single vs sole source	One chosen supplier vs only one supplier exists	supply_chain
+S&OP	Sales and Operations Planning: align demand and supply	supply_chain
+Bullwhip effect	Small demand swings amplify upstream in the supply chain	supply_chain
+Safety stock	Buffer inventory against demand or supply variability	supply_chain
+CPSM	ISM's certification, the US gold standard for supply management	supply_chain
+CSCP vs CPIM	End-to-end supply chain (CSCP) vs production and inventory (CPIM), both ASCM	supply_chain

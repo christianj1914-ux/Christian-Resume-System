@@ -1,0 +1,22 @@
+#separator:tab
+#html:false
+#tags column:3
+A team member keeps missing deadlines. First move?	Talk with them to find the root cause before you escalate, replace, or report.	manager
+Two CISSP answers both look correct. Tiebreaker?	Pick the one that reduces risk at the policy or management level, not the technical fix.	manager
+What is always the top priority in a CISSP scenario?	Human life and safety. People before assets or data.	manager
+You discover a security incident mid-project. First step?	Follow the documented incident response plan; do not improvise.	manager
+Manager mindset in one line?	Zoom out to risk, people, and process. Do not act like the technician.	manager
+Root cause or symptom: which does the manager choose?	Root cause. Fix why it happened, not just what you can see.	manager
+Proactive or reactive: which answer usually wins?	Proactive. Prevention outranks response.	manager
+A stakeholder wants a change that skips the process. Response?	Route it through the documented change control process before acting.	manager
+PMI-preferred response to team conflict?	The servant leader facilitates a conversation to resolve the root cause and protect the team.	manager
+Before deciding, the manager weighs what?	Business impact, risk, and cost, then decides.	manager
+A fast technical fix would solve it now but breaks policy. Do what?	Follow policy. Governance and process beat the heroic fix.	manager
+Threat risk responses (PMP)?	Avoid, transfer, mitigate, accept.	manager
+Opportunity risk responses (PMP)?	Exploit, share, enhance, accept.	manager
+Who decides acceptable risk for the organization?	Senior management or the business/data owner, not the technician.	manager
+First step when a known risk becomes an issue?	Consult the risk register and execute the pre-planned response.	manager
+Two team members are in conflict. Escalate to the sponsor first?	No. Resolve it at your level first; escalate only if it stays unresolved.	manager
+Security priority order when answers compete?	Protect people first, then follow policy, then reduce business risk.	manager
+The exam rewards the answer that is...?	Proactive, root-cause, people-first, policy-driven, and business-aware.	manager
+How does this mindset help in interviews?	Same instinct: lead with the point, diagnose the real problem, show governance-level judgment.	manager

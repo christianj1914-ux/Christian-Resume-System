@@ -1,0 +1,31 @@
+#separator:tab
+#html:false
+#tags column:3
+A2A (Forward Deployed context)	Application-to-application integration: APIs, webhooks, events	ai_engineering_mlops
+REST vs gRPC	JSON over HTTP vs efficient binary RPC over HTTP/2	ai_engineering_mlops
+Webhook	An HTTP callback fired by an event	ai_engineering_mlops
+Event-driven system	Components communicate through events/messages	ai_engineering_mlops
+Message queue	Buffers work between services (SQS, Kafka)	ai_engineering_mlops
+Idempotency	A repeated request has no extra effect	ai_engineering_mlops
+Rate limiting	Capping request volume to protect a service	ai_engineering_mlops
+Retry with backoff	Retrying failures with increasing delays	ai_engineering_mlops
+PyTorch	A deep-learning framework (tensors, autograd)	ai_engineering_mlops
+A tensor	A multi-dimensional array, the core ML data type	ai_engineering_mlops
+Training loop steps	Forward pass, loss, backward pass, optimizer step	ai_engineering_mlops
+Offline vs online eval	Test sets and thresholds vs A/B tests and live ratings	ai_engineering_mlops
+A/B test	Comparing two variants on live traffic	ai_engineering_mlops
+Golden / test set	Curated examples used to score quality	ai_engineering_mlops
+Acceptance threshold	The minimum score a change must beat	ai_engineering_mlops
+Three pillars of observability	Logs, metrics, traces	ai_engineering_mlops
+OpenTelemetry	An open standard for collecting telemetry	ai_engineering_mlops
+Prometheus + Grafana	Metrics collection plus dashboards	ai_engineering_mlops
+Datadog	A commercial observability platform	ai_engineering_mlops
+What a trace shows	A request's timeline across services and model calls	ai_engineering_mlops
+Feature flag	Toggle a feature without redeploying	ai_engineering_mlops
+Canary rollout	Release to a small slice of users first	ai_engineering_mlops
+Prompt / version management	Tracking prompt and model versions in production	ai_engineering_mlops
+Model drift	Quality degrading as real-world data changes	ai_engineering_mlops
+MLOps vs LLMOps	Ops for ML models vs for LLM apps (prompts, evals, cost)	ai_engineering_mlops
+CI/CD	Continuous Integration and Continuous Delivery	ai_engineering_mlops
+Docker	Packages an app and its dependencies into a container	ai_engineering_mlops
+FastAPI	A Python framework for building APIs	ai_engineering_mlops

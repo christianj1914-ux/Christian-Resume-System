@@ -28,7 +28,7 @@ Readiness, fit audit, and validation:
 - `aggressively_close_supported_keyword_gaps()`: auto-closes only source-supported missing role terms before final audit.
 - `resume_readiness_report()`, `resume_readiness_for_output()`: shared downstream blocker contract for cover, checklist, and workflow consumers.
 - `resume_gap_blocker_message()`: converts readiness blockers into human-readable workflow output.
-- `alignment_score_report()`: pre-build alignment scoring for checklist and command-line audit paths.
+- `alignment_score_report()`: pre-build alignment scoring for checklist and command-line audit paths; its eligible keyword population excludes unsupported do-not-insert platforms from displayed counts and gaps as well as scoring.
 - `hiring_manager_skim_issues()`, `final_fit_audit()`: final fit and top-third audit.
 - `assert_professional_summary_length()`, `assert_resume_language_rules()`: summary-length and language-rule enforcement.
 - `resume_snapshot()`, `validate_resume_integrity()`: preserve roles, summaries, competencies, Education, and Professional Development.
@@ -230,13 +230,13 @@ Validation and formatting:
 
 Runs the generation workflow with recovery and DOCX repair.
 
-- `run_step()`, `run_with_recovery()`: execute generation scripts.
+- `run_step()`, `run_with_recovery()`: execute generation scripts. Completed renderer failures retry once; missing resume output rebuilds the resume and retries its dependent step; outer ten-minute timeouts do not retry.
 - `failure_kind()`, `explain_unresolved()`, `print_failure_summary()`: readable recovery messages.
 - dry-run readiness now reports structured resume gap blockers when an existing tailored resume would stop the cover-letter step.
 - `generated_docx_paths()`: finds generated documents from script output.
 - `repair_docx_open_issues()`, `repair_generated_docx_outputs()`: post-process generated DOCX files with `utils.remove_linkedin_hyperlinks()` to avoid LinkedIn hyperlink relationship issues.
 - auto-tracker call near the end of `main()`: records the active job in `scratch/applications.csv` after a successful workflow run.
-- `write_log()`: stores run logs in `scratch/run_logs`.
+- `write_log()`: stores run logs in `scratch/run_logs`; timed-out writes are quarantined there before downstream selection can see them.
 
 ## `scripts/build_application_checklist.py`
 

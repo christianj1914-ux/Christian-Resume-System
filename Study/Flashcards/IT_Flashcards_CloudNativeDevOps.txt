@@ -1,0 +1,45 @@
+#separator:tab
+#html:false
+#tags column:3
+Software engineering vs DevOps	Building the software vs shipping and operating it reliably	cloud_native
+What DevOps is	A culture and practices linking dev and ops for continuous delivery	cloud_native
+SRE	Site Reliability Engineering: DevOps with a reliability focus	cloud_native
+Platform engineering	Builds the internal platform other engineers deploy onto	cloud_native
+DevSecOps	DevOps with security built into every stage (shift left)	cloud_native
+MLOps	DevOps applied to machine-learning models	cloud_native
+Container vs VM	Shares the host OS kernel (light) vs runs a full guest OS (heavy)	cloud_native
+Docker	The tool that builds and runs containers	cloud_native
+Dockerfile	The recipe used to build a container image	cloud_native
+Container image	The template; a running copy is a container	cloud_native
+Container registry	Stores images: Docker Hub, AWS ECR, Azure ACR	cloud_native
+Kubernetes	A container orchestrator that schedules, scales, and heals containers	cloud_native
+Pod	The smallest Kubernetes unit: one or more containers together	cloud_native
+Node (K8s)	A worker machine that runs pods	cloud_native
+Cluster (K8s)	Nodes plus the control plane that manages them	cloud_native
+Control plane	The brain: API server, scheduler, controllers, etcd	cloud_native
+Deployment (K8s)	Declares the desired number of app replicas	cloud_native
+Service (K8s)	A stable network address and load balancer for pods	cloud_native
+Ingress (K8s)	Routes external HTTP/HTTPS traffic to Services	cloud_native
+Namespace (K8s)	A logical partition to isolate workloads	cloud_native
+ConfigMap vs Secret	Config values vs sensitive values injected into pods	cloud_native
+Why AI uses Kubernetes	GPU scheduling, autoscaling inference, batch jobs, MLOps	cloud_native
+Kubeflow / KServe	MLOps and model-serving platforms on Kubernetes	cloud_native
+Pod networking	Every pod gets its own IP; pods talk directly, no NAT	cloud_native
+CNI	Container Network Interface plugin (Calico, Cilium, Flannel)	cloud_native
+Overlay network	A virtual network over the real one (e.g., VXLAN)	cloud_native
+Service types (K8s)	ClusterIP (internal), NodePort, LoadBalancer (cloud LB)	cloud_native
+Cluster DNS (CoreDNS)	Lets pods find Services by name	cloud_native
+Network Policy	The firewall of Kubernetes: which pods may talk to which	cloud_native
+Service mesh	Adds mTLS, routing, observability between services (Istio, Linkerd)	cloud_native
+Managed Kubernetes	EKS (AWS), AKS (Azure), GKE (Google)	cloud_native
+Serverless containers	Fargate, Azure Container Apps, Cloud Run (no nodes to manage)	cloud_native
+Infrastructure as Code	Define infra in version-controlled files (Terraform, Bicep)	cloud_native
+CI/CD	Continuous Integration (build/test) and Delivery/Deployment (ship)	cloud_native
+CI/CD tools	GitHub Actions, GitLab CI, Jenkins	cloud_native
+GitOps	Git is the source of truth; Argo CD or Flux sync the cluster	cloud_native
+Three pillars of observability	Logs, metrics, traces	cloud_native
+Container security basics	Minimal trusted images, scan for vulnerabilities, no secrets in images, run non-root	cloud_native
+Shared responsibility	Cloud secures the infrastructure; you secure workloads and config	cloud_native
+Kubernetes certs	CKAD (developer), CKA (administrator)	cloud_native
+IaC cert	HashiCorp Terraform Associate	cloud_native
+Where networking reappears	Subnets, IPs, DNS, load balancing, firewalls, all one level up in K8s	cloud_native

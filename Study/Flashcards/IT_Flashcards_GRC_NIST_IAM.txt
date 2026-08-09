@@ -1,0 +1,33 @@
+#separator:tab
+#html:false
+#tags column:3
+GRC	Governance, Risk, and Compliance	grc_iam
+NIST CSF functions	Govern, Identify, Protect, Detect, Respond, Recover	grc_iam
+NIST RMF steps	Categorize, Select, Implement, Assess, Authorize, Monitor	grc_iam
+NIST SP 800-53	A catalog of security and privacy controls	grc_iam
+NIST SP 800-171	Protecting Controlled Unclassified Information (CUI)	grc_iam
+NIST SP 800-37	The Risk Management Framework	grc_iam
+ISO 27001	International information security management standard	grc_iam
+SOC 2	An audit report on security, availability, and related controls	grc_iam
+SOC 1 vs SOC 2	Financial-reporting controls vs security/operations controls	grc_iam
+Type I vs Type II report	Design at a point in time vs effectiveness over a period	grc_iam
+PCI DSS	The payment card data security standard	grc_iam
+HIPAA	US health information privacy and security law	grc_iam
+What an audit does	Independently checks that controls exist and work	grc_iam
+Control vs evidence	A safeguard vs proof that it operates	grc_iam
+Gap assessment	Comparing current controls to a standard	grc_iam
+Three lines of defense	Operations, risk/compliance, internal audit	grc_iam
+Inherent vs residual risk	Before controls vs after controls	grc_iam
+Compliance vs security	Meeting rules vs actually being secure	grc_iam
+IAM	Identity and Access Management	grc_iam
+AuthN vs AuthZ	Verifying who you are vs what you may do	grc_iam
+SSO	Signing in once for many applications	grc_iam
+Federation protocols	SAML, OAuth 2.0, OIDC	grc_iam
+MFA	Multi-factor authentication	grc_iam
+Joiner-Mover-Leaver	The identity lifecycle	grc_iam
+IGA	Identity Governance and Administration	grc_iam
+PAM	Privileged Access Management	grc_iam
+Zero Trust	Never trust, always verify; least privilege everywhere	grc_iam
+RBAC vs ABAC	Access by role vs by attributes	grc_iam
+Directory services	Active Directory, LDAP, Microsoft Entra ID	grc_iam
+Relevant certs	CISSP core; CISA (audit); SC-300 (identity); CRISC (risk)	grc_iam

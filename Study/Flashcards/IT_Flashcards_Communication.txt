@@ -1,0 +1,27 @@
+#separator:tab
+#html:false
+#tags column:3
+First fix for mumbling	Breath support, slowing down, and opening your mouth more	communication
+Diaphragmatic breathing	Breathe from the belly for steady, supported volume	communication
+The power of the pause	Pausing adds clarity and authority; silence is not failure	communication
+Filler-word fix	Replace um and uh with a short silent pause	communication
+Articulation drill	Tongue twisters and over-enunciating to warm up clarity	communication
+Vocal variety	Vary pitch, pace, and volume to hold attention	communication
+Pacing for clarity	Slower than feels natural, roughly 130-150 words per minute	communication
+Record and review	Record one minute daily; review for clarity and pace	communication
+Structure a talk	Hook, three points, close with a callback to the hook	communication
+Storytelling arc	Situation, complication, resolution, lesson	communication
+Rule for slides	One idea per slide; visuals over text	communication
+Signposting	Say what you will cover, then flag each part as you go	communication
+Calm nerves before speaking	Ground and breathe first; reframe adrenaline as energy	communication
+Active listening	Listen to understand, then reflect back before replying	communication
+Small-talk opener	Ask what someone is working on or enjoying	communication
+Eye contact rule	Hold it for one thought, then move to another person	communication
+Toastmasters	A structured club for low-stakes speaking practice	communication
+The hook	Open with a question, story, or surprising fact	communication
+Why rehearse to automaticity	So nerves have less to disrupt	communication
+Speaker one-sheet	A one-page bio, topics, and past talks for organizers	communication
+Path to paid speaking	Meetups, then conferences, then keynotes and paid gigs	communication
+Your best speaking topic	Your AI and cybersecurity expertise, taught simply	communication
+Body-language basics	Open posture, grounded stance, purposeful gestures	communication
+Recover after speaking	Plan quiet downtime; speaking is real exertion	communication

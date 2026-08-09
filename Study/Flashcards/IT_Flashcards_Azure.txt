@@ -1,0 +1,29 @@
+#separator:tab
+#html:false
+#tags column:3
+Azure Virtual Machines	IaaS compute (like AWS EC2)	azure
+Azure App Service	PaaS for web apps and APIs	azure
+Azure Functions	Serverless, event-driven compute	azure
+AKS	Azure Kubernetes Service for containers	azure
+Blob Storage	Object storage (like AWS S3)	azure
+Azure SQL Database	Managed relational database	azure
+Cosmos DB	Managed NoSQL database	azure
+Azure Synapse	Analytics and data warehousing	azure
+Virtual Network (VNet)	An isolated network in Azure	azure
+Microsoft Entra ID	Identity service (formerly Azure AD)	azure
+RBAC	Role-Based Access Control for Azure resources	azure
+Resource Group	A container for related resources	azure
+Azure Resource Manager (ARM)	The deployment and management layer	azure
+Azure Monitor	Metrics, logs, and alerts	azure
+Azure Cost Management	Track and control spend	azure
+Azure Policy	Enforce governance rules	azure
+Management Groups	Organize multiple subscriptions	azure
+Azure hierarchy	Management group > subscription > resource group > resource	azure
+Region vs Availability Zone	Geographic area vs isolated datacenter within it	azure
+Azure OpenAI	Managed access to GPT models in Azure	azure
+Azure AI services	Prebuilt vision, speech, and language APIs	azure
+Azure Machine Learning	Build and deploy ML models	azure
+AZ-900	Azure Fundamentals certification	azure
+Azure vs AWS: storage	Blob Storage vs S3	azure
+Azure vs AWS: identity	Entra ID + RBAC vs IAM	azure
+Azure vs AWS: serverless	Azure Functions vs Lambda	azure

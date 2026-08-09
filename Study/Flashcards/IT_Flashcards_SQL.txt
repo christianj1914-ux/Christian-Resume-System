@@ -1,0 +1,32 @@
+#separator:tab
+#html:false
+#tags column:3
+SQL clause order	SELECT, FROM, WHERE, GROUP BY, HAVING, ORDER BY, LIMIT	sql
+Select specific columns	SELECT name, email FROM customers;	sql
+Filter rows	WHERE status = 'open' AND total > 100	sql
+Sort results	ORDER BY total DESC	sql
+Limit rows	LIMIT 10 (TOP 10 in SQL Server)	sql
+Count rows	SELECT COUNT(*) FROM orders;	sql
+Sum a column	SELECT SUM(total) FROM orders;	sql
+Group and aggregate	SELECT status, COUNT(*) FROM orders GROUP BY status;	sql
+Filter groups	HAVING SUM(total) > 1000 (after GROUP BY)	sql
+WHERE vs HAVING	WHERE filters rows; HAVING filters groups	sql
+INNER JOIN	Only rows matching in both tables	sql
+LEFT JOIN	All left rows plus matches; NULL where none	sql
+Join syntax	FROM a JOIN b ON b.a_id = a.id	sql
+Rows with no match	LEFT JOIN ... WHERE b.id IS NULL	sql
+Unique values	SELECT DISTINCT city FROM customers;	sql
+Aggregate functions	COUNT, SUM, AVG, MIN, MAX	sql
+Pattern match	WHERE name LIKE '%son'	sql
+Set membership	WHERE status IN ('open','pending')	sql
+Range filter	WHERE total BETWEEN 100 AND 500	sql
+Null check	WHERE email IS NULL	sql
+Conditional value	CASE WHEN total>1000 THEN 'big' ELSE 'small' END	sql
+Alias a column	SELECT SUM(total) AS revenue	sql
+Subquery	WHERE customer_id IN (SELECT id FROM c WHERE ...)	sql
+CTE	WITH t AS (SELECT ...) SELECT * FROM t	sql
+Insert a row	INSERT INTO customers (name) VALUES ('Acme');	sql
+Update rows	UPDATE orders SET status='closed' WHERE id=5;	sql
+Delete rows	DELETE FROM orders WHERE id=5;	sql
+Rule for UPDATE/DELETE	Always include WHERE or you change every row	sql
+Free practice	SQLBolt, Mode SQL Tutorial, DB Fiddle, sqliteonline.com	sql

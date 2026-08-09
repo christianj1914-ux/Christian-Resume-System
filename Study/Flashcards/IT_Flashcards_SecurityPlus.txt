@@ -1,0 +1,118 @@
+#separator:tab
+#html:false
+#tags column:3
+CIA triad	Confidentiality, Integrity, Availability	security_plus
+AAA	Authentication, Authorization, Accounting	security_plus
+Symmetric encryption example	AES	security_plus
+Asymmetric encryption example	RSA or ECC	security_plus
+Hashing example and purpose	SHA-256; one-way integrity check, not encryption	security_plus
+What provides non-repudiation	Digital signatures	security_plus
+Deterrent control example	A warning banner or sign	security_plus
+Compensating control	An alternative when the primary control is not feasible	security_plus
+Four control categories	Technical, Managerial, Operational, Physical	security_plus
+Phishing via SMS	Smishing	security_plus
+Phishing via voice call	Vishing	security_plus
+Phishing targeting executives	Whaling	security_plus
+MITM modern name	On-path attack	security_plus
+SQL injection targets	Databases via unsanitized input	security_plus
+XSS targets	Other users' browsers via injected script	security_plus
+Zero trust principle	Never trust, always verify	security_plus
+Least privilege	Grant the minimum access needed	security_plus
+MFA factor types	Something you know, have, and are	security_plus
+Purpose of salting	Defeat rainbow-table attacks on hashes	security_plus
+SIEM	Security Information and Event Management	security_plus
+IDS vs IPS	Detect only vs detect and block	security_plus
+CVE	Common Vulnerabilities and Exposures	security_plus
+Qualitative risk formula	Likelihood x Impact	security_plus
+RTO vs RPO	Max tolerable downtime vs max tolerable data loss	security_plus
+Confidentiality control example	Encryption	security_plus
+Integrity control example	Hashing or digital signatures	security_plus
+What PKI provides	Trusted public keys via certificates and a CA	security_plus
+Defense in depth	Multiple layered controls	security_plus
+Three states of data	At rest, in transit, in use	security_plus
+Common symmetric ciphers	AES, 3DES, ChaCha20	security_plus
+Common asymmetric algorithms	RSA, ECC, Diffie-Hellman	security_plus
+Weak or deprecated hash	MD5 (and SHA-1)	security_plus
+What a CA does	Issues and signs digital certificates	security_plus
+CRL vs OCSP	Revocation list vs real-time revocation check	security_plus
+What TLS provides	Encryption of data in transit (HTTPS)	security_plus
+What a VPN provides	An encrypted tunnel over an untrusted network	security_plus
+SSO	Single sign-on	security_plus
+SAML vs OAuth	Federated authentication vs authorization	security_plus
+RADIUS	Centralized AAA for network access	security_plus
+Honeypot	A decoy system to attract attackers	security_plus
+DLP	Data Loss Prevention	security_plus
+EDR	Endpoint Detection and Response	security_plus
+SOAR	Security Orchestration, Automation, and Response	security_plus
+Rootkit	Malware hiding at the OS or kernel level	security_plus
+Logic bomb	Malware that triggers on a condition	security_plus
+Zero-day	An exploit used before a patch exists	security_plus
+DMZ / screened subnet	Isolated segment for public-facing services	security_plus
+802.1X	Port-based network access control	security_plus
+Key stretching examples	bcrypt, PBKDF2, scrypt	security_plus
+Order of volatility	Collect the most volatile evidence first	security_plus
+Chain of custody	Documented handling of evidence	security_plus
+Backup types	Full, incremental, differential	security_plus
+What a nonce prevents	Replay attacks (a number used once)	security_plus
+Pass-the-hash	Reusing a stolen password hash	security_plus
+Privilege escalation types	Vertical and horizontal	security_plus
+Supply chain attack	Compromise through a trusted vendor	security_plus
+Watering hole attack	Compromising a site the target visits	security_plus
+Business email compromise	Fraud via a spoofed executive email	security_plus
+Typosquatting	Malicious lookalike domain names	security_plus
+False positive	A benign event flagged as malicious	security_plus
+Jump server / bastion	A hardened host for admin access	security_plus
+Network segmentation	Dividing networks to limit blast radius	security_plus
+WAF	Web Application Firewall	security_plus
+NGFW	Next-generation, application-aware firewall	security_plus
+Full vs split tunnel VPN	All traffic vs only some through the VPN	security_plus
+TOTP	Time-based one-time password	security_plus
+FIDO2 / passkey	Phishing-resistant passwordless auth	security_plus
+Wildcard certificate	Covers all subdomains of a domain	security_plus
+SAN certificate	Valid for multiple named hosts	security_plus
+CSR	Certificate Signing Request	security_plus
+Certificate pinning	Trusting one specific known certificate	security_plus
+Tokenization	Replacing data with a non-sensitive token	security_plus
+AES block size	128 bits	security_plus
+Playbook (IR)	Documented response steps	security_plus
+Microsegmentation	Fine-grained per-workload isolation	security_plus
+Replay attack	Reusing captured valid data	security_plus
+Sideloading / shadow IT	Unsanctioned apps or devices	security_plus
+What a HSM is	Hardware Security Module for keys	security_plus
+What a TPM is	Trusted Platform Module (device keys)	security_plus
+Port: FTP (control / data)	21 and 20 (TCP)	security_plus
+Port: SSH, SCP, SFTP	22 (TCP)	security_plus
+Port: Telnet	23 (TCP, insecure)	security_plus
+Port: SMTP	25 (TCP)	security_plus
+Port: TACACS+	49	security_plus
+Port: DNS	53 (TCP and UDP)	security_plus
+Port: DHCP	67 and 68 (UDP)	security_plus
+Port: TFTP	69 (UDP)	security_plus
+Port: HTTP	80 (TCP)	security_plus
+Port: Kerberos	88	security_plus
+Port: POP3	110 (TCP)	security_plus
+Port: NTP	123 (UDP)	security_plus
+Port: NetBIOS	137, 138, 139	security_plus
+Port: IMAP	143 (TCP)	security_plus
+Port: SNMP	161 and 162 (UDP)	security_plus
+Port: LDAP	389 (TCP)	security_plus
+Port: HTTPS	443 (TCP)	security_plus
+Port: SMB	445 (TCP)	security_plus
+Port: SMTPS (submission)	587 (or 465)	security_plus
+Port: Syslog	514 (UDP)	security_plus
+Port: LDAPS	636 (TCP)	security_plus
+Port: FTPS	989 and 990	security_plus
+Port: IMAP over SSL (IMAPS)	993	security_plus
+Port: POP3 over SSL (POP3S)	995	security_plus
+Port: Microsoft SQL Server	1433	security_plus
+Port: RADIUS	1812 and 1813	security_plus
+Port: LDAP Global Catalog	3268 and 3269	security_plus
+Port: RDP	3389 (TCP)	security_plus
+Port: SIP	5060 and 5061	security_plus
+Port: Syslog over TLS	6514 (TCP)	security_plus
+Secure alternative to Telnet	SSH (22)	security_plus
+Secure alternative to FTP	FTPS (989/990) or SFTP (22)	security_plus
+Secure alternative to HTTP	HTTPS (443)	security_plus
+Secure alternative to LDAP	LDAPS (636)	security_plus
+Secure alternative to SNMPv1/v2	SNMPv3 (adds auth and encryption)	security_plus
+Secure alternative to POP3 / IMAP	POP3S (995) / IMAPS (993)	security_plus

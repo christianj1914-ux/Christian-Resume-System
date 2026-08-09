@@ -1,0 +1,80 @@
+#separator:tab
+#html:false
+#tags column:3
+What is an LLM	A model trained to predict text, used for reasoning and generation	ai_agents
+What is RAG	Retrieval-Augmented Generation: fetch relevant docs and add them to the prompt	ai_agents
+The RAG Triad	Faithfulness, Answer Relevance, Context Relevance	ai_agents
+What is an embedding	A vector representing meaning, used for similarity search	ai_agents
+Vector database examples	Pinecone, Qdrant, Weaviate	ai_agents
+What is MCP	Model Context Protocol: a standard for connecting agents to tools and data	ai_agents
+What the Claude Agent SDK gives you	An agent loop, built-in tools, context management, and MCP integration	ai_agents
+What is a tool or function call	The model invoking a defined function to take an action	ai_agents
+What is an AI agent	An LLM plus tools, a loop, and memory to complete multi-step tasks	ai_agents
+Agent orchestration frameworks	LangGraph and CrewAI	ai_agents
+Purpose of a guardrail or hook	Block unsafe or destructive actions	ai_agents
+Key agent eval metrics	Accuracy, latency, and cost	ai_agents
+What is prompt injection	Malicious input that hijacks the model's instructions	ai_agents
+What is structured output	A response constrained to a schema, such as JSON Schema	ai_agents
+What is prompt caching	Reusing repeated context to cut cost and latency	ai_agents
+What is chunking	Splitting documents into pieces before embedding	ai_agents
+What temperature controls	The randomness of the model's output	ai_agents
+Role of a system prompt	Sets the model's role and behavior	ai_agents
+Fine-tuning vs RAG	Fine-tuning changes weights; RAG adds context at run time	ai_agents
+What is Codex	OpenAI's agentic coding system, running on GPT-5.5	ai_agents
+Four parts of a strong prompt	Role, task, examples, and output format	ai_agents
+Install the Claude Agent SDK (Python)	pip install claude-agent-sdk	ai_agents
+What are Agent Skills	SKILL.md folders that teach an agent specialized workflows	ai_agents
+Why measure evals	To know if a change improves accuracy, cost, and latency	ai_agents
+What is a token	A unit of text (roughly 3/4 of a word) the model processes	ai_agents
+Context window	The maximum tokens the model can consider at once	ai_agents
+Hallucination	A confident but incorrect model output	ai_agents
+Zero-shot vs few-shot	No examples vs examples included in the prompt	ai_agents
+Chain of thought	Prompting the model to reason step by step	ai_agents
+Message roles	system, user, assistant	ai_agents
+ReAct pattern	Interleave reasoning and tool actions in a loop	ai_agents
+Semantic search	Finding matches by meaning using embeddings	ai_agents
+Cosine similarity	A measure of how close two vectors are	ai_agents
+Reranking	Reordering retrieved results by relevance	ai_agents
+Chunk overlap	Shared text between chunks to preserve context	ai_agents
+LLM-as-judge	Using a model to grade other model outputs	ai_agents
+Fine-tuning methods	SFT, DPO, RFT	ai_agents
+RLHF	Reinforcement Learning from Human Feedback	ai_agents
+Quantization	Compressing a model for speed and lower cost	ai_agents
+Streaming	Returning tokens as they are generated	ai_agents
+LangChain vs LangGraph	Chains vs stateful, graph-based agent flows	ai_agents
+CrewAI	A role-based multi-agent framework	ai_agents
+Observability tools	Langfuse, LangSmith, Phoenix	ai_agents
+Sandbox execution	Running agent-generated code safely (E2B, Modal)	ai_agents
+Two kinds of agent memory	Short-term (context) and long-term (vector store)	ai_agents
+Temperature 0 means	Near-deterministic output	ai_agents
+What drives LLM cost	Input tokens plus output tokens	ai_agents
+JSON mode or tool use	Ways to force structured output	ai_agents
+What MCP standardizes	How agents connect to tools and data across apps	ai_agents
+A2A	An agent-to-agent communication protocol	ai_agents
+What a parameter is	A learned weight inside the model	ai_agents
+Pretraining	Learning language from massive text	ai_agents
+Instruction tuning	Teaching a model to follow instructions	ai_agents
+Foundation model	A large model adaptable to many tasks	ai_agents
+Multimodality	Handling text, images, audio, and more	ai_agents
+Prompt template	A reusable prompt with variables	ai_agents
+Top-k sampling	Choose from the k most likely tokens	ai_agents
+Top-p (nucleus) sampling	Choose from the smallest set summing to p	ai_agents
+Stop sequence	Text that ends generation	ai_agents
+max_tokens	A cap on output length	ai_agents
+Approximate nearest neighbor	Fast vector similarity search (e.g., HNSW)	ai_agents
+Retriever	The component that fetches relevant chunks	ai_agents
+Hybrid search	Combine keyword and vector search	ai_agents
+Naive vs advanced RAG	Basic retrieve vs rerank, hybrid, multi-hop	ai_agents
+Human-in-the-loop	Requiring human approval before actions	ai_agents
+Jailbreaking	Bypassing a model's safety controls	ai_agents
+Injection defense	Separate instructions from data; least-privilege tools	ai_agents
+Webhook in agents	An external event that triggers an agent	ai_agents
+Eval dataset	Labeled examples used to score outputs	ai_agents
+Regression testing (LLM)	Re-running evals after each change	ai_agents
+Fine-tune vs prompt vs RAG	Weights vs instructions vs retrieved context	ai_agents
+What an embedding dimension is	The length of the embedding vector	ai_agents
+Guardrail model	A model that screens inputs and outputs	ai_agents
+Context stuffing	Placing retrieved text into the prompt	ai_agents
+Batch vs streaming inference	Many at once vs tokens as generated	ai_agents
+Why caching helps	Reuses results to cut cost and latency	ai_agents
+Agent memory types	Short-term context and long-term vector store	ai_agents

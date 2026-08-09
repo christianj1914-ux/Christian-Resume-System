@@ -1,0 +1,82 @@
+#separator:tab
+#html:false
+#tags column:3
+Add a user	useradd	rhcsa_linux
+Set or change a password	passwd	rhcsa_linux
+Change file permissions	chmod	rhcsa_linux
+Change file ownership	chown	rhcsa_linux
+Set an ACL entry	setfacl -m	rhcsa_linux
+View ACLs	getfacl	rhcsa_linux
+Start a service now	systemctl start <svc>	rhcsa_linux
+Enable a service at boot	systemctl enable <svc>	rhcsa_linux
+View system logs	journalctl	rhcsa_linux
+List block devices	lsblk	rhcsa_linux
+Create a physical volume	pvcreate	rhcsa_linux
+Create a volume group	vgcreate	rhcsa_linux
+Create a logical volume	lvcreate -L <size> -n <name> <vg>	rhcsa_linux
+Extend a logical volume	lvextend	rhcsa_linux
+Grow an xfs filesystem	xfs_growfs	rhcsa_linux
+Format a partition as xfs	mkfs.xfs	rhcsa_linux
+File for persistent mounts	/etc/fstab	rhcsa_linux
+Configure networking (CLI)	nmcli	rhcsa_linux
+Open a firewall service permanently	firewall-cmd --permanent --add-service=<svc>	rhcsa_linux
+Reload the firewall	firewall-cmd --reload	rhcsa_linux
+Check SELinux mode	getenforce	rhcsa_linux
+Set SELinux permissive (temporary)	setenforce 0	rhcsa_linux
+Restore SELinux file contexts	restorecon	rhcsa_linux
+Edit the current user's cron	crontab -e	rhcsa_linux
+chmod 755 means	rwx owner, r-x group, r-x others	rhcsa_linux
+chmod 644 means	rw- owner, r-- group, r-- others	rhcsa_linux
+Find files by name	find <path> -name <pattern>	rhcsa_linux
+Search text within files	grep	rhcsa_linux
+Add a group	groupadd	rhcsa_linux
+Delete a user	userdel	rhcsa_linux
+Lock a user account	usermod -L (or passwd -l)	rhcsa_linux
+Show your user and groups	id	rhcsa_linux
+Become root with environment	su -	rhcsa_linux
+Run one command as root	sudo <cmd>	rhcsa_linux
+Make a directory	mkdir	rhcsa_linux
+Copy a directory recursively	cp -r	rhcsa_linux
+Create a symbolic link	ln -s target link	rhcsa_linux
+View the end of a file	tail	rhcsa_linux
+Count lines in a file	wc -l	rhcsa_linux
+Sort lines	sort	rhcsa_linux
+Show unique lines	uniq	rhcsa_linux
+Extract a tar.gz archive	tar -xzf file.tar.gz	rhcsa_linux
+Numeric perms for rwxr-xr-x	755	rhcsa_linux
+Default umask value	022 (dirs 755, files 644)	rhcsa_linux
+Show disk free space	df -h	rhcsa_linux
+Show a directory's size	du -sh <dir>	rhcsa_linux
+Install a package	dnf install <pkg>	rhcsa_linux
+Set the default boot target	systemctl set-default	rhcsa_linux
+List failed services	systemctl --failed	rhcsa_linux
+Set the hostname	hostnamectl set-hostname <name>	rhcsa_linux
+Run a container	podman run	rhcsa_linux
+Add a SELinux port context	semanage port -a	rhcsa_linux
+List hidden files	ls -a	rhcsa_linux
+Create an empty file / update times	touch	rhcsa_linux
+Move or rename a file	mv	rhcsa_linux
+Follow a growing log	tail -f	rhcsa_linux
+Redirect output (overwrite / append)	> and >>	rhcsa_linux
+Pipe output to another command	|	rhcsa_linux
+Find and replace in a stream	sed 's/old/new/g'	rhcsa_linux
+Print the second column	awk '{print $2}'	rhcsa_linux
+Make a script executable	chmod +x script.sh	rhcsa_linux
+Shebang line	#!/bin/bash	rhcsa_linux
+Show the default boot target	systemctl get-default	rhcsa_linux
+Reload a service's config	systemctl reload	rhcsa_linux
+Prevent a service from starting	systemctl mask	rhcsa_linux
+Show listening ports	ss -tulpn	rhcsa_linux
+List active firewall zones	firewall-cmd --get-active-zones	rhcsa_linux
+Copy your SSH key to a host	ssh-copy-id user@host	rhcsa_linux
+Toggle a SELinux boolean persistently	setsebool -P <bool> on	rhcsa_linux
+Mount everything in fstab	mount -a	rhcsa_linux
+Create swap (sequence)	fallocate/dd, mkswap, swapon	rhcsa_linux
+Numeric perms for rw-r-----	640	rhcsa_linux
+SUID bit numeric prefix	4 (e.g., 4755)	rhcsa_linux
+Sticky bit purpose	Only owners delete their files (/tmp)	rhcsa_linux
+Show block devices and mounts	lsblk	rhcsa_linux
+Display the running kernel	uname -r	rhcsa_linux
+Search installed packages	dnf list installed	rhcsa_linux
+View a service's logs	journalctl -u <svc>	rhcsa_linux
+Reset root password (concept)	Boot to rd.break, remount rw, passwd	rhcsa_linux
