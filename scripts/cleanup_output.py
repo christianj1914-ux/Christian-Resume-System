@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import argparse
 import csv
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import hashlib
 import json
 from pathlib import Path
@@ -162,7 +162,7 @@ def archive_deletion_set(paths: Iterable[Path], reasons: dict[Path, str], label:
         raise ValueError("Cannot archive an empty deletion set.")
     archive_root = cleanup_archive_dir()
     archive_root.mkdir(parents=True, exist_ok=True)
-    stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     zip_path = archive_root / f"output_cleanup_{label}_{stamp}.zip"
     manifest_path = zip_path.with_suffix(".json")
     entries: list[dict[str, object]] = []
@@ -283,7 +283,7 @@ def bundle_cleanup_plan(paths: Iterable[Path] | None = None) -> tuple[dict[str, 
 
 def save_bundle_preview(families: dict[str, list[Path]], preserved: list[Path], removals: list[Path]) -> Path:
     cleanup_archive_dir().mkdir(parents=True, exist_ok=True)
-    stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     preview_path = cleanup_archive_dir() / f"prune_preview_{stamp}.txt"
     retained = {path.resolve() for path in preserved}
     lines = [f"Family count: {len(families)}", f"Retained: {len(preserved)}", f"Scheduled removals: {len(removals)}", ""]

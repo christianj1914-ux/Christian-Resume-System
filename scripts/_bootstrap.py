@@ -9,6 +9,19 @@ from pathlib import Path
 
 _SCRIPT_DIR = Path(__file__).resolve().parent
 _PROJECT_ROOT = _SCRIPT_DIR.parent
+MINIMUM_PYTHON_VERSION = (3, 11)
+
+
+def ensure_supported_python_version(version_info: tuple[int, int] | None = None) -> None:
+    """Fail early with the repository's declared runtime requirement."""
+    detected = version_info or sys.version_info[:2]
+    if tuple(detected[:2]) < MINIMUM_PYTHON_VERSION:
+        required = ".".join(str(value) for value in MINIMUM_PYTHON_VERSION)
+        found = ".".join(str(value) for value in detected[:2])
+        raise SystemExit(f"Python {required}+ is required; found Python {found}.")
+
+
+ensure_supported_python_version()
 
 
 def ensure_script_path() -> None:

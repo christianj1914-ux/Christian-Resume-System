@@ -1,5 +1,6 @@
 # Christian Resume System Dependencies
 # Pinned versions to ensure API stability and compatibility
+# Runtime: Python 3.11 or newer is required.
 
 # Core document processing
 python-docx==1.2.0

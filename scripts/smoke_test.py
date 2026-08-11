@@ -32,6 +32,8 @@ if str(SCRIPT_DIR) not in sys.path:
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
+import _bootstrap
+
 MAJOR_SCRIPTS = (
     "business_context",
     "claude_review_bundle",
@@ -462,6 +464,20 @@ def test_smoke_selector_uses_nonempty_deduplicated_tag_union() -> None:
     assert_true(0 < len(selected) < len(registry), f"Focused selector should choose a strict nonempty subset; got {labels}")
     assert_true(labels.count("federal alignment fixture") == 1, f"Combined tags must not duplicate checks; got {labels}")
 
+def test_python_runtime_guard_and_no_datetime_utc_import() -> None:
+    try:
+        _bootstrap.ensure_supported_python_version((3, 10))
+    except SystemExit as error:
+        message = str(error)
+    else:
+        raise SmokeFailure("Python 3.10 should fail the declared runtime guard")
+    assert_true("Python 3.11+ is required" in message and "Python 3.10" in message, f"Runtime guard message drifted: {message!r}")
+    offenders = [
+        path.relative_to(PROJECT_ROOT).as_posix()
+        for path in (PROJECT_ROOT / "scripts").rglob("*.py")
+        if "from datetime import " + "UTC" in path.read_text(encoding="utf-8")
+    ]
+    assert_true(not offenders, f"Use timezone.utc instead of fragile datetime.UTC imports: {offenders}")
 
 def test_smoke_selector_preserves_failing_federal_check() -> None:
     def failing_federal_check() -> None:
@@ -17780,6 +17796,7 @@ def main(argv: list[str] | None = None) -> None:
         registered_checks = (
             ("AGENTS word budget", test_agents_word_budget),
             ("smoke registry has no orphaned test functions", test_smoke_registry_has_no_orphaned_test_functions),
+            ("Python runtime guard and datetime UTC import policy", test_python_runtime_guard_and_no_datetime_utc_import),
             ("pyflakes has no undefined names or redefinitions", test_pyflakes_has_no_undefined_names_or_redefinitions),
             ("orphan detector flags synthetic unreferenced test", test_orphan_detector_flags_synthetic_unreferenced_test),
             ("smoke selector uses nonempty deduplicated tag union", test_smoke_selector_uses_nonempty_deduplicated_tag_union),

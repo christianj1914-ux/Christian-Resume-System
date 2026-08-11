@@ -2,6 +2,10 @@
 
 This is the authoritative guide for extending the resume system with new targeting lanes, employer playbooks, or story bank entries. Keep changes narrow, supported by source-resume evidence, and validated before using them in a live build.
 
+## Runtime Requirement
+
+Use Python 3.11 or newer. The repository enforces this at bootstrap so older interpreters fail before running workflow imports.
+
 ## Adding A New Targeting Lane
 
 Touch files in this order so lane detection, resume quality checks, cover letters, and interview prep stay aligned:
