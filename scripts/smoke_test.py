@@ -14367,6 +14367,22 @@ def test_contains_search_term_handles_simple_plural_forms(build_resume: object) 
         "contains_search_term() should treat -es plural business forms as hits",
     )
     assert_true(
+        build_resume.contains_search_term("The platform exposes multiple capabilities.", "capability"),
+        "contains_search_term() should match consonant-y singular terms to -ies plural text",
+    )
+    assert_true(
+        build_resume.contains_search_term("The process is documented.", "processes"),
+        "contains_search_term() should match -es plural terms to singular text",
+    )
+    assert_true(
+        build_resume.contains_search_term("The processes are documented.", "process"),
+        "contains_search_term() should match singular -ss terms to -es plural text",
+    )
+    assert_true(
+        build_resume.contains_search_term("Stakeholder\u200b management", "stakeholder management"),
+        "contains_search_term() should normalize zero-width characters at word boundaries",
+    )
+    assert_true(
         build_resume.contains_search_term("Monitoring and reporting improved delivery visibility.", "monitoring reporting"),
         "contains_search_term() should credit natural coordinated phrases for extracted keyword bigrams",
     )

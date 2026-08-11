@@ -80,7 +80,7 @@ def fit_from_path(path: Path) -> str:
     return resume_analysis.output_audit_state(path)
 
 
-def skills_count(resume_text: str) -> int:
+def selected_competencies(resume_text: str) -> tuple[str, ...]:
     skills_text = build_resume.core_competencies_text_from_text(resume_text)
     items: set[str] = set()
     for line in skills_text.splitlines():
@@ -90,7 +90,21 @@ def skills_count(resume_text: str) -> int:
             for item in re.split(r"\s*\|\s*", value)
             if build_resume.normalize_compare(item)
         )
-    return len(items)
+    return tuple(sorted(items))
+
+
+def skills_count(resume_text: str) -> int:
+    return len(selected_competencies(resume_text))
+
+
+def selected_bullets(resume_path: Path | None) -> tuple[str, ...]:
+    if resume_path is None:
+        return ()
+    with tempfile.TemporaryDirectory(prefix="keyword_corpus_selection_") as temp_dir:
+        with zipfile.ZipFile(resume_path) as archive:
+            archive.extractall(temp_dir)
+        document_xml = Path(temp_dir) / "word" / "document.xml"
+        return build_resume.resume_variable_snapshot(document_xml).bullets
 
 
 def ownership_measurement(resume_path: Path | None) -> tuple[str, str, str]:
@@ -401,6 +415,16 @@ def _row_for_fixture(
         "genuine_gaps": len({build_resume.normalize_compare(gap.label) for gap in genuine}),
         "excluded_noise": len(excluded_noise),
         "skills_count": skills_count(resume_text),
+        "selected_bullets": json.dumps(
+            selected_bullets(resume_path),
+            ensure_ascii=True,
+            separators=(",", ":"),
+        ),
+        "selected_competencies": json.dumps(
+            selected_competencies(resume_text),
+            ensure_ascii=True,
+            separators=(",", ":"),
+        ),
         "pages": pages,
         "fit": fit,
         "recomputed_fit": recomputed_fit,

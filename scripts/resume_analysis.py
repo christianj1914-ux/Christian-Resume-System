@@ -69,14 +69,15 @@ def _search_term_regexes(term: str) -> tuple[re.Pattern, ...]:
         singular_base = last[:-2]
         if singular_base.endswith(("ss", "sh", "ch", "x", "z")):
             variants.append(" ".join(parts[:-1] + [singular_base]))
-    elif last.endswith("s") and len(last) > 4 and not last.endswith(("ss", "ics", "is")):
+    elif last.endswith("s") and len(last) > 4 and not last.endswith(("ss", "ics", "us", "is")):
         variants.append(" ".join(parts[:-1] + [last[:-1]]))
-    elif not last.endswith("s") and not last.endswith("ing"):
+
+    if not last.endswith("ing"):
         if last.endswith("y") and len(last) > 3 and last[-2] not in "aeiou":
             variants.append(" ".join(parts[:-1] + [last[:-1] + "ies"]))
         elif last.endswith(("ss", "sh", "ch", "x", "z")):
             variants.append(" ".join(parts[:-1] + [last + "es"]))
-        else:
+        elif not last.endswith("s"):
             variants.append(" ".join(parts[:-1] + [last + "s"]))
 
     def variant_pattern(variant: str) -> str:

@@ -127,6 +127,7 @@ from resume_analysis import (
     clean_company_name,
     clean_job_title,
     classify_keyword_candidate,
+    contains_search_term,
     detect_company_profile,
     employer_context_matches,
     employer_context_sentence,
@@ -1911,49 +1912,6 @@ def restore_mandatory_reorg_summaries(document_xml: Path) -> int:
     if changed:
         tree.write(document_xml, encoding="utf-8", xml_declaration=True)
     return changed
-
-
-def contains_search_term(text: str, term: str) -> bool:
-    normalized = text.lower()
-    parts = term.lower().strip().split()
-    if not parts:
-        return False
-
-    last = parts[-1]
-    variants = [" ".join(parts)]
-    if last.endswith("ies") and len(last) > 4:
-        variants.append(" ".join(parts[:-1] + [last[:-3] + "y"]))
-    elif last.endswith("ss") and len(last) > 4:
-        variants.append(" ".join(parts[:-1] + [last + "es"]))
-    elif last.endswith("s") and len(last) > 4 and not last.endswith(("ics", "is")):
-        variants.append(" ".join(parts[:-1] + [last[:-1]]))
-    elif not last.endswith("s") and not last.endswith("ing"):
-        variants.append(" ".join(parts[:-1] + [last + "s"]))
-
-    def variant_pattern(variant: str) -> str:
-        tokens = variant.split()
-        if len(tokens) <= 1:
-            return re.escape(variant)
-        connector = r"(?:\s+(?:and|&)\s+|\s+)"
-        return connector.join(re.escape(token) for token in tokens)
-
-    return any(
-        re.search(rf"(?<![a-z0-9]){variant_pattern(variant)}(?![a-z0-9])", normalized) is not None
-        for variant in dict.fromkeys(variants)
-    )
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
