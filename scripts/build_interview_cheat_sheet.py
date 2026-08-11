@@ -99,7 +99,50 @@ KNOWN_STORY_TYPES = frozenset({
     "Cross-Cultural",
     "Prioritization",
     "Receiving Feedback",
+    "Repeatable Systems",
 })
+
+
+BUILDER_LANES = frozenset({
+    "implementation_delivery",
+    "presales_solution",
+    "analytics_operations",
+    "change_enablement",
+    "process_improvement",
+    "corporate_strategy",
+    "customer_success",
+})
+BUILDER_SIGNALS = (
+    "repeatable", "repeatability", "scalable", "scale", "standardize", "standardization",
+    "playbook", "documentation", "documented", "enablement", "workflow", "process design",
+)
+COMMERCIAL_OWNERSHIP_SIGNALS = (
+    "account ownership", "account owner", "renewal", "retention", "expansion", "nrr", "grr",
+    "commercial", "quota", "book of business",
+)
+
+
+def builder_story_required(profile: build_resume.JobProblemProfile, job_description: str) -> bool:
+    """Route repeatability evidence only when both role lane and posting ask for it."""
+    return profile.primary_lane in BUILDER_LANES and build_resume.jd_mentions(job_description, *BUILDER_SIGNALS)
+
+
+def commercial_acumen_applies(profile: build_resume.JobProblemProfile, job_description: str) -> bool:
+    """Keep book-of-business language out of delivery-only interviews."""
+    return profile.primary_lane == "customer_success" or (
+        profile.primary_lane == "presales_solution"
+        and build_resume.jd_mentions(job_description, *COMMERCIAL_OWNERSHIP_SIGNALS)
+    )
+
+
+def commercial_acumen_answer() -> str:
+    """Single source-bound answer for retention and expansion questions."""
+    return join_answer_sentences(
+        "I did not carry a quota or own NRR or GRR attainment, and I did not close expansion dollars",
+        "What I did own was renewal-risk recovery work, including stabilizing more than one million dollars in at-risk annual revenue",
+        "I used QBRs and executive reviews to keep value, risks, and next actions visible, then used expansion discovery to identify where a customer had a real next problem to solve",
+        "That is the commercial discipline I would bring: protect the relationship and the realized value first, then earn the right to explore expansion",
+    )
 
 
 LANE_LEAD_INS = {
@@ -1578,6 +1621,56 @@ def add_jd_interview_scorecard(document: Document, scorecard: Sequence[interview
                     run.font.size = Pt(BODY_SIZE)
 
 
+def competency_decoder_rows(
+    profile: build_resume.JobProblemProfile,
+    job_description: str,
+) -> list[tuple[str, str, str, str]]:
+    """Return only the interview competencies relevant to the target lane."""
+    rows = [
+        ("Owner", "All delivery, consulting, implementation, analytics, change, and CS lanes", "What did you own when the work became difficult?", "Name the outcome, the next decision, and the action you personally carried through."),
+        ("Executive presence", "Implementation, consulting/pre-sales, CS, change, and strategy", "How did you make a recommendation credible to senior stakeholders?", "Lead with the business decision and tradeoff, then make the evidence and next action clear."),
+        ("Signal literacy", "CS, implementation, analytics, and customer-facing consulting", "What signals told you to intervene?", "Name the operating signal, validate it with the workflow and users, then turn it into an owned next step."),
+        ("Diagnostic judgment", "All lanes", "How did you separate a symptom from the root cause?", "Trace the workflow, test the assumption, and explain the control or decision that changed."),
+    ]
+    if builder_story_required(profile, job_description):
+        rows.insert(
+            1,
+            ("Builder", "Implementation, consulting/pre-sales, analytics, change/process, and signal-matched CS", "How did you make a one-off improvement reusable?", "Use Story 3 for an automated auditable process, Story 5 for a documented channel, or Story 20 for a repeatable request-to-release mechanism."),
+        )
+    if commercial_acumen_applies(profile, job_description):
+        rows.append(
+            ("Commercial acumen", "CS and explicit post-sale commercial/pre-sales roles only", "Walk me through retention, expansion, and risk.", "I did not carry a quota or own NRR/GRR attainment or closed expansion dollars; I owned risk recovery, executive reviews, and expansion discovery."),
+        )
+    return rows
+
+
+def add_competency_decoder_table(
+    document: Document,
+    profile: build_resume.JobProblemProfile,
+    job_description: str,
+) -> None:
+    add_section(document, "Competency Decoder")
+    table = document.add_table(rows=1, cols=4)
+    table.style = "Table Grid"
+    headers = ("Competency", "Lane applicability", "Question shape", "Sentence Christian must say")
+    for index, header in enumerate(headers):
+        cell = table.rows[0].cells[index]
+        cell.text = header
+        for run in cell.paragraphs[0].runs:
+            run.bold = True
+            run.font.name = RESUME_FONT
+            run.font.size = Pt(BODY_SIZE)
+    for row_values in competency_decoder_rows(profile, job_description):
+        cells = table.add_row().cells
+        for index, value in enumerate(row_values):
+            cells[index].text = value
+            for paragraph in cells[index].paragraphs:
+                paragraph.paragraph_format.space_after = Pt(1)
+                for run in paragraph.runs:
+                    run.font.name = RESUME_FONT
+                    run.font.size = Pt(BODY_SIZE)
+
+
 
 
 def fit_label(profile: build_resume.JobProblemProfile, resume_docx: Path) -> str:
@@ -2646,7 +2739,7 @@ def keyword_ready_answers(
         elif label == "Marketing Analytics":
             answer = "I would start with the business decision behind the report: acquisition source, conversion path, lifetime value, retention, or margin. My background supports the translation layer because I have built 200+ dashboards and reporting tools, worked with customer and transactional data, and helped stakeholders move from raw exports to decisions they could act on."
         elif label == "NRR And Growth":
-            answer = "I would treat expansion as the result of trusted onboarding and visible value. My supported lane is renewal-risk management, expansion discovery, customer health, QBRs, and stabilizing high-risk accounts. The proof is account recovery plus the ability to turn implementation success into the next value conversation."
+            answer = commercial_acumen_answer()
         elif label == "AI-Enabled Customer Work":
             answer = interview_join(
                 confirmed_ai_customer_work_story(),
@@ -2970,7 +3063,11 @@ def hero_stories(
         if len(selected) == 5:
             break
 
-    required_types = ("Challenge and Failure", ("Persuasion", "Opposing Views"))
+    required_types: tuple[str | tuple[str, ...], ...] = (
+        "Challenge and Failure",
+        ("Persuasion", "Opposing Views"),
+        *(("Repeatable Systems",) if builder_story_required(profile, job_description) else ()),
+    )
     protected_requirements: list[str | tuple[str, ...]] = []
     for required in required_types:
         if isinstance(required, tuple):
@@ -3453,7 +3550,7 @@ def extended_story_type_lines(
     profile: build_resume.JobProblemProfile | None = None,
 ) -> list[str]:
     lines: list[str] = []
-    for story_type in ("Cross-Cultural", "Prioritization", "Receiving Feedback"):
+    for story_type in ("Repeatable Systems", "Cross-Cultural", "Prioritization", "Receiving Feedback"):
         card = story_for_type(stories, story_type, profile)
         if card:
             lines.append(
@@ -3473,6 +3570,7 @@ def representative_prompt(story_type: str) -> str:
         "Cross-Cultural": "Tell me about a time you adapted your approach across cultures or locations.",
         "Prioritization": "Tell me about a time you had to prioritize competing urgent work.",
         "Receiving Feedback": "Tell me about a time you received difficult feedback and changed your behavior.",
+        "Repeatable Systems": "Walk me through a one-off improvement you made reusable through a process, channel, or release mechanism.",
     }
     return prompts.get(story_type, "Tell me about a relevant example.")
 
@@ -3905,6 +4003,26 @@ def likely_questions(profile: build_resume.JobProblemProfile, job_description: s
                     question="How do you manage a difficult customer escalation?",
                     angle="Show calm ownership, cross-functional coordination, and recovery of trust through follow-through."
                 ),
+                InterviewQuestion(
+                    question="Tell me about a time you caught a problem before the customer raised it. How did you catch it?",
+                    angle="Use the $1M+ account stabilization story: name the at-risk signals, the operating rhythm, and the action taken before risk became an avoidable surprise.",
+                ),
+                InterviewQuestion(
+                    question="Walk me through a one-off save you turned into something repeatable.",
+                    angle="Use Zero-to-one SMS support channel (Story 5): distinguish reusable channel design and documentation from a one-time project win.",
+                ),
+                InterviewQuestion(
+                    question="Describe a time you disagreed with a VP or executive stakeholder.",
+                    angle="Use the executive workshops or Operations versus finance story: show the evidence, tradeoff, and respectful path to alignment.",
+                ),
+                InterviewQuestion(
+                    question="How do you separate a symptom from a root cause when the outcome depends on teams you do not manage?",
+                    angle="Use High-volume inventory automation (Story 3): map the workflow, validate the root cause with users, and coordinate a fix without claiming formal authority.",
+                ),
+                InterviewQuestion(
+                    question="Walk me through your book: retention, expansion, and risk.",
+                    angle="Use the commercial-acumen boundary directly: no quota, NRR/GRR attainment, or closed expansion dollars; then explain at-risk recovery, $1M+ stabilized annual revenue, QBRs/executive reviews, and expansion discovery.",
+                ),
             ]
         )
     elif profile.primary_lane == "analytics_operations":
@@ -3934,6 +4052,33 @@ def likely_questions(profile: build_resume.JobProblemProfile, job_description: s
             ]
         )
 
+    if profile.primary_lane in {"implementation_delivery", "presales_solution", "analytics_operations", "change_enablement", "process_improvement", "corporate_strategy"}:
+        questions.extend(
+            [
+                InterviewQuestion(
+                    question="How have you turned a delivery or customer workflow into something repeatable?",
+                    angle="Route by mechanism: Story 3 for an automated auditable process, Story 5 for a documented channel or enablement design, and Story 20 for repeatable request-to-release discipline.",
+                ),
+                InterviewQuestion(
+                    question="Describe a time you had to make a recommendation credible to executive stakeholders.",
+                    angle="Lead with the business decision, make the evidence and tradeoff clear, then explain the next action you earned alignment on.",
+                ),
+                InterviewQuestion(
+                    question="What signals tell you a delivery or customer workflow needs intervention?",
+                    angle="Name the operating signal, test it against the workflow and users, then turn it into an owned next step rather than a dashboard observation.",
+                ),
+                InterviewQuestion(
+                    question="How do you separate a symptom from a root cause when other teams own part of the outcome?",
+                    angle="Use Story 3 or Story 20: trace the workflow, validate assumptions, and make acceptance, ownership, and release conditions explicit.",
+                ),
+            ]
+        )
+        if not builder_story_required(profile, job_description):
+            questions = [
+                item for item in questions
+                if item.question != "How have you turned a delivery or customer workflow into something repeatable?"
+            ]
+
     if mentions(job_description, "ai", "automation", "chatbot", "nlp"):
         questions.append(
             InterviewQuestion(
@@ -3948,7 +4093,7 @@ def likely_questions(profile: build_resume.JobProblemProfile, job_description: s
                 angle="Lead with 200+ dashboards and reporting tools, then stay precise about supported platforms and avoid claiming unsupported warehouse depth."
             )
         )
-    return questions[:8]
+    return questions
 
 
 
@@ -4332,6 +4477,13 @@ def behavioral_answer_scripts(
             ),
         ),
     ]
+    if commercial_acumen_applies(profile, job_description):
+        answers.append(
+            PreparedAnswer(
+                "Commercial acumen: retention, expansion, and risk",
+                commercial_acumen_answer(),
+            )
+        )
     story_diversity_warning(
         (
             ("Why should we hire you?", achievement),
@@ -5361,6 +5513,13 @@ def phone_screen_script_answers(
         ),
         PreparedAnswer("What is a gap we should know about?", answer_map.get("What is a gap we should know about?", "")),
     ]
+    if commercial_acumen_applies(profile, job_description):
+        answers.append(
+            PreparedAnswer(
+                "Walk me through your book: retention, expansion, and risk",
+                commercial_acumen_answer(),
+            )
+        )
     for prompt in (
         "Tell me about your education and credentials.",
         "Walk me through your career.",
@@ -5643,6 +5802,7 @@ def build_document(company_name: str, role_title: str, job_description: str, res
     for line in top_answer_risk_lines(profile, company_name, role_title, context_bundle.round_records, global_round_records)[:3]:
         add_bullet(document, line)
     add_jd_interview_scorecard(document, interview_scorecard)
+    add_competency_decoder_table(document, profile, job_description)
     add_lane_lead_in_section(document, profile)
     add_section(document, "Pre-Call Routine")
     for line in pre_interview_routine_lines(role_title, context_bundle.round_records, global_round_records):

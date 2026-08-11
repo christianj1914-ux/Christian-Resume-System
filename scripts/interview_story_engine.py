@@ -273,7 +273,7 @@ def expanded_story_bank() -> list[StoryCard]:
         ),
         StoryCard(
             title="High-volume inventory automation",
-            story_types=("Individual Achievement", "Analysis and Decision", "Ambiguous Problem"),
+            story_types=("Individual Achievement", "Analysis and Decision", "Ambiguous Problem", "Repeatable Systems"),
             hook="At East West Manufacturing, high-volume inventory adjustments were manual and error-prone, and Approved Manufacturer List maintenance needed the same controlled audit trail.",
             takeaways=("Structured the messy workflow before building", "Validated the fix against operational reality", "Turned the work into measurable business improvement"),
             evidence="At East West, built automated, auditable workflows for high-volume inventory adjustments and Approved Manufacturer List maintenance.",
@@ -357,7 +357,7 @@ def expanded_story_bank() -> list[StoryCard]:
         ),
         StoryCard(
             title="Salesforce backlog and release coordination",
-            story_types=("Analysis and Decision", "Managing and Leading", "Teamwork"),
+            story_types=("Analysis and Decision", "Managing and Leading", "Teamwork", "Repeatable Systems"),
             hook="Customer-facing CRM and digital-workflow changes had to stay useful for customers and support teams instead of becoming another spreadsheet-driven status exercise.",
             takeaways=("Translated noisy requests into backlog-ready work", "Used testing and release discipline to protect adoption", "Kept the workflow visible in system rather than in side trackers"),
             evidence="Turned business needs into backlog-ready requirements, coordinated UAT, and validated releases across Salesforce customer and marketing workflows.",
@@ -369,7 +369,7 @@ def expanded_story_bank() -> list[StoryCard]:
         ),
         StoryCard(
             title="Zero-to-one SMS support channel",
-            story_types=("Individual Achievement", "Analysis and Decision", "Rapid Learning"),
+            story_types=("Individual Achievement", "Analysis and Decision", "Rapid Learning", "Repeatable Systems"),
             hook="At The Home Depot, customers had no way to reach support over text, and the pilot team had to stand up an SMS support channel from zero.",
             takeaways=("Designed the workflow before scaling", "Configured repeatable messaging steps", "Documented the setup so the channel could be repeated"),
             evidence=f"Configured LivePerson LiveEngage chat and text workflows, automated greetings and closings, AI-assisted chatbot logic, and early channel-usage monitoring for the {COMPANY_HOME_DEPOT} SMS pilot.",
@@ -863,6 +863,9 @@ def closest_anchor_story_title(prompt: str, angle: str = "") -> str:
         (("ambiguity", "ambiguous", "methodology", "run a project"), "Aptean lifecycle delivery"),
         (("largest project", "most complex project", "no formal authority"), "EFT/ACH payment integration replacement"),
         (("warehouse", "amazon robotics"), "New warehouse and Amazon Robotics systems launch"),
+        (("request-to-release", "acceptance", "release discipline", "backlog"), "Salesforce backlog and release coordination"),
+        (("one-off save", "documented channel", "enablement design"), "Zero-to-one SMS support channel"),
+        (("automated auditable", "root cause", "repeatable process"), "High-volume inventory automation"),
         (("manual work", "process improvement", "inventory"), "High-volume inventory automation"),
         (("sms", "liveengage", "new workflow", "zero"), "Zero-to-one SMS support channel"),
         (("at-risk", "churn", "recovery", "retention"), "$1M+ account stabilization"),

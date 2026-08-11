@@ -11454,6 +11454,44 @@ def test_expansion_question_mapping_and_checklist_content(
         assert_true(fragment in checklist_text, f"Generated checklist should include {fragment!r}.")
 
 
+def test_builder_story_routing_and_hero_guarantees(build_resume: object, build_interview_cheat_sheet: object) -> None:
+    resume_text = build_interview_cheat_sheet.question_prep.approved_source_resume_text()
+    signal_jd = "Implementation role requiring scalable standardized workflow documentation, enablement, and repeatable process design."
+    profile = build_resume.job_problem_profile(signal_jd, resume_text)
+    assert_true(build_interview_cheat_sheet.builder_story_required(profile, signal_jd), "Builder routing should activate for a signal-matched implementation posting.")
+    cards = build_interview_cheat_sheet.expanded_story_bank()
+    tagged = {card.title for card in cards if "Repeatable Systems" in card.story_types}
+    assert_true(tagged == {"High-volume inventory automation", "Zero-to-one SMS support channel", "Salesforce backlog and release coordination"}, f"Only source-supported reusable mechanisms may receive Builder tagging; got {tagged}.")
+    selected = build_interview_cheat_sheet.hero_stories(profile, signal_jd, resume_text, eligibility_text=resume_text)
+    selected_types = {story_type for card in selected for story_type in card.story_types}
+    assert_true("Repeatable Systems" in selected_types, "A signal-matched hero set should include one Builder story.")
+    assert_true("Challenge and Failure" in selected_types, "Builder routing must preserve the failure guarantee.")
+    assert_true("Persuasion" in selected_types or "Opposing Views" in selected_types, "Builder routing must preserve the persuasion guarantee.")
+
+def test_commercial_answer_and_lane_question_boundaries(build_resume: object, build_interview_cheat_sheet: object) -> None:
+    resume_text = build_interview_cheat_sheet.question_prep.approved_source_resume_text()
+    answer = build_interview_cheat_sheet.commercial_acumen_answer().lower()
+    for required in ("did not carry a quota", "one million dollars", "qbrs", "executive reviews", "expansion discovery"):
+        assert_true(required in answer, f"Commercial answer missing required source-bound proof: {required}.")
+    for forbidden in ("quota attainment", "closed expansion revenue", "retention percentage"):
+        assert_true(forbidden not in answer, f"Commercial answer must not invent {forbidden}.")
+    cs_profile = build_resume.job_problem_profile("Customer Success Manager responsible for retention and expansion.", resume_text)
+    cs_prompts = {item.question for item in build_interview_cheat_sheet.likely_questions(cs_profile, "Customer Success Manager responsible for retention and expansion.")}
+    assert_true("Walk me through your book: retention, expansion, and risk." in cs_prompts, "CS questions must retain the book prompt.")
+    implementation_profile = build_resume.job_problem_profile("Implementation consultant responsible for go-live delivery and workflow documentation.", resume_text)
+    implementation_prompts = {item.question for item in build_interview_cheat_sheet.likely_questions(implementation_profile, "Implementation consultant responsible for go-live delivery and workflow documentation.")}
+    assert_true("Walk me through your book: retention, expansion, and risk." not in implementation_prompts, "Delivery-only implementation questions must exclude book-of-business prompts.")
+
+def test_competency_decoder_lane_filtering(build_resume: object, build_interview_cheat_sheet: object) -> None:
+    resume_text = build_interview_cheat_sheet.question_prep.approved_source_resume_text()
+    implementation_jd = "Implementation consultant building scalable workflows, standardization, playbooks, and documentation."
+    profile = build_resume.job_problem_profile(implementation_jd, resume_text)
+    rows = build_interview_cheat_sheet.competency_decoder_rows(profile, implementation_jd)
+    labels = {row[0] for row in rows}
+    assert_true("Builder" in labels and "Commercial acumen" not in labels, f"Implementation decoder should include Builder but exclude commercial-acumen row; got {labels}.")
+    builder_row = next(row for row in rows if row[0] == "Builder")
+    assert_true(all(story in builder_row[3] for story in ("Story 3", "Story 5", "Story 20")), "Builder decoder must expose the three source-supported routes.")
+
 def test_item_g_story_hooks_are_concrete(build_interview_cheat_sheet: object) -> None:
     generic_starters = ("The challenge was", "The lesson is", "There was")
     for card in build_interview_cheat_sheet.expanded_story_bank():
@@ -18193,6 +18231,9 @@ def main(argv: list[str] | None = None) -> None:
             ("expansion story bank uses supported core stories", lambda: test_expansion_story_bank_uses_supported_core_stories(build_resume, build_interview_cheat_sheet)),
             ("interview story bank source gate and safe terms", lambda: test_interview_story_bank_source_gate_and_safe_terms(question_prep, build_interview_cheat_sheet, build_resume)),
             ("interview story bank lane and hero contract", lambda: test_interview_story_bank_lane_and_hero_contract(build_resume, build_interview_cheat_sheet)),
+            ("Builder story routing and hero guarantees", lambda: test_builder_story_routing_and_hero_guarantees(build_resume, build_interview_cheat_sheet)),
+            ("commercial answer and lane question boundaries", lambda: test_commercial_answer_and_lane_question_boundaries(build_resume, build_interview_cheat_sheet)),
+            ("competency decoder lane filtering", lambda: test_competency_decoder_lane_filtering(build_resume, build_interview_cheat_sheet)),
             ("expansion question mapping and checklist content", lambda: test_expansion_question_mapping_and_checklist_content(build_resume, build_interview_cheat_sheet)),
             ("Item G story hooks are concrete", lambda: test_item_g_story_hooks_are_concrete(build_interview_cheat_sheet)),
             ("Item G flagship story ranking is controlled", lambda: test_item_g_flagship_story_ranking_is_controlled(build_resume, build_interview_cheat_sheet)),

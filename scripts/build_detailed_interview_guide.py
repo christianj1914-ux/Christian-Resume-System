@@ -3213,6 +3213,12 @@ def build_document(
         add_bullet(document, "This default build keeps the shared rehearsal core once, then adds stage-specific prep sections before the deeper story-bank material.")
     else:
         add_bullet(document, f"This build is focused on the {stage_profile.label} stage, so it keeps the shared rehearsal core and the stage-specific prep without dragging in every later-stage section.")
+    add_section(document, "Competency Decoder")
+    add_banded_table(
+        document,
+        ("Competency", "Lane applicability", "Question shape", "Sentence Christian must say"),
+        cheat.competency_decoder_rows(profile, job_description),
+    )
     add_section(document, "Answer Framework Hierarchy")
     for line in cheat.answer_framework_section_lines(framework_selection):
         add_bullet(document, line)
