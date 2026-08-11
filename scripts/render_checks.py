@@ -11,6 +11,7 @@ from datetime import datetime
 from pathlib import Path
 
 from config.paths import OUTPUT_DIR, PROJECT_ROOT, RENDER_CHECK_DIR
+from workflow_step_runner import ProcessTreeTimeout, run_process_tree_safe
 
 
 RENDER_ROOT = RENDER_CHECK_DIR
@@ -97,19 +98,23 @@ def render_docx(docx_path: Path, label: str | None = None) -> Path | None:
     output_dir = RENDER_ROOT / f"{folder_label}_{timestamp}"
     output_dir.mkdir(parents=True, exist_ok=False)
 
-    result = subprocess.run(
-        [
+    command = [
             render_python_executable(),
             str(render_script),
             str(docx_path),
             "--output_dir",
             str(output_dir),
-        ],
-        cwd=str(PROJECT_ROOT),
-        capture_output=True,
-        text=True,
-        timeout=180,
-    )
+        ]
+    try:
+        result = run_process_tree_safe(
+            command,
+            cwd=PROJECT_ROOT,
+            timeout_seconds=195,
+            phase="DOCX render wrapper",
+        )
+    except ProcessTreeTimeout as exc:
+        print(f"WARNING: {exc}", file=sys.stderr)
+        return None
     if result.returncode != 0:
         print(f"WARNING: render failed for {docx_path.name}", file=sys.stderr)
         stderr_text = result.stderr.strip()

@@ -10,6 +10,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
 import zipfile
 from dataclasses import dataclass
 from datetime import datetime
@@ -72,6 +73,7 @@ class StepResult:
     preflight_warnings: list[str]
     trace_path: Path | None = None
     timed_out: bool = False
+    duration_seconds: float = 0.0
 
     @property
     def output(self) -> str:
@@ -82,6 +84,13 @@ class StepResult:
         return self.returncode == 0
 
 
+def interrupted_build_metadata(stdout: str, stderr: str) -> tuple[str, str]:
+    output = "\n".join((stdout or "", stderr or ""))
+    phases = re.findall(r"(?im)^PHASE COMPLETE:\s*([^\r\n]+)", output)
+    temporary = re.findall(r"(?im)^TEMPORARY BUILD LOCATION:\s*(.+?)\s*$", output)
+    return (phases[-1] if phases else "none recorded", temporary[-1] if temporary else "not reported")
+
+
 def write_log(step_name: str, stdout: str, stderr: str) -> Path:
     LOG_DIR.mkdir(parents=True, exist_ok=True)
     safe_name = re.sub(r"[^A-Za-z0-9_.-]+", "_", step_name).strip("_").lower()
@@ -89,15 +98,19 @@ def write_log(step_name: str, stdout: str, stderr: str) -> Path:
     path = LOG_DIR / f"{timestamp}_{safe_name}.log"
     snapshot_id = os.environ.get("JOB_CONTEXT_SNAPSHOT_ID", "").strip()
     snapshot_line = f"JOB CONTEXT SNAPSHOT: {snapshot_id}\n" if snapshot_id else ""
+    last_phase, temporary_location = interrupted_build_metadata(stdout, stderr)
     path.write_text(
-        f"STEP: {step_name}\n{snapshot_line}\nSTDOUT\n{stdout or ''}\n\nSTDERR\n{stderr or ''}\n",
+        f"STEP: {step_name}\n{snapshot_line}LAST COMPLETED PHASE: {last_phase}\n"
+        f"INTERRUPTED TEMPORARY BUILD LOCATION: {temporary_location}\n"
+        f"\nSTDOUT\n{stdout or ''}\n\nSTDERR\n{stderr or ''}\n",
         encoding="utf-8",
     )
     return path
 
 
 def run_step(step_name: str, script_name: str) -> StepResult:
-    print(f"\n{step_name}...")
+    print(f"\n{step_name}...", flush=True)
+    started = time.monotonic()
     process_result = workflow_step_runner.run_document_step(
         step_name=step_name,
         command=[str(PYTHON), str(SCRIPTS_DIR / script_name)],
@@ -110,11 +123,13 @@ def run_step(step_name: str, script_name: str) -> StepResult:
     stderr = process_result.stderr
     returncode = process_result.returncode
     timed_out = process_result.timed_out
+    duration_seconds = time.monotonic() - started
     if process_result.quarantine_path:
         print(f"Timed-out output quarantined: {process_result.quarantine_path}")
     log_path = write_log(step_name, stdout, stderr)
     if stdout.strip():
         print(stdout.strip())
+    print(f"Workflow step elapsed: {duration_seconds:.1f}s", flush=True)
     output = "\n".join(part for part in (stdout, stderr) if part)
     trace_match = re.search(r"COVER LETTER TRACE:\s*(.+)", output)
     trace_path = Path(trace_match.group(1).strip()) if trace_match else None
@@ -153,6 +168,7 @@ def run_step(step_name: str, script_name: str) -> StepResult:
         cover_warnings=cover_warnings,
         preflight_warnings=preflight_warnings,
         timed_out=timed_out,
+        duration_seconds=duration_seconds,
     )
 
 

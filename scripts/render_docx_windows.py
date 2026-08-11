@@ -24,6 +24,12 @@ import sys
 import tempfile
 from pathlib import Path
 
+from workflow_step_runner import ProcessTreeTimeout, run_process_tree_safe
+
+
+LIBREOFFICE_TIMEOUT_SECONDS = 120
+RASTERIZATION_TIMEOUT_SECONDS = 60
+
 
 def find_soffice() -> Path:
     candidates: list[str | None] = [
@@ -73,21 +79,23 @@ def find_pdftoppm() -> str:
 
 def build_lo_env(profile_dir: Path) -> dict[str, str]:
     env = os.environ.copy()
-    env["HOME"] = str(profile_dir)
-    env["XDG_CONFIG_HOME"] = str(profile_dir / "xdg_config")
-    env["XDG_CACHE_HOME"] = str(profile_dir / "xdg_cache")
-    Path(env["XDG_CONFIG_HOME"]).mkdir(parents=True, exist_ok=True)
-    Path(env["XDG_CACHE_HOME"]).mkdir(parents=True, exist_ok=True)
+    env["RESUME_LO_PROFILE_ROOT"] = str(profile_dir)
     return env
 
 
-def run_logged(cmd: list[str], *, env: dict[str, str], verbose: bool) -> subprocess.CompletedProcess[str]:
-    result = subprocess.run(
+def run_logged(
+    cmd: list[str],
+    *,
+    env: dict[str, str],
+    verbose: bool,
+    timeout_seconds: int,
+    phase: str,
+) -> subprocess.CompletedProcess[str]:
+    result = run_process_tree_safe(
         cmd,
-        check=False,
-        capture_output=True,
-        text=True,
         env=env,
+        timeout_seconds=timeout_seconds,
+        phase=phase,
     )
     if verbose:
         print("[render_docx_windows] $ " + " ".join(cmd))
@@ -124,7 +132,13 @@ def convert_docx_to_pdf(input_docx: Path, work_dir: Path, *, verbose: bool) -> P
         str(convert_dir),
         str(staged_docx),
     ]
-    result = run_logged(cmd, env=env, verbose=verbose)
+    result = run_logged(
+        cmd,
+        env=env,
+        verbose=verbose,
+        timeout_seconds=LIBREOFFICE_TIMEOUT_SECONDS,
+        phase="LibreOffice conversion",
+    )
     pdf_path = convert_dir / "input.pdf"
     if result.returncode == 0 and pdf_path.exists() and pdf_path.stat().st_size > 0:
         return pdf_path
@@ -144,7 +158,13 @@ def rasterize_pdf(pdf_path: Path, output_dir: Path, *, verbose: bool) -> None:
         str(pdf_path),
         str(prefix),
     ]
-    result = run_logged(cmd, env=os.environ.copy(), verbose=verbose)
+    result = run_logged(
+        cmd,
+        env=os.environ.copy(),
+        verbose=verbose,
+        timeout_seconds=RASTERIZATION_TIMEOUT_SECONDS,
+        phase="PDF rasterization",
+    )
     if result.returncode != 0:
         detail = (result.stderr or result.stdout or "").strip()
         if detail:
@@ -166,12 +186,15 @@ def main() -> None:
     input_docx = Path(args.input_docx).resolve()
     output_dir = Path(args.output_dir).resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
-    with tempfile.TemporaryDirectory(prefix="codex_render_") as tmp_dir:
-        work_dir = Path(tmp_dir)
-        pdf_path = convert_docx_to_pdf(input_docx, work_dir, verbose=args.verbose)
-        if args.emit_pdf:
-            shutil.copy2(pdf_path, output_dir / f"{input_docx.stem}.pdf")
-        rasterize_pdf(pdf_path, output_dir, verbose=args.verbose)
+    try:
+        with tempfile.TemporaryDirectory(prefix="codex_render_") as tmp_dir:
+            work_dir = Path(tmp_dir)
+            pdf_path = convert_docx_to_pdf(input_docx, work_dir, verbose=args.verbose)
+            if args.emit_pdf:
+                shutil.copy2(pdf_path, output_dir / f"{input_docx.stem}.pdf")
+            rasterize_pdf(pdf_path, output_dir, verbose=args.verbose)
+    except ProcessTreeTimeout as exc:
+        raise SystemExit(f"ERROR: {exc}") from exc
     if not list(output_dir.glob("page-*.png")):
         raise SystemExit("No page images were generated")
 

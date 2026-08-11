@@ -11,6 +11,7 @@ import uuid
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
+from typing import Mapping
 
 
 @dataclass(frozen=True)
@@ -20,6 +21,15 @@ class ProcessStepResult:
     stderr: str
     timed_out: bool = False
     quarantine_path: Path | None = None
+
+
+class ProcessTreeTimeout(TimeoutError):
+    def __init__(self, phase: str, timeout_seconds: int, stdout: str = "", stderr: str = "") -> None:
+        super().__init__(f"{phase} timed out after {timeout_seconds} seconds")
+        self.phase = phase
+        self.timeout_seconds = timeout_seconds
+        self.stdout = stdout
+        self.stderr = stderr
 
 
 def output_docx_snapshot(output_dir: Path) -> tuple[Path, dict[Path, tuple[int, int]]]:
@@ -139,6 +149,34 @@ def terminate_process_tree(process: subprocess.Popen[str]) -> None:
         os.killpg(process.pid, signal.SIGTERM)
     except ProcessLookupError:
         return
+
+
+def run_process_tree_safe(
+    command: list[str],
+    *,
+    cwd: Path | None = None,
+    env: Mapping[str, str] | None = None,
+    timeout_seconds: int,
+    phase: str,
+) -> subprocess.CompletedProcess[str]:
+    """Run a subprocess with a phase-specific ceiling and kill its complete tree on timeout."""
+    process = subprocess.Popen(
+        command,
+        cwd=str(cwd) if cwd is not None else None,
+        env=dict(env) if env is not None else None,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        creationflags=subprocess.CREATE_NEW_PROCESS_GROUP if os.name == "nt" else 0,
+        start_new_session=os.name != "nt",
+    )
+    try:
+        stdout, stderr = process.communicate(timeout=timeout_seconds)
+    except subprocess.TimeoutExpired:
+        terminate_process_tree(process)
+        stdout, stderr = process.communicate()
+        raise ProcessTreeTimeout(phase, timeout_seconds, stdout or "", stderr or "")
+    return subprocess.CompletedProcess(command, process.returncode or 0, stdout or "", stderr or "")
 
 
 def run_document_step(

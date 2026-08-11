@@ -6901,6 +6901,8 @@ def validate_resume_integrity(
 
 
 def build_resume(keyword_policy: str | None = None) -> BuildResult:
+    build_started = time.monotonic()
+    analysis_started = build_started
     policy = normalize_keyword_policy(keyword_policy or active_keyword_policy())
     os.environ["RESUME_KEYWORD_POLICY"] = policy
     validate_config_integrity()
@@ -6963,12 +6965,15 @@ def build_resume(keyword_policy: str | None = None) -> BuildResult:
         print(f"  Gate action: {action}")
     print(f"Positioning Statement: {positioning_statement}")
     print()
+    print(f"PHASE COMPLETE: analysis ({time.monotonic() - analysis_started:.1f}s)", flush=True)
 
     OUTPUT_DIR.mkdir(exist_ok=True)
     SCRATCH_DIR.mkdir(exist_ok=True)
 
     temp_root = SCRATCH_DIR / f"christian_resume_{uuid.uuid4().hex}"
+    print(f"TEMPORARY BUILD LOCATION: {temp_root}", flush=True)
     build_warnings: list[str] = []
+    assembly_started = time.monotonic()
     try:
         temp_root.mkdir(parents=True, exist_ok=False)
         def assemble_variant(variant_index: int) -> ResumeAssemblyResult:
@@ -7273,6 +7278,7 @@ def build_resume(keyword_policy: str | None = None) -> BuildResult:
                     f"Same-company variable-section overlap remained {overlap_score:.2f} against {warning_target} after alternate emphasis passes."
                 )
 
+        print(f"PHASE COMPLETE: assembly ({time.monotonic() - assembly_started:.1f}s)", flush=True)
         final_snapshot = assembled.final_snapshot
         role_title = extract_job_title(job_description) or ""
         if assembled.audit_status == "POOR":
@@ -7281,7 +7287,10 @@ def build_resume(keyword_policy: str | None = None) -> BuildResult:
             output_docx = OUTPUT_DIR / f"Christian Estrada - {output_target_name} BRIDGE Resume.docx"
         elif assembled.audit_status == "FAIL":
             output_docx = OUTPUT_DIR / f"Christian Estrada - {output_target_name} FAIL Resume.docx"
+        page_fit_started = time.monotonic()
         pack_docx_with_page_fit(assembled.work_dir, output_docx, assembled.document_xml, temp_root)
+        print(f"PHASE COMPLETE: page fitting ({time.monotonic() - page_fit_started:.1f}s)", flush=True)
+        final_audit_started = time.monotonic()
         packaged_audit_dir = temp_root / "packaged_audit"
         packaged_audit_dir.mkdir(parents=True, exist_ok=True)
         with zipfile.ZipFile(output_docx) as archive:
@@ -7320,6 +7329,7 @@ def build_resume(keyword_policy: str | None = None) -> BuildResult:
             print(f"BUILD WARNING: {warning}")
         if ats_report["blockers"]:
             fail("ATS plain-text validation failed:\n  " + "\n  ".join(str(item) for item in ats_report["blockers"]))
+        print(f"PHASE COMPLETE: final audits ({time.monotonic() - final_audit_started:.1f}s)", flush=True)
     finally:
         shutil.rmtree(temp_root, ignore_errors=True)
 
@@ -7327,7 +7337,8 @@ def build_resume(keyword_policy: str | None = None) -> BuildResult:
 
     started = time.monotonic()
     render_checks.render_docx(output_docx)
-    print(f"Final render check elapsed: {time.monotonic() - started:.1f}s")
+    print(f"PHASE COMPLETE: final rendering ({time.monotonic() - started:.1f}s)", flush=True)
+    print(f"BUILD COMPLETE: total elapsed {time.monotonic() - build_started:.1f}s", flush=True)
 
     return BuildResult(
         selected_resume,

@@ -15,6 +15,7 @@ from pathlib import Path
 from xml.etree import ElementTree as ET
 
 from utils import debug_print, fail
+from workflow_step_runner import ProcessTreeTimeout, run_process_tree_safe
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
@@ -256,7 +257,8 @@ def pack_docx_with_page_fit(work_dir: Path, output_docx: Path, document_xml: Pat
         print(
             "Fit render: "
             f"body={body_size} section={section_size} separator={separator_size} "
-            f"pages={page_label} elapsed={elapsed:.1f}s remaining_profiles={len(remaining_profiles)}"
+            f"pages={page_label} elapsed={elapsed:.1f}s remaining_profiles={len(remaining_profiles)}",
+            flush=True,
         )
         if page_count is None:
             shutil.copy2(candidate_docx, output_docx)
@@ -1019,19 +1021,37 @@ def rendered_page_count(
         return None
     output_dir = temp_root / f"render_{uuid.uuid4().hex}"
     output_dir.mkdir(parents=True, exist_ok=True)
-    result = subprocess.run(
-        [
+    command = [
             render_python_executable(),
             str(render_script),
             str(docx_path),
             "--output_dir",
             str(output_dir),
-        ],
-        cwd=str(PROJECT_ROOT),
-        capture_output=True,
-        text=True,
-        timeout=120,
-    )
+        ]
+    result: subprocess.CompletedProcess[str] | None = None
+    for attempt in (1, 2):
+        try:
+            result = run_process_tree_safe(
+                command,
+                cwd=PROJECT_ROOT,
+                timeout_seconds=195,
+                phase="page-fit DOCX render",
+            )
+            break
+        except ProcessTreeTimeout as exc:
+            print(f"Render failure detail: {exc}", flush=True)
+            if attempt == 1:
+                print("Retrying the affected page-fit renderer once.", flush=True)
+    if result is None:
+        if document_xml is not None:
+            estimated = estimate_page_count_from_xml(
+                document_xml,
+                body_size_hp=body_size_hp,
+                separator_size_hp=separator_size_hp,
+            )
+            print(f"Page count: estimated {estimated} pages (renderer timed out twice, using XML fallback estimate)")
+            return estimated
+        return None
     if result.returncode != 0:
         detail = (result.stderr or result.stdout or "").strip()
         if detail:

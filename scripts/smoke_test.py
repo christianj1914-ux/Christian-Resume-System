@@ -16103,6 +16103,111 @@ def test_shared_workflow_timeout_quarantines_partial_output() -> None:
         )
 
 
+def test_renderer_phase_timeouts_terminate_process_trees() -> None:
+    import render_docx_windows
+    import resume_format
+    import workflow_step_runner
+
+    terminated: list[int] = []
+
+    class TimedOutRenderer:
+        pid = 45678
+        returncode = 124
+
+        def __init__(self) -> None:
+            self.calls = 0
+
+        def communicate(self, timeout: int | None = None) -> tuple[str, str]:
+            self.calls += 1
+            if self.calls == 1:
+                raise subprocess.TimeoutExpired("renderer", timeout)
+            return "partial render output", ""
+
+    original_popen = workflow_step_runner.subprocess.Popen
+    original_terminate = workflow_step_runner.terminate_process_tree
+    try:
+        workflow_step_runner.subprocess.Popen = lambda *_args, **_kwargs: TimedOutRenderer()
+        workflow_step_runner.terminate_process_tree = lambda process: terminated.append(process.pid)
+        try:
+            workflow_step_runner.run_process_tree_safe(
+                ["renderer"],
+                timeout_seconds=render_docx_windows.LIBREOFFICE_TIMEOUT_SECONDS,
+                phase="LibreOffice conversion",
+            )
+            raise SmokeFailure("Renderer phase timeout should raise ProcessTreeTimeout")
+        except workflow_step_runner.ProcessTreeTimeout as exc:
+            assert_true(
+                exc.timeout_seconds == 120 and exc.phase == "LibreOffice conversion",
+                f"LibreOffice timeout details drifted: {exc}",
+            )
+    finally:
+        workflow_step_runner.subprocess.Popen = original_popen
+        workflow_step_runner.terminate_process_tree = original_terminate
+
+    assert_true(terminated == [45678], f"Renderer timeout must terminate the complete process tree: {terminated}")
+    assert_true(
+        render_docx_windows.RASTERIZATION_TIMEOUT_SECONDS == 60,
+        "PDF rasterization ceiling must remain 60 seconds.",
+    )
+    with TemporaryDirectory(prefix="render_profile_") as temp_name:
+        environment = render_docx_windows.build_lo_env(Path(temp_name))
+    assert_true(
+        environment.get("HOME") == os.environ.get("HOME")
+        and environment.get("RESUME_LO_PROFILE_ROOT") == temp_name,
+        "LibreOffice isolation must use its explicit profile URI without repurposing HOME.",
+    )
+
+    attempts: list[int] = []
+    original_page_runner = resume_format.run_process_tree_safe
+    try:
+        def retrying_runner(*_args: object, **_kwargs: object) -> subprocess.CompletedProcess[str]:
+            attempts.append(1)
+            if len(attempts) == 1:
+                raise workflow_step_runner.ProcessTreeTimeout("page-fit DOCX render", 195)
+            return subprocess.CompletedProcess(["renderer"], 0, "", "")
+
+        resume_format.run_process_tree_safe = retrying_runner
+        with TemporaryDirectory(prefix="page_fit_retry_") as temp_name:
+            root = Path(temp_name)
+            docx = root / "resume.docx"
+            docx.write_bytes(b"fixture")
+            original_find = resume_format.find_render_docx_script
+            original_python = resume_format.render_python_executable
+            try:
+                resume_format.find_render_docx_script = lambda: Path("renderer.py")
+                resume_format.render_python_executable = lambda: sys.executable
+                resume_format.rendered_page_count(docx, root)
+            finally:
+                resume_format.find_render_docx_script = original_find
+                resume_format.render_python_executable = original_python
+    finally:
+        resume_format.run_process_tree_safe = original_page_runner
+    assert_true(attempts == [1, 1], f"Page-fit renderer should receive exactly one bounded retry: {attempts}")
+
+
+def test_commercial_timeout_log_and_launcher_exact_exit_codes() -> None:
+    import run_resume_workflow
+
+    output = (
+        "TEMPORARY BUILD LOCATION: C:/temp/resume-build\n"
+        "PHASE COMPLETE: analysis (3.1s)\n"
+        "PHASE COMPLETE: assembly (20.0s)\n"
+    )
+    last_phase, temporary = run_resume_workflow.interrupted_build_metadata(output, "")
+    assert_true(last_phase == "assembly (20.0s)", f"Last completed phase parsing drifted: {last_phase}")
+    assert_true(temporary == "C:/temp/resume-build", f"Interrupted temporary path parsing drifted: {temporary}")
+
+    launcher = (PROJECT_ROOT / "run_resume.bat").read_text(encoding="utf-8")
+    assert_true(
+        'set "TASK_EXIT=%ERRORLEVEL%"' in launcher
+        and 'if "%TASK_EXIT%"=="124" goto :timed_out' in launcher
+        and 'if "%TASK_EXIT%"=="2" goto :review_required' in launcher
+        and "if errorlevel 2 goto :draft_cover_letter" not in launcher
+        and "The workflow failed because a required step exceeded its time limit." in launcher,
+        "Commercial launcher must distinguish exact timeout and review-required exit codes.",
+    )
+
+
 def test_shared_workflow_nonzero_quarantines_partial_output() -> None:
     import workflow_step_runner
 
@@ -17923,13 +18028,17 @@ def test_bootstrap_writes_live_canonical_launchers() -> None:
             and 'choice /c RFDQ' in resume_text
             and "Questions only (rebuild qualifications statement from current JD + questions)" in resume_text
             and "if errorlevel 4 goto :run_questions" in resume_text
-            and "call :run_task qualifications || goto :failed" in resume_text
+            and "call :run_task qualifications" in resume_text
             and 'call :run_task resume --resume-only' in resume_text
             and 'call :run_task resume' in resume_text
             and 'call :run_task dry-run' in resume_text
-            and 'Resume created, but the cover letter was saved as DRAFT.' in resume_text
+            and 'set "TASK_EXIT=%ERRORLEVEL%"' in resume_text
+            and 'if "%TASK_EXIT%"=="124" goto :timed_out' in resume_text
+            and 'if "%TASK_EXIT%"=="2" goto :review_required' in resume_text
+            and 'The workflow completed with an artifact that requires review.' in resume_text
+            and 'The workflow failed because a required step exceeded its time limit.' in resume_text
             and 'if not exist ".\\output" mkdir ".\\output"' in resume_text,
-            "run_resume.bat should offer resume-only, full, dry-run, and qualifications-only modes while treating a DRAFT cover letter as a handled outcome",
+            "run_resume.bat should offer all modes while distinguishing exact timeout and review-required outcomes",
         )
         assert_true(
             "call :run_task federal-resume" in federal_text
@@ -18597,6 +18706,8 @@ def main(argv: list[str] | None = None) -> None:
             ("federal workflow supporting flags", test_federal_workflow_supporting_flag_resolution),
             ("federal workflow supporting step order", test_federal_workflow_runs_supporting_steps_after_resume),
             ("shared workflow timeout quarantines partial output", test_shared_workflow_timeout_quarantines_partial_output),
+            ("renderer phase timeouts terminate process trees", test_renderer_phase_timeouts_terminate_process_trees),
+            ("commercial timeout log and exact launcher exits", test_commercial_timeout_log_and_launcher_exact_exit_codes),
             ("shared workflow nonzero quarantines partial output", test_shared_workflow_nonzero_quarantines_partial_output),
             ("federal workflow timeout stops supporting steps", test_federal_workflow_timeout_stops_supporting_steps),
             ("resume workflow dry-run skips upfront validation", test_run_resume_workflow_dry_run_skips_upfront_job_validation),
