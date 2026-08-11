@@ -492,6 +492,27 @@ def test_smoke_selector_preserves_failing_federal_check() -> None:
     else:
         raise SmokeFailure("Focused federal selector allowed an injected failing check to pass")
 
+def test_bootstrap_failure_reports_original_error() -> None:
+    original_import_major_scripts = import_major_scripts
+    output = io.StringIO()
+    try:
+        def injected_import_failure() -> dict[str, object]:
+            raise SmokeFailure("injected major-script bootstrap failure")
+
+        globals()["import_major_scripts"] = injected_import_failure
+        with contextlib.redirect_stdout(output), contextlib.redirect_stderr(io.StringIO()):
+            try:
+                main([])
+            except SystemExit as error:
+                assert_true(error.code == 1, f"Bootstrap failure should exit 1; got {error.code}")
+            else:
+                raise SmokeFailure("Bootstrap failure should stop the smoke suite")
+    finally:
+        globals()["import_major_scripts"] = original_import_major_scripts
+    report = output.getvalue()
+    assert_true("injected major-script bootstrap failure" in report, f"Bootstrap summary hid the original failure: {report!r}")
+    assert_true("registration incomplete" in report, f"Bootstrap summary should label incomplete registration: {report!r}")
+    assert_true("UnboundLocalError" not in report, f"Bootstrap summary must not mask the error: {report!r}")
 
 def word_count(text: str) -> int:
     return len(re.findall(r"\b[\w+.#'-]+\b", text))
@@ -17728,6 +17749,7 @@ def main(argv: list[str] | None = None) -> None:
     args = parse_args(argv)
     passed = 0
     executed_checks = 0
+    full_total = 0
     failures: list[str] = []
 
     print("[1/bootstrap] import config files...", flush=True)
@@ -17801,6 +17823,7 @@ def main(argv: list[str] | None = None) -> None:
             ("orphan detector flags synthetic unreferenced test", test_orphan_detector_flags_synthetic_unreferenced_test),
             ("smoke selector uses nonempty deduplicated tag union", test_smoke_selector_uses_nonempty_deduplicated_tag_union),
             ("smoke selector preserves failing federal check", test_smoke_selector_preserves_failing_federal_check),
+            ("bootstrap failure reports original error", test_bootstrap_failure_reports_original_error),
             ("validate dummy inputs", lambda: test_validate_inputs(build_resume)),
             ("LinkedIn boilerplate cleanup", lambda: test_validate_inputs_strips_linkedin_boilerplate(build_resume)),
             ("role requirement text resumes after about-us sections", lambda: test_role_requirement_text_resumes_after_about_us_sections(build_resume)),
@@ -18337,7 +18360,8 @@ def main(argv: list[str] | None = None) -> None:
 
     total = executed_checks + 2
     if failures:
-        print(f"Smoke test FAILED: {passed}/{total} checks passed ({full_total} total registered).")
+        registered_label = f"{full_total} total registered" if full_total else "registration incomplete"
+        print(f"Smoke test FAILED: {passed}/{total} checks passed ({registered_label}).")
         for failure in failures:
             print(f"- {failure}")
         raise SystemExit(1)
