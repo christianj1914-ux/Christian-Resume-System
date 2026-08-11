@@ -14388,6 +14388,63 @@ def test_contains_search_term_handles_simple_plural_forms(build_resume: object) 
     )
 
 
+def test_commercial_analysis_context_bounds_repeated_work(build_resume: object) -> None:
+    import requirement_engine
+    import resume_analysis
+
+    job_description = """Company: RingCentral
+Job Title: Technical Success Manager
+Responsibilities:
+- Own technical adoption, configuration, integration, reporting, and renewal readiness.
+- Lead executive business reviews, root cause analysis, incident management, and CRM hygiene.
+- Coordinate API, SSO, omnichannel, workforce management, analytics, and automation delivery.
+Qualifications:
+- Experience with contact center platforms, stakeholder management, and measurable business outcomes.
+- Ability to translate AI capabilities into documented customer success plans.
+"""
+    original_parser = requirement_engine.parse_commercial_requirements
+    original_indexer = resume_analysis._requirement_term_index
+    counts = {"parse": 0, "index": 0}
+
+    def counted_parser(text: str) -> tuple[object, ...]:
+        counts["parse"] += 1
+        return tuple(original_parser(text))
+
+    def counted_indexer(requirements: tuple[object, ...]) -> object:
+        counts["index"] += 1
+        return original_indexer(requirements)
+
+    cached_functions = (
+        resume_analysis.commercial_analysis_context,
+        resume_analysis.classify_keyword_candidate,
+        resume_analysis._audit_keywords_cached,
+        resume_analysis._high_value_audit_keywords_cached,
+        resume_analysis._ats_scan_terms_cached,
+    )
+    try:
+        for function in cached_functions:
+            function.cache_clear()
+        requirement_engine.parse_commercial_requirements = counted_parser
+        resume_analysis._requirement_term_index = counted_indexer
+
+        first = build_resume.ats_scan_terms(job_description, limit=200)
+        classification_count = resume_analysis.classify_keyword_candidate.cache_info().misses
+        second = build_resume.ats_scan_terms(job_description, limit=200)
+        build_resume.high_value_audit_keywords(job_description)
+        build_resume.classify_keyword_candidate("anything", "explicit empty fixture", ())
+
+        assert_true(counts == {"parse": 1, "index": 1}, f"Commercial analysis must parse and index once; got {counts}")
+        assert_true(classification_count <= 2000, f"Commercial analysis classification ceiling exceeded: {classification_count}")
+        assert_true(first == second and first is not second, "ATS cache must reuse immutable work while returning caller-owned lists")
+        first.append("caller mutation")
+        assert_true("caller mutation" not in build_resume.ats_scan_terms(job_description, limit=200), "ATS caller mutation leaked into cached results")
+    finally:
+        requirement_engine.parse_commercial_requirements = original_parser
+        resume_analysis._requirement_term_index = original_indexer
+        for function in cached_functions:
+            function.cache_clear()
+
+
 def test_business_context_module(business_context: object) -> None:
     text = (
         "Company: BioTouch\n"
@@ -18840,6 +18897,7 @@ def main(argv: list[str] | None = None) -> None:
             ("cover prose strips header before quality evaluation", lambda: test_cover_letter_prose_check_text_strips_header_before_quality_eval(build_cover_letter, writing_eval)),
             ("story natural reference avoids meta language", lambda: test_story_natural_reference_avoids_meta_announcement_language(build_interview_cheat_sheet)),
             ("contains search term plural handling", lambda: test_contains_search_term_handles_simple_plural_forms(build_resume)),
+            ("commercial analysis context bounds repeated work", lambda: test_commercial_analysis_context_bounds_repeated_work(build_resume)),
             ("workflow parse args accepts resume only", test_run_resume_workflow_parse_args_accepts_resume_only),
             ("title phrase candidates avoid comma crossing", lambda: test_title_phrase_candidates_do_not_cross_comma_title_segments(build_resume)),
             ("Clorox title and specialties", lambda: test_clorox_style_job_title_and_specialties(build_resume)),

@@ -5,10 +5,12 @@ from __future__ import annotations
 
 import re
 import importlib.util
+from collections.abc import Mapping
 from dataclasses import dataclass
 from enum import Enum
 from functools import lru_cache
 from pathlib import Path
+from types import MappingProxyType
 
 import business_context
 from config.job_profiles import (
@@ -49,14 +51,7 @@ ZERO_WIDTH_CHAR_RE = re.compile(r"[\u200b\u200c\u200d\ufeff]")
 
 
 @lru_cache(maxsize=8192)
-def _search_term_regexes(term: str) -> tuple[re.Pattern, ...]:
-    """Compile the search regexes for a term once and cache by term.
-
-    Independent of the searched text, so callers reuse the compiled patterns
-    across the many contains_search_term() calls in signal_hits /
-    job_problem_profile instead of recompiling per call. Matching behavior is
-    identical to the previous inline implementation.
-    """
+def _search_term_variants(term: str) -> tuple[str, ...]:
     parts = ZERO_WIDTH_CHAR_RE.sub(" ", term.lower()).strip().split()
     if not parts:
         return ()
@@ -80,6 +75,13 @@ def _search_term_regexes(term: str) -> tuple[re.Pattern, ...]:
         elif not last.endswith("s"):
             variants.append(" ".join(parts[:-1] + [last + "s"]))
 
+    return tuple(dict.fromkeys(variants))
+
+
+@lru_cache(maxsize=8192)
+def _search_term_regexes(term: str) -> tuple[re.Pattern, ...]:
+    """Compile the search regexes for a term once and cache by term."""
+
     def variant_pattern(variant: str) -> str:
         tokens = variant.split()
         if len(tokens) <= 1:
@@ -89,7 +91,7 @@ def _search_term_regexes(term: str) -> tuple[re.Pattern, ...]:
 
     return tuple(
         re.compile(rf"(?<![a-z0-9]){variant_pattern(variant)}(?![a-z0-9])")
-        for variant in dict.fromkeys(variants)
+        for variant in _search_term_variants(term)
     )
 
 
@@ -165,7 +167,7 @@ def evidence_terms() -> tuple[dict[str, object], ...]:
 
 
 @lru_cache(maxsize=1)
-def _evidence_variant_index() -> dict[str, int]:
+def _evidence_variant_index() -> Mapping[str, int]:
     index: dict[str, int] = {}
     for position, entry in enumerate(evidence_terms()):
         forms = (
@@ -177,7 +179,7 @@ def _evidence_variant_index() -> dict[str, int]:
             normalized = canonical_audit_keyword(normalize_compare(form))
             if normalized:
                 index.setdefault(normalized, position)
-    return index
+    return MappingProxyType(index)
 
 
 @lru_cache(maxsize=4096)
@@ -1770,6 +1772,101 @@ def canonical_audit_keyword(keyword: str) -> str:
     return keyword
 
 
+def _normalized_search_keys(term: str) -> tuple[str, ...]:
+    keys: list[str] = []
+    for variant in _search_term_variants(term):
+        normalized = normalize_compare(variant)
+        if normalized:
+            keys.append(normalized)
+            without_connectors = " ".join(
+                token for token in normalized.split() if token not in {"and"}
+            )
+            if without_connectors:
+                keys.append(without_connectors)
+    return tuple(dict.fromkeys(keys))
+
+
+def _requirement_term_index(
+    parsed_requirements: tuple[object, ...],
+) -> tuple[tuple[str, ...], Mapping[str, tuple[int, ...]]]:
+    normalized_texts: list[str] = []
+    surface_indices: dict[str, set[int]] = {}
+    for index, element in enumerate(parsed_requirements):
+        normalized = normalize_compare(str(getattr(element, "text", "")))
+        normalized_texts.append(normalized)
+        token_sets = [normalized.split()]
+        without_connectors = [token for token in normalized.split() if token != "and"]
+        if without_connectors != token_sets[0]:
+            token_sets.append(without_connectors)
+        for tokens in token_sets:
+            for width in range(1, min(12, len(tokens)) + 1):
+                for start in range(len(tokens) - width + 1):
+                    surface = " ".join(tokens[start : start + width])
+                    surface_indices.setdefault(surface, set()).add(index)
+        for canonical in tuple(getattr(element, "canonical_terms", ())):
+            for surface in _normalized_search_keys(str(canonical)):
+                surface_indices.setdefault(surface, set()).add(index)
+    frozen_index = MappingProxyType(
+        {surface: tuple(sorted(indices)) for surface, indices in surface_indices.items()}
+    )
+    return tuple(normalized_texts), frozen_index
+
+
+@dataclass(frozen=True)
+class CommercialAnalysisContext:
+    job_description: str
+    parsed_requirements: tuple[object, ...]
+    scoped_text: str
+    normalized_requirement_texts: tuple[str, ...]
+    requirement_term_index: Mapping[str, tuple[int, ...]]
+
+
+@lru_cache(maxsize=512)
+def commercial_analysis_context(job_description: str) -> CommercialAnalysisContext:
+    try:
+        from requirement_engine import parse_commercial_requirements
+
+        parsed_requirements = tuple(parse_commercial_requirements(job_description))
+    except Exception:
+        parsed_requirements = ()
+    normalized_texts, term_index = _requirement_term_index(parsed_requirements)
+    scoped_text = (
+        "\n".join(str(getattr(element, "text", "")) for element in parsed_requirements)
+        if parsed_requirements
+        else role_requirement_text(job_description)
+    )
+    return CommercialAnalysisContext(
+        job_description=job_description,
+        parsed_requirements=parsed_requirements,
+        scoped_text=scoped_text,
+        normalized_requirement_texts=normalized_texts,
+        requirement_term_index=term_index,
+    )
+
+
+def _matching_requirement_elements(
+    normalized: str,
+    parsed_requirements: tuple[object, ...],
+    *,
+    context: CommercialAnalysisContext | None = None,
+) -> tuple[object, ...]:
+    if not parsed_requirements:
+        return ()
+    if context is None:
+        normalized_texts, term_index = _requirement_term_index(parsed_requirements)
+    else:
+        normalized_texts = context.normalized_requirement_texts
+        term_index = context.requirement_term_index
+    matched_indices: set[int] = set()
+    for key in _normalized_search_keys(normalized):
+        matched_indices.update(term_index.get(key, ()))
+    if not matched_indices and len(normalized.split()) > 12:
+        matched_indices.update(
+            index for index, text in enumerate(normalized_texts) if normalized in text
+        )
+    return tuple(parsed_requirements[index] for index in sorted(matched_indices))
+
+
 @lru_cache(maxsize=32768)
 def classify_keyword_candidate(
     keyword: str,
@@ -1782,25 +1879,15 @@ def classify_keyword_candidate(
     if not normalized:
         return KeywordCandidateClassification("", KeywordCandidateClass.NOISE, False, "empty")
 
+    context: CommercialAnalysisContext | None = None
     if parsed_requirements is None:
-        try:
-            from requirement_engine import parse_commercial_requirements
+        context = commercial_analysis_context(job_description)
+        parsed_requirements = context.parsed_requirements
 
-            parsed_requirements = tuple(parse_commercial_requirements(job_description))
-        except Exception:
-            parsed_requirements = ()
-
-    matching_elements = tuple(
-        element
-        for element in parsed_requirements
-        if normalized in normalize_compare(str(getattr(element, "text", "")))
-        or contains_search_term(str(getattr(element, "text", "")), normalized)
-        or normalized
-        in {
-            normalize_compare(str(term))
-            for term in tuple(getattr(element, "canonical_terms", ()))
-            if normalize_compare(str(term))
-        }
+    matching_elements = _matching_requirement_elements(
+        normalized,
+        parsed_requirements,
+        context=context,
     )
     validated = bool(matching_elements) or (
         not parsed_requirements
@@ -2101,7 +2188,8 @@ def collapse_core_concept_families(
     return collapsed
 
 
-def audit_keywords(job_description: str) -> set[str]:
+@lru_cache(maxsize=512)
+def _audit_keywords_cached(job_description: str) -> frozenset[str]:
     blocked = {
         "company",
         "experience",
@@ -2138,12 +2226,8 @@ def audit_keywords(job_description: str) -> set[str]:
         "adjust training",
     }
     original_job_description = job_description
-    try:
-        from requirement_engine import parse_commercial_requirements
-
-        parsed_requirements = parse_commercial_requirements(job_description)
-    except Exception:
-        parsed_requirements = ()
+    context = commercial_analysis_context(job_description)
+    parsed_requirements = context.parsed_requirements
     if len(parsed_requirements) >= 3:
         job_description = "\n".join(element.text for element in parsed_requirements)
     explicit_company = re.search(r"(?im)^\s*company(?:\s+name)?\s*[:\-]\s*(.+?)\s*$", original_job_description)
@@ -2154,7 +2238,7 @@ def audit_keywords(job_description: str) -> set[str]:
     consulting_mode = is_general_management_consulting_role(original_job_description)
     keywords: set[str] = set()
     for keyword in keyword_set(job_description):
-        classification = classify_keyword_candidate(keyword, original_job_description, tuple(parsed_requirements))
+        classification = classify_keyword_candidate(keyword, original_job_description)
         if (
             classification.candidate_class != KeywordCandidateClass.REQUIREMENT
             or not classification.validated_requirement
@@ -2211,7 +2295,6 @@ def audit_keywords(job_description: str) -> set[str]:
             if classify_keyword_candidate(
                 term,
                 original_job_description,
-                tuple(parsed_requirements),
             ).candidate_class
             == KeywordCandidateClass.REQUIREMENT
         )
@@ -2226,7 +2309,7 @@ def audit_keywords(job_description: str) -> set[str]:
             term
             for term in requirement_vocabulary
             if re.search(rf"\b{re.escape(term)}s?\b", scoped_normalized)
-            and classify_keyword_candidate(term, original_job_description, tuple(parsed_requirements)).candidate_class
+            and classify_keyword_candidate(term, original_job_description).candidate_class
             == KeywordCandidateClass.REQUIREMENT
         )
     for entry in evidence_terms():
@@ -2237,14 +2320,17 @@ def audit_keywords(job_description: str) -> set[str]:
             classification = classify_keyword_candidate(
                 normalized_surface,
                 original_job_description,
-                tuple(parsed_requirements),
             )
             if (
                 classification.candidate_class == KeywordCandidateClass.REQUIREMENT
                 and classification.validated_requirement
             ):
                 keywords.add(re.sub(r"\s+", " ", surface.strip().lower()))
-    return collapse_core_concept_families(keywords, original_job_description)
+    return frozenset(collapse_core_concept_families(keywords, original_job_description))
+
+
+def audit_keywords(job_description: str) -> set[str]:
+    return set(_audit_keywords_cached(job_description))
 
 
 def is_unsupported_do_not_insert(keyword: str, resume_text: str, job_description: str = "") -> bool:
@@ -2289,27 +2375,29 @@ def is_generic_soft_keyword(keyword: str) -> bool:
     return any(term in normalized for term in GENERIC_SOFT_KEYWORDS if " " in term)
 
 
-def high_value_audit_keywords(job_description: str) -> list[str]:
-    return sorted(
+@lru_cache(maxsize=512)
+def _high_value_audit_keywords_cached(job_description: str) -> tuple[str, ...]:
+    return tuple(sorted(
         (
             keyword
-            for keyword in audit_keywords(job_description)
+            for keyword in _audit_keywords_cached(job_description)
             if not is_generic_soft_keyword(keyword) and not is_bullet_placement_excluded(keyword)
         ),
         key=lambda keyword: audit_keyword_sort_key(job_description, keyword),
         reverse=True,
-    )
+    ))
 
 
-def ats_scan_terms(job_description: str, *, limit: int = 25) -> list[str]:
+def high_value_audit_keywords(job_description: str) -> list[str]:
+    return list(_high_value_audit_keywords_cached(job_description))
+
+
+@lru_cache(maxsize=512)
+def _ats_scan_terms_cached(job_description: str, limit: int = 25) -> tuple[str, ...]:
     """Return a broader advisory ATS surface without widening placement gates."""
     original_job_description = job_description
-    try:
-        from requirement_engine import parse_commercial_requirements
-
-        parsed_requirements = parse_commercial_requirements(job_description)
-    except Exception:
-        parsed_requirements = ()
+    context = commercial_analysis_context(job_description)
+    parsed_requirements = context.parsed_requirements
     if parsed_requirements:
         job_description = "\n".join(element.text for element in parsed_requirements)
 
@@ -2319,7 +2407,7 @@ def ats_scan_terms(job_description: str, *, limit: int = 25) -> list[str]:
     company_tokens |= affiliate_company_tokens(original_job_description)
     title_phrases = set(title_phrase_candidates(original_job_description))
 
-    candidates: set[str] = set(high_value_audit_keywords(original_job_description))
+    candidates: set[str] = set(_high_value_audit_keywords_cached(original_job_description))
     candidates.update(title_phrases)
     for line in keyword_source_lines(job_description):
         candidates.update(line_ngram_phrases(line, min_words=2, max_words=2))
@@ -2390,7 +2478,6 @@ def ats_scan_terms(job_description: str, *, limit: int = 25) -> list[str]:
         classification = classify_keyword_candidate(
             normalized,
             original_job_description,
-            tuple(parsed_requirements),
         )
         if (
             classification.candidate_class == KeywordCandidateClass.NOISE
@@ -2464,11 +2551,16 @@ def ats_scan_terms(job_description: str, *, limit: int = 25) -> list[str]:
             continue
         ordered.append(term)
         seen.add(normalized)
-    return collapse_breadth_compound_families(
+    return tuple(collapse_breadth_compound_families(
         ordered,
         original_job_description,
-        parsed_requirements=tuple(parsed_requirements),
-    )[:limit]
+    )[:limit])
+
+
+def ats_scan_terms(job_description: str, *, limit: int = 25) -> list[str]:
+    """Return a caller-owned broader advisory ATS surface."""
+
+    return list(_ats_scan_terms_cached(job_description, limit))
 
 
 def ats_coverage(job_description: str, resume_text: str, *, limit: int = 5) -> dict[str, object]:
