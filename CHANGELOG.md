@@ -6,6 +6,10 @@ When feeding a new improvement prompt to Codex, add the entry to this changelog 
 
 ## Improvement Series
 
+### 2026-08-10 - Centralized study guides and added repeatable-systems rehearsal
+
+Moved the maintained study-guide contract to `Study/Guides/`, aligned the rehearsal builder and verifier on shared canonical paths, and added a path-contract guard against stale root-level outputs. Propagated the Builder drill across the 22-story study bank, mock loops, flashcards, and companion materials; recorded the source-bound customer-success commercial boundary and hiring-signal provenance digest. Resume evidence, source resumes, and output claims remain unchanged.
+
 ### 2026-08-09 - Integrated validated remediation into main
 
 Fast-forwarded the validated 77-commit cleanup and reliability branch into `main`, then re-ran the full suite at 493/493 in 2m54s. The active Rippling commercial workflow completed with a two-page Calibri resume, no Carlito leakage, and a clean ATS check; its 91/115 tailoring audit remains intentionally review-only rather than being overridden during integration. Archived the completed integration and document-quality planning records, and recorded the exact Randstad training-evidence boundary: core training programs, onboarding, and release communications are supported; policy training, strategic delivery, and delivery-based wording are not.

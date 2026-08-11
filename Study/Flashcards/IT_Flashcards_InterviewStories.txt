@@ -63,3 +63,9 @@ If you run past 90 seconds, what went wrong?	You added setup. Cut back to claim,
 Do you follow a formal methodology?	Yes, you just do not label it: discovery, scope and requirements, stakeholder alignment, milestone plan with checkpoints, build and validate, cutover and go-live, adoption. Say it plainly and it reads as judgment.	interview_stories
 How many full-mode stories per interview?	Two is the ceiling. Everything else goes short or PREP. Do not reuse a story across rounds in the same loop.	interview_stories
 Your 20-second umbrella pitch	I take ambiguous cross-functional work, program, product, process, or system, and turn it into structured delivery that gets adopted. My best work is where business, operations, and technology meet, and I have owned that from both the vendor and the customer side.	interview_stories
+What makes a story a Builder story?	A reusable mechanism, not a large number, dashboard, or completed project. Use the Builder drill only when the posting signals repeatability, scale, standardization, playbooks, documentation, enablement, workflow, or process design.	interview_stories
+Builder route: automated, auditable process	Story 3. High-volume inventory automation created a controlled, repeatable workflow with an audit trail.	interview_stories
+Builder route: documented channel or enablement design	Story 5. The zero-to-one SMS channel was documented so the workflow could be repeated consistently.	interview_stories
+Builder route: request to release	Story 20. Turn noisy requests into a repeatable intake, acceptance, UAT, validation, and release mechanism.	interview_stories
+CS Builder route	Use Story 5 for documented channel design. Do not turn it into a quota or NRR claim.	interview_stories
+What is the CS commercial boundary?	I did not carry a quota or own NRR/GRR attainment or closed expansion dollars; I owned at-risk recovery, QBRs and executive reviews, and expansion discovery.	interview_stories

@@ -24,6 +24,10 @@ These three exist so the generator can pick the better-fitting framing per posti
 
 `25` belongs in code, comments, diagnostics, and tests. It must not appear in rehearsal materials.
 
+Builder is a runtime story type and a cross-lane drill, not Story 23. It applies only when a posting signals repeatability, scale, standardization, playbooks, documentation, enablement, workflow, or process design. The three supported routes are Story 3 (automated, auditable process), Story 5 (documented zero-to-one channel), and Story 20 (repeatable request-to-release mechanism). A large number, dashboard, or completed project is not Builder proof by itself.
+
+For CS and explicit post-sale commercial/pre-sales prompts, use the commercial boundary: Christian did not carry a quota or own NRR/GRR attainment or closed expansion dollars; his supported ownership is at-risk recovery, QBRs and executive reviews, and expansion discovery.
+
 ---
 
 ## 2. Why this work exists: two silent-failure defects
@@ -186,20 +190,22 @@ Independent of generator behavior by design. This is the insurance: even if the 
 | Artifact | State |
 | --- | --- |
 | `interview_prep/...Project Delivery Interview Stories.md` | 22 stories, four modes each, lane lead-in guide |
-| `Study/Daily_Interview_Rehearsal_Workbook.docx` | 55 pages, generated from the bank |
-| `Study/Interview_Story_Card.docx` | Two-sided desk card with lane selector |
+| `Study/Guides/Daily_Interview_Rehearsal_Workbook.docx` | Canonical generated workbook from the bank |
+| `Study/Guides/Interview_Story_Card.docx` | Canonical desk card with lane selector |
 | `Study/Interview_Story_Bank_Improvement_Plan.md` | Corrected diagnosis, measured Procare audit |
 | `Study/Interview_Gap_Stories_Drafts.md` | Superseded header, mapped to Stories 6 to 10 |
 | `Study/Interview_Story_Tightening.md` | Coaching preserved, numbering reconciled |
-| `Study/Daily_Companion.md` | Deck list, rotation drill, lane instruction |
-| `Study/Personal_Operating_Workbook.docx` | Deck list, interview deck line |
-| `Study/IT_Flashcards_InterviewStories.txt` | 62 cards |
-| `Study/IT_Flashcards_ALL.txt` | 865 by exact concatenation |
+| `Study/Notes/Daily_Companion.md` | Deck list, rotation drill, lane instruction |
+| `Study/Guides/Personal_Operating_Workbook.docx` | Canonical personal workbook |
+| `Study/Flashcards/IT_Flashcards_InterviewStories.txt` | Editable interview-story deck source |
+| `Study/Flashcards/IT_Flashcards_ALL.txt` | Canonical combined flashcard text |
 | `Study/IT_Flashcards.apkg` | 17 decks, original deck and model IDs preserved |
 
 ### Workbook structure
 
 Seven-item Daily Core (spine, differentiator, umbrella pitch, method sentence, layoff line, philosophy-first project method, compress rule and five tells). Eleven-day rotation, two stories daily, each day pairing one hard-evidence story with one human story. Per-story pages carrying covered-page recall, competencies tested, anchor facts, all four modes ordered PREP to CART, follow-up probes, a rep-scoring table, and ruled notes. Lane mock loops. Competency coverage map against the eleven-item `COMPETENCY_TAXONOMY`. Rep log.
+
+`Study/Guides/` is authoritative for maintained Word artifacts. Builders and verifiers must import the same canonical path constants, and a path-contract smoke test rejects root-level duplicates or code references that no longer resolve after a Study-folder reorganization.
 
 **Lane mock loops: five lanes, four documented lead-ins.** The builder carries five loops (Implementation and Delivery, Customer Success and Account Management, Analytics and Operations, Solutions Consulting and Pre-Sales, Change Enablement and Process Improvement). The story bank documents exact first lines for only four lanes, and Analytics and Operations is not one of them. Do not invent a first line for it; label it as having no documented lead-in and point to the nearest documented lane.
 

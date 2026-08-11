@@ -11964,6 +11964,42 @@ def test_linkedin_about_structure_and_prose_handling(build_resume: object, build
     for metric in ("80+", "five sites and 150+ users", "200+", "60+", "$1M+"):
         assert_true(about.count(metric) == 1, f"LinkedIn About must retain {metric} exactly once; got {about.count(metric)}.")
 
+def test_study_builder_drill_and_canonical_path_contract() -> None:
+    from config.paths import (
+        DAILY_INTERVIEW_REHEARSAL_WORKBOOK,
+        INTERVIEW_STORY_CARD,
+        PERSONAL_OPERATING_WORKBOOK,
+        PROJECT_ROOT,
+        STUDY_FLASHCARDS_DIR,
+    )
+    import build_daily_interview_rehearsal_workbook as workbook
+    import verify_rehearsal_workbook as verifier
+
+    root_duplicate = PROJECT_ROOT / "Study" / "Daily_Interview_Rehearsal_Workbook.docx"
+    assert_true(workbook.OUTPUT == DAILY_INTERVIEW_REHEARSAL_WORKBOOK == verifier.DOCX, "Workbook builder and verifier must share the canonical Study/Guides path.")
+    assert_true(DAILY_INTERVIEW_REHEARSAL_WORKBOOK.exists(), "Canonical rehearsal workbook must exist before verification.")
+    verifier.assert_canonical_path_contract()
+    assert_true(not root_duplicate.exists(), "A root-level duplicate rehearsal workbook must not be created.")
+    referenced_study_files = (
+        DAILY_INTERVIEW_REHEARSAL_WORKBOOK,
+        INTERVIEW_STORY_CARD,
+        PERSONAL_OPERATING_WORKBOOK,
+        STUDY_FLASHCARDS_DIR / "IT_Flashcards_InterviewStories.txt",
+        STUDY_FLASHCARDS_DIR / "IT_Flashcards_ALL.txt",
+        PROJECT_ROOT / "Study" / "Notes" / "Daily_Companion.md",
+        PROJECT_ROOT / "Study" / "Notes" / "CS_Hiring_Signal_2026.md",
+        PROJECT_ROOT / "Study" / "Interview_Story_System" / "MASTER_PLAN_interview_story_system.md",
+        PROJECT_ROOT / "interview_prep" / "Christian Estrada - Project Delivery Interview Stories.md",
+    )
+    assert_true(all(path.exists() for path in referenced_study_files), f"All code-referenced Study artifacts must resolve: {referenced_study_files}")
+    bank = (PROJECT_ROOT / "interview_prep" / "Christian Estrada - Project Delivery Interview Stories.md").read_text(encoding="utf-8")
+    companion = (PROJECT_ROOT / "Study" / "Notes" / "Daily_Companion.md").read_text(encoding="utf-8")
+    digest = (PROJECT_ROOT / "Study" / "Notes" / "CS_Hiring_Signal_2026.md").read_text(encoding="utf-8")
+    flashcards = (STUDY_FLASHCARDS_DIR / "IT_Flashcards_InterviewStories.txt").read_text(encoding="utf-8")
+    for text in (bank, companion, flashcards):
+        assert_true("Builder" in text or "builder" in text, "Every revised study source must contain Builder guidance.")
+    assert_true("never become evidence" in digest.lower() and "compensation counterweight" in digest.lower(), "Hiring-signal digest needs provenance and compensation counterweight.")
+
 def test_cover_lane_keeps_procore_in_implementation(build_resume: object, build_cover_letter: object) -> None:
     profile = build_resume.job_problem_profile(PROCORE_JOB_DESCRIPTION)
     lane_key = build_cover_letter.effective_lane_key(
@@ -18259,6 +18295,7 @@ def main(argv: list[str] | None = None) -> None:
             ("cover close uses direct ask", lambda: test_cover_close_uses_direct_ask(build_cover_letter)),
             ("LinkedIn guidance helpers", lambda: test_linkedin_guidance_helpers(build_resume, build_linkedin_update)),
             ("LinkedIn About structure and prose handling", lambda: test_linkedin_about_structure_and_prose_handling(build_resume, build_linkedin_update)),
+            ("study Builder drill and canonical path contract", test_study_builder_drill_and_canonical_path_contract),
             ("cover letter signals ollie analytics", lambda: test_cover_letter_signals_ollie_analytics(build_cover_letter)),
             ("cover lane keeps procore in implementation", lambda: test_cover_lane_keeps_procore_in_implementation(build_resume, build_cover_letter)),
             ("cover lane keeps explicit implementation roles out of support", lambda: test_cover_lane_keeps_explicit_implementation_roles_out_of_support(build_resume, build_cover_letter)),

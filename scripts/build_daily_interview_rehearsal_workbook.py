@@ -25,11 +25,11 @@ from docx.oxml.ns import qn
 from docx.shared import Inches, Pt, RGBColor
 
 import interview_intelligence
+from config.paths import DAILY_INTERVIEW_REHEARSAL_WORKBOOK, PROJECT_ROOT
 
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
 STORY_BANK = PROJECT_ROOT / "interview_prep" / "Christian Estrada - Project Delivery Interview Stories.md"
-OUTPUT = PROJECT_ROOT / "Study" / "Daily_Interview_Rehearsal_Workbook.docx"
+OUTPUT = DAILY_INTERVIEW_REHEARSAL_WORKBOOK
 
 BLUE = "1F4E79"
 MID_BLUE = "2F75B5"
@@ -318,9 +318,9 @@ FIVE_TELLS: tuple[tuple[str, str], ...] = (
 
 LANE_LOOP_SEQUENCES: dict[str, tuple[str, ...]] = {
     "Implementation and Delivery": ("Story 11", "Story 7", "Story 9", "Story 16", "Story 20", "Story 22"),
-    "Customer Success and Account Management": ("Story 4", "Story 8", "Story 18", "Story 14", "Story 19", "Story 12"),
+    "Customer Success and Account Management": ("Story 4", "Story 8", "Story 18", "Story 14", "Story 19", "Story 5"),
     "Analytics and Operations": ("Story 3", "Story 13", "Story 19", "Story 21", "Story 20", "Story 1"),
-    "Solutions Consulting and Pre-Sales": ("Story 12", "Story 17", "Story 15", "Story 14", "Story 13", "Story 22"),
+    "Solutions Consulting and Pre-Sales": ("Story 12", "Story 17", "Story 15", "Story 14", "Story 13", "Story 20"),
     "Change Enablement and Process Improvement": ("Story 6", "Story 3", "Story 10", "Story 21", "Story 5", "Story 9"),
 }
 
@@ -863,6 +863,23 @@ def add_lane_loops(document: Document, bank_lead_ins: dict[str, str]) -> None:
         add_labeled_paragraph(document, "Close:", LANE_CLOSES[lane])
 
 
+def add_builder_drill(document: Document) -> None:
+    """Cross-lane practice for reusable systems; it never creates a 23rd story."""
+    add_section_band(document, "Builder / Repeatable Systems Drill", bookmark="builder_drill")
+    add_labeled_paragraph(document, "Use when:", "The posting asks for repeatability, scale, standardization, playbooks, documentation, enablement, workflow, or process design.")
+    add_labeled_paragraph(document, "Do not claim:", "A large number, dashboard, or completed project is not Builder proof by itself. Lead with the reusable mechanism.")
+    routes = (
+        ("Implementation and delivery", "Story 20: repeatable intake, acceptance, validation, and release discipline."),
+        ("Customer Success", "Story 5: a documented zero-to-one channel that can be repeated; use the commercial boundary separately when asked."),
+        ("Analytics and operations", "Story 3: an automated, auditable process with controlled repeatability."),
+        ("Solutions consulting and pre-sales", "Story 20: translate requests into a repeatable request-to-release mechanism."),
+        ("Change enablement and process improvement", "Story 5 for documented enablement/channel design or Story 3 for an auditable process."),
+    )
+    for lane, route in routes:
+        add_labeled_paragraph(document, f"{lane}:", route)
+    add_labeled_paragraph(document, "CS commercial boundary:", "I did not carry a quota or own NRR/GRR attainment or closed expansion dollars; I owned at-risk recovery, QBRs and executive reviews, and expansion discovery.")
+
+
 def add_competency_coverage_map(document: Document, stories: list[dict[str, object]]) -> None:
     add_section_band(document, "Competency Coverage Map", bookmark="competency_map")
     by_competency: dict[str, list[int]] = {name: [] for name in interview_intelligence.COMPETENCY_TAXONOMY}
@@ -948,6 +965,7 @@ def build() -> Path:
     for story in stories:
         add_story_page(document, story)
     add_lane_loops(document, bank_lead_ins)
+    add_builder_drill(document)
     add_competency_coverage_map(document, stories)
     add_rep_log(document)
     document.add_page_break()

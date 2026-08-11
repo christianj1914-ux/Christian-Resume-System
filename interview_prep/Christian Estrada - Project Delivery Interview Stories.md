@@ -91,7 +91,7 @@ Lead with the method, then one story as evidence:
 
 ## Story 3: High-volume inventory automation (78/22)
 
-Anchor facts: at East West, high-volume inventory adjustments were manual and error-prone; you built an automated, auditable workflow and did the same for Approved Manufacturer List maintenance; cut manual work by 78 percent and inventory discrepancies by 22 percent, and added an audit trail.
+Anchor facts: at East West, high-volume inventory adjustments were manual and error-prone; you built an automated, auditable workflow and did the same for Approved Manufacturer List maintenance; cut manual work by 78 percent and inventory discrepancies by 22 percent, and added an audit trail. Builder use: the proof is the controlled, repeatable mechanism, not the size of the result alone.
 
 ### Full mode (Hook, Noticing, Action, Result, Bridge, Calibration)
 
@@ -143,7 +143,7 @@ I protected over 1 million dollars in at-risk revenue in a 6 million dollar Apte
 
 ## Story 5: Zero-to-one SMS support channel
 
-Anchor facts: at The Home Depot, as a founding pilot-team member, you helped stand up an internal SMS support channel that did not previously exist; you configured LivePerson LiveEngage chat and text workflows, automated greetings and closings, AI-assisted chatbot logic, and early channel-usage monitoring, and documented the setup so it could be repeated.
+Anchor facts: at The Home Depot, as a founding pilot-team member, you helped stand up an internal SMS support channel that did not previously exist; you configured LivePerson LiveEngage chat and text workflows, automated greetings and closings, AI-assisted chatbot logic, and early channel-usage monitoring, and documented the setup so it could be repeated. Builder use: explain the documented channel design that made the zero-to-one work reusable.
 
 ### Full mode (Hook, Noticing, Action, Result, Bridge, Calibration)
 
@@ -654,7 +654,7 @@ Point: adoption problems are usually visibility problems. Reason: at East West, 
 
 ## Story 20: Turning noisy requests into a backlog that shipped
 
-Anchor facts: you turned business needs into backlog-ready requirements, coordinated UAT, and validated releases across Salesforce customer and marketing workflows, improving post-go-live follow-through and issue ownership. Covers product ownership, requirements discipline, and release coordination.
+Anchor facts: you turned business needs into backlog-ready requirements, coordinated UAT, and validated releases across Salesforce customer and marketing workflows, improving post-go-live follow-through and issue ownership. Covers product ownership, requirements discipline, and release coordination. Builder use: the reusable mechanism is intake, acceptance, validation, and release, not simply a completed Salesforce project.
 
 ### Full mode (Hook, Noticing, Action, Result, Bridge, Calibration)
 
@@ -867,6 +867,16 @@ Lane order below reflects where you actually apply, measured from the tracker: i
 **Behavioral coverage for this lane:** data quality goes to Story 9. Process improvement goes to Story 3. Reporting adoption goes to Story 19. Translating for different audiences goes to Story 14. Stakeholder tradeoffs go to Story 21.
 
 **Avoid:** implying data science, statistical modeling, or machine learning ownership. Your supported ground is SQL, Crystal Reports, Power BI, KPI and operational reporting, and ERP data extraction and validation. If a posting leans on modeling or data engineering pipelines, say plainly what you have done and what you have not rather than stretching Story 13.
+
+## Builder / Repeatable Systems drill
+
+Use this only when a posting signals repeatability, scale, standardization, playbooks, documentation, enablement, workflow, or process design. Builder does not mean a large number, a dashboard, or a completed project. It means explaining the reusable mechanism.
+
+- **Implementation and delivery:** Story 20 — repeatable intake, acceptance, validation, and release discipline.
+- **Customer Success:** Story 5 — a documented zero-to-one channel that can be repeated. For commercial questions add: "I did not carry a quota or own NRR/GRR attainment or closed expansion dollars; I owned at-risk recovery, QBRs and executive reviews, and expansion discovery."
+- **Analytics and operations:** Story 3 — an automated, auditable process.
+- **Solutions consulting and pre-sales:** Story 20 — turning requests into a repeatable request-to-release mechanism.
+- **Change enablement and process improvement:** Story 3 for an auditable process or Story 5 for documented channel and enablement design.
 
 ## Cross-lane rules
 

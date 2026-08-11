@@ -42,6 +42,15 @@ SCRATCH_JOBS_ARCHIVE = SCRATCH_DIR / "jobs_archive"
 SCRATCH_APPLICATIONS_CSV = SCRATCH_DIR / "applications.csv"
 SCRATCH_RENDER_LOGS = SCRATCH_DIR / "run_logs"
 
+# Study artifacts. Keep generated and maintained guides under Study/Guides so
+# builders, verifiers, and readers share one location after the Study reorganization.
+STUDY_DIR = PROJECT_ROOT / "Study"
+STUDY_GUIDES_DIR = STUDY_DIR / "Guides"
+STUDY_FLASHCARDS_DIR = STUDY_DIR / "Flashcards"
+DAILY_INTERVIEW_REHEARSAL_WORKBOOK = STUDY_GUIDES_DIR / "Daily_Interview_Rehearsal_Workbook.docx"
+INTERVIEW_STORY_CARD = STUDY_GUIDES_DIR / "Interview_Story_Card.docx"
+PERSONAL_OPERATING_WORKBOOK = STUDY_GUIDES_DIR / "Personal_Operating_Workbook.docx"
+
 # Backup and archive
 BACKUPS_DIR = PROJECT_ROOT / "backups"
 RENDER_CHECK_DIR = PROJECT_ROOT / "render_check"

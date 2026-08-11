@@ -9,10 +9,10 @@ import re
 from zipfile import ZipFile
 
 from lxml import etree
+from config.paths import DAILY_INTERVIEW_REHEARSAL_WORKBOOK, PROJECT_ROOT
 
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
-DOCX = PROJECT_ROOT / "Study" / "Daily_Interview_Rehearsal_Workbook.docx"
+DOCX = DAILY_INTERVIEW_REHEARSAL_WORKBOOK
 DEFAULT_RENDER_DIR = PROJECT_ROOT / "render_check" / "Daily_Interview_Rehearsal_Workbook_repaired_20260802"
 STORY_BANK = PROJECT_ROOT / "interview_prep" / "Christian Estrada - Project Delivery Interview Stories.md"
 BASELINE_BYTES = 77851
@@ -44,6 +44,15 @@ QUESTIONS = (
     "Why this role, and what would you do in your first 90 days?",
     "What questions do you have for me?",
 )
+
+
+def assert_canonical_path_contract() -> None:
+    """Fail loudly if the Study reorganization ever splits builder and verifier paths."""
+    root_duplicate = PROJECT_ROOT / "Study" / "Daily_Interview_Rehearsal_Workbook.docx"
+    if not DOCX.exists():
+        raise FileNotFoundError(f"Canonical rehearsal workbook is missing: {DOCX}")
+    if root_duplicate.exists():
+        raise RuntimeError(f"Root-level duplicate rehearsal workbook is forbidden: {root_duplicate}")
 
 
 @dataclass
@@ -152,6 +161,8 @@ def main() -> int:
     parser.add_argument("--docx", type=Path, default=DOCX)
     parser.add_argument("--render-dir", type=Path, default=DEFAULT_RENDER_DIR)
     args = parser.parse_args()
+    if args.docx == DOCX:
+        assert_canonical_path_contract()
 
     document = read_docx(args.docx)
     blocks = document.blocks
@@ -182,7 +193,6 @@ def main() -> int:
     alternates = [name for name in ("East West ERP ownership", "Aptean lifecycle delivery", "Failure lesson and stronger validation") if name in text]
     story_q = sum(block.count("Q. ") for section in part2.values() for block in section)
     story_a = sum(block.count("A. ") for section in part2.values() for block in section)
-    lane_variant_lines = sum(1 for block in blocks if any(block.startswith(f"{lane}:") for lane in LANE_BANK_HEADINGS))
     page_count = render_page_count(args.render_dir)
     size = args.docx.stat().st_size
     mtime = args.docx.stat().st_mtime
