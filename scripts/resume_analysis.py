@@ -163,19 +163,36 @@ def evidence_terms() -> tuple[dict[str, object], ...]:
     return tuple(terms)
 
 
-def evidence_term_for_variant(term: str) -> dict[str, object] | None:
-    normalized = canonical_audit_keyword(normalize_compare(term))
-    if not normalized:
-        return None
-    for entry in evidence_terms():
+@lru_cache(maxsize=1)
+def _evidence_variant_index() -> dict[str, int]:
+    index: dict[str, int] = {}
+    for position, entry in enumerate(evidence_terms()):
         forms = (
             str(entry.get("concept", "")),
             str(entry.get("competency_label", "")),
             *tuple(str(value) for value in entry.get("permitted_surfaces", ())),
         )
-        if normalized in {canonical_audit_keyword(normalize_compare(form)) for form in forms}:
-            return entry
-    return None
+        for form in forms:
+            normalized = canonical_audit_keyword(normalize_compare(form))
+            if normalized:
+                index.setdefault(normalized, position)
+    return index
+
+
+@lru_cache(maxsize=4096)
+def _evidence_entry_for_variant(term: str) -> dict[str, object] | None:
+    normalized = canonical_audit_keyword(normalize_compare(term))
+    if not normalized:
+        return None
+    position = _evidence_variant_index().get(normalized)
+    return evidence_terms()[position] if position is not None else None
+
+
+def evidence_term_for_variant(term: str) -> dict[str, object] | None:
+    """Return a caller-owned evidence entry while reusing the immutable lookup index."""
+
+    entry = _evidence_entry_for_variant(term)
+    return dict(entry) if entry is not None else None
 
 
 def evidence_entry_context_supported(entry: dict[str, object], job_description: str) -> bool:
@@ -202,7 +219,7 @@ def evidence_entry_context_supported(entry: dict[str, object], job_description: 
 
 
 def evidence_preferred_surface(concept_term: str, job_description: str) -> str:
-    entry = evidence_term_for_variant(concept_term)
+    entry = _evidence_entry_for_variant(concept_term)
     if not entry or not evidence_entry_context_supported(entry, job_description):
         return concept_term
     def literal_occurs(surface: str) -> bool:
@@ -292,7 +309,7 @@ def evidence_supported_surfaces(job_description: str) -> tuple[str, ...]:
 
 
 def evidence_anchor_for_term(term: str) -> str:
-    entry = evidence_term_for_variant(term)
+    entry = _evidence_entry_for_variant(term)
     return str(entry.get("anchor", "")) if entry else ""
 
 
@@ -1870,7 +1887,7 @@ def classify_keyword_candidate(
         )
     if normalized in title_phrases:
         return classified(KeywordCandidateClass.REQUIREMENT, True, "role-title requirement phrase")
-    catalog_entry = evidence_term_for_variant(normalized)
+    catalog_entry = _evidence_entry_for_variant(normalized)
     catalog_literal_present = bool(
         catalog_entry
         and any(
@@ -2029,7 +2046,7 @@ def collapse_core_concept_families(
     grouped: dict[str, list[str]] = {}
     concept_names: dict[str, str] = {}
     for keyword in keywords:
-        entry = evidence_term_for_variant(keyword)
+        entry = _evidence_entry_for_variant(keyword)
         concept_id = str((entry or {}).get("concept_id", "")).strip()
         if not entry or not concept_id:
             ungrouped.add(keyword)
@@ -2386,7 +2403,7 @@ def ats_scan_terms(job_description: str, *, limit: int = 25) -> list[str]:
         if " " in normalized and any(part in company_tokens for part in normalized.split()) and normalized not in title_phrases:
             return False
         if classification.reason == "validated evidence-catalog requirement surface":
-            entry = evidence_term_for_variant(normalized)
+            entry = _evidence_entry_for_variant(normalized)
             return bool(
                 entry
                 and any(
@@ -2634,7 +2651,7 @@ def collapse_breadth_compound_families(
     catalog_groups: dict[str, list[str]] = {}
     ungrouped_terms: list[str] = []
     for term in terms:
-        entry = evidence_term_for_variant(term)
+        entry = _evidence_entry_for_variant(term)
         concept_id = str((entry or {}).get("concept_id", "")).strip()
         if concept_id:
             catalog_groups.setdefault(concept_id, []).append(term)
@@ -2642,7 +2659,7 @@ def collapse_breadth_compound_families(
             ungrouped_terms.append(term)
     catalog_representatives: list[str] = []
     for family in catalog_groups.values():
-        entry = evidence_term_for_variant(family[0]) or {}
+        entry = _evidence_entry_for_variant(family[0]) or {}
         preferred = evidence_preferred_surface(str(entry.get("concept", family[0])), job_description)
         representative = next(
             (
