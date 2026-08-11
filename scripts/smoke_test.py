@@ -18239,6 +18239,7 @@ def main(argv: list[str] | None = None) -> None:
     passed = 0
     executed_checks = 0
     full_total = 0
+    registered_total = 0
     failures: list[str] = []
 
     print("[1/bootstrap] import config files...", flush=True)
@@ -18846,7 +18847,8 @@ def main(argv: list[str] | None = None) -> None:
             if enabled
         }
         selected_checks = select_smoke_checks(registered_checks, selected_tags)
-        full_total = len(registered_checks) + 2
+        registered_total = len(registered_checks)
+        full_total = registered_total + 2
         selected_total = len(selected_checks) + 2
         for index, smoke_check in enumerate(selected_checks, start=3):
             label, check = smoke_check.label, smoke_check.check
@@ -18871,14 +18873,14 @@ def main(argv: list[str] | None = None) -> None:
 
     total = executed_checks + 2
     if failures:
-        registered_label = f"{full_total} total registered" if full_total else "registration incomplete"
+        registered_label = f"{registered_total} total registered" if registered_total else "registration incomplete"
         print(f"Smoke test FAILED: {passed}/{total} checks passed ({registered_label}).")
         for failure in failures:
             print(f"- {failure}")
         raise SystemExit(1)
 
     scope = "+".join(sorted(selected_tags)) if selected_tags else "full"
-    print(f"Smoke test PASSED: {passed}/{total} checks passed ({scope}; {full_total} total registered).")
+    print(f"Smoke test PASSED: {passed}/{total} checks passed ({scope}; {registered_total} total registered).")
 
 
 if __name__ == "__main__":
