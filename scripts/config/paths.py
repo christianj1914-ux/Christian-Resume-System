@@ -8,18 +8,27 @@ Usage:
     from config.paths import PROJECT_ROOT, JOB_DESCRIPTION, OUTPUT_DIR
 """
 
+import os
 from pathlib import Path
 
 # Root project directory (parent of scripts directory)
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
+
+def _path_override(environment_name: str, default: Path) -> Path:
+    value = os.environ.get(environment_name, "").strip()
+    if not value:
+        return default
+    candidate = Path(value).expanduser()
+    return candidate if candidate.is_absolute() else (PROJECT_ROOT / candidate).resolve()
+
 # Job management paths
 JOBS_DIR = PROJECT_ROOT / "jobs"
-JOB_DESCRIPTION = JOBS_DIR / "job_description.txt"
+JOB_DESCRIPTION = _path_override("RESUME_JOB_DESCRIPTION_PATH", JOBS_DIR / "job_description.txt")
 FEDERAL_JOB_DESCRIPTION = JOBS_DIR / "federal_job_description.txt"
-APPLICATION_QUESTIONS = JOBS_DIR / "application_questions.txt"
-COMPANY_RESEARCH = JOBS_DIR / "company_research.txt"
-INTERVIEW_NOTES = JOBS_DIR / "interview_notes.txt"
+APPLICATION_QUESTIONS = _path_override("RESUME_APPLICATION_QUESTIONS_PATH", JOBS_DIR / "application_questions.txt")
+COMPANY_RESEARCH = _path_override("RESUME_COMPANY_RESEARCH_PATH", JOBS_DIR / "company_research.txt")
+INTERVIEW_NOTES = _path_override("RESUME_INTERVIEW_NOTES_PATH", JOBS_DIR / "interview_notes.txt")
 DEBRIEF_HISTORY = JOBS_DIR / "debrief_history.txt"
 COMPANY_NOTES_DIR = JOBS_DIR / "company_notes"
 INTERVIEW_DEBRIEFS_DIR = JOBS_DIR / "interview_debriefs"
@@ -32,7 +41,7 @@ FEDERAL_ESSAY_SOURCE = SOURCE_DIR / "Christian_Estrada_Federal_Standard_Essays.j
 GLOBAL_NOTES = SOURCE_DIR / "global_notes.txt"
 
 # Output directory for generated documents
-OUTPUT_DIR = PROJECT_ROOT / "output"
+OUTPUT_DIR = _path_override("RESUME_OUTPUT_DIR", PROJECT_ROOT / "output")
 
 # Working directories
 SCRATCH_DIR = PROJECT_ROOT / "scratch"
@@ -53,7 +62,7 @@ PERSONAL_OPERATING_WORKBOOK = STUDY_GUIDES_DIR / "Personal_Operating_Workbook.do
 
 # Backup and archive
 BACKUPS_DIR = PROJECT_ROOT / "backups"
-RENDER_CHECK_DIR = PROJECT_ROOT / "render_check"
+RENDER_CHECK_DIR = _path_override("RESUME_RENDER_DIR", PROJECT_ROOT / "render_check")
 
 # Python executable (for subprocess calls)
 PYTHON_EXECUTABLE = Path(__file__).resolve().parent.parent.parent / "venv" / "bin" / "python"

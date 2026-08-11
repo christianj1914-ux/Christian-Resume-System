@@ -14569,6 +14569,35 @@ def test_parser_audit_is_read_only(build_resume: object) -> None:
         assert_true(before == after, "Parser audit changed snapshot, metadata, or index hashes")
 
 
+def test_isolated_commercial_path_overrides_and_historical_cases(build_resume: object) -> None:
+    import historical_parser_rebuild
+    from config import paths
+
+    environment_name = "RESUME_SMOKE_PATH_OVERRIDE"
+    original = os.environ.get(environment_name)
+    try:
+        os.environ[environment_name] = "scratch/isolated-output"
+        resolved = paths._path_override(environment_name, PROJECT_ROOT / "output")
+        assert_true(
+            resolved == (PROJECT_ROOT / "scratch" / "isolated-output").resolve(),
+            f"Relative commercial path override did not resolve under the project root: {resolved}",
+        )
+    finally:
+        if original is None:
+            os.environ.pop(environment_name, None)
+        else:
+            os.environ[environment_name] = original
+
+    cases = historical_parser_rebuild.CASES
+    assert_true(len(cases) == 6, f"Historical parser rebuild must retain five affected cases plus one control: {cases}")
+    assert_true(sum(case.control for case in cases) == 1, f"Historical parser rebuild control count drifted: {cases}")
+    assert_true(len({case.key for case in cases}) == len(cases), f"Historical parser rebuild keys must be unique: {cases}")
+    assert_true(
+        all(case.snapshot_id and case.baseline_resume.endswith(" Resume.docx") and case.baseline_notes.endswith(" Resume Notes.txt") for case in cases),
+        f"Historical parser rebuild inputs must remain exact and explicit: {cases}",
+    )
+
+
 def test_business_context_module(business_context: object) -> None:
     text = (
         "Company: BioTouch\n"
@@ -19026,6 +19055,7 @@ def main(argv: list[str] | None = None) -> None:
             ("commercial analysis context bounds repeated work", lambda: test_commercial_analysis_context_bounds_repeated_work(build_resume)),
             ("commercial parser modes and named formats", lambda: test_commercial_parser_modes_and_named_formats(build_resume)),
             ("parser audit is read only", lambda: test_parser_audit_is_read_only(build_resume)),
+            ("isolated commercial paths and historical cases", lambda: test_isolated_commercial_path_overrides_and_historical_cases(build_resume)),
             ("workflow parse args accepts resume only", test_run_resume_workflow_parse_args_accepts_resume_only),
             ("title phrase candidates avoid comma crossing", lambda: test_title_phrase_candidates_do_not_cross_comma_title_segments(build_resume)),
             ("Clorox title and specialties", lambda: test_clorox_style_job_title_and_specialties(build_resume)),

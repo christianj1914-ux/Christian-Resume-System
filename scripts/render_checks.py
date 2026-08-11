@@ -10,10 +10,10 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
+from config.paths import OUTPUT_DIR, PROJECT_ROOT, RENDER_CHECK_DIR
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
-OUTPUT_DIR = PROJECT_ROOT / "output"
-RENDER_ROOT = PROJECT_ROOT / "render_check"
+
+RENDER_ROOT = RENDER_CHECK_DIR
 
 
 def find_render_docx_script() -> Path | None:

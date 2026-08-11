@@ -70,6 +70,11 @@ TASKS: dict[str, Task] = {
         ("scripts/parser_audit.py",),
         False,
     ),
+    "parser-rebuild-audit": Task(
+        "Rebuild and compare the five surviving legacy zero-parse resumes plus the structured Paylocity control in isolation.",
+        ("scripts/historical_parser_rebuild.py",),
+        False,
+    ),
     "fresh-keyword-corpus": Task(
         "Rebuild isolated recent/legacy keyword corpora without touching active jobs or output; supports --corpus, --batch-dir, --workers, and --fixture.",
         ("scripts/fresh_corpus_rebuild.py",),
