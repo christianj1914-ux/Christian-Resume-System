@@ -466,7 +466,7 @@ def candidate_problem_noun_phrase_from_brief(brief: PositioningBrief) -> str:
 
 
 def active_positioning_context(job_description: str) -> tuple[str, str]:
-    company_name = build_resume.extract_output_name(job_description)
+    company_name = build_resume.extract_semantic_organization(job_description)[0]
     role_title = build_resume.extract_job_title(job_description) or ""
     bundle = interview_context.load_company_context(
         JOBS_DIR,
@@ -764,6 +764,8 @@ def extract_selected_proof_sentences(resume_text: str, job_description: str, pro
 
 
 def mission_or_context_sentence(company_name: str, company_research_text: str, job_description: str) -> str:
+    role_title = build_resume.extract_job_title(job_description) or ""
+    normalized_role_title = normalize_spaces(role_title).rstrip(":").casefold()
     for sentence in split_into_sentences(company_research_text):
         lowered = sentence.lower()
         if looks_like_resume_noise_line(sentence):
@@ -774,9 +776,19 @@ def mission_or_context_sentence(company_name: str, company_research_text: str, j
         lowered = sentence.lower()
         if looks_like_resume_noise_line(sentence):
             continue
+        if normalized_role_title and normalize_spaces(sentence).rstrip(":").casefold() == normalized_role_title:
+            continue
+        if sentence.rstrip().endswith(":"):
+            continue
         if re.match(r"^(?:company|job title|role|position(?: title)?)\s*:", sentence, re.I):
             continue
         if re.search(r"\b(?:mission|purpose|focuses|prepare|supports|serves|helps|builds|empowers)\b", lowered):
+            has_company_subject = bool(company_name and company_name.lower() in lowered)
+            has_generic_company_subject = bool(
+                re.match(r"^(?:we|our|the (?:company|organization|agency|department))\b", sentence, re.I)
+            )
+            if not has_company_subject and not has_generic_company_subject:
+                continue
             return ensure_company_named(sentence, company_name)
     return ""
 
@@ -827,7 +839,7 @@ def build_positioning_brief(
     company_research_text: str = "",
 ) -> PositioningBrief:
     profile = build_resume.job_problem_profile(job_description, resume_text)
-    company_name = build_resume.extract_output_name(job_description)
+    company_name = build_resume.extract_semantic_organization(job_description)[0]
     role_title = build_resume.extract_job_title(job_description) or "the role"
     personal_reason = motivation_note_line(notes_text)
     personal_reason_source = "notes" if personal_reason else "lane_default"
@@ -1951,12 +1963,16 @@ def active_application_question_responses(
     question_path: Path = APPLICATION_QUESTIONS,
     *,
     require_prompts: bool = False,
+    excluded_categories: tuple[str, ...] = (),
 ) -> tuple[QualificationsResponse, ...]:
     prompts = (
         require_active_application_prompts(question_path)
         if require_prompts
         else load_active_application_prompts(question_path)
     )
+    if excluded_categories:
+        excluded = set(excluded_categories)
+        prompts = tuple(prompt for prompt in prompts if question_category(prompt) not in excluded)
     if not prompts:
         return ()
     _, snapshot, resume_text = selected_resume_snapshot(job_description)

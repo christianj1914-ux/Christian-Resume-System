@@ -7,13 +7,36 @@ import _bootstrap
 
 _bootstrap.ensure_script_path()
 
+import argparse
+import sys
+
+import build_federal_resume
 import build_interview_cheat_sheet as cheat
 import federal_supporting_docs
 
 
-def main() -> None:
-    context = federal_supporting_docs.resolve_federal_context()
-    output_docx = federal_supporting_docs.supporting_output_path(context.output_target_name, "Interview Cheat Sheet")
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Build Christian Estrada's federal interview cheat sheet.")
+    parser.add_argument("--target-grade", type=build_federal_resume.federal_grade_argument, default="", metavar="GS-XX")
+    return parser.parse_args(argv)
+
+
+def main(argv: list[str] | None = None) -> None:
+    args = parse_args([] if argv is None else argv)
+    context = (
+        federal_supporting_docs.resolve_federal_context(target_grade=args.target_grade)
+        if args.target_grade
+        else federal_supporting_docs.resolve_federal_context()
+    )
+    output_docx = (
+        federal_supporting_docs.supporting_output_path(
+            context.output_target_name,
+            "Interview Cheat Sheet",
+            is_draft=context.is_draft,
+        )
+        if getattr(context, "is_draft", False)
+        else federal_supporting_docs.supporting_output_path(context.output_target_name, "Interview Cheat Sheet")
+    )
     result = cheat.build_interview_cheat_sheet_for_inputs(
         job_description=context.job_description,
         resume_docx=context.resume_docx,
@@ -28,4 +51,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    main(sys.argv[1:])

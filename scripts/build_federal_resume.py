@@ -23,6 +23,8 @@ import render_checks
 import evidence_engine
 import requirement_engine
 import prose_engine
+import resume_analysis
+import workflow_step_runner
 from build_resume import _check_job_description_quality, docx_visible_text_from_path, strip_linkedin_job_board_boilerplate
 from config.paths import (
     FEDERAL_ESSAY_SOURCE,
@@ -204,6 +206,21 @@ class FederalApplicationQuestionSet:
 
 
 @dataclass(frozen=True)
+class FederalQualificationsContent:
+    questions: FederalApplicationQuestionSet
+    standard_essay_answers: tuple[tuple[str, str], ...]
+    active_question_responses: tuple[question_prep.QualificationsResponse, ...]
+    recent_interviewer_scripts: tuple[tuple[str, str], ...]
+    question_context_issues: tuple[str, ...]
+    parse_diagnostics: tuple[requirement_engine.FederalParseDiagnostic, ...]
+    question_one_paragraphs: tuple[str, ...] = ()
+    question_one_labels: tuple[tuple[str, str], ...] = ()
+    question_one_count: int = 0
+    question_two_labels: tuple[tuple[str, str], ...] = ()
+    question_two_count: int = 0
+
+
+@dataclass(frozen=True)
 class FederalEssayPrompt:
     key: str
     question: str
@@ -244,6 +261,7 @@ class FederalResumePlan:
     resume_page_count: int | None
     qualifications_layout: FederalQualificationLayout
     qualifications_page_count: int | None
+    qualifications_content: FederalQualificationsContent
 
 
 @dataclass(frozen=True)
@@ -1060,56 +1078,15 @@ def validate_federal_source(source: FederalSource) -> None:
 
 
 def extract_federal_agency_name(job_description: str) -> str | None:
-    first_lines = [re.sub(r"\s+", " ", line).strip() for line in job_description.splitlines() if line.strip()]
-    patterns = (
-        r"(?im)^\s*agency\s*[:\-]\s*(.+?)\s*$",
-        r"(?im)^\s*hiring\s+agency\s*[:\-]\s*(.+?)\s*$",
-        r"(?im)^\s*department\s*[:\-]\s*(.+?)\s*$",
-        r"(?im)^\s*subagency\s*[:\-]\s*(.+?)\s*$",
-        r"(?im)^\s*(Department of [A-Z][A-Za-z0-9&.,'() -]{2,80})\s*$",
-        r"(?im)^\s*(U\.S\.\s+Department of [A-Z][A-Za-z0-9&.,'() -]{2,80})\s*$",
-    )
-    for pattern in patterns:
-        match = re.search(pattern, job_description)
-        if match:
-            candidate = re.sub(r"\s+", " ", match.group(1)).strip(" -:\t\r\n")
-            return re.sub(r"[\\/:*?\"<>|]", "", candidate)
-    for line in first_lines[:10]:
-        normalized = line.lower().rstrip(":")
-        if normalized in FEDERAL_OUTPUT_SKIP_LINES:
-            continue
-        if normalized.startswith(("position:", "role:", "job title:", "duties", "qualifications", "specialized experience", "our mission")):
-            continue
-        if re.match(r"^(Department of|U\.S\. Department of)\b", line):
-            return re.sub(r"[\\/:*?\"<>|]", "", line)
-        if re.search(r"\b(?:Administration|Agency|Service|Commission|Bureau|Office)\b", line):
-            return re.sub(r"[\\/:*?\"<>|]", "", line)
-    company_name = extract_company_name(job_description)
-    if company_name and company_name.lower() not in FEDERAL_OUTPUT_SKIP_LINES:
-        return company_name
-    return None
+    return resume_analysis.extract_federal_agency_name(job_description)
 
 
 def extract_federal_role_title(job_description: str) -> str | None:
-    role_title = extract_job_title(job_description)
-    if role_title and role_title.lower() not in FEDERAL_OUTPUT_SKIP_LINES:
-        return role_title
-    match = re.search(r"(?im)^\s*position\s*[:\-]\s*(.+?)\s*$", job_description)
-    if match:
-        return re.sub(r"\s+", " ", match.group(1)).strip(" -:\t\r\n")
-    return None
+    return resume_analysis.extract_federal_official_title(job_description)
 
 
 def extract_federal_output_name(job_description: str) -> str:
-    company_name = extract_federal_agency_name(job_description)
-    role_title = extract_federal_role_title(job_description)
-    if company_name and role_title and role_title.lower() not in company_name.lower():
-        return f"{company_name} - {role_title}"
-    if company_name:
-        return company_name
-    if role_title:
-        return role_title
-    fail("could not determine agency name or job title from jobs/federal_job_description.txt; add an Agency: or Role: line at the top")
+    return resume_analysis.extract_target_output_label(job_description, workflow="federal")
 
 
 def source_visible_text(source: FederalSource) -> str:
@@ -1419,7 +1396,12 @@ def infer_clusters(text: str, default_clusters: tuple[str, ...]) -> tuple[str, .
     return tuple(ordered[:4])
 
 
-def parse_requirement_buckets(job_description: str, profile_name: str) -> tuple[FederalRequirementBucket, ...]:
+def parse_requirement_buckets(
+    job_description: str,
+    profile_name: str,
+    *,
+    selected_grade: str = "",
+) -> tuple[FederalRequirementBucket, ...]:
     default_clusters = FEDERAL_DEFAULT_CLUSTERS_BY_LANE.get(profile_name, ("implementation_delivery",))
     sections = requirement_engine.parse_federal_requirement_sections(job_description)
     buckets: list[FederalRequirementBucket] = [
@@ -1432,6 +1414,7 @@ def parse_requirement_buckets(job_description: str, profile_name: str) -> tuple[
             weight_group_id=section.weight_group_id,
         )
         for section in sections
+        if section.kind != "specialized_experience" or not selected_grade or section.grade == selected_grade
     ]
     if not buckets:
         fallback_text = "Relevant federal IT delivery, systems, and stakeholder-facing experience."
@@ -1560,9 +1543,24 @@ def federal_keyword_targets(job_description: str, buckets: tuple[FederalRequirem
     return tuple(targets[:16])
 
 
-def federal_requirement_audit(source: FederalSource, job_description: str) -> FederalAudit:
+def federal_requirement_audit(
+    source: FederalSource,
+    job_description: str,
+    *,
+    target_grade: str = "",
+    target_context: requirement_engine.TargetContext | None = None,
+) -> FederalAudit:
     profile = job_problem_profile(job_description, source_visible_text(source))
-    buckets = parse_requirement_buckets(job_description, profile.primary_lane)
+    target_context = target_context or requirement_engine.build_target_context(
+        job_description,
+        workflow="federal",
+        target_grade=target_grade,
+    )
+    buckets = parse_requirement_buckets(
+        job_description,
+        profile.primary_lane,
+        selected_grade=target_context.target_grade,
+    )
     cluster_weight_map: dict[str, int] = {}
     coverages: list[FederalRequirementCoverage] = []
     initial_warnings: list[str] = []
@@ -1619,7 +1617,6 @@ def federal_requirement_audit(source: FederalSource, job_description: str) -> Fe
         )
     )
     keywords = federal_keyword_targets(job_description, buckets, sorted_cluster_weights)
-    target_context = requirement_engine.build_target_context(job_description, workflow="federal")
     records = evidence_engine.load_evidence_catalog(FEDERAL_RESUME_SOURCE)
     element_matches = evidence_engine.match_requirements(target_context.requirements, records)
     unsupported_by_group: dict[str, list[requirement_engine.RequirementElement]] = {}
@@ -2597,18 +2594,9 @@ def additional_application_question_responses(
     questions: FederalApplicationQuestionSet,
     standard_essay_answers: tuple[tuple[str, str], ...],
 ) -> tuple[question_prep.QualificationsResponse, ...]:
-    responses = question_prep.active_application_question_responses(job_description)
-    # Federal applications are submitted to a government agency, not a private
-    # employer, so the private-sector "why are you interested in this company"
-    # framing does not apply. That category also pulls in cross-application
-    # interview/company-research notes via PositioningBrief, which has no
-    # federal relevance and previously leaked unrelated notes text into
-    # federal output. Drop it here rather than relying on category logic
-    # downstream to know it is being used in a federal context.
-    responses = tuple(
-        response
-        for response in responses
-        if question_prep.question_category(response.prompt) != "company_interest"
+    responses = question_prep.active_application_question_responses(
+        job_description,
+        excluded_categories=("company_interest",),
     )
     seen_prompts = tuple(
         [
@@ -2645,12 +2633,88 @@ def element_qualification_entries(audit: FederalAudit) -> tuple[tuple[str, str],
     return tuple(entries)
 
 
+def prepare_federal_qualifications_content(
+    source: FederalSource,
+    job_description: str,
+    audit: FederalAudit,
+    *,
+    question_context_issues: tuple[str, ...] = (),
+) -> FederalQualificationsContent:
+    profile = job_problem_profile(job_description, source_visible_text(source))
+    questions = federal_application_questions(job_description, profile.primary_lane)
+    standard_essay_answers = build_standard_federal_essay_answers(source, job_description)
+    active_responses = additional_application_question_responses(
+        job_description,
+        questions,
+        standard_essay_answers,
+    )
+    question_one_paragraphs: tuple[str, ...] = ()
+    question_one_labels: tuple[tuple[str, str], ...] = ()
+    question_one_count = 0
+    question_two_labels: tuple[tuple[str, str], ...] = ()
+    question_two_count = 0
+    if questions.has_supplemental_questions:
+        question_one_paragraphs, question_one_labels, question_one_count = build_question_one_answer(
+            questions,
+            job_description,
+        )
+        question_two_labels, question_two_count = build_question_two_answer(questions)
+
+    recent_items = question_prep.recent_interviewer_question_prep_items(
+        job_description,
+        (audit.target_context.agency or audit.target_context.company) if audit.target_context else "",
+        audit.target_context.official_title if audit.target_context else (extract_federal_role_title(job_description) or ""),
+    )
+    recent_scripts = (
+        build_standard_qualifications_statement.build_recent_interviewer_scripts(
+            recent_items,
+            job_description,
+            source_visible_text(source),
+            (audit.target_context.agency or audit.target_context.company) if audit.target_context else "",
+            audit.target_context.official_title if audit.target_context else (extract_federal_role_title(job_description) or ""),
+        )
+        if recent_items
+        else ()
+    )
+
+    # Validate the sendable content once before any layout render. Excluded
+    # categories have already been removed before answer generation.
+    for paragraph in question_one_paragraphs:
+        print_prose_warnings("Federal Question 1", paragraph, "generic")
+    for label, text in (*question_one_labels, *question_two_labels):
+        print_prose_warnings(f"Federal Qualifications - {label}", text, "generic")
+    for _question, answer in standard_essay_answers:
+        print_prose_warnings("Federal Standard Essay Response", answer, "generic")
+    for response in active_responses:
+        if response.warning:
+            print(response.warning)
+        print_prose_warnings(f"Federal Additional Question - {response.prompt}", response.answer, "generic")
+    for prompt, spoken in recent_scripts:
+        print_prose_warnings(f"Federal Recent Interview Question - {prompt}", spoken, "generic")
+
+    return FederalQualificationsContent(
+        questions=questions,
+        standard_essay_answers=standard_essay_answers,
+        active_question_responses=active_responses,
+        recent_interviewer_scripts=recent_scripts,
+        question_context_issues=question_context_issues,
+        parse_diagnostics=(audit.target_context.parse_diagnostics if audit.target_context else ()),
+        question_one_paragraphs=question_one_paragraphs,
+        question_one_labels=question_one_labels,
+        question_one_count=question_one_count,
+        question_two_labels=question_two_labels,
+        question_two_count=question_two_count,
+    )
+
+
 def build_qualifications_document(
     source: FederalSource,
     job_description: str,
     layout: FederalQualificationLayout,
     audit: FederalAudit,
+    content: FederalQualificationsContent | None = None,
 ) -> Document:
+    content = content or prepare_federal_qualifications_content(source, job_description, audit)
     document = Document()
     section = document.sections[0]
     top, bottom, left, right = layout.margins
@@ -2683,7 +2747,11 @@ def build_qualifications_document(
     title_run.font.name = "Calibri"
     title_run.font.size = Pt(10)
 
-    role_target = extract_federal_output_name(job_description)
+    role_target = (
+        audit.target_context.output_label
+        if audit.target_context and audit.target_context.output_label
+        else extract_federal_output_name(job_description)
+    )
     add_body_paragraph(document, f"Target Position: {role_target}", size=layout.font_size, italic=True)
     maybe_add_blank_paragraph(document, size=layout.font_size, enabled=layout.blank_after_sections)
 
@@ -2694,44 +2762,37 @@ def build_qualifications_document(
             add_labeled_paragraph(document, label, response, size=layout.font_size)
         maybe_add_blank_paragraph(document, size=layout.font_size, enabled=layout.blank_after_sections)
 
-    profile = job_problem_profile(job_description, source_visible_text(source))
-    questions = federal_application_questions(job_description, profile.primary_lane)
-    standard_essay_answers = build_standard_federal_essay_answers(source, job_description)
+    questions = content.questions
+    standard_essay_answers = content.standard_essay_answers
     if questions.has_supplemental_questions:
-        question_one_paragraphs, question_one_labels, question_one_count = build_question_one_answer(questions, job_description)
         add_section_heading(document, "Question 1 - Specialized Experience", font_size=SECTION_FONT_SIZE)
         add_body_paragraph(
             document,
-            f"Paste-ready response: {question_one_count:,} / {questions.char_limit:,} characters",
+            f"Paste-ready response: {content.question_one_count:,} / {questions.char_limit:,} characters",
             size=layout.font_size,
             italic=True,
         )
-        for paragraph in question_one_paragraphs:
-            print_prose_warnings("Federal Question 1", paragraph, "generic")
+        for paragraph in content.question_one_paragraphs:
             add_body_paragraph(document, paragraph, size=layout.font_size)
-        for label, text in question_one_labels:
-            print_prose_warnings(f"Federal Question 1 - {label}", text, "generic")
+        for label, text in content.question_one_labels:
             add_labeled_paragraph(document, label, text, size=layout.font_size)
         maybe_add_blank_paragraph(document, size=layout.font_size, enabled=layout.blank_after_sections)
 
-        question_two_labels, question_two_count = build_question_two_answer(questions)
-        if question_two_labels:
+        if content.question_two_labels:
             add_section_heading(document, "Question 2 - Required KSAs", font_size=SECTION_FONT_SIZE)
             add_body_paragraph(
                 document,
-                f"Paste-ready response: {question_two_count:,} / {questions.char_limit:,} characters",
+                f"Paste-ready response: {content.question_two_count:,} / {questions.char_limit:,} characters",
                 size=layout.font_size,
                 italic=True,
             )
-            for label, text in question_two_labels:
-                print_prose_warnings(f"Federal Question 2 - {label}", text, "generic")
+            for label, text in content.question_two_labels:
                 add_labeled_paragraph(document, label, text, size=layout.font_size)
             maybe_add_blank_paragraph(document, size=layout.font_size, enabled=layout.blank_after_sections)
 
     if standard_essay_answers:
         add_section_heading(document, "Standard Federal Essay Responses", font_size=SECTION_FONT_SIZE)
         for question, answer in standard_essay_answers:
-            print_prose_warnings("Federal Standard Essay Response", answer, "generic")
             add_body_paragraph(document, question, size=layout.font_size, bold=True)
             add_body_paragraph(document, answer, size=layout.font_size)
         maybe_add_blank_paragraph(document, size=layout.font_size, enabled=layout.blank_after_sections)
@@ -2746,36 +2807,17 @@ def build_qualifications_document(
             add_body_paragraph(document, paragraph, size=layout.font_size)
             maybe_add_blank_paragraph(document, size=layout.font_size, enabled=layout.blank_after_sections)
 
-    additional_responses = additional_application_question_responses(job_description, questions, standard_essay_answers)
+    additional_responses = content.active_question_responses
     if additional_responses:
         add_section_heading(document, "Additional Application Questions", font_size=SECTION_FONT_SIZE)
         for response in additional_responses:
-            if response.warning:
-                print(response.warning)
-            print_prose_warnings(f"Federal Additional Question - {response.prompt}", response.answer, "generic")
             add_body_paragraph(document, response.prompt, size=layout.font_size, bold=True)
             add_body_paragraph(document, response.answer, size=layout.font_size)
         maybe_add_blank_paragraph(document, size=layout.font_size, enabled=layout.blank_after_sections)
 
-    recent_interviewer_items = question_prep.recent_interviewer_question_prep_items(
-        job_description,
-        extract_company_name(job_description),
-        extract_federal_role_title(job_description),
-    )
-    if recent_interviewer_items:
-        resume_text = source_visible_text(source)
-        company_name = extract_company_name(job_description) or ""
-        role_title = extract_federal_role_title(job_description) or ""
-        recent_interviewer_scripts = build_standard_qualifications_statement.build_recent_interviewer_scripts(
-            recent_interviewer_items,
-            job_description,
-            resume_text,
-            company_name,
-            role_title,
-        )
+    if content.recent_interviewer_scripts:
         add_section_heading(document, "Recent Interview Questions To Be Ready For", font_size=SECTION_FONT_SIZE)
-        for prompt, spoken in recent_interviewer_scripts:
-            print_prose_warnings(f"Federal Recent Interview Question - {prompt}", spoken, "generic")
+        for prompt, spoken in content.recent_interviewer_scripts:
             add_body_paragraph(document, prompt, size=layout.font_size, bold=True)
             add_body_paragraph(document, spoken, size=layout.font_size)
         maybe_add_blank_paragraph(document, size=layout.font_size, enabled=layout.blank_after_sections)
@@ -2918,10 +2960,27 @@ def assert_final_federal_coverage(output_docx: Path, job_description: str, audit
         fail("Federal grade-equivalence framing is missing from the most recent role.")
 
 
-def resume_plan(temp_root: Path, source: FederalSource, job_description: str) -> FederalResumePlan:
+def resume_plan(
+    temp_root: Path,
+    source: FederalSource,
+    job_description: str,
+    *,
+    target_grade: str = "",
+    question_context_issues: tuple[str, ...] = (),
+) -> FederalResumePlan:
     profile = job_problem_profile(job_description, source_visible_text(source))
     keywords = keyword_set(job_description)
-    audit = federal_requirement_audit(source, job_description)
+    target_context = requirement_engine.build_target_context(
+        job_description,
+        workflow="federal",
+        target_grade=target_grade,
+    )
+    audit = federal_requirement_audit(
+        source,
+        job_description,
+        target_grade=target_grade,
+        target_context=target_context,
+    )
     summary = build_gs14_summary(source, job_description, audit)
 
     resume_candidates: list[FederalPlanCandidate] = []
@@ -2960,10 +3019,22 @@ def resume_plan(temp_root: Path, source: FederalSource, job_description: str) ->
     else:
         fail("Federal resume did not resolve to exactly two pages at the 10pt minimum across available layouts.")
 
+    qualifications_content = prepare_federal_qualifications_content(
+        source,
+        job_description,
+        chosen_resume.audit,
+        question_context_issues=question_context_issues,
+    )
     qualification_candidates: list[FederalQualificationPlan] = []
     for layout in FEDERAL_QUALIFICATION_LAYOUTS:
         candidate_docx = temp_root / f"qualifications_{layout.name}.docx"
-        document = build_qualifications_document(source, job_description, layout, chosen_resume.audit)
+        document = build_qualifications_document(
+            source,
+            job_description,
+            layout,
+            chosen_resume.audit,
+            qualifications_content,
+        )
         document.save(str(candidate_docx))
         page_count = page_count_for_docx(candidate_docx, temp_root)
         page_label = federal_page_count_label(page_count)
@@ -3008,6 +3079,7 @@ def resume_plan(temp_root: Path, source: FederalSource, job_description: str) ->
         resume_page_count=chosen_resume.page_count,
         qualifications_layout=chosen_qualification.layout,
         qualifications_page_count=chosen_qualification.page_count,
+        qualifications_content=qualifications_content,
     )
 
 
@@ -3065,27 +3137,98 @@ def requirement_report_lines(audit: FederalAudit) -> tuple[str, ...]:
     return tuple(lines)
 
 
-def build_federal_resume() -> FederalBuildResult:
+def federal_draft_channels(
+    target_context: requirement_engine.TargetContext,
+    question_context_issues: tuple[str, ...] = (),
+) -> tuple[tuple[str, ...], tuple[str, ...], bool]:
+    question_reasons = tuple(question_context_issues)
+    parse_reasons = tuple(
+        diagnostic.message
+        for diagnostic in target_context.parse_diagnostics
+        if diagnostic.requires_draft
+    )
+    return question_reasons, parse_reasons, bool(question_reasons or parse_reasons)
+
+
+def federal_output_paths(output_label: str, *, is_draft: bool) -> tuple[Path, Path]:
+    draft_marker = " DRAFT" if is_draft else ""
+    return (
+        OUTPUT_DIR / f"Christian Estrada - {output_label}{draft_marker} Federal Resume.docx",
+        OUTPUT_DIR / f"Christian Estrada - {output_label}{draft_marker} Federal Qualifications Statement.docx",
+    )
+
+
+def validate_staged_federal_documents(
+    resume_candidate: Path,
+    qualifications_candidate: Path,
+    job_description: str,
+    audit: FederalAudit,
+    temp_root: Path,
+    *,
+    resume_render_label: str,
+    qualifications_render_label: str,
+) -> tuple[int | None, int | None]:
+    ats_report = federal_plain_text_validation(resume_candidate)
+    for warning in ats_report["warnings"]:
+        print(f"FEDERAL ATS WARNING: {warning}")
+    if ats_report["blockers"]:
+        fail("Federal ATS plain-text validation failed:\n  " + "\n  ".join(str(item) for item in ats_report["blockers"]))
+    assert_final_federal_coverage(resume_candidate, job_description, audit)
+    for warning in audit.warnings:
+        print(f"FEDERAL FIT WARNING: {warning}")
+    final_page_count = page_count_for_docx(resume_candidate, temp_root)
+    qualifications_page_count = page_count_for_docx(qualifications_candidate, temp_root)
+    if final_page_count is not None and final_page_count != TARGET_PAGE_COUNT:
+        fail(f"Final federal resume page-count validation failed: expected 2, found {final_page_count}.")
+    if qualifications_page_count is not None and qualifications_page_count > MAX_QUALIFICATIONS_PAGE_COUNT:
+        fail(
+            "Final federal qualifications page-count validation failed: "
+            f"maximum {MAX_QUALIFICATIONS_PAGE_COUNT}, found {qualifications_page_count}."
+        )
+    resume_render = render_checks.render_docx(resume_candidate, label=resume_render_label)
+    qualifications_render = render_checks.render_docx(
+        qualifications_candidate,
+        label=qualifications_render_label,
+    )
+    if render_checks.RENDER_AVAILABLE and (resume_render is None or qualifications_render is None):
+        fail("Federal render validation failed before publication.")
+    return final_page_count, qualifications_page_count
+
+
+def build_federal_resume(*, target_grade: str = "") -> FederalBuildResult:
     source = load_federal_source()
     job_description = validate_inputs()
-    company_name = extract_federal_output_name(job_description)
 
     OUTPUT_DIR.mkdir(exist_ok=True)
     SCRATCH_DIR.mkdir(exist_ok=True)
-    output_docx = OUTPUT_DIR / f"Christian Estrada - {company_name} Federal Resume.docx"
     prompt_state = question_prep.load_application_prompt_state()
-    question_context_issues = question_prep.application_question_context_issues(
-        job_description,
-        prompt_state,
-        workflow="federal",
+    question_context_issues = tuple(
+        question_prep.application_question_context_issues(
+            job_description,
+            prompt_state,
+            workflow="federal",
+        )
     )
-    qualification_suffix = " DRAFT Federal Qualifications Statement.docx" if question_context_issues else " Federal Qualifications Statement.docx"
-    qualifications_docx = OUTPUT_DIR / f"Christian Estrada - {company_name}{qualification_suffix}"
 
     temp_root = SCRATCH_DIR / f"christian_federal_resume_{uuid.uuid4().hex}"
     temp_root.mkdir(parents=True, exist_ok=False)
     try:
-        plan = resume_plan(temp_root, source, job_description)
+        plan = resume_plan(
+            temp_root,
+            source,
+            job_description,
+            target_grade=target_grade,
+            question_context_issues=question_context_issues,
+        )
+        target_context = plan.audit.target_context
+        if target_context is None:
+            fail("Federal target context was not available after planning.")
+        _question_draft_reasons, parse_draft_reasons, is_draft = federal_draft_channels(
+            target_context,
+            question_context_issues,
+        )
+        company_name = target_context.output_label or extract_federal_output_name(job_description)
+        output_docx, qualifications_docx = federal_output_paths(company_name, is_draft=is_draft)
 
         resume_document = build_document(
             source,
@@ -3095,37 +3238,53 @@ def build_federal_resume() -> FederalBuildResult:
             plan.bullet_groups,
             plan.audit,
         )
-        resume_candidate = temp_root / "final_resume.docx"
+        resume_candidate = temp_root / output_docx.name
         resume_document.save(str(resume_candidate))
-        shutil.copy2(resume_candidate, output_docx)
 
         qualifications_document = build_qualifications_document(
             source,
             job_description,
             plan.qualifications_layout,
             plan.audit,
+            plan.qualifications_content,
         )
-        qualifications_candidate = temp_root / "final_qualifications.docx"
+        qualifications_candidate = temp_root / qualifications_docx.name
         qualifications_document.save(str(qualifications_candidate))
-        shutil.copy2(qualifications_candidate, qualifications_docx)
         if question_context_issues:
-            question_prep.mark_docx_as_draft(qualifications_docx, question_context_issues)
+            question_prep.mark_docx_as_draft(qualifications_candidate, question_context_issues)
 
-        ats_report = federal_plain_text_validation(output_docx)
-        for warning in ats_report["warnings"]:
-            print(f"FEDERAL ATS WARNING: {warning}")
-        if ats_report["blockers"]:
-            fail("Federal ATS plain-text validation failed:\n  " + "\n  ".join(str(item) for item in ats_report["blockers"]))
-        assert_final_federal_coverage(output_docx, job_description, plan.audit)
-        for warning in plan.audit.warnings:
-            print(f"FEDERAL FIT WARNING: {warning}")
-        final_page_count = page_count_for_docx(output_docx, temp_root)
-        qualifications_page_count = page_count_for_docx(qualifications_docx, temp_root)
+        final_page_count, qualifications_page_count = validate_staged_federal_documents(
+            resume_candidate,
+            qualifications_candidate,
+            job_description,
+            plan.audit,
+            temp_root,
+            resume_render_label=output_docx.stem,
+            qualifications_render_label=qualifications_docx.stem,
+        )
+
+        print(
+            "FEDERAL PARSE STATUS: "
+            f"duty_grade={target_context.duty_grade or 'unparsed'} "
+            f"selected_grade={target_context.target_grade or 'unparsed'} "
+            f"available_grades={','.join(target_context.available_grades) or 'none'} "
+            f"selected_requirements={len(target_context.requirements)} "
+            f"verified={target_context.verified}"
+        )
+        for diagnostic in target_context.parse_diagnostics:
+            level = "WARNING" if diagnostic.requires_draft else "INFO"
+            print(f"FEDERAL PARSE {level} [{diagnostic.code}]: {diagnostic.message}")
+
+        workflow_step_runner.publish_document_set(
+            (
+                (resume_candidate, output_docx),
+                (qualifications_candidate, qualifications_docx),
+            ),
+            quarantine_root=SCRATCH_DIR / "run_logs" / "quarantine",
+        )
     finally:
         shutil.rmtree(temp_root, ignore_errors=True)
 
-    render_checks.render_docx(output_docx)
-    render_checks.render_docx(qualifications_docx)
     return FederalBuildResult(
         output_docx=output_docx,
         qualifications_docx=qualifications_docx,
@@ -3140,12 +3299,28 @@ def build_federal_resume() -> FederalBuildResult:
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Build Christian Estrada's tailored federal DOCX resume.")
     parser.add_argument("--no-pdf", action="store_true", help="Accepted for clarity; PDFs are never created.")
+    parser.add_argument(
+        "--target-grade",
+        type=federal_grade_argument,
+        default="",
+        metavar="GS-XX",
+        help="Select one parsed federal qualification grade; defaults to the highest listed grade.",
+    )
     return parser.parse_args()
 
 
+def federal_grade_argument(value: str) -> str:
+    if not value:
+        return ""
+    normalized = requirement_engine.normalize_federal_grade(value)
+    if not normalized:
+        raise argparse.ArgumentTypeError("target grade must use GS-XX syntax, for example GS-11")
+    return normalized
+
+
 def main() -> None:
-    parse_args()
-    result = build_federal_resume()
+    args = parse_args()
+    result = build_federal_resume(target_grade=args.target_grade)
     print(f"Company: {result.company_name}")
     print(f"Output DOCX: {result.output_docx}")
     print(f"Qualifications DOCX: {result.qualifications_docx}")

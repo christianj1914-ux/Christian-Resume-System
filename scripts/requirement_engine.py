@@ -54,6 +54,14 @@ class TargetContext:
     equivalence_years: int | None = None
     minimum_competencies: tuple[str, ...] = ()
     assessed_competencies: tuple[str, ...] = ()
+    agency: str = ""
+    subagency: str = ""
+    output_label: str = ""
+    identity_source: str = "company"
+    available_grades: tuple[str, ...] = ()
+    duty_grade: str = ""
+    parse_diagnostics: tuple["FederalParseDiagnostic", ...] = ()
+    verified: bool = True
 
 
 @dataclass(frozen=True)
@@ -64,6 +72,31 @@ class FederalRequirementSection:
     kind: str
     text: str
     weight_group_id: str
+    grade: str = ""
+    equivalent_grade: str = ""
+    equivalence_years: int | None = None
+
+
+@dataclass(frozen=True)
+class FederalParseDiagnostic:
+    code: str
+    message: str
+    requires_draft: bool
+
+
+@dataclass(frozen=True)
+class FederalParseResult:
+    duty_grade: str
+    available_grades: tuple[str, ...]
+    selected_grade: str
+    equivalent_grade: str
+    equivalence_years: int | None
+    sections: tuple[FederalRequirementSection, ...]
+    requirements: tuple[RequirementElement, ...]
+    minimum_competencies: tuple[str, ...]
+    assessed_competencies: tuple[str, ...]
+    diagnostics: tuple[FederalParseDiagnostic, ...]
+    verified: bool
 
 
 @dataclass(frozen=True)
@@ -284,6 +317,93 @@ def _federal_deduped_lines(lines: list[str]) -> tuple[str, ...]:
     return tuple(result)
 
 
+def normalize_federal_grade(value: str) -> str:
+    match = re.fullmatch(r"\s*GS\s*-?\s*(\d{1,2})\s*", value or "", re.I)
+    return f"GS-{int(match.group(1)):02d}" if match else ""
+
+
+def _federal_duty_grade(lines: list[str]) -> str:
+    for line in lines:
+        match = re.match(
+            r"^As\s+an?\s+.+?(?:,\s*(GS\s*-?\s*\d{1,2}))?\s+you\s+will\b",
+            line,
+            re.I,
+        )
+        if match:
+            return normalize_federal_grade(match.group(1) or "")
+    return ""
+
+
+def _qualification_grade_opener(line: str) -> str:
+    patterns = (
+        r"^You qualify for the\s+(GS\s*-?\s*\d{1,2})\s+grade level\b",
+        r"^For the\s+(GS\s*-?\s*\d{1,2})(?:\s+grade level)?\b",
+        r"^Specialized Experience\s*:\s*(GS\s*-?\s*\d{1,2})(?:\s+grade level)?\b",
+    )
+    for pattern in patterns:
+        match = re.match(pattern, line, re.I)
+        if match:
+            return normalize_federal_grade(match.group(1))
+    return ""
+
+
+def _legacy_grade_metadata(job_description: str) -> tuple[str, str, int | None]:
+    target_match = re.search(
+        r"(?:Specialized Experience\s*:\s*|For Grade\s+)(GS\s*-?\s*\d{1,2})(?:\s+grade level)?",
+        job_description,
+        re.I,
+    )
+    equivalent_match = re.search(
+        r"equivalent to (?:the\s+)?(GS\s*-?\s*\d{1,2})\s+grade level",
+        job_description,
+        re.I,
+    )
+    years_match = re.search(r"\b(?:one(?:\s*\(1\))?|1)\s+year of specialized experience", job_description, re.I)
+    return (
+        normalize_federal_grade(target_match.group(1)) if target_match else "",
+        normalize_federal_grade(equivalent_match.group(1)) if equivalent_match else "",
+        1 if years_match else None,
+    )
+
+
+def _experience_lead_metadata(line: str) -> tuple[str, int | None] | None:
+    match = re.match(
+        r"^Experience\s*:\s*(?:One(?:\s*\(1\))?|1)\s+years?\s+of specialized experience "
+        r"at the\s+(GS\s*-?\s*\d{1,2})\s+grade level or equivalent\b",
+        line,
+        re.I,
+    )
+    if not match:
+        return None
+    return normalize_federal_grade(match.group(1)), 1
+
+
+def _qualification_stop(line: str) -> bool:
+    return bool(
+        re.match(
+            r"^(?:You will be assessed\b|Qualifications\b|Education\b|Questionnaire\b|"
+            r"Required Documents\b|How to Apply\b|Application Process\b|Basis of Rating\b|"
+            r"Conditions of Employment\b|Additional Information\b)",
+            line,
+            re.I,
+        )
+    )
+
+
+def _split_federal_duties(lines: list[str]) -> tuple[str, ...]:
+    duties: list[str] = []
+    for line in lines:
+        cleaned_line = normalize_text(LIST_PREFIX_RE.sub("", line))
+        if not cleaned_line or re.fullmatch(r"-?AND-?|OR", cleaned_line, re.I):
+            continue
+        for clause in re.split(r";\s*(?:and\s+)?", cleaned_line):
+            cleaned = normalize_text(clause).rstrip(";,. ")
+            cleaned = re.sub(r"\s+and$", "", cleaned, flags=re.I).strip()
+            if len(cleaned.split()) >= 3:
+                duties.append(cleaned)
+    return _federal_deduped_lines(duties)
+
+
 def parse_federal_requirement_sections(job_description: str) -> tuple[FederalRequirementSection, ...]:
     """Extract only the role-duty and specialized-experience evidence from a posting.
 
@@ -294,13 +414,17 @@ def parse_federal_requirement_sections(job_description: str) -> tuple[FederalReq
     lines = _federal_lines(job_description)
     sections: list[FederalRequirementSection] = []
 
+    duty_grade = _federal_duty_grade(lines)
+
     # The opening "you will" block is the real core-experience requirement, not
     # the announcement title and agency header that precede it.
     for index, line in enumerate(lines):
-        if re.match(r"^As an .+?,\s*you will:\s*$", line, re.I):
+        if re.match(r"^As\s+an?\s+.+?\s+you\s+will\b", line, re.I):
             duty_lines: list[str] = [line]
             for following in lines[index + 1 :]:
-                if re.match(r"^(?:For Grade|Qualifications\b|Specialized Experience\b)", following, re.I):
+                if _qualification_grade_opener(following) or re.match(
+                    r"^(?:For Grade|Qualifications\b|Specialized Experience\b)", following, re.I
+                ):
                     break
                 duty_lines.append(following)
             if duty_lines:
@@ -310,12 +434,53 @@ def parse_federal_requirement_sections(job_description: str) -> tuple[FederalReq
                         kind="core_experience",
                         text=" ".join(duty_lines),
                         weight_group_id="core_experience",
+                        grade=duty_grade,
                     )
                 )
             break
 
+    # Modern announcements group qualification duties beneath a grade opener.
+    # Blank lines are intentionally unavailable after normalization, so block
+    # boundaries are structural headers rather than whitespace counts.
+    index = 0
+    while index < len(lines):
+        grade = _qualification_grade_opener(lines[index])
+        if not grade:
+            index += 1
+            continue
+        block: list[str] = []
+        index += 1
+        while index < len(lines):
+            if _qualification_grade_opener(lines[index]) or _qualification_stop(lines[index]):
+                break
+            block.append(lines[index])
+            index += 1
+        equivalent_grade = ""
+        equivalence_years: int | None = None
+        duty_start = 0
+        for block_index, block_line in enumerate(block):
+            metadata = _experience_lead_metadata(block_line)
+            if metadata:
+                equivalent_grade, equivalence_years = metadata
+                duty_start = block_index + 1
+                break
+        duties = _split_federal_duties(block[duty_start:])
+        for duty in duties:
+            sections.append(
+                FederalRequirementSection(
+                    label=f"{grade} Specialized Experience",
+                    kind="specialized_experience",
+                    text=duty,
+                    weight_group_id=f"specialized_experience_{normalize_key(grade).replace(' ', '_')}",
+                    grade=grade,
+                    equivalent_grade=equivalent_grade,
+                    equivalence_years=equivalence_years,
+                )
+            )
+
     # Announcements can state specialized experience twice.  Treat each stated
     # list as additive while exact-normalized duplicates are removed below.
+    legacy_grade, legacy_equivalent, legacy_years = _legacy_grade_metadata(job_description)
     first_marker = re.compile(r"^Specialized experience is defined as demonstrated experience:?$", re.I)
     second_marker = re.compile(r"^Specialized experience for (?:this )?position includes(?: but is not limited to)?:\s*(.*)$", re.I)
     for index, line in enumerate(lines):
@@ -343,6 +508,9 @@ def parse_federal_requirement_sections(job_description: str) -> tuple[FederalReq
                             "specialized_experience",
                             cleaned,
                             "specialized_experience_2",
+                            legacy_grade,
+                            legacy_equivalent,
+                            legacy_years,
                         )
                     )
 
@@ -363,6 +531,7 @@ def parse_federal_requirement_sections(job_description: str) -> tuple[FederalReq
                         current_kind,
                         " ".join(current_lines),
                         f"compact:{normalize_key(current_label)}",
+                        normalize_federal_grade(current_label) if current_kind == "specialized_experience" else "",
                     )
                 )
             current_label, current_kind, current_lines = "", "", []
@@ -373,7 +542,7 @@ def parse_federal_requirement_sections(job_description: str) -> tuple[FederalReq
             if selective or gs:
                 flush_compact()
                 current_label = "Selective Factor" if selective else gs.group(1).upper()
-                current_kind = "selective_factor" if selective else "gs_level"
+                current_kind = "selective_factor" if selective else "specialized_experience"
                 trailing = (selective.group(1) if selective else gs.group(2)).strip()
                 if trailing:
                     current_lines.append(trailing)
@@ -382,9 +551,19 @@ def parse_federal_requirement_sections(job_description: str) -> tuple[FederalReq
         flush_compact()
 
     deduped: list[FederalRequirementSection] = []
-    seen: set[tuple[str, str]] = set()
+    seen: set[tuple[str, str, str]] = set()
     for section in sections:
-        key = (section.kind, normalize_key(section.text))
+        if section.kind == "specialized_experience" and not section.grade and legacy_grade:
+            section = FederalRequirementSection(
+                section.label,
+                section.kind,
+                section.text,
+                section.weight_group_id,
+                legacy_grade,
+                legacy_equivalent,
+                legacy_years,
+            )
+        key = (section.kind, section.grade, normalize_key(section.text))
         if key and key not in seen:
             seen.add(key)
             deduped.append(section)
@@ -392,29 +571,7 @@ def parse_federal_requirement_sections(job_description: str) -> tuple[FederalReq
 
 
 def parse_federal_requirements(job_description: str) -> tuple[RequirementElement, ...]:
-    grade, _equivalent, _years = parse_grade_clause(job_description)
-    elements: list[RequirementElement] = []
-    for section in parse_federal_requirement_sections(job_description):
-        if section.kind != "specialized_experience":
-            continue
-        text = section.text
-        elements.append(
-            RequirementElement(
-                element_id=_element_id("federal", "specialized_experience", text, grade),
-                workflow="federal",
-                section="specialized_experience",
-                text=text,
-                required=True,
-                preferred=False,
-                grade=grade,
-                atomic_capabilities=atomic_capabilities(text),
-                canonical_terms=canonical_terms(text),
-                category=classify_requirement_category(text),
-                priority=5,
-                requirement_group_id=section.weight_group_id,
-            )
-        )
-    return tuple(elements)
+    return _federal_requirements_from_sections(parse_federal_requirement_sections(job_description))
 
 
 def parse_federal_competencies(job_description: str) -> tuple[tuple[str, ...], tuple[str, ...]]:
@@ -447,19 +604,159 @@ def parse_federal_competencies(job_description: str) -> tuple[tuple[str, ...], t
     return _federal_deduped_lines(minimum), _federal_deduped_lines(assessed)
 
 
+def _federal_requirements_from_sections(
+    sections: tuple[FederalRequirementSection, ...],
+) -> tuple[RequirementElement, ...]:
+    elements: list[RequirementElement] = []
+    for section in sections:
+        if section.kind != "specialized_experience":
+            continue
+        text = section.text
+        elements.append(
+            RequirementElement(
+                element_id=_element_id("federal", "specialized_experience", text, section.grade),
+                workflow="federal",
+                section="specialized_experience",
+                text=text,
+                required=True,
+                preferred=False,
+                grade=section.grade,
+                atomic_capabilities=atomic_capabilities(text),
+                canonical_terms=canonical_terms(text),
+                category=classify_requirement_category(text),
+                priority=5,
+                requirement_group_id=section.weight_group_id,
+            )
+        )
+    return tuple(elements)
+
+
+def select_federal_grade(
+    sections: tuple[FederalRequirementSection, ...],
+    target_grade: str = "",
+) -> tuple[str, tuple[str, ...], tuple[FederalParseDiagnostic, ...]]:
+    available_grades = tuple(
+        dict.fromkeys(section.grade for section in sections if section.kind == "specialized_experience" and section.grade)
+    )
+    diagnostics: list[FederalParseDiagnostic] = []
+    requested = normalize_federal_grade(target_grade)
+    if target_grade and not requested:
+        diagnostics.append(
+            FederalParseDiagnostic(
+                "invalid_target_grade",
+                f"The requested grade {target_grade!r} is not a valid GS grade.",
+                True,
+            )
+        )
+    if len(available_grades) > 1:
+        diagnostics.append(
+            FederalParseDiagnostic(
+                "multiple_qualification_grades",
+                f"Qualification blocks were found for {', '.join(available_grades)}; the highest listed grade is the default.",
+                False,
+            )
+        )
+    if requested:
+        if requested in available_grades:
+            return requested, available_grades, tuple(diagnostics)
+        diagnostics.append(
+            FederalParseDiagnostic(
+                "requested_grade_unavailable",
+                f"Requested grade {requested} was not found among the parsed qualification blocks.",
+                True,
+            )
+        )
+        return requested, available_grades, tuple(diagnostics)
+    if available_grades:
+        selected = max(available_grades, key=lambda grade: int(grade.split("-")[1]))
+        return selected, available_grades, tuple(diagnostics)
+    diagnostics.append(
+        FederalParseDiagnostic(
+            "no_qualification_grade",
+            "No grade-bearing federal qualification block could be parsed.",
+            True,
+        )
+    )
+    return "", available_grades, tuple(diagnostics)
+
+
+def parse_federal_posting(job_description: str, target_grade: str = "") -> FederalParseResult:
+    lines = _federal_lines(job_description)
+    sections = parse_federal_requirement_sections(job_description)
+    requirements = _federal_requirements_from_sections(sections)
+    minimum, assessed = parse_federal_competencies(job_description)
+    selected_grade, available_grades, selection_diagnostics = select_federal_grade(sections, target_grade)
+    diagnostics = list(selection_diagnostics)
+    duty_grade = _federal_duty_grade(lines)
+
+    qualification_openers = tuple(
+        grade for line in lines if (grade := _qualification_grade_opener(line))
+    )
+    parsed_requirement_grades = {requirement.grade for requirement in requirements if requirement.grade}
+    for grade in dict.fromkeys(qualification_openers):
+        if grade not in parsed_requirement_grades:
+            diagnostics.append(
+                FederalParseDiagnostic(
+                    "qualification_block_without_requirements",
+                    f"The {grade} qualification marker did not yield any capability requirements.",
+                    True,
+                )
+            )
+
+    selected_sections = tuple(
+        section
+        for section in sections
+        if section.kind == "specialized_experience" and section.grade == selected_grade
+    )
+    selected_requirements = tuple(requirement for requirement in requirements if requirement.grade == selected_grade)
+    equivalent_grade = next((section.equivalent_grade for section in selected_sections if section.equivalent_grade), "")
+    equivalence_years = next(
+        (section.equivalence_years for section in selected_sections if section.equivalence_years is not None),
+        None,
+    )
+    if selected_grade and not selected_sections:
+        diagnostics.append(
+            FederalParseDiagnostic(
+                "selected_grade_block_missing",
+                f"No parsed qualification block is available for selected grade {selected_grade}.",
+                True,
+            )
+        )
+    if not selected_requirements:
+        diagnostics.append(
+            FederalParseDiagnostic(
+                "zero_selected_requirements",
+                "The selected federal grade has zero parsed capability requirements.",
+                True,
+            )
+        )
+    if duty_grade and selected_grade and duty_grade != selected_grade:
+        diagnostics.append(
+            FederalParseDiagnostic(
+                "duty_qualification_grade_mismatch",
+                f"The duty header names {duty_grade}, while the selected qualification grade is {selected_grade}.",
+                True,
+            )
+        )
+    verified = not any(diagnostic.requires_draft for diagnostic in diagnostics)
+    return FederalParseResult(
+        duty_grade=duty_grade,
+        available_grades=available_grades,
+        selected_grade=selected_grade,
+        equivalent_grade=equivalent_grade,
+        equivalence_years=equivalence_years,
+        sections=sections,
+        requirements=requirements,
+        minimum_competencies=minimum,
+        assessed_competencies=assessed,
+        diagnostics=tuple(diagnostics),
+        verified=verified,
+    )
+
+
 def parse_grade_clause(job_description: str) -> tuple[str, str, int | None]:
-    target_match = re.search(
-        r"Specialized Experience\s*(?::\s*)?(GS-\d+)\s+(?:grade\s+)?level",
-        job_description,
-        re.I,
-    )
-    equivalent_match = re.search(r"equivalent to the\s+(GS-\d+)\s+grade level", job_description, re.I)
-    years_match = re.search(r"\b(one|1)\s+year of specialized experience", job_description, re.I)
-    return (
-        target_match.group(1).upper() if target_match else "",
-        equivalent_match.group(1).upper() if equivalent_match else "",
-        1 if years_match else None,
-    )
+    result = parse_federal_posting(job_description)
+    return result.selected_grade, result.equivalent_grade, result.equivalence_years
 
 
 def _display_title(official_title: str, requirement_text: str) -> str:
@@ -476,23 +773,53 @@ def _display_title(official_title: str, requirement_text: str) -> str:
     return " - ".join(kept)
 
 
-def build_target_context(job_description: str, *, workflow: str = "commercial") -> TargetContext:
+def build_target_context(
+    job_description: str,
+    *,
+    workflow: str = "commercial",
+    target_grade: str = "",
+) -> TargetContext:
     # Lazy imports avoid making the lower-level parser depend on resume builders.
     import resume_analysis
 
-    official_title = resume_analysis.extract_job_title(job_description) or ""
-    company = resume_analysis.extract_company_name(job_description) or ""
+    official_title = (
+        resume_analysis.extract_federal_official_title(job_description)
+        if workflow == "federal"
+        else resume_analysis.extract_job_title(job_description)
+    ) or ""
+    company, identity_source = resume_analysis.extract_semantic_organization(
+        job_description,
+        workflow=workflow,
+    )
     lane = resume_analysis.job_problem_profile(job_description).primary_lane
     if workflow == "federal":
-        requirements = parse_federal_requirements(job_description)
-        minimum, assessed = parse_federal_competencies(job_description)
-        target_grade, equivalent_grade, years = parse_grade_clause(job_description)
+        parsed = parse_federal_posting(job_description, target_grade=target_grade)
+        requirements = tuple(
+            requirement for requirement in parsed.requirements if requirement.grade == parsed.selected_grade
+        )
+        minimum, assessed = parsed.minimum_competencies, parsed.assessed_competencies
+        selected_grade = parsed.selected_grade
+        equivalent_grade, years = parsed.equivalent_grade, parsed.equivalence_years
         sections = (("specialized_experience", "\n".join(item.text for item in requirements)),)
+        agency = resume_analysis.extract_federal_agency_name(job_description) or ""
+        subagency = resume_analysis.extract_federal_subagency_name(job_description) or ""
+        output_label = resume_analysis.extract_target_output_label(
+            job_description,
+            workflow="federal",
+            selected_grade=selected_grade,
+        )
+        available_grades = parsed.available_grades
+        duty_grade = parsed.duty_grade
+        diagnostics = parsed.diagnostics
+        verified = parsed.verified
     else:
         requirements = parse_commercial_requirements(job_description)
         minimum, assessed = (), ()
-        target_grade, equivalent_grade, years = "", "", None
+        selected_grade, equivalent_grade, years = "", "", None
         sections = commercial_requirement_sections(job_description)
+        agency, subagency = "", ""
+        output_label = company or official_title
+        available_grades, duty_grade, diagnostics, verified = (), "", (), True
     requirement_text = "\n".join(body for _heading, body in sections)
     display = _display_title(official_title, requirement_text)
     return TargetContext(
@@ -505,11 +832,19 @@ def build_target_context(job_description: str, *, workflow: str = "commercial") 
         sanitized_job_description=job_description,
         requirement_sections=sections,
         requirements=requirements,
-        target_grade=target_grade,
+        target_grade=selected_grade,
         equivalent_grade=equivalent_grade,
         equivalence_years=years,
         minimum_competencies=minimum,
         assessed_competencies=assessed,
+        agency=agency,
+        subagency=subagency,
+        output_label=output_label,
+        identity_source=identity_source,
+        available_grades=available_grades,
+        duty_grade=duty_grade,
+        parse_diagnostics=diagnostics,
+        verified=verified,
     )
 
 

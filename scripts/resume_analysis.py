@@ -1259,6 +1259,7 @@ def extract_company_name(job_description: str) -> str | None:
         r"(?im)^\s*hiring\s+agency\s*[:\-]\s*(.+?)\s*$",
         r"(?im)^\s*department\s*[:\-]\s*(.+?)\s*$",
         r"(?im)^\s*subagency\s*[:\-]\s*(.+?)\s*$",
+        r"(?im)^\s*((?:U\.S\.\s+)?Department of [A-Z][A-Za-z0-9&.,'() \-]{2,80})\s*$",
         r"(?im)^\s*organization\s*[:\-]\s*(.+?)\s*$",
         r"(?im)^\s*employer\s*[:\-]\s*(.+?)\s*$",
         r"(?im)^\s*about\s+([A-Z][A-Za-z0-9&.,' -]{1,60})\s*$",
@@ -1270,7 +1271,10 @@ def extract_company_name(job_description: str) -> str | None:
         match = re.search(pattern, job_description)
         if match:
             candidate = clean_company_name(match.group(1))
-            federal_label_pattern = any(label in pattern for label in ("agency", "hiring\\s+agency", "department", "subagency"))
+            federal_label_pattern = any(
+                label in pattern
+                for label in ("agency", "hiring\\s+agency", "department", "subagency", "Department of")
+            )
             if federal_label_pattern and is_valid_filename_piece(candidate) and not re.search(r"[.!?]", candidate):
                 return candidate
             if is_valid_company_name(candidate):
@@ -1284,6 +1288,96 @@ def extract_company_name(job_description: str) -> str | None:
                 return candidate
 
     return None
+
+
+def extract_federal_agency_name(job_description: str) -> str | None:
+    patterns = (
+        r"(?im)^\s*agency\s*[:\-]\s*(.+?)\s*$",
+        r"(?im)^\s*hiring\s+agency\s*[:\-]\s*(.+?)\s*$",
+        r"(?im)^\s*department\s*[:\-]\s*(.+?)\s*$",
+        r"(?im)^\s*((?:U\.S\.\s+)?Department of [A-Z][A-Za-z0-9&.,'() \-]{2,80})\s*$",
+    )
+    for pattern in patterns:
+        match = re.search(pattern, job_description)
+        if match:
+            candidate = clean_company_name(match.group(1))
+            if candidate:
+                return candidate
+    return None
+
+
+def extract_federal_subagency_name(job_description: str) -> str | None:
+    explicit = re.search(r"(?im)^\s*subagency\s*[:\-]\s*(.+?)\s*$", job_description)
+    if explicit:
+        return clean_company_name(explicit.group(1)) or None
+    lines = [re.sub(r"\s+", " ", line).strip() for line in job_description.splitlines() if line.strip()]
+    agency = extract_federal_agency_name(job_description)
+    if not agency:
+        return None
+    try:
+        agency_index = next(index for index, line in enumerate(lines) if clean_company_name(line) == agency)
+    except StopIteration:
+        return None
+    candidates: list[str] = []
+    for line in lines[agency_index + 1 :]:
+        if re.match(r"^(?:As\s+an?\b|Duties\b|Qualifications\b|You qualify\b|For the GS-)", line, re.I):
+            break
+        if re.search(r"\b(?:Administration|Agency|Service|Commission|Bureau|Office|Enforcement|Advisor)\b", line):
+            cleaned = clean_company_name(line)
+            if cleaned and cleaned != agency:
+                candidates.append(cleaned)
+    return " / ".join(dict.fromkeys(candidates)) or None
+
+
+def extract_federal_official_title(job_description: str) -> str | None:
+    explicit = re.search(
+        r"(?im)^\s*(?:job\s+title|role\s+title|role|position)\s*[:\-]\s*(.+?)\s*$",
+        job_description,
+    )
+    if explicit:
+        candidate = clean_extracted_job_title(explicit.group(1))
+        if candidate and is_valid_filename_piece(candidate):
+            return candidate
+    return extract_job_title(job_description)
+
+
+def extract_semantic_organization(
+    job_description: str,
+    *,
+    workflow: str = "commercial",
+) -> tuple[str, str]:
+    if workflow == "federal":
+        agency = extract_federal_agency_name(job_description)
+        if agency:
+            return agency, "agency"
+    company = extract_company_name(job_description)
+    if company:
+        return company, "company"
+    role_title = extract_federal_official_title(job_description) if workflow == "federal" else extract_job_title(job_description)
+    if role_title:
+        return role_title, "title_fallback"
+    return "", "title_fallback"
+
+
+def extract_target_output_label(
+    job_description: str,
+    *,
+    workflow: str = "commercial",
+    selected_grade: str = "",
+) -> str:
+    organization, _source = extract_semantic_organization(job_description, workflow=workflow)
+    role_title = (extract_federal_official_title(job_description) if workflow == "federal" else extract_job_title(job_description)) or ""
+    if workflow != "federal":
+        return extract_output_target_name(job_description)
+    pieces = [organization]
+    if role_title and role_title.lower() not in organization.lower():
+        pieces.append(role_title)
+    if selected_grade:
+        pieces.append(selected_grade)
+    label = " - ".join(piece for piece in pieces if piece)
+    if label:
+        return label
+    fail("could not determine agency name or job title from jobs/federal_job_description.txt; add an Agency: or Role: line at the top")
 
 def clean_company_name(value: str) -> str:
     cleaned = re.sub(r"\s+", " ", value).strip(" -:\t\r\n")

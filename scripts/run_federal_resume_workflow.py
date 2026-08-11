@@ -22,6 +22,7 @@ _bootstrap.configure_fresh_pycache(PROJECT_ROOT)
 from config.paths import FEDERAL_ESSAY_SOURCE, FEDERAL_JOB_DESCRIPTION, FEDERAL_RESUME_SOURCE, OUTPUT_DIR, PYTHON_EXECUTABLE, SCRIPTS_DIR
 import workspace_health
 import workflow_step_runner
+import requirement_engine
 
 PYTHON = PYTHON_EXECUTABLE
 LOG_DIR = PROJECT_ROOT / "scratch" / "run_logs"
@@ -58,11 +59,11 @@ def write_log(step_name: str, stdout: str, stderr: str) -> Path:
     return path
 
 
-def run_step(step_name: str, script_name: str) -> StepResult:
+def run_step(step_name: str, script_name: str, child_args: tuple[str, ...] = ()) -> StepResult:
     print(f"\n{step_name}...")
     process_result = workflow_step_runner.run_document_step(
         step_name=step_name,
-        command=[str(PYTHON), str(SCRIPTS_DIR / script_name)],
+        command=[str(PYTHON), str(SCRIPTS_DIR / script_name), *child_args],
         cwd=PROJECT_ROOT,
         output_dir=OUTPUT_DIR,
         log_dir=LOG_DIR,
@@ -124,21 +125,29 @@ def explain_unresolved(result: StepResult) -> None:
         print("Next action: review the log above. The system stopped before creating a partial or unsafe file.")
 
 
-def matching_federal_outputs(company_name: str) -> list[Path]:
+def matching_federal_outputs(company_name: str, *, is_draft: bool = False) -> list[Path]:
     if not OUTPUT_DIR.exists():
         return []
     return sorted(
-        OUTPUT_DIR.glob(f"Christian Estrada - {company_name}*Federal Resume.docx"),
+        (
+            path
+            for path in OUTPUT_DIR.glob(f"Christian Estrada - {company_name}*Federal Resume.docx")
+            if ((" DRAFT" in path.stem.upper()) if is_draft else (" DRAFT" not in path.stem.upper()))
+        ),
         key=lambda item: item.stat().st_mtime,
         reverse=True,
     )
 
 
-def matching_federal_qualifications_outputs(company_name: str) -> list[Path]:
+def matching_federal_qualifications_outputs(company_name: str, *, is_draft: bool = False) -> list[Path]:
     if not OUTPUT_DIR.exists():
         return []
     return sorted(
-        OUTPUT_DIR.glob(f"Christian Estrada - {company_name}*Federal Qualifications Statement.docx"),
+        (
+            path
+            for path in OUTPUT_DIR.glob(f"Christian Estrada - {company_name}*Federal Qualifications Statement.docx")
+            if ((" DRAFT" in path.stem.upper()) if is_draft else (" DRAFT" not in path.stem.upper()))
+        ),
         key=lambda item: item.stat().st_mtime,
         reverse=True,
     )
@@ -182,7 +191,7 @@ def top_keyword_scores(build_federal_resume: object, job_description: str) -> li
     return scored[:10]
 
 
-def run_dry_run() -> int:
+def run_dry_run(target_grade: str = "") -> int:
     failures: list[str] = []
     print("\nFederal dry-run validation: no files will be written.")
 
@@ -239,13 +248,31 @@ def run_dry_run() -> int:
 
     source = build_federal_resume.load_federal_source()
     profile = build_federal_resume.job_problem_profile(validated, build_federal_resume.source_visible_text(source))
-    audit = build_federal_resume.federal_requirement_audit(source, validated)
+    target_context = requirement_engine.build_target_context(
+        validated,
+        workflow="federal",
+        target_grade=target_grade,
+    )
+    audit = build_federal_resume.federal_requirement_audit(
+        source,
+        validated,
+        target_grade=target_grade,
+        target_context=target_context,
+    )
     print("\nDetected federal job profile:")
     print(f"  Lane: {profile.primary_lane} ({profile.lane_label})")
     print(f"  Core problem: {profile.core_problem}")
     print(f"  Direct matches: {', '.join(profile.direct_matches) if profile.direct_matches else 'No direct matches detected'}")
     print(f"  Adjacent matches: {', '.join(profile.adjacent_matches) if profile.adjacent_matches else 'No adjacent matches detected'}")
     print(f"  Unsupported requirements: {', '.join(profile.unsupported_requirements) if profile.unsupported_requirements else 'No unsupported requirements detected'}")
+    print(f"  Duty grade: {target_context.duty_grade or 'unparsed'}")
+    print(f"  Selected grade: {target_context.target_grade or 'unparsed'}")
+    print(f"  Available grades: {', '.join(target_context.available_grades) or 'none'}")
+    print(f"  Selected requirements: {len(target_context.requirements)}")
+    print(f"  Verified: {target_context.verified}")
+    for diagnostic in target_context.parse_diagnostics:
+        level = "WARNING" if diagnostic.requires_draft else "INFO"
+        print(f"  FEDERAL PARSE {level} [{diagnostic.code}]: {diagnostic.message}")
 
     print("\nTop federal keyword signals:")
     for keyword, hits in top_keyword_scores(build_federal_resume, validated):
@@ -258,7 +285,7 @@ def run_dry_run() -> int:
     temp_root = PROJECT_ROOT / "scratch" / f"federal_dry_run_{uuid.uuid4().hex}"
     temp_root.mkdir(parents=True, exist_ok=False)
     try:
-        plan = build_federal_resume.resume_plan(temp_root, source, validated)
+        plan = build_federal_resume.resume_plan(temp_root, source, validated, target_grade=target_grade)
     finally:
         shutil.rmtree(temp_root, ignore_errors=True)
 
@@ -288,8 +315,10 @@ def run_dry_run() -> int:
         for warning in plan.audit.warnings:
             print(f"  {warning}")
 
-    existing = matching_federal_outputs(output_name)
-    existing_quals = matching_federal_qualifications_outputs(output_name)
+    output_name = target_context.output_label
+    expected_draft = not target_context.verified
+    existing = matching_federal_outputs(output_name, is_draft=expected_draft)
+    existing_quals = matching_federal_qualifications_outputs(output_name, is_draft=expected_draft)
     print("\nFederal output readiness:")
     if existing:
         print(f"  Matching federal resume exists: {existing[0].name}")
@@ -319,7 +348,23 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Alias for --with-cover --with-interview --with-guide.",
     )
+    parser.add_argument(
+        "--target-grade",
+        type=federal_grade_argument,
+        default="",
+        metavar="GS-XX",
+        help="Select one parsed federal qualification grade; defaults to the highest listed grade.",
+    )
     return parser.parse_args()
+
+
+def federal_grade_argument(value: str) -> str:
+    if not value:
+        return ""
+    match = re.fullmatch(r"\s*GS\s*-?\s*(\d{1,2})\s*", value, re.I)
+    if not match:
+        raise argparse.ArgumentTypeError("target grade must use GS-XX syntax, for example GS-11")
+    return f"GS-{int(match.group(1)):02d}"
 
 
 def requested_supporting_steps(args: argparse.Namespace) -> tuple[tuple[str, str], ...]:
@@ -345,18 +390,24 @@ def validate_federal_job_description_exists() -> None:
 
 def main() -> None:
     args = parse_args()
+    target_grade = getattr(args, "target_grade", "")
     workspace_health.ensure_workspace_health_or_exit("The federal workflow")
     if args.dry_run:
-        raise SystemExit(run_dry_run())
+        raise SystemExit(run_dry_run(target_grade) if target_grade else run_dry_run())
     validate_federal_job_description_exists()
 
-    result = run_step("Building federal resume", "build_federal_resume.py")
+    grade_args = ("--target-grade", target_grade) if target_grade else ()
+    result = (
+        run_step("Building federal resume", "build_federal_resume.py", grade_args)
+        if grade_args
+        else run_step("Building federal resume", "build_federal_resume.py")
+    )
     if not result.ok:
         explain_unresolved(result)
         raise SystemExit(result.returncode)
 
     for step_name, script_name in requested_supporting_steps(args):
-        step_result = run_step(step_name, script_name)
+        step_result = run_step(step_name, script_name, grade_args) if grade_args else run_step(step_name, script_name)
         if not step_result.ok:
             raise SystemExit(step_result.returncode)
     print("\nDone. Check the output folder and render_check folder.")

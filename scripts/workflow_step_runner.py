@@ -7,6 +7,7 @@ import shutil
 import signal
 import subprocess
 import tempfile
+import uuid
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -61,6 +62,68 @@ def quarantine_timed_out_outputs(
     return quarantine
 
 
+def quarantine_changed_outputs(
+    step_name: str,
+    output_dir: Path,
+    log_dir: Path,
+    backup_root: Path,
+    before: dict[Path, tuple[int, int]],
+) -> Path | None:
+    return quarantine_timed_out_outputs(step_name, output_dir, log_dir, backup_root, before)
+
+
+def publish_document_set(
+    mappings: tuple[tuple[Path, Path], ...],
+    *,
+    quarantine_root: Path,
+) -> None:
+    """Commit a staged DOCX set together, restoring every prior file on error."""
+    if not mappings:
+        return
+    destinations = [destination.resolve() for _staged, destination in mappings]
+    if len(destinations) != len(set(destinations)):
+        raise ValueError("Document-set publication destinations must be unique.")
+    transaction = uuid.uuid4().hex
+    prepared: dict[Path, Path] = {}
+    backups: dict[Path, Path] = {}
+    touched: list[Path] = []
+    try:
+        for staged, destination in mappings:
+            if not staged.is_file():
+                raise FileNotFoundError(f"Staged document does not exist: {staged}")
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            prepared_path = destination.parent / f".{destination.name}.{transaction}.publish"
+            shutil.copy2(staged, prepared_path)
+            prepared[destination] = prepared_path
+
+        for _staged, destination in mappings:
+            backup_path = destination.parent / f".{destination.name}.{transaction}.backup"
+            if destination.exists():
+                os.replace(destination, backup_path)
+                backups[destination] = backup_path
+            touched.append(destination)
+            os.replace(prepared[destination], destination)
+    except Exception:
+        quarantine = quarantine_root / datetime.now().strftime("%Y%m%d_%H%M%S_%f_publish_failure")
+        quarantine.mkdir(parents=True, exist_ok=True)
+        for destination in reversed(touched):
+            if destination.exists():
+                os.replace(destination, quarantine / destination.name)
+            backup_path = backups.get(destination)
+            if backup_path and backup_path.exists():
+                os.replace(backup_path, destination)
+        for destination, backup_path in backups.items():
+            if destination not in touched and backup_path.exists():
+                os.replace(backup_path, destination)
+        raise
+    else:
+        for backup_path in backups.values():
+            backup_path.unlink(missing_ok=True)
+    finally:
+        for prepared_path in prepared.values():
+            prepared_path.unlink(missing_ok=True)
+
+
 def terminate_process_tree(process: subprocess.Popen[str]) -> None:
     """Terminate the process group so renderer grandchildren cannot retain locks."""
     if os.name == "nt":
@@ -107,7 +170,7 @@ def run_document_step(
         terminate_process_tree(process)
         stdout, stderr = process.communicate()
         stderr = (stderr or "").rstrip() + f"\nERROR: workflow step timed out after {timeout_seconds} seconds.\n"
-        quarantine_path = quarantine_timed_out_outputs(
+        quarantine_path = quarantine_changed_outputs(
             step_name,
             output_dir,
             log_dir,
@@ -115,7 +178,16 @@ def run_document_step(
             before_outputs,
         )
     else:
-        shutil.rmtree(backup_root, ignore_errors=True)
+        if process.returncode:
+            quarantine_path = quarantine_changed_outputs(
+                step_name,
+                output_dir,
+                log_dir,
+                backup_root,
+                before_outputs,
+            )
+        else:
+            shutil.rmtree(backup_root, ignore_errors=True)
     return ProcessStepResult(
         returncode=124 if timed_out else (process.returncode if process.returncode is not None else 1),
         stdout=stdout or "",

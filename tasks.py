@@ -49,7 +49,7 @@ class Task:
 
 
 TASKS: dict[str, Task] = {
-    "validate": Task("Run the smoke suite; add --federal and/or --alignment for focused checks with visible progress.", ("scripts/smoke_test.py",), False),
+    "validate": Task("Run the smoke suite; add --quick, --federal, and/or --alignment for focused checks with visible progress.", ("scripts/smoke_test.py",), False),
     "source-lint": Task("Validate source resume bullets before JD-specific tailoring selects them.", ("scripts/source_lint.py",), False),
     "keyword-corpus": Task(
         "Project keyword/policy outcomes for archived fixtures or exact DOCX paths from --rebuild-manifest; add --ownership-only for the lightweight skim audit.",
@@ -85,9 +85,9 @@ TASKS: dict[str, Task] = {
         "Build the tailored commercial workflow. Optional flags include --keyword-policy advisory|balanced|exhaustive.",
         ("scripts/run_resume_workflow.py",),
     ),
-    "federal-dry-run": Task("Validate the federal job description and federal resume workflow without writing files.", ("scripts/run_federal_resume_workflow.py", "--dry-run"), False),
+    "federal-dry-run": Task("Validate the federal workflow without writing files; optionally select --target-grade GS-XX.", ("scripts/run_federal_resume_workflow.py", "--dry-run"), False),
     "federal-resume": Task(
-        "Build the tailored federal resume workflow. Optional flags: --with-cover, --with-interview, --with-guide, --with-supporting-docs.",
+        "Build the tailored federal resume workflow. Optional flags: --target-grade GS-XX, --with-cover, --with-interview, --with-guide, --with-supporting-docs.",
         ("scripts/run_federal_resume_workflow.py",),
         False,
     ),
@@ -403,7 +403,7 @@ def run_morning() -> int:
     if JOB_DESCRIPTION.exists() and JOB_DESCRIPTION.read_text(encoding="utf-8-sig").strip():
         build_resume = load_build_resume()
         job_description = JOB_DESCRIPTION.read_text(encoding="utf-8-sig").strip()
-        company = build_resume.extract_company_name(job_description) or build_resume.extract_output_name(job_description)
+        company = build_resume.extract_semantic_organization(job_description)[0]
         role = build_resume.extract_job_title(job_description) or "Unknown role"
         print(f"  {company} - {role}")
     else:
@@ -665,7 +665,7 @@ def run_cover_check() -> int:
     cover = load_build_cover_letter()
     job_description = JOB_DESCRIPTION.read_text(encoding="utf-8-sig").strip()
     job_description = build_resume.validate_inputs(job_description)
-    company_name = build_resume.extract_output_name(job_description)
+    company_name = build_resume.extract_semantic_organization(job_description)[0]
     role_title = cover.extract_role_title(job_description) or build_resume.extract_job_title(job_description) or "Unknown Role"
 
     resume_matches = matching_resume_outputs(build_resume, job_description)
@@ -866,7 +866,7 @@ def run_ats_check() -> int:
     build_resume = load_build_resume()
     job_description = JOB_DESCRIPTION.read_text(encoding="utf-8-sig").strip()
     job_description = build_resume.validate_inputs(job_description)
-    company_name = build_resume.extract_output_name(job_description)
+    company_name = build_resume.extract_semantic_organization(job_description)[0]
     resume_matches = matching_resume_outputs(build_resume, job_description)
     if not resume_matches:
         print(
