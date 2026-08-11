@@ -5989,6 +5989,7 @@ def write_resume_audit_notes(
     readiness: ResumeReadiness | None = None,
 ) -> Path | None:
     notes = list(dict.fromkeys(note.strip() for note in notes if note.strip()))
+    commercial_parse = requirement_engine.parse_commercial_posting(job_description)
     profile = job_problem_profile(job_description, document_text)
     coverage = ats_coverage(job_description, document_text)
     core = coverage.get("core", coverage)
@@ -6036,6 +6037,9 @@ def write_resume_audit_notes(
         f"Fit status: {status}",
         f"Tailoring status: {readiness.tailoring_status}",
         f"Keyword policy: {readiness.keyword_policy}",
+        f"Commercial parse mode: {commercial_parse.parse_mode}",
+        f"Commercial parse verified: {str(commercial_parse.verified).lower()}",
+        f"Commercial requirements parsed: {len(commercial_parse.requirements)}",
         coverage_line,
         core_coverage_line,
         breadth_coverage_line,
@@ -6043,6 +6047,16 @@ def write_resume_audit_notes(
         "",
         "Audit Notes:",
     ]
+    if not commercial_parse.verified:
+        notes = [
+            *notes,
+            "WARNING: requirement parsing was unverified; keyword analysis used the whole posting and requirement coverage received the explicit neutral 20/40 contribution.",
+        ]
+    elif commercial_parse.parse_mode == "line_fallback":
+        notes = [
+            *notes,
+            "Parser note: structured headings were unavailable; verified deterministic line fallback supplied requirement-scoped analysis.",
+        ]
     if int(coverage.get("percent", 100)) < 65:
         notes = [
             *notes,
@@ -6388,6 +6402,7 @@ def alignment_score_report(job_description: str, resume_text: str) -> dict[str, 
     else:
         outcome_score = 7
 
+    commercial_parse = requirement_engine.parse_commercial_posting(job_description)
     requirement_coverage = requirement_engine.commercial_requirement_coverage(job_description, resume_text)
     required_items = [item for item in requirement_coverage if item.element.required]
     if required_items:
@@ -6426,6 +6441,9 @@ def alignment_score_report(job_description: str, resume_text: str) -> dict[str, 
             "direct": direct_coverage,
             "adjacent": adjacent_coverage,
             "unsupported": sum(1 for item in required_items if item.status == requirement_engine.RequirementStatus.UNSUPPORTED),
+            "parse_mode": commercial_parse.parse_mode,
+            "verified": commercial_parse.verified,
+            "neutral_fallback": not commercial_parse.verified,
         },
         "lane_fit": {
             "score": lane_score,
@@ -6887,6 +6905,18 @@ def build_resume(keyword_policy: str | None = None) -> BuildResult:
     os.environ["RESUME_KEYWORD_POLICY"] = policy
     validate_config_integrity()
     job_description = validate_inputs()
+    commercial_parse = requirement_engine.parse_commercial_posting(job_description)
+    print(
+        f"Commercial requirement parser: {commercial_parse.parse_mode}; "
+        f"{len(commercial_parse.requirements)} requirements; "
+        f"verified={str(commercial_parse.verified).lower()}",
+        flush=True,
+    )
+    if not commercial_parse.verified:
+        print(
+            "WARNING: No trustworthy requirement structure was found. The build will continue with one cached whole-posting analysis and a neutral 20/40 requirement-coverage score.",
+            flush=True,
+        )
     company_name = extract_semantic_organization(job_description)[0]
     overlap_company_name = extract_company_name(job_description) or company_name
     output_target_name = extract_output_target_name(job_description)

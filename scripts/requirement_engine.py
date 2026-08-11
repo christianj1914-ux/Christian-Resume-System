@@ -11,6 +11,7 @@ import hashlib
 import re
 from dataclasses import dataclass
 from enum import Enum
+from functools import lru_cache
 
 
 class RequirementStatus(str, Enum):
@@ -60,7 +61,8 @@ class TargetContext:
     identity_source: str = "company"
     available_grades: tuple[str, ...] = ()
     duty_grade: str = ""
-    parse_diagnostics: tuple["FederalParseDiagnostic", ...] = ()
+    parse_mode: str = ""
+    parse_diagnostics: tuple[object, ...] = ()
     verified: bool = True
 
 
@@ -100,6 +102,21 @@ class FederalParseResult:
 
 
 @dataclass(frozen=True)
+class CommercialParseDiagnostic:
+    code: str
+    message: str
+
+
+@dataclass(frozen=True)
+class CommercialParseResult:
+    sections: tuple[tuple[str, str], ...]
+    requirements: tuple[RequirementElement, ...]
+    parse_mode: str
+    diagnostics: tuple[CommercialParseDiagnostic, ...]
+    verified: bool
+
+
+@dataclass(frozen=True)
 class RequirementCoverage:
     element: RequirementElement
     status: RequirementStatus
@@ -107,7 +124,7 @@ class RequirementCoverage:
     rationale: str
 
 
-COMMERCIAL_SECTION_KINDS = {
+LEGACY_COMMERCIAL_SECTION_KINDS = {
     "what you'll do": "responsibility",
     "what you will do": "responsibility",
     "key objectives": "responsibility",
@@ -129,8 +146,63 @@ COMMERCIAL_SECTION_KINDS = {
     "who you are": "qualification",
 }
 
+COMMERCIAL_SECTION_KINDS = {
+    **LEGACY_COMMERCIAL_SECTION_KINDS,
+    "primary responsibilities": "responsibility",
+    "core responsibilities": "responsibility",
+    "key responsibilities": "responsibility",
+    "job duties": "responsibility",
+    "essential duties": "responsibility",
+    "position responsibilities": "responsibility",
+    "what you will be doing": "responsibility",
+    "what you'll be doing": "responsibility",
+    "your responsibilities": "responsibility",
+    "people leadership and team development": "responsibility",
+    "technical delivery and oversight": "responsibility",
+    "client engagement and stakeholder management": "responsibility",
+    "operational excellence and strategy": "responsibility",
+    "experience and qualifications": "qualification",
+    "education and experience": "qualification",
+    "education and qualifications": "qualification",
+    "desired qualifications": "qualification",
+    "required qualifications": "qualification",
+    "skills and qualifications": "qualification",
+    "knowledge skills and abilities": "qualification",
+    "about you": "qualification",
+    "who are we looking for": "qualification",
+    "skills and abilities": "qualification",
+    "technical skills": "qualification",
+    "what you will likely bring": "qualification",
+    "what you'll likely bring": "qualification",
+    "what could set you apart": "preferred",
+    "nice to have": "preferred",
+}
+
+COMMERCIAL_STOP_HEADINGS = {
+    "about us",
+    "about the company",
+    "about ringcentral",
+    "about aptean",
+    "benefits",
+    "compensation",
+    "equal opportunity",
+    "legal",
+    "physical requirements",
+    "what's in it for you",
+    "what is in it for you",
+}
+
+COMMERCIAL_SUBSECTION_KIND = {
+    "required": "qualification",
+    "minimum": "qualification",
+    "preferred": "preferred",
+    "preferred qualifications": "preferred",
+}
+
 SECTION_HEADING_RE = re.compile(r"^\s*([^\n:]{2,90}?)\s*:?[ \t]*$")
-LIST_PREFIX_RE = re.compile(r"^\s*(?:[-*•]+|\d+[.)]|[A-Za-z][.)])\s*")
+LIST_PREFIX_RE = re.compile(
+    r"^\s*(?:[-*\u2022\u25cf\u25e6\u25aa]+|â€¢+|â—+|\d+[.)]|[A-Za-z][.)])\s*"
+)
 TERM_CANON: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("microsoft sql server", ("microsoft sql server", "ms sql server", "sql server")),
     ("version control", ("version control", "git", "github", "azure devops", "tfs")),
@@ -252,14 +324,32 @@ def _split_requirement_lines(body: str) -> tuple[str, ...]:
     return tuple(dict.fromkeys(candidates))
 
 
-def commercial_requirement_sections(job_description: str) -> tuple[tuple[str, str], ...]:
+def _heading_key(value: str) -> str:
+    cleaned = normalize_text(value).replace("â€™", "'").replace("’", "'")
+    cleaned = re.sub(r"\s*[:\-–—]+\s*$", "", cleaned)
+    cleaned = cleaned.replace("&", " and ")
+    return normalize_key(cleaned)
+
+
+def _looks_like_subsection_heading(value: str) -> bool:
+    stripped = normalize_text(value)
+    if not stripped or LIST_PREFIX_RE.match(stripped) or stripped.endswith((".", "!", "?")):
+        return False
+    words = re.findall(r"[A-Za-z][A-Za-z'/-]*", stripped.rstrip(":"))
+    if not 1 <= len(words) <= 9:
+        return False
+    significant = [word for word in words if word.lower() not in {"and", "or", "of", "the", "for", "to"}]
+    return bool(significant) and sum(word[:1].isupper() for word in significant) >= max(1, len(significant) - 1)
+
+
+def _legacy_commercial_requirement_sections(job_description: str) -> tuple[tuple[str, str], ...]:
     sections: list[tuple[str, list[str]]] = []
     active: tuple[str, list[str]] | None = None
     for raw in job_description.splitlines():
         stripped = raw.strip()
         heading_match = SECTION_HEADING_RE.match(stripped)
         heading = normalize_text(heading_match.group(1)).lower().replace("’", "'") if heading_match else ""
-        if heading in COMMERCIAL_SECTION_KINDS:
+        if heading in LEGACY_COMMERCIAL_SECTION_KINDS:
             active = (heading, [])
             sections.append(active)
             continue
@@ -271,10 +361,51 @@ def commercial_requirement_sections(job_description: str) -> tuple[tuple[str, st
     return tuple((heading, "\n".join(lines)) for heading, lines in sections if lines)
 
 
-def parse_commercial_requirements(job_description: str) -> tuple[RequirementElement, ...]:
+def _structured_commercial_sections(job_description: str) -> tuple[tuple[str, str, str], ...]:
+    sections: list[tuple[str, str, list[str]]] = []
+    active_label = ""
+    active_kind = ""
+    active_lines: list[str] | None = None
+    for raw in job_description.splitlines():
+        stripped = raw.strip()
+        if not stripped:
+            continue
+        key = _heading_key(stripped)
+        if key in COMMERCIAL_SECTION_KINDS:
+            active_label = key
+            active_kind = COMMERCIAL_SECTION_KINDS[key]
+            active_lines = []
+            sections.append((active_label, active_kind, active_lines))
+            continue
+        if key in COMMERCIAL_STOP_HEADINGS:
+            active_label = ""
+            active_kind = ""
+            active_lines = None
+            continue
+        if active_lines is None:
+            continue
+        if key in COMMERCIAL_SUBSECTION_KIND and _looks_like_subsection_heading(stripped):
+            active_kind = COMMERCIAL_SUBSECTION_KIND[key]
+            active_lines = []
+            sections.append((f"{active_label} / {key}", active_kind, active_lines))
+            continue
+        if _looks_like_subsection_heading(stripped):
+            active_lines = []
+            sections.append((f"{active_label} / {key}", active_kind, active_lines))
+            continue
+        active_lines.append(stripped)
+    return tuple(
+        (label, kind, "\n".join(lines))
+        for label, kind, lines in sections
+        if lines
+    )
+
+
+def _elements_from_commercial_sections(
+    sections: tuple[tuple[str, str, str], ...],
+) -> tuple[RequirementElement, ...]:
     elements: list[RequirementElement] = []
-    for heading, body in commercial_requirement_sections(job_description):
-        kind = COMMERCIAL_SECTION_KINDS[heading]
+    for heading, kind, body in sections:
         for text in _split_requirement_lines(body):
             preferred = kind == "preferred" or bool(re.search(r"\bpreferred\b", text, re.I))
             required = not preferred
@@ -300,6 +431,128 @@ def parse_commercial_requirements(job_description: str) -> tuple[RequirementElem
                 )
             )
     return tuple(elements)
+
+
+@lru_cache(maxsize=512)
+def parse_commercial_requirements_legacy(job_description: str) -> tuple[RequirementElement, ...]:
+    sections = tuple(
+        (heading, LEGACY_COMMERCIAL_SECTION_KINDS[heading], body)
+        for heading, body in _legacy_commercial_requirement_sections(job_description)
+    )
+    return _elements_from_commercial_sections(sections)
+
+
+COMMERCIAL_FALLBACK_SIGNAL_RE = re.compile(
+    r"\b(?:ability|assist|collaborat|configur|coordinat|deliver|demonstrat|develop|ensure|"
+    r"execut|experience|focus|implement|knowledge|lead|manage|oversee|own|partner|preferred|"
+    r"proficien|project|provid|required|responsib|review|skill|support|technical|train|"
+    r"translate|work with)\w*\b",
+    re.I,
+)
+COMMERCIAL_FALLBACK_BOILERPLATE_RE = re.compile(
+    r"\b(?:equal opportunity|reasonable accommodation|benefits|salary range|privacy|"
+    r"applicant|background check|medical|dental|vision|401\(k\)|about the company)\b",
+    re.I,
+)
+
+
+def _line_fallback_requirements(job_description: str) -> tuple[str, ...]:
+    candidates: list[str] = []
+    logical_lines: list[str] = []
+    buffer = ""
+    for raw in job_description.splitlines():
+        stripped_raw = raw.strip()
+        if not stripped_raw or re.match(r"^(?:company|job title|role)\s*:", stripped_raw, re.I):
+            if buffer:
+                logical_lines.append(buffer)
+                buffer = ""
+            continue
+        is_list_item = bool(LIST_PREFIX_RE.match(stripped_raw))
+        cleaned_raw = normalize_text(LIST_PREFIX_RE.sub("", stripped_raw))
+        if is_list_item or (buffer and re.search(r"[.!?]$", buffer)):
+            if buffer:
+                logical_lines.append(buffer)
+            buffer = cleaned_raw
+        else:
+            buffer = normalize_text(f"{buffer} {cleaned_raw}")
+    if buffer:
+        logical_lines.append(buffer)
+
+    for raw in logical_lines:
+        stripped = normalize_text(LIST_PREFIX_RE.sub("", raw))
+        key = _heading_key(stripped)
+        if (
+            not stripped
+            or key in COMMERCIAL_SECTION_KINDS
+            or key in COMMERCIAL_STOP_HEADINGS
+            or key in COMMERCIAL_SUBSECTION_KIND
+            or re.match(r"^(?:company|job title|role)\s*:", stripped, re.I)
+            or COMMERCIAL_FALLBACK_BOILERPLATE_RE.search(stripped)
+            or not COMMERCIAL_FALLBACK_SIGNAL_RE.search(stripped)
+        ):
+            continue
+        for line in _split_requirement_lines(stripped):
+            if 4 <= len(line.split()) <= 80:
+                candidates.append(line)
+    return tuple(dict.fromkeys(candidates))
+
+
+@lru_cache(maxsize=512)
+def parse_commercial_posting(job_description: str) -> CommercialParseResult:
+    structured_sections = _structured_commercial_sections(job_description)
+    structured_requirements = _elements_from_commercial_sections(structured_sections)
+    if structured_requirements:
+        sections = tuple((label, body) for label, _kind, body in structured_sections)
+        return CommercialParseResult(
+            sections=sections,
+            requirements=structured_requirements,
+            parse_mode="structured",
+            diagnostics=(
+                CommercialParseDiagnostic(
+                    "structured_requirements",
+                    f"Parsed {len(structured_requirements)} requirements from {len(sections)} recognized sections.",
+                ),
+            ),
+            verified=True,
+        )
+
+    fallback_lines = _line_fallback_requirements(job_description)
+    if fallback_lines:
+        fallback_sections = (("line fallback", "qualification", "\n".join(fallback_lines)),)
+        requirements = _elements_from_commercial_sections(fallback_sections)
+        return CommercialParseResult(
+            sections=(("line fallback", "\n".join(fallback_lines)),),
+            requirements=requirements,
+            parse_mode="line_fallback",
+            diagnostics=(
+                CommercialParseDiagnostic(
+                    "unrecognized_headings",
+                    f"Used deterministic line fallback for {len(requirements)} requirement-shaped lines.",
+                ),
+            ),
+            verified=True,
+        )
+
+    return CommercialParseResult(
+        sections=(),
+        requirements=(),
+        parse_mode="whole_posting_fallback",
+        diagnostics=(
+            CommercialParseDiagnostic(
+                "no_trustworthy_requirements",
+                "No trustworthy structured or line-fallback requirements were found; analysis must use the whole posting.",
+            ),
+        ),
+        verified=False,
+    )
+
+
+def commercial_requirement_sections(job_description: str) -> tuple[tuple[str, str], ...]:
+    return parse_commercial_posting(job_description).sections
+
+
+def parse_commercial_requirements(job_description: str) -> tuple[RequirementElement, ...]:
+    return parse_commercial_posting(job_description).requirements
 
 
 def _federal_lines(job_description: str) -> list[str]:
@@ -812,14 +1065,17 @@ def build_target_context(
         duty_grade = parsed.duty_grade
         diagnostics = parsed.diagnostics
         verified = parsed.verified
+        parse_mode = "structured"
     else:
-        requirements = parse_commercial_requirements(job_description)
+        parsed = parse_commercial_posting(job_description)
+        requirements = parsed.requirements
         minimum, assessed = (), ()
         selected_grade, equivalent_grade, years = "", "", None
-        sections = commercial_requirement_sections(job_description)
+        sections = parsed.sections
         agency, subagency = "", ""
         output_label = company or official_title
-        available_grades, duty_grade, diagnostics, verified = (), "", (), True
+        available_grades, duty_grade = (), ""
+        diagnostics, verified, parse_mode = parsed.diagnostics, parsed.verified, parsed.parse_mode
     requirement_text = "\n".join(body for _heading, body in sections)
     display = _display_title(official_title, requirement_text)
     return TargetContext(
@@ -843,6 +1099,7 @@ def build_target_context(
         identity_source=identity_source,
         available_grades=available_grades,
         duty_grade=duty_grade,
+        parse_mode=parse_mode,
         parse_diagnostics=diagnostics,
         verified=verified,
     )

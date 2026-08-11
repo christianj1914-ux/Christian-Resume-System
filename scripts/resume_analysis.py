@@ -1819,20 +1819,30 @@ class CommercialAnalysisContext:
     scoped_text: str
     normalized_requirement_texts: tuple[str, ...]
     requirement_term_index: Mapping[str, tuple[int, ...]]
+    parse_mode: str
+    parse_diagnostics: tuple[object, ...]
+    verified: bool
 
 
 @lru_cache(maxsize=512)
 def commercial_analysis_context(job_description: str) -> CommercialAnalysisContext:
     try:
-        from requirement_engine import parse_commercial_requirements
+        from requirement_engine import parse_commercial_posting
 
-        parsed_requirements = tuple(parse_commercial_requirements(job_description))
-    except Exception:
+        parse_result = parse_commercial_posting(job_description)
+        parsed_requirements = tuple(parse_result.requirements)
+        parse_mode = str(parse_result.parse_mode)
+        parse_diagnostics = tuple(parse_result.diagnostics)
+        verified = bool(parse_result.verified)
+    except Exception as exc:
         parsed_requirements = ()
+        parse_mode = "whole_posting_fallback"
+        parse_diagnostics = (f"commercial parser failed: {type(exc).__name__}: {exc}",)
+        verified = False
     normalized_texts, term_index = _requirement_term_index(parsed_requirements)
     scoped_text = (
         "\n".join(str(getattr(element, "text", "")) for element in parsed_requirements)
-        if parsed_requirements
+        if verified and parsed_requirements
         else role_requirement_text(job_description)
     )
     return CommercialAnalysisContext(
@@ -1841,6 +1851,9 @@ def commercial_analysis_context(job_description: str) -> CommercialAnalysisConte
         scoped_text=scoped_text,
         normalized_requirement_texts=normalized_texts,
         requirement_term_index=term_index,
+        parse_mode=parse_mode,
+        parse_diagnostics=parse_diagnostics,
+        verified=verified,
     )
 
 
@@ -2228,8 +2241,8 @@ def _audit_keywords_cached(job_description: str) -> frozenset[str]:
     original_job_description = job_description
     context = commercial_analysis_context(job_description)
     parsed_requirements = context.parsed_requirements
-    if len(parsed_requirements) >= 3:
-        job_description = "\n".join(element.text for element in parsed_requirements)
+    if context.verified and parsed_requirements:
+        job_description = context.scoped_text
     explicit_company = re.search(r"(?im)^\s*company(?:\s+name)?\s*[:\-]\s*(.+?)\s*$", original_job_description)
     company_name = normalize_compare(explicit_company.group(1) if explicit_company else (extract_company_name(original_job_description) or ""))
     company_tokens = set(company_name.split())
@@ -2237,7 +2250,7 @@ def _audit_keywords_cached(job_description: str) -> frozenset[str]:
     title_phrases = set(title_phrase_candidates(original_job_description))
     consulting_mode = is_general_management_consulting_role(original_job_description)
     keywords: set[str] = set()
-    for keyword in keyword_set(job_description):
+    for keyword in keyword_set(job_description) | title_phrases:
         classification = classify_keyword_candidate(keyword, original_job_description)
         if (
             classification.candidate_class != KeywordCandidateClass.REQUIREMENT
@@ -2398,8 +2411,8 @@ def _ats_scan_terms_cached(job_description: str, limit: int = 25) -> tuple[str, 
     original_job_description = job_description
     context = commercial_analysis_context(job_description)
     parsed_requirements = context.parsed_requirements
-    if parsed_requirements:
-        job_description = "\n".join(element.text for element in parsed_requirements)
+    if context.verified and parsed_requirements:
+        job_description = context.scoped_text
 
     explicit_company = re.search(r"(?im)^\s*company(?:\s+name)?\s*[:\-]\s*(.+?)\s*$", original_job_description)
     company_name = normalize_compare(explicit_company.group(1) if explicit_company else (extract_company_name(original_job_description) or ""))
@@ -2805,7 +2818,8 @@ def collapse_breadth_compound_families(
         collapsed,
         key=lambda keyword: (
             keyword_occurrence_count(job_description, keyword),
-            -len(normalize_compare(keyword).split()),
+            normalize_compare(keyword) in KEYWORD_DOMAIN_SIGNALS,
+            len(normalize_compare(keyword).split()),
             audit_keyword_sort_key(job_description, keyword),
         ),
         reverse=True,

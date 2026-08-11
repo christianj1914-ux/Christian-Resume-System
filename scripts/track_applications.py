@@ -13,6 +13,7 @@ import shutil
 import tempfile
 
 import job_context_archive
+import requirement_engine
 import resume_analysis
 from utils import companies_refer_to_same
 
@@ -32,6 +33,8 @@ COLUMNS = (
     "lane_label",
     "fit_status",
     "audit_flag",
+    "parse_mode",
+    "parse_verified",
     "source_resume",
     "output_file",
     "snapshot_id",
@@ -199,7 +202,8 @@ def refresh_row_metadata(row: dict[str, str], *, force: bool = False) -> tuple[d
     normalized = canonicalize_row(row)
     needs_lane = force or not normalized.get("lane_label", "").strip()
     needs_fit = force or not normalized.get("fit_status", "").strip()
-    if not (needs_lane or needs_fit):
+    needs_parse = force or not normalized.get("parse_mode", "").strip()
+    if not (needs_lane or needs_fit or needs_parse):
         return normalized, False
 
     output_value = normalized.get("output_file", "").strip()
@@ -240,6 +244,15 @@ def refresh_row_metadata(row: dict[str, str], *, force: bool = False) -> tuple[d
         fit_status = active_job_fit_status(job_description, output_path)
         if fit_status and fit_status != normalized.get("fit_status", ""):
             normalized["fit_status"] = fit_status
+            changed = True
+    if needs_parse:
+        parsed = requirement_engine.parse_commercial_posting(job_description)
+        parse_verified = str(parsed.verified).lower()
+        if normalized.get("parse_mode", "") != parsed.parse_mode:
+            normalized["parse_mode"] = parsed.parse_mode
+            changed = True
+        if normalized.get("parse_verified", "") != parse_verified:
+            normalized["parse_verified"] = parse_verified
             changed = True
     return normalized, changed
 
@@ -335,6 +348,7 @@ def row_for_active_job(status: str = "draft", notes: str = "") -> dict[str, str]
         resume_text = ""
     profile = resume_analysis.job_problem_profile(job_description, resume_text)
     snapshot_id = job_context_archive.current_snapshot_id() or job_context_archive.find_snapshot_id_for_active_context()
+    parsed = requirement_engine.parse_commercial_posting(job_description)
     return {
         "date_added": date.today().isoformat(),
         "company": company,
@@ -342,6 +356,8 @@ def row_for_active_job(status: str = "draft", notes: str = "") -> dict[str, str]
         "lane_label": profile.lane_label,
         "fit_status": active_job_fit_status(job_description, analysis_resume),
         "audit_flag": derive_audit_flag(output_file),
+        "parse_mode": parsed.parse_mode,
+        "parse_verified": str(parsed.verified).lower(),
         "source_resume": selected_resume.name,
         "output_file": str(output_file) if output_file else "",
         "snapshot_id": snapshot_id,
@@ -389,6 +405,8 @@ def add_row(args: argparse.Namespace) -> int:
         "lane_label": base_row["lane_label"],
         "fit_status": base_row["fit_status"],
         "audit_flag": base_row["audit_flag"],
+        "parse_mode": base_row["parse_mode"],
+        "parse_verified": base_row["parse_verified"],
         "source_resume": base_row["source_resume"],
         "output_file": base_row["output_file"],
         "snapshot_id": base_row["snapshot_id"],

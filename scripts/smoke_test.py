@@ -14402,13 +14402,13 @@ Qualifications:
 - Experience with contact center platforms, stakeholder management, and measurable business outcomes.
 - Ability to translate AI capabilities into documented customer success plans.
 """
-    original_parser = requirement_engine.parse_commercial_requirements
+    original_parser = requirement_engine.parse_commercial_posting
     original_indexer = resume_analysis._requirement_term_index
     counts = {"parse": 0, "index": 0}
 
-    def counted_parser(text: str) -> tuple[object, ...]:
+    def counted_parser(text: str) -> object:
         counts["parse"] += 1
-        return tuple(original_parser(text))
+        return original_parser(text)
 
     def counted_indexer(requirements: tuple[object, ...]) -> object:
         counts["index"] += 1
@@ -14424,7 +14424,7 @@ Qualifications:
     try:
         for function in cached_functions:
             function.cache_clear()
-        requirement_engine.parse_commercial_requirements = counted_parser
+        requirement_engine.parse_commercial_posting = counted_parser
         resume_analysis._requirement_term_index = counted_indexer
 
         first = build_resume.ats_scan_terms(job_description, limit=200)
@@ -14439,10 +14439,134 @@ Qualifications:
         first.append("caller mutation")
         assert_true("caller mutation" not in build_resume.ats_scan_terms(job_description, limit=200), "ATS caller mutation leaked into cached results")
     finally:
-        requirement_engine.parse_commercial_requirements = original_parser
+        requirement_engine.parse_commercial_posting = original_parser
         resume_analysis._requirement_term_index = original_indexer
         for function in cached_functions:
             function.cache_clear()
+
+
+def test_commercial_parser_modes_and_named_formats(build_resume: object) -> None:
+    import requirement_engine
+
+    fixtures = {
+        "RingCentral": """Company: RingCentral
+Job Title: Technical Success Manager
+Core Responsibilities
+Account Ownership & Relationship Management
+- Own a portfolio of strategic enterprise accounts and lead executive business reviews.
+Experience & Qualifications
+Required
+- 7+ years of technical customer success experience.
+Preferred
+- Contact center platform experience.
+""",
+        "Epicor": """Company: Epicor
+Job Title: Associate Consulting Services Project Manager
+What You Will Be Doing
+- Coordinate implementation schedules, risks, and client communication.
+What You Will Likely Bring
+- Experience managing enterprise software projects.
+What Could Set You Apart
+- Building-supply industry experience.
+""",
+        "Celigo": """Company: Celigo
+Job Title: Senior Manager, Technical Delivery
+People Leadership & Team Development
+- Lead and coach a team of technical delivery managers.
+Technical Delivery & Oversight
+- Oversee complex integration delivery and quality.
+Skills & Abilities
+- Strong executive stakeholder communication.
+""",
+        "Paylocity": """Company: Paylocity
+Job Title: Senior IT Project Manager, Enterprise Applications
+Primary Responsibilities
+Strategic Leadership and Planning
+- Lead portfolio planning across enterprise applications.
+Education & Experience
+- Eight years of project delivery experience.
+""",
+        "Paylocity control": """Company: Paylocity
+Job Title: Project Manager, Release Operations
+Primary Responsibilities
+- Coordinate release execution and readiness.
+Education & Experience
+- Five years of project management experience.
+Preferred Qualifications
+- SaaS release operations experience.
+""",
+        "Aptean": """Company: Aptean
+Job Title: ERP Consultant
+Key Responsibilities
+- Lead ERP discovery, configuration, testing, and go-live readiness.
+About You
+- Experience delivering client-facing ERP implementations.
+""",
+    }
+    for label, text in fixtures.items():
+        parsed = requirement_engine.parse_commercial_posting(text)
+        assert_true(
+            parsed.parse_mode == "structured" and parsed.verified and parsed.requirements,
+            f"{label} structured commercial parsing drifted: {parsed}",
+        )
+        requirement_text = " ".join(item.text for item in parsed.requirements).lower()
+        assert_true(
+            "account ownership relationship management" not in requirement_text
+            and "strategic leadership and planning" not in requirement_text,
+            f"{label} subsection labels leaked into requirements: {requirement_text}",
+        )
+
+    line_fallback = requirement_engine.parse_commercial_posting(
+        "Company: Compact Systems\nRole: Implementation Consultant\n"
+        "The role owns implementation discovery, configuration, testing, go-live readiness, and adoption."
+    )
+    whole_fallback = requirement_engine.parse_commercial_posting(
+        "Company: Empty Systems\nRole: Consultant\nBenefits and equal opportunity information only."
+    )
+    assert_true(
+        line_fallback.parse_mode == "line_fallback" and line_fallback.verified and len(line_fallback.requirements) == 1,
+        f"Commercial line fallback drifted: {line_fallback}",
+    )
+    assert_true(
+        whole_fallback.parse_mode == "whole_posting_fallback" and not whole_fallback.verified and not whole_fallback.requirements,
+        f"Commercial whole-posting fallback drifted: {whole_fallback}",
+    )
+    target = requirement_engine.build_target_context(fixtures["Paylocity control"])
+    assert_true(
+        target.parse_mode == "structured" and target.verified,
+        f"Commercial parse trust did not propagate to TargetContext: {target}",
+    )
+
+
+def test_parser_audit_is_read_only(build_resume: object) -> None:
+    import json
+    import parser_audit
+
+    with TemporaryDirectory(prefix="parser_audit_smoke_") as temp_name:
+        root = Path(temp_name)
+        library = root / "jd_library"
+        snapshot = library / "fixture"
+        snapshot.mkdir(parents=True)
+        job_path = snapshot / "job_description.txt"
+        metadata_path = snapshot / "metadata.json"
+        index_path = library / "index.csv"
+        job_path.write_text(
+            "Company: Audit Systems\nJob Title: Implementation Consultant\nResponsibilities\n"
+            "- Lead implementation discovery, configuration, testing, and go-live readiness.\n",
+            encoding="utf-8",
+        )
+        metadata_path.write_text(
+            json.dumps({"snapshot_id": "fixture", "company": "Audit Systems", "role": "Implementation Consultant", "workflow_type": "commercial"}),
+            encoding="utf-8",
+        )
+        index_path.write_text("snapshot_id,company,role\nfixture,Audit Systems,Implementation Consultant\n", encoding="utf-8")
+        baseline = root / "baseline.json"
+        baseline.write_text('{"reviewed_unique_whole_posting_fallback_ceiling": 0}\n', encoding="utf-8")
+        before = parser_audit.library_hashes(library)
+        result = parser_audit.run_audit(library, root / "reports", baseline)
+        after = parser_audit.library_hashes(library)
+        assert_true(result == 0, f"Read-only parser audit failed: {result}")
+        assert_true(before == after, "Parser audit changed snapshot, metadata, or index hashes")
 
 
 def test_business_context_module(business_context: object) -> None:
@@ -15026,6 +15150,8 @@ def test_track_add_row_refreshes_existing_metadata() -> None:
         "lane_label": "Implementation and Delivery",
         "fit_status": "Adjacent Fit",
         "audit_flag": "FAIL",
+        "parse_mode": "structured",
+        "parse_verified": "true",
         "source_resume": "Estrada_Resume_Implementation.docx",
         "output_file": "C:/temp/resume.docx",
         "snapshot_id": "smoke_snapshot",
@@ -18898,6 +19024,8 @@ def main(argv: list[str] | None = None) -> None:
             ("story natural reference avoids meta language", lambda: test_story_natural_reference_avoids_meta_announcement_language(build_interview_cheat_sheet)),
             ("contains search term plural handling", lambda: test_contains_search_term_handles_simple_plural_forms(build_resume)),
             ("commercial analysis context bounds repeated work", lambda: test_commercial_analysis_context_bounds_repeated_work(build_resume)),
+            ("commercial parser modes and named formats", lambda: test_commercial_parser_modes_and_named_formats(build_resume)),
+            ("parser audit is read only", lambda: test_parser_audit_is_read_only(build_resume)),
             ("workflow parse args accepts resume only", test_run_resume_workflow_parse_args_accepts_resume_only),
             ("title phrase candidates avoid comma crossing", lambda: test_title_phrase_candidates_do_not_cross_comma_title_segments(build_resume)),
             ("Clorox title and specialties", lambda: test_clorox_style_job_title_and_specialties(build_resume)),

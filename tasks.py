@@ -65,6 +65,11 @@ TASKS: dict[str, Task] = {
         ("scripts/keyword_reliability_corpus.py",),
         False,
     ),
+    "parser-audit": Task(
+        "Audit archived commercial requirement parsing without mutating the job-description library.",
+        ("scripts/parser_audit.py",),
+        False,
+    ),
     "fresh-keyword-corpus": Task(
         "Rebuild isolated recent/legacy keyword corpora without touching active jobs or output; supports --corpus, --batch-dir, --workers, and --fixture.",
         ("scripts/fresh_corpus_rebuild.py",),
