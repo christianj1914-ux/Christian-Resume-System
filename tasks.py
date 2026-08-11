@@ -49,7 +49,16 @@ class Task:
 
 
 TASKS: dict[str, Task] = {
-    "validate": Task("Run the smoke suite; add --quick, --federal, and/or --alignment for focused checks with visible progress.", ("scripts/smoke_test.py",), False),
+    "validate": Task(
+        "Run the smoke suite from a temporary detached clean worktree; add --commit, --expected-count, --quick, --federal, and/or --alignment as needed.",
+        ("scripts/validate_clean_worktree.py",),
+        False,
+    ),
+    "validate-direct": Task(
+        "Internal-only direct smoke runner used by clean-worktree validation.",
+        ("scripts/smoke_test.py",),
+        False,
+    ),
     "source-lint": Task("Validate source resume bullets before JD-specific tailoring selects them.", ("scripts/source_lint.py",), False),
     "keyword-corpus": Task(
         "Project keyword/policy outcomes for archived fixtures or exact DOCX paths from --rebuild-manifest; add --ownership-only for the lightweight skim audit.",
