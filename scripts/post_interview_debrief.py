@@ -115,7 +115,7 @@ def prompt_multiline(label: str, default: str = "") -> str:
 
 def active_job_context() -> tuple[str, str]:
     job_description = read_text(PROJECT_ROOT / "jobs" / "job_description.txt")
-    company_name = build_resume.extract_output_name(job_description)
+    company_name = build_resume.extract_semantic_organization(job_description)[0]
     role_title = build_resume.extract_job_title(job_description) or ""
     return company_name, role_title
 
@@ -125,7 +125,7 @@ def active_job_company_name(job_description: str) -> str | None:
     if company_name:
         return company_name
     try:
-        return build_resume.extract_output_name(job_description)
+        return build_resume.extract_semantic_organization(job_description)[0]
     except SystemExit:
         return None
 

@@ -173,7 +173,7 @@ def read_jd_library_rows() -> list[dict[str, str]]:
 def row_job_description_text(row: dict[str, str]) -> str:
     current_job_description = read_job_description()
     if current_job_description:
-        current_company = resume_analysis.extract_output_name(current_job_description)
+        current_company = resume_analysis.extract_semantic_organization(current_job_description)[0]
         current_role = resume_analysis.extract_job_title(current_job_description) or ""
         if companies_refer_to_same(row.get("company", ""), current_company) and roles_refer_to_same(row.get("role_title", ""), current_role):
             return current_job_description
@@ -322,7 +322,7 @@ def row_for_active_job(status: str = "draft", notes: str = "") -> dict[str, str]
     job_description = read_job_description()
     if not job_description:
         raise ValueError("No active job description found.")
-    company = resume_analysis.extract_output_name(job_description)
+    company = resume_analysis.extract_semantic_organization(job_description)[0]
     role_title = resume_analysis.extract_job_title(job_description) or ""
     selected_resume = resume_analysis.choose_resume(job_description)
     output_file = latest_resume(job_description)

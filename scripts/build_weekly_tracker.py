@@ -53,7 +53,7 @@ def recommended_actions(rows: list[dict[str, str]], job_description: str) -> lis
     if silent:
         actions.append(f"Run tasks.py followup for silent applications: {', '.join(silent[:3])}.")
     if job_description:
-        company = resume_analysis.extract_output_name(job_description)
+        company = resume_analysis.extract_semantic_organization(job_description)[0]
         role = resume_analysis.extract_job_title(job_description) or "active role"
         actions.append(f"Complete or update the application package for {company} - {role}.")
     return actions[:4] or ["Add an active job description, then run tasks.py morning to choose the next action."]

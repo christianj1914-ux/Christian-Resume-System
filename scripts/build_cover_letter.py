@@ -7164,7 +7164,7 @@ def build_cover_letter(mode: str = DEFAULT_COVER_MODE) -> CoverLetterResult:
     if not job_description:
         fail("jobs/job_description.txt is empty; refusing to create a placeholder cover letter")
 
-    company_name = build_resume.extract_output_name(job_description)
+    company_name = build_resume.extract_semantic_organization(job_description)[0]
     output_target_name = build_resume.extract_output_target_name(job_description)
     role_title = extract_role_title(job_description)
     resume_docx = find_resume_output(job_description)

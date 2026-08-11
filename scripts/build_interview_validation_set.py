@@ -92,7 +92,7 @@ def slug(text: str) -> str:
 
 def build_one(job: ValidationJob, *, render: bool = True) -> dict[str, object]:
     metadata, job_description = read_snapshot(job)
-    company_name = str(metadata.get("company") or build_resume.extract_output_name(job_description))
+    company_name = str(metadata.get("company") or build_resume.extract_semantic_organization(job_description)[0])
     role_title = build_cover_letter.extract_role_title(job_description) or str(metadata.get("role") or "Role")
     resume_docx = job.resume_source
     output_dir = OUTPUT_ROOT / slug(company_name + " " + role_title)
@@ -148,7 +148,7 @@ def build_one(job: ValidationJob, *, render: bool = True) -> dict[str, object]:
 def summarize_one(job: ValidationJob) -> dict[str, object]:
     """Recompute the lane and hiring-manager coverage without rebuilding DOCX files."""
     metadata, job_description = read_snapshot(job)
-    company_name = str(metadata.get("company") or build_resume.extract_output_name(job_description))
+    company_name = str(metadata.get("company") or build_resume.extract_semantic_organization(job_description)[0])
     role_title = build_cover_letter.extract_role_title(job_description) or str(metadata.get("role") or "Role")
     resume_text = "\n".join(cheat.paragraph_texts(job.resume_source))
     profile = cheat.adjusted_profile_for_role(

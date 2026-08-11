@@ -282,7 +282,7 @@ def add_compact_bullets(document: Document, values: tuple[str, ...] | list[str],
 
 def build_application_checklist() -> Path:
     job_description = build_resume.validate_inputs()
-    company_name = build_resume.extract_output_name(job_description)
+    company_name = build_resume.extract_semantic_organization(job_description)[0]
     output_target_name = build_resume.extract_output_target_name(job_description)
     role_title = build_resume.extract_job_title(job_description) or "Target Role"
     selected_resume = build_resume.choose_resume(job_description)

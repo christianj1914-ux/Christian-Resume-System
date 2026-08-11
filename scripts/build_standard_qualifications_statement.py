@@ -448,7 +448,7 @@ def build_document(
 
 def build_standard_qualifications_statement() -> QualificationsBuildResult:
     job_description = build_resume.validate_inputs(read_text(JOB_DESCRIPTION))
-    company_name = build_resume.extract_output_name(job_description)
+    company_name = build_resume.extract_semantic_organization(job_description)[0]
     output_target_name = build_resume.extract_output_target_name(job_description)
     role_title = build_resume.extract_job_title(job_description) or "Target Role"
     _, snapshot, resume_text = question_prep.selected_resume_snapshot(job_description)

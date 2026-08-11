@@ -240,7 +240,7 @@ def build_thank_you() -> Path:
     if not job_description:
         raise SystemExit("jobs/job_description.txt is empty. Add the active job description first.")
 
-    company_name = resume_analysis.extract_output_name(job_description)
+    company_name = resume_analysis.extract_semantic_organization(job_description)[0]
     output_target_name = resume_analysis.extract_output_target_name(job_description)
     role_title = resume_analysis.extract_job_title(job_description) or "the role"
     debrief_entry = find_latest_debrief_for_company(company_name)

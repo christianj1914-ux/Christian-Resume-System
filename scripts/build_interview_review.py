@@ -28,7 +28,7 @@ def active_target() -> tuple[str, str]:
     job_description = optional_text(JOB_DESCRIPTION)
     if not job_description:
         return "", ""
-    company_name = build_resume.extract_output_name(job_description)
+    company_name = build_resume.extract_semantic_organization(job_description)[0]
     role_title = build_resume.extract_job_title(job_description) or ""
     return company_name, role_title
 

@@ -3555,7 +3555,7 @@ def build_detailed_interview_guide(
     if interviewer_context_path is not None and not interviewer_context_path.exists():
         fail(f"interviewer context file not found: {interviewer_context_path}")
 
-    company_name = build_resume.extract_output_name(job_description)
+    company_name = build_resume.extract_semantic_organization(job_description)[0]
     output_target_name = build_resume.extract_output_target_name(job_description)
     role_title = build_cover_letter.extract_role_title(job_description) or "Role"
     resume_docx = build_cover_letter.find_resume_output(job_description)

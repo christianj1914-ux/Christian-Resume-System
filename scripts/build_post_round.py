@@ -96,7 +96,7 @@ def build_post_round() -> Path:
     job_description = optional_text(JOB_DESCRIPTION)
     if not job_description:
         raise SystemExit("jobs/job_description.txt is empty. Add the active job description first.")
-    company = resume_analysis.extract_output_name(job_description)
+    company = resume_analysis.extract_semantic_organization(job_description)[0]
     output_target_name = resume_analysis.extract_output_target_name(job_description)
     role_title = resume_analysis.extract_job_title(job_description) or "Target Role"
     entry = latest_debrief(company)

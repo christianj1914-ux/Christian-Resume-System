@@ -78,7 +78,7 @@ def main() -> int:
     if not job_description:
         print("No active job description found.")
         return 1
-    company = resume_analysis.extract_output_name(job_description)
+    company = resume_analysis.extract_semantic_organization(job_description)[0]
     target_name = resume_analysis.extract_output_target_name(job_description)
     role_title = resume_analysis.extract_job_title(job_description) or "Target Role"
     print(f"Application Status: {company} - {role_title}")

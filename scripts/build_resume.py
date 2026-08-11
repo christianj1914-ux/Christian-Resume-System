@@ -135,6 +135,7 @@ from resume_analysis import (
     extract_job_title,
     extract_output_name,
     extract_output_target_name,
+    extract_semantic_organization,
     evidence_anchor_for_term,
     evidence_entry_context_supported,
     evidence_term_for_variant,
@@ -6928,7 +6929,7 @@ def build_resume(keyword_policy: str | None = None) -> BuildResult:
     os.environ["RESUME_KEYWORD_POLICY"] = policy
     validate_config_integrity()
     job_description = validate_inputs()
-    company_name = extract_output_name(job_description)
+    company_name = extract_semantic_organization(job_description)[0]
     overlap_company_name = extract_company_name(job_description) or company_name
     output_target_name = extract_output_target_name(job_description)
     selected_resume = choose_resume(job_description)

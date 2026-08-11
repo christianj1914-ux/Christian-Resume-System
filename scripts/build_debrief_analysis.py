@@ -326,7 +326,7 @@ def active_company_name() -> str:
     job_description = read_text(JOB_DESCRIPTION)
     if not job_description.strip():
         return ""
-    return build_resume.extract_output_name(job_description)
+    return build_resume.extract_semantic_organization(job_description)[0]
 
 
 def parse_args() -> argparse.Namespace:
