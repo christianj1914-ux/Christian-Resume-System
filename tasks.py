@@ -31,9 +31,9 @@ _bootstrap.ensure_script_path()
 _bootstrap.configure_fresh_pycache(PROJECT_ROOT)
 import render_checks  # type: ignore[import-not-found]
 import business_context  # type: ignore[import-not-found]
+from config.paths import JOB_DESCRIPTION
 
 
-JOB_DESCRIPTION = PROJECT_ROOT / "jobs" / "job_description.txt"
 APPLICATIONS_CSV = PROJECT_ROOT / "scratch" / "applications.csv"
 DEBRIEF_HISTORY = PROJECT_ROOT / "jobs" / "debrief_history.txt"
 DEBRIEF_DELIMITER = "POST-INTERVIEW DEBRIEF CAPTURED"
@@ -103,6 +103,11 @@ TASKS: dict[str, Task] = {
     "resume": Task(
         "Build the tailored commercial workflow. Optional flags include --keyword-policy advisory|balanced|exhaustive.",
         ("scripts/run_resume_workflow.py",),
+    ),
+    "resume-queue": Task(
+        "Process commercial postings from jobs/commercial_queue sequentially; add --resume-only or --rerun as needed.",
+        ("scripts/run_commercial_queue.py",),
+        False,
     ),
     "federal-dry-run": Task("Validate the federal workflow without writing files; optionally select --target-grade GS-XX.", ("scripts/run_federal_resume_workflow.py", "--dry-run"), False),
     "federal-resume": Task(

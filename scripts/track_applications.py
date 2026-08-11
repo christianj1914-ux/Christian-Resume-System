@@ -15,15 +15,13 @@ import tempfile
 import job_context_archive
 import requirement_engine
 import resume_analysis
+from config.paths import JOB_DESCRIPTION, OUTPUT_DIR, SCRATCH_APPLICATIONS_CSV, SCRATCH_DIR, SCRATCH_JD_LIBRARY
 from utils import companies_refer_to_same
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-SCRATCH_DIR = PROJECT_ROOT / "scratch"
-TRACKER = SCRATCH_DIR / "applications.csv"
-JOB_DESCRIPTION = PROJECT_ROOT / "jobs" / "job_description.txt"
-OUTPUT_DIR = PROJECT_ROOT / "output"
-JD_LIBRARY_DIR = SCRATCH_DIR / "jd_library"
+TRACKER = SCRATCH_APPLICATIONS_CSV
+JD_LIBRARY_DIR = SCRATCH_JD_LIBRARY
 JD_LIBRARY_INDEX = JD_LIBRARY_DIR / "index.csv"
 
 COLUMNS = (

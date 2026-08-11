@@ -14598,6 +14598,136 @@ def test_isolated_commercial_path_overrides_and_historical_cases(build_resume: o
     )
 
 
+def test_commercial_queue_pairing_and_duplicate_preflight(build_resume: object) -> None:
+    import run_commercial_queue
+
+    with TemporaryDirectory(prefix="commercial_queue_pairing_") as temp_name:
+        root = Path(temp_name)
+        queue_dir = root / "queue"
+        queue_dir.mkdir()
+        posting = "Company: Queue Systems\nJob Title: Implementation Consultant\nResponsibilities\n- Lead implementation delivery.\n"
+        (queue_dir / "first.txt").write_text(posting, encoding="utf-8")
+        (queue_dir / "first.questions.txt").write_text("Why are you interested?\n", encoding="utf-8")
+        jobs = run_commercial_queue.discover_jobs(queue_dir)
+        assert_true(len(jobs) == 1 and jobs[0].questions_path is not None, f"Queue sidecar pairing drifted: {jobs}")
+        assert_true(
+            jobs[0].questions_hash == run_commercial_queue.text_hash("Why are you interested?"),
+            f"Queue question hash drifted: {jobs[0]}",
+        )
+
+        (queue_dir / "duplicate.txt").write_text(posting, encoding="utf-8")
+        calls: list[object] = []
+        try:
+            run_commercial_queue.execute_queue(
+                queue_dir=queue_dir,
+                state_root=root / "state",
+                output_dir=root / "output",
+                render_dir=root / "renders",
+                mode="resume-only",
+                rerun=False,
+                project_root=root,
+                runner=lambda *_args, **_kwargs: calls.append(1),
+                fingerprint="fixture",
+            )
+            raise SmokeFailure("Duplicate queue targets must fail before processing")
+        except ValueError as exc:
+            assert_true("Duplicate company/role output targets" in str(exc), f"Duplicate queue error drifted: {exc}")
+        assert_true(not calls and not (root / "state").exists(), "Duplicate preflight must run before state or child-process mutation")
+
+
+def test_commercial_queue_status_continuation_skip_rerun_and_integrity(build_resume: object) -> None:
+    import run_commercial_queue
+
+    with TemporaryDirectory(prefix="commercial_queue_status_") as temp_name:
+        root = Path(temp_name)
+        queue_dir = root / "queue"
+        state_root = root / "state"
+        output_dir = root / "output"
+        render_dir = root / "renders"
+        jobs_dir = root / "jobs"
+        queue_dir.mkdir()
+        jobs_dir.mkdir()
+        for name in ("job_description", "application_questions", "company_research", "interview_notes"):
+            (jobs_dir / f"{name}.txt").write_text(f"active {name}\n", encoding="utf-8")
+
+        fixtures = {
+            "01_success": (0, "Company: Success Co\nJob Title: Implementation Consultant\nResponsibilities\n- Lead implementation delivery.\n"),
+            "02_fallback": (0, "Company: Fallback Co\nJob Title: Consultant\nBenefits information only.\n"),
+            "03_review": (2, "Company: Review Co\nJob Title: Project Manager\nResponsibilities\n- Lead project delivery.\n"),
+            "04_failed": (1, "Company: Failed Co\nJob Title: Delivery Manager\nResponsibilities\n- Lead delivery operations.\n"),
+            "05_timeout": (124, "Company: Timeout Co\nJob Title: Success Manager\nResponsibilities\n- Manage customer success.\n"),
+        }
+        for stem, (_code, text) in fixtures.items():
+            (queue_dir / f"{stem}.txt").write_text(text, encoding="utf-8")
+
+        calls: list[str] = []
+
+        def fake_runner(command: object, **kwargs: object) -> subprocess.CompletedProcess[str]:
+            environment = kwargs["env"]
+            assert isinstance(environment, dict)
+            stem = Path(str(environment["RESUME_JOB_DESCRIPTION_PATH"])).stem
+            calls.append(stem)
+            returncode = fixtures[stem][0]
+            if returncode in {0, 2}:
+                output_dir.mkdir(parents=True, exist_ok=True)
+                (output_dir / f"{stem}-{len(calls)} Resume.docx").write_bytes(f"artifact {len(calls)}".encode("utf-8"))
+            return subprocess.CompletedProcess(command, returncode, f"stdout {stem}", f"stderr {stem}" if returncode else "")
+
+        active_before = run_commercial_queue.active_file_hashes(root)
+        code, manifest_path, results = run_commercial_queue.execute_queue(
+            queue_dir=queue_dir,
+            state_root=state_root,
+            output_dir=output_dir,
+            render_dir=render_dir,
+            mode="resume-only",
+            rerun=False,
+            project_root=root,
+            runner=fake_runner,
+            fingerprint="fixture",
+        )
+        statuses = [str(result["status"]) for result in results]
+        assert_true(
+            code == 1 and statuses == ["success", "fallback-warning", "review-required", "failed", "timed-out"],
+            f"Queue status/continuation matrix drifted: code={code}, statuses={statuses}",
+        )
+        assert_true(calls == list(fixtures), f"Queue must continue after failure and timeout: {calls}")
+        assert_true(run_commercial_queue.active_file_hashes(root) == active_before, "Queue changed active files")
+        assert_true(manifest_path.is_file() and (state_root / "state.json").is_file(), "Queue atomic state/manifest files are missing")
+        assert_true(not list(state_root.rglob("*.tmp")), "Queue left an incomplete atomic state file")
+
+        calls.clear()
+        _code, _manifest, second_results = run_commercial_queue.execute_queue(
+            queue_dir=queue_dir,
+            state_root=state_root,
+            output_dir=output_dir,
+            render_dir=render_dir,
+            mode="resume-only",
+            rerun=False,
+            project_root=root,
+            runner=fake_runner,
+            fingerprint="fixture",
+        )
+        assert_true(
+            [result["status"] for result in second_results] == ["skipped", "skipped", "skipped", "failed", "timed-out"]
+            and calls == ["04_failed", "05_timeout"],
+            f"Queue skip policy drifted: calls={calls}, results={second_results}",
+        )
+
+        calls.clear()
+        run_commercial_queue.execute_queue(
+            queue_dir=queue_dir,
+            state_root=state_root,
+            output_dir=output_dir,
+            render_dir=render_dir,
+            mode="resume-only",
+            rerun=True,
+            project_root=root,
+            runner=fake_runner,
+            fingerprint="fixture",
+        )
+        assert_true(calls == list(fixtures), f"--rerun must bypass every completed-entry skip: {calls}")
+
+
 def test_business_context_module(business_context: object) -> None:
     text = (
         "Company: BioTouch\n"
@@ -18025,9 +18155,11 @@ def test_bootstrap_writes_live_canonical_launchers() -> None:
 
         assert_true(
             "workspace_health.py" in resume_text
-            and 'choice /c RFDQ' in resume_text
+            and 'choice /c RFBDQ' in resume_text
+            and "Batch queue (multiple commercial posting files)" in resume_text
             and "Questions only (rebuild qualifications statement from current JD + questions)" in resume_text
-            and "if errorlevel 4 goto :run_questions" in resume_text
+            and "if errorlevel 5 goto :run_questions" in resume_text
+            and "if errorlevel 3 goto :run_batch" in resume_text
             and "call :run_task qualifications" in resume_text
             and 'call :run_task resume --resume-only' in resume_text
             and 'call :run_task resume' in resume_text
@@ -18035,6 +18167,8 @@ def test_bootstrap_writes_live_canonical_launchers() -> None:
             and 'set "TASK_EXIT=%ERRORLEVEL%"' in resume_text
             and 'if "%TASK_EXIT%"=="124" goto :timed_out' in resume_text
             and 'if "%TASK_EXIT%"=="2" goto :review_required' in resume_text
+            and 'call :run_task resume-queue --resume-only' in resume_text
+            and 'call :run_task resume-queue' in resume_text
             and 'The workflow completed with an artifact that requires review.' in resume_text
             and 'The workflow failed because a required step exceeded its time limit.' in resume_text
             and 'if not exist ".\\output" mkdir ".\\output"' in resume_text,
@@ -19167,6 +19301,8 @@ def main(argv: list[str] | None = None) -> None:
             ("commercial parser modes and named formats", lambda: test_commercial_parser_modes_and_named_formats(build_resume)),
             ("parser audit is read only", lambda: test_parser_audit_is_read_only(build_resume)),
             ("isolated commercial paths and historical cases", lambda: test_isolated_commercial_path_overrides_and_historical_cases(build_resume)),
+            ("commercial queue pairing and duplicate preflight", lambda: test_commercial_queue_pairing_and_duplicate_preflight(build_resume)),
+            ("commercial queue continuation skip rerun and integrity", lambda: test_commercial_queue_status_continuation_skip_rerun_and_integrity(build_resume)),
             ("workflow parse args accepts resume only", test_run_resume_workflow_parse_args_accepts_resume_only),
             ("title phrase candidates avoid comma crossing", lambda: test_title_phrase_candidates_do_not_cross_comma_title_segments(build_resume)),
             ("Clorox title and specialties", lambda: test_clorox_style_job_title_and_specialties(build_resume)),
