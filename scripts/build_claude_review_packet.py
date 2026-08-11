@@ -13,6 +13,7 @@ import csv
 import json
 import subprocess
 import sys
+from functools import lru_cache
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -471,6 +472,7 @@ def append_warning_once(warnings: list[str], message: str) -> None:
         warnings.append(message)
 
 
+@lru_cache(maxsize=1024)
 def extract_function_source(path: Path, function_name: str) -> str:
     source = read_text(path)
     module = ast.parse(source)

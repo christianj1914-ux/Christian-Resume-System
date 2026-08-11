@@ -271,6 +271,7 @@ def evidence_preferred_surface(concept_term: str, job_description: str) -> str:
     return concept_term
 
 
+@lru_cache(maxsize=512)
 def evidence_supported_surfaces(job_description: str) -> tuple[str, ...]:
     surfaces: list[str] = []
     seen: set[str] = set()
@@ -1571,6 +1572,7 @@ def is_general_management_consulting_role(job_description: str) -> bool:
     return generic_consulting_title or hits >= 3
 
 
+@lru_cache(maxsize=512)
 def role_requirement_text(job_description: str) -> str:
     """Return job text suitable for targeting, excluding boilerplate/admin sections."""
     lines = job_description.splitlines()
@@ -1635,6 +1637,7 @@ def line_ngram_phrases(line: str, min_words: int = 2, max_words: int = 2) -> set
     return phrases
 
 
+@lru_cache(maxsize=512)
 def title_phrase_candidates(job_description: str) -> tuple[str, ...]:
     raw_title = extract_job_title(job_description) or ""
     title = clean_job_title(raw_title)
@@ -1723,6 +1726,7 @@ UNSUPPORTED_PLATFORM_KEYWORDS = (
 )
 
 
+@lru_cache(maxsize=32768)
 def keyword_occurrence_count(text: str, keyword: str) -> int:
     normalized = keyword.strip()
     if not normalized:
@@ -1748,10 +1752,11 @@ def canonical_audit_keyword(keyword: str) -> str:
     return keyword
 
 
+@lru_cache(maxsize=32768)
 def classify_keyword_candidate(
     keyword: str,
     job_description: str,
-    parsed_requirements: tuple[object, ...] = (),
+    parsed_requirements: tuple[object, ...] | None = None,
 ) -> KeywordCandidateClassification:
     """Classify one literal before frequency or ranking can promote it."""
 
@@ -1759,7 +1764,7 @@ def classify_keyword_candidate(
     if not normalized:
         return KeywordCandidateClassification("", KeywordCandidateClass.NOISE, False, "empty")
 
-    if not parsed_requirements:
+    if parsed_requirements is None:
         try:
             from requirement_engine import parse_commercial_requirements
 
@@ -2233,6 +2238,7 @@ def is_unsupported_do_not_insert(keyword: str, resume_text: str, job_description
     return not contains_search_term(resume_text.lower(), keyword)
 
 
+@lru_cache(maxsize=32768)
 def audit_keyword_sort_key(job_description: str, keyword: str) -> tuple[int, int, int, int, int, int, str]:
     normalized = normalize_compare(keyword)
     title_phrases = set(title_phrase_candidates(job_description))
@@ -2440,7 +2446,11 @@ def ats_scan_terms(job_description: str, *, limit: int = 25) -> list[str]:
             continue
         ordered.append(term)
         seen.add(normalized)
-    return collapse_breadth_compound_families(ordered, original_job_description)[:limit]
+    return collapse_breadth_compound_families(
+        ordered,
+        original_job_description,
+        parsed_requirements=tuple(parsed_requirements),
+    )[:limit]
 
 
 def ats_coverage(job_description: str, resume_text: str, *, limit: int = 5) -> dict[str, object]:
@@ -2515,9 +2525,10 @@ def keyword_regex(keyword: str) -> str:
         return rf"(?<!\w){escaped}(?!\w)"
     return escaped
 
-def jd_color_priority_terms(job_description: str) -> set[str]:
+@lru_cache(maxsize=512)
+def jd_color_priority_terms(job_description: str) -> frozenset[str]:
     lowered = job_description.lower()
-    return {term for term in COLOR_AUDIT_PRIORITY_TERMS if re.search(keyword_regex(term), lowered)}
+    return frozenset(term for term in COLOR_AUDIT_PRIORITY_TERMS if re.search(keyword_regex(term), lowered))
 
 def is_keyword_color_candidate(keyword: str, job_description: str) -> bool:
     normalized = keyword.lower().strip()
@@ -2614,7 +2625,12 @@ def breadth_term_is_noise(term: str) -> bool:
     return False
 
 
-def collapse_breadth_compound_families(terms: list[str], job_description: str) -> list[str]:
+def collapse_breadth_compound_families(
+    terms: list[str],
+    job_description: str,
+    *,
+    parsed_requirements: tuple[object, ...] | None = None,
+) -> list[str]:
     catalog_groups: dict[str, list[str]] = {}
     ungrouped_terms: list[str] = []
     for term in terms:
@@ -2684,13 +2700,17 @@ def collapse_breadth_compound_families(terms: list[str], job_description: str) -
         ),
         reverse=True,
     )
+    term_classes = {
+        term: classify_keyword_candidate(term, job_description, parsed_requirements).candidate_class
+        for term in ordered
+    }
     reconciled: list[str] = []
     for term in ordered:
         term_parts = normalize_compare(term).split()
-        term_class = classify_keyword_candidate(term, job_description).candidate_class
+        term_class = term_classes[term]
         overlaps = False
         for kept in reconciled:
-            if classify_keyword_candidate(kept, job_description).candidate_class != term_class:
+            if term_classes[kept] != term_class:
                 continue
             kept_parts = normalize_compare(kept).split()
             shorter, longer = (
@@ -2815,6 +2835,7 @@ def scope_pace_signal_labels(job_description: str) -> tuple[str, ...]:
     return tuple(dict.fromkeys(hits))
 
 
+@lru_cache(maxsize=512)
 def job_problem_profile(job_description: str, resume_text: str = "") -> JobProblemProfile:
     original_job_description = job_description
     job_description = role_requirement_text(job_description)

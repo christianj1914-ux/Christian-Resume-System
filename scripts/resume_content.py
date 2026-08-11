@@ -6,6 +6,7 @@ from __future__ import annotations
 import re
 import sys
 from dataclasses import dataclass
+from functools import lru_cache
 from pathlib import Path
 from typing import Sequence
 from xml.etree import ElementTree as ET
@@ -2533,6 +2534,7 @@ def role_fit_checklist(profile: JobProblemProfile, job_description: str) -> tupl
     )
     return tuple(dict.fromkeys(term for term in implementation_terms if term))[:6]
 
+@lru_cache(maxsize=512)
 def build_problem_first_summary(
     job_description: str,
     resume_text: str = "",

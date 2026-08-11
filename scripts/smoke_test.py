@@ -19,6 +19,8 @@ import time
 import xml.etree.ElementTree as ET
 import zipfile
 from datetime import date, datetime, timedelta
+from dataclasses import dataclass
+from functools import lru_cache
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from types import SimpleNamespace
@@ -377,24 +379,32 @@ def assert_true(condition: bool, message: str) -> None:
         raise SmokeFailure(message)
 
 
-def orphaned_test_function_names(source: str) -> tuple[str, ...]:
+@lru_cache(maxsize=1)
+def smoke_test_module_ast() -> ast.Module:
+    """Parse this stable test module once for its source-level contract checks."""
+    return ast.parse(Path(__file__).read_text(encoding="utf-8"))
+
+
+def orphaned_test_function_names(source: str, module: ast.Module | None = None) -> tuple[str, ...]:
     """Find top-level test functions mentioned only by their own definition."""
-    module = ast.parse(source)
-    names = [
+    module = module or ast.parse(source)
+    definitions = [
         node.name
         for node in module.body
         if isinstance(node, ast.FunctionDef) and node.name.startswith("test_")
     ]
-    return tuple(
-        name
-        for name in names
-        if len(re.findall(rf"\b{re.escape(name)}\b", source)) <= 1
-    )
+    references: set[str] = set()
+    for node in ast.walk(module):
+        if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Load):
+            references.add(node.id)
+        elif isinstance(node, ast.Attribute) and isinstance(node.ctx, ast.Load):
+            references.add(node.attr)
+    return tuple(name for name in definitions if name not in references)
 
 
 def test_smoke_registry_has_no_orphaned_test_functions() -> None:
     source = Path(__file__).read_text(encoding="utf-8")
-    orphaned = orphaned_test_function_names(source)
+    orphaned = orphaned_test_function_names(source, smoke_test_module_ast())
     assert_true(not orphaned, f"Unregistered or unreferenced test functions: {', '.join(orphaned)}")
 
 
@@ -424,28 +434,118 @@ def test_orphan_detector_flags_synthetic_unreferenced_test() -> None:
     )
 
 
-def smoke_check_tags(label: str) -> set[str]:
-    """Return the stable focused-validation tags for a registered check."""
-    lowered = label.lower()
-    tags = {"core"}
-    if "federal" in lowered:
+@dataclass(frozen=True)
+class SmokeCheck:
+    label: str
+    check: object
+    tags: frozenset[str] = frozenset()
+
+
+FEDERAL_SMOKE_LABELS = frozenset(
+    {
+        "smoke selector preserves failing federal check",
+        "federal agency extraction",
+        "federal source load",
+        "federal standard essay responses",
+        "federal qualifications append shared question prep",
+        "federal summary structure",
+        "federal all nine competencies supported",
+        "federal grade match and duty visibility",
+        "federal ai summary and selection",
+        "federal requirement audit and keywords",
+        "active federal structural requirement fixture",
+        "DHS multi-grade parser fixture",
+        "federal parser fixture matrix",
+        "federal TargetContext grade overrides and identity",
+        "federal draft reason and banner scope",
+        "federal active question exclusion precedes generation",
+        "federal staged validation failures preserve output",
+        "document set publisher rollback",
+        "document set publisher successful draft and final",
+        "federal layouts stay at ten point",
+        "federal visibility report tracks selected requirements",
+        "federal volunteer experience renders separately",
+        "federal standalone agency output name",
+        "federal supporting doc resolution",
+        "federal ATS plain-text blockers include hours and salary",
+        "federal concurrent role salary fallback",
+        "federal resume plan warns on unverified page count",
+        "federal workflow supporting flags",
+        "federal workflow supporting step order",
+        "shared workflow timeout quarantines partial output",
+        "shared workflow nonzero quarantines partial output",
+        "federal workflow timeout stops supporting steps",
+        "federal workflow dry-run skips upfront validation",
+        "federal workflow dry-run labels unverified page counts",
+        "tasks register federal supporting doc commands",
+        "unlabeled federal header builds safe company interest answer",
+        "extract company mission ignores federal headers",
+        "federal cover fallback does not invent education mission",
+        "federal detailed guide wrapper keeps stage params optional",
+        "federal version control scope gate is unconditional",
+        "federal resume import stays isolated from commercial builders",
+    }
+)
+
+ALIGNMENT_SMOKE_LABELS = frozenset(
+    {
+        "resume builder source passes alignment grade to final fit audit",
+        "application checklist fit classification passes alignment grade",
+        "final fit audit safe none alignment grade",
+        "alignment score ignores unsupported named platforms",
+        "alignment score distinguishes lane and domain fit",
+        "alignment score report",
+        "alignment gate decision",
+        "final alignment fail reason",
+        "build resume uses selected resume text for profile and alignment",
+        "application checklist source fallback uses alignment grade",
+        "resume experience alignment",
+        "contains search term plural handling",
+    }
+)
+
+QUICK_SMOKE_LABELS = frozenset(
+    {
+        "smoke registry has no orphaned test functions",
+        "orphan detector flags synthetic unreferenced test",
+        "smoke selector uses nonempty deduplicated tag union",
+        "smoke avoids mutable active job descriptions",
+        "extract output name has no semantic assignments",
+        "DHS multi-grade parser fixture",
+        "federal parser fixture matrix",
+        "federal TargetContext grade overrides and identity",
+        "federal draft reason and banner scope",
+        "federal active question exclusion precedes generation",
+        "federal staged validation failures preserve output",
+        "document set publisher rollback",
+        "document set publisher successful draft and final",
+        "shared workflow nonzero quarantines partial output",
+    }
+)
+
+
+def explicit_smoke_tags(label: str) -> frozenset[str]:
+    tags: set[str] = set()
+    if label in FEDERAL_SMOKE_LABELS:
         tags.add("federal")
-    if "alignment" in lowered or "contains search term plural" in lowered:
+    if label in ALIGNMENT_SMOKE_LABELS:
         tags.add("alignment")
-    return tags
+    if label in QUICK_SMOKE_LABELS:
+        tags.add("quick")
+    return frozenset(tags)
 
 
 def select_smoke_checks(
-    registered_checks: tuple[tuple[str, object], ...],
+    registered_checks: tuple[SmokeCheck, ...],
     selected_tags: set[str],
-) -> tuple[tuple[str, object], ...]:
+) -> tuple[SmokeCheck, ...]:
     """Select the de-duplicated union of requested focused-validation tags."""
     if not selected_tags:
         return registered_checks
     return tuple(
-        (label, check)
-        for label, check in registered_checks
-        if smoke_check_tags(label) & selected_tags
+        smoke_check
+        for smoke_check in registered_checks
+        if smoke_check.tags & selected_tags
     )
 
 
@@ -454,15 +554,16 @@ def test_smoke_selector_uses_nonempty_deduplicated_tag_union() -> None:
         return None
 
     registry = (
-        ("federal fixture", passing_check),
-        ("alignment fixture", passing_check),
-        ("federal alignment fixture", passing_check),
-        ("unrelated fixture", passing_check),
+        SmokeCheck("federal fixture", passing_check, frozenset({"federal"})),
+        SmokeCheck("alignment fixture", passing_check, frozenset({"alignment"})),
+        SmokeCheck("federal alignment fixture", passing_check, frozenset({"federal", "alignment"})),
+        SmokeCheck("unrelated fixture", passing_check),
     )
     selected = select_smoke_checks(registry, {"federal", "alignment"})
-    labels = [label for label, _check in selected]
+    labels = [smoke_check.label for smoke_check in selected]
     assert_true(0 < len(selected) < len(registry), f"Focused selector should choose a strict nonempty subset; got {labels}")
     assert_true(labels.count("federal alignment fixture") == 1, f"Combined tags must not duplicate checks; got {labels}")
+
 
 def test_python_runtime_guard_and_no_datetime_utc_import() -> None:
     try:
@@ -479,18 +580,23 @@ def test_python_runtime_guard_and_no_datetime_utc_import() -> None:
     ]
     assert_true(not offenders, f"Use timezone.utc instead of fragile datetime.UTC imports: {offenders}")
 
+
 def test_smoke_selector_preserves_failing_federal_check() -> None:
     def failing_federal_check() -> None:
         raise SmokeFailure("injected federal failure")
 
-    selected = select_smoke_checks((("federal injected failure", failing_federal_check),), {"federal"})
+    selected = select_smoke_checks(
+        (SmokeCheck("federal injected failure", failing_federal_check, frozenset({"federal"})),),
+        {"federal"},
+    )
     assert_true(len(selected) == 1, "Focused federal selection must include an injected federal check")
     try:
-        selected[0][1]()
+        selected[0].check()
     except SmokeFailure as error:
         assert_true("injected federal failure" in str(error), "Focused federal failure should propagate as a failure")
     else:
         raise SmokeFailure("Focused federal selector allowed an injected failing check to pass")
+
 
 def test_bootstrap_failure_reports_original_error() -> None:
     original_import_major_scripts = import_major_scripts
@@ -514,330 +620,6 @@ def test_bootstrap_failure_reports_original_error() -> None:
     assert_true("registration incomplete" in report, f"Bootstrap summary should label incomplete registration: {report!r}")
     assert_true("UnboundLocalError" not in report, f"Bootstrap summary must not mask the error: {report!r}")
 
-def test_active_question_exclusion_precedes_generation(question_prep: object) -> None:
-    original_snapshot = question_prep.selected_resume_snapshot
-    try:
-        question_prep.selected_resume_snapshot = lambda *_args, **_kwargs: (_ for _ in ()).throw(
-            SmokeFailure("Excluded company-interest prompt reached resume selection")
-        )
-        with TemporaryDirectory() as temp_dir:
-            question_path = Path(temp_dir) / "questions.txt"
-            question_path.write_text("Why are you interested in this company?\n", encoding="utf-8")
-            responses = question_prep.active_application_question_responses(
-                DUMMY_JOB_DESCRIPTION,
-                question_path,
-                excluded_categories=("company_interest",),
-            )
-        assert_true(not responses, f"Excluded company-interest prompt should produce no answer: {responses}")
-    finally:
-        question_prep.selected_resume_snapshot = original_snapshot
-
-def test_dhs_multi_grade_parser_fixture() -> None:
-    import requirement_engine
-
-    fixture = SCRIPT_DIR / "test_fixtures" / "federal" / "dhs_multi_grade.txt"
-    parsed = requirement_engine.parse_federal_posting(fixture.read_text(encoding="utf-8"))
-    selected = tuple(requirement for requirement in parsed.requirements if requirement.grade == parsed.selected_grade)
-    assert_true(parsed.duty_grade == "GS-12", f"DHS duty grade drifted: {parsed.duty_grade}")
-    assert_true(parsed.available_grades == ("GS-09", "GS-11"), f"DHS grades drifted: {parsed.available_grades}")
-    assert_true(parsed.selected_grade == "GS-11" and parsed.equivalent_grade == "GS-09", f"DHS selection drifted: {parsed}")
-    assert_true(len(selected) == 4, f"DHS should expose four selected GS-11 requirements; got {len(selected)}")
-    assert_true(
-        any(diagnostic.code == "duty_qualification_grade_mismatch" and diagnostic.requires_draft for diagnostic in parsed.diagnostics),
-        f"DHS mismatch diagnostic drifted: {parsed.diagnostics}",
-    )
-
-def test_document_set_publisher_commits_draft_and_final_sets() -> None:
-    import workflow_step_runner
-
-    for marker in (" DRAFT", ""):
-        with TemporaryDirectory() as temp_dir:
-            root = Path(temp_dir)
-            staged_resume = root / "staged_resume.docx"
-            staged_qualifications = root / "staged_qualifications.docx"
-            final_resume = root / f"resume{marker}.docx"
-            final_qualifications = root / f"qualifications{marker}.docx"
-            staged_resume.write_bytes(b"resume")
-            staged_qualifications.write_bytes(b"qualifications")
-            workflow_step_runner.publish_document_set(
-                ((staged_resume, final_resume), (staged_qualifications, final_qualifications)),
-                quarantine_root=root / "quarantine",
-            )
-            assert_true(final_resume.read_bytes() == b"resume" and final_qualifications.read_bytes() == b"qualifications", f"Publication failed for marker {marker!r}")
-
-def test_document_set_publisher_rolls_back_every_destination() -> None:
-    import workflow_step_runner
-
-    for failing_replace in (2, 4):
-        with TemporaryDirectory() as temp_dir:
-            root = Path(temp_dir)
-            staged_resume = root / "staged_resume.docx"
-            staged_qualifications = root / "staged_qualifications.docx"
-            final_resume = root / "output" / "resume.docx"
-            final_qualifications = root / "output" / "qualifications.docx"
-            quarantine = root / "quarantine"
-            final_resume.parent.mkdir()
-            staged_resume.write_bytes(b"new resume")
-            staged_qualifications.write_bytes(b"new qualifications")
-            final_resume.write_bytes(b"old resume")
-            final_qualifications.write_bytes(b"old qualifications")
-            original_replace = workflow_step_runner.os.replace
-            calls = 0
-
-            def injected_replace(source: object, destination: object) -> None:
-                nonlocal calls
-                calls += 1
-                if calls == failing_replace:
-                    raise OSError("injected replacement failure")
-                original_replace(source, destination)
-
-            workflow_step_runner.os.replace = injected_replace
-            try:
-                try:
-                    workflow_step_runner.publish_document_set(
-                        ((staged_resume, final_resume), (staged_qualifications, final_qualifications)),
-                        quarantine_root=quarantine,
-                    )
-                except OSError:
-                    pass
-                else:
-                    raise SmokeFailure("Injected document-set publication failure did not propagate")
-            finally:
-                workflow_step_runner.os.replace = original_replace
-            assert_true(final_resume.read_bytes() == b"old resume", f"Resume rollback failed at replacement {failing_replace}")
-            assert_true(final_qualifications.read_bytes() == b"old qualifications", f"Qualifications rollback failed at replacement {failing_replace}")
-
-def test_extract_output_name_has_no_semantic_assignments() -> None:
-    offenders: list[str] = []
-    semantic_names = {"company", "company_name", "current_company", "agency", "employer", "organization"}
-    for path in (PROJECT_ROOT / "scripts").glob("*.py"):
-        module = ast.parse(path.read_text(encoding="utf-8"))
-        for node in ast.walk(module):
-            if not isinstance(node, (ast.Assign, ast.AnnAssign)):
-                continue
-            value = node.value
-            if not isinstance(value, ast.Call):
-                continue
-            function_name = value.func.attr if isinstance(value.func, ast.Attribute) else value.func.id if isinstance(value.func, ast.Name) else ""
-            if function_name != "extract_output_name":
-                continue
-            targets = node.targets if isinstance(node, ast.Assign) else (node.target,)
-            for target in targets:
-                if isinstance(target, ast.Name) and target.id in semantic_names:
-                    offenders.append(f"{path.name}:{target.id}")
-    assert_true(not offenders, f"Filename helper is still assigned to semantic organization variables: {offenders}")
-
-def test_federal_draft_reason_and_banner_scope(build_federal_resume: object) -> None:
-    import requirement_engine
-
-    fixture = SCRIPT_DIR / "test_fixtures" / "federal" / "dhs_multi_grade.txt"
-    context = requirement_engine.build_target_context(fixture.read_text(encoding="utf-8"), workflow="federal")
-    question, parse, is_draft = build_federal_resume.federal_draft_channels(context)
-    assert_true(not question and parse and is_draft, f"Parse-only draft channel drifted: {question, parse, is_draft}")
-    resume_path, qualifications_path = build_federal_resume.federal_output_paths(context.output_label, is_draft=is_draft)
-    assert_true(" DRAFT Federal Resume" in resume_path.name and " DRAFT Federal Qualifications" in qualifications_path.name, "Both federal filenames must carry DRAFT")
-    question, parse, is_draft = build_federal_resume.federal_draft_channels(context, ("question context mismatch",))
-    assert_true(question and parse and is_draft, "Combined draft channels must retain both reasons")
-    source = Path(build_federal_resume.__file__).read_text(encoding="utf-8")
-    assert_true(
-        "if question_context_issues:\n            question_prep.mark_docx_as_draft" in source,
-        "Visible DRAFT banner must remain scoped to question-context issues only",
-    )
-
-def test_federal_parser_fixture_matrix() -> None:
-    import requirement_engine
-
-    root = SCRIPT_DIR / "test_fixtures" / "federal"
-    single = requirement_engine.parse_federal_posting((root / "verified_single_grade.txt").read_text(encoding="utf-8"))
-    as_a = requirement_engine.parse_federal_posting((root / "as_a_opening.txt").read_text(encoding="utf-8"))
-    as_an = requirement_engine.parse_federal_posting((root / "as_an_opening.txt").read_text(encoding="utf-8"))
-    empty = requirement_engine.parse_federal_posting((root / "qualification_without_duties.txt").read_text(encoding="utf-8"))
-    mismatch = requirement_engine.parse_federal_posting((root / "duty_grade_mismatch.txt").read_text(encoding="utf-8"))
-    compact = requirement_engine.parse_federal_posting((root / "compact_questionnaire.txt").read_text(encoding="utf-8"))
-    marker = requirement_engine.parse_federal_posting((root / "specialized_marker_style.txt").read_text(encoding="utf-8"))
-    requested = requirement_engine.parse_federal_posting((root / "dhs_multi_grade.txt").read_text(encoding="utf-8"), target_grade="GS-09")
-    unavailable = requirement_engine.parse_federal_posting((root / "dhs_multi_grade.txt").read_text(encoding="utf-8"), target_grade="GS-13")
-    assert_true(single.verified and single.selected_grade == "GS-11", f"Single-grade fixture drifted: {single}")
-    assert_true(as_a.duty_grade == "GS-09" and as_an.duty_grade == "GS-12", f"A/an duty openings drifted: {as_a.duty_grade, as_an.duty_grade}")
-    assert_true(not empty.verified and any(d.code == "qualification_block_without_requirements" for d in empty.diagnostics), f"Empty qualification fixture drifted: {empty}")
-    assert_true(not mismatch.verified and any(d.code == "duty_qualification_grade_mismatch" for d in mismatch.diagnostics), f"Mismatch fixture drifted: {mismatch}")
-    assert_true(compact.selected_grade == "GS-11" and compact.verified, f"Compact questionnaire drifted: {compact}")
-    assert_true(marker.selected_grade == "GS-12" and marker.equivalent_grade == "GS-11", f"Legacy marker fixture drifted: {marker}")
-    assert_true(requested.selected_grade == "GS-09" and len([r for r in requested.requirements if r.grade == "GS-09"]) == 4, f"Available override drifted: {requested}")
-    assert_true(unavailable.selected_grade == "GS-13" and not [r for r in unavailable.requirements if r.grade == "GS-13"] and not unavailable.verified, f"Unavailable override drifted: {unavailable}")
-
-def test_federal_target_context_grade_overrides_and_identity() -> None:
-    import requirement_engine
-
-    fixture = SCRIPT_DIR / "test_fixtures" / "federal" / "dhs_multi_grade.txt"
-    job_description = fixture.read_text(encoding="utf-8")
-    default = requirement_engine.build_target_context(job_description, workflow="federal")
-    gs09 = requirement_engine.build_target_context(job_description, workflow="federal", target_grade="GS-09")
-    unavailable = requirement_engine.build_target_context(job_description, workflow="federal", target_grade="GS-13")
-    assert_true(default.target_grade == "GS-11" and len(default.requirements) == 4, f"Default context drifted: {default}")
-    assert_true(gs09.target_grade == "GS-09" and len(gs09.requirements) == 4, f"GS-09 context drifted: {gs09}")
-    assert_true(unavailable.target_grade == "GS-13" and not unavailable.requirements and not unavailable.verified, f"Unavailable grade drifted: {unavailable}")
-    assert_true(default.identity_source == "agency" and default.agency == "Department of Homeland Security", f"Federal identity drifted: {default}")
-    assert_true("GS-11" in default.output_label, f"Federal output label must carry the selected grade: {default.output_label}")
-    assert_true(requirement_engine.parse_grade_clause(job_description)[:2] == (default.target_grade, default.equivalent_grade), "TargetContext and compatibility grade wrapper must agree")
-
-def test_shared_workflow_nonzero_quarantines_partial_output() -> None:
-    import workflow_step_runner
-
-    with TemporaryDirectory(prefix="workflow_nonzero_") as temp_name:
-        root = Path(temp_name)
-        output_dir = root / "output"
-        log_dir = root / "logs"
-        output_dir.mkdir()
-        original_document = output_dir / "resume.docx"
-        original_document.write_text("known-good", encoding="utf-8")
-
-        class FailedProcess:
-            pid = 23456
-            returncode = 1
-
-            def communicate(self, timeout: int | None = None) -> tuple[str, str]:
-                original_document.write_text("failed partial", encoding="utf-8")
-                return "", "injected builder failure"
-
-        original_popen = workflow_step_runner.subprocess.Popen
-        try:
-            workflow_step_runner.subprocess.Popen = lambda *_args, **_kwargs: FailedProcess()
-            result = workflow_step_runner.run_document_step(
-                step_name="Building federal resume",
-                command=[sys.executable, "builder.py"],
-                cwd=root,
-                output_dir=output_dir,
-                log_dir=log_dir,
-                timeout_seconds=600,
-            )
-        finally:
-            workflow_step_runner.subprocess.Popen = original_popen
-
-        assert_true(result.returncode == 1 and not result.timed_out, f"Nonzero process result drifted: {result}")
-        assert_true(original_document.read_text(encoding="utf-8") == "known-good", "Nonzero output should restore the prior usable document")
-        assert_true(
-            result.quarantine_path is not None and (result.quarantine_path / "resume.docx").read_text(encoding="utf-8") == "failed partial",
-            f"Nonzero partial output should be quarantined; got {result.quarantine_path}",
-        )
-
-def test_smoke_does_not_read_mutable_active_job_descriptions() -> None:
-    module = ast.parse(Path(__file__).read_text(encoding="utf-8"))
-    forbidden = {"federal_" + "job_description.txt", "job_" + "description.txt"}
-    offenders: list[str] = []
-
-    def path_parts(node: ast.AST) -> tuple[str, ...]:
-        if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Div):
-            return (*path_parts(node.left), *path_parts(node.right))
-        if isinstance(node, ast.Name):
-            return (node.id,)
-        if isinstance(node, ast.Constant) and isinstance(node.value, str):
-            return (node.value,)
-        return ()
-
-    for node in ast.walk(module):
-        parts = path_parts(node)
-        if len(parts) >= 3 and parts[0] == "PROJECT_ROOT" and parts[-2] == "jobs" and parts[-1] in forbidden:
-            offenders.append("/".join(parts))
-    assert_true(not offenders, f"Smoke checks must use immutable fixtures, not active job files: {offenders}")
-
-def test_staged_federal_validation_failures_leave_output_unchanged(build_federal_resume: object) -> None:
-    original_ats = build_federal_resume.federal_plain_text_validation
-    original_coverage = build_federal_resume.assert_final_federal_coverage
-    original_page_count = build_federal_resume.page_count_for_docx
-    try:
-        for failure_kind in ("ats", "coverage", "page_count"):
-            with TemporaryDirectory() as temp_dir:
-                root = Path(temp_dir)
-                staged_resume = root / "staged_resume.docx"
-                staged_qualifications = root / "staged_qualifications.docx"
-                published_resume = root / "output_resume.docx"
-                published_qualifications = root / "output_qualifications.docx"
-                staged_resume.write_bytes(b"staged resume")
-                staged_qualifications.write_bytes(b"staged qualifications")
-                published_resume.write_bytes(b"published resume")
-                published_qualifications.write_bytes(b"published qualifications")
-                build_federal_resume.federal_plain_text_validation = (
-                    (lambda _path: {"warnings": [], "blockers": ["injected ATS failure"]})
-                    if failure_kind == "ats"
-                    else (lambda _path: {"warnings": [], "blockers": []})
-                )
-                build_federal_resume.assert_final_federal_coverage = (
-                    (lambda *_args, **_kwargs: (_ for _ in ()).throw(SmokeFailure("injected coverage failure")))
-                    if failure_kind == "coverage"
-                    else (lambda *_args, **_kwargs: None)
-                )
-                build_federal_resume.page_count_for_docx = (
-                    (lambda *_args, **_kwargs: 3)
-                    if failure_kind == "page_count"
-                    else original_page_count
-                )
-                audit = build_federal_resume.FederalAudit((), (), (), ())
-                try:
-                    build_federal_resume.validate_staged_federal_documents(
-                        staged_resume,
-                        staged_qualifications,
-                        "fixture",
-                        audit,
-                        root,
-                        resume_render_label="resume",
-                        qualifications_render_label="qualifications",
-                    )
-                except BaseException:  # expected injected validation failure
-                    pass
-                else:
-                    raise SmokeFailure(f"Injected {failure_kind} failure did not stop staged validation")
-                assert_true(published_resume.read_bytes() == b"published resume", f"{failure_kind} changed the published resume")
-                assert_true(published_qualifications.read_bytes() == b"published qualifications", f"{failure_kind} changed published qualifications")
-    finally:
-        build_federal_resume.federal_plain_text_validation = original_ats
-        build_federal_resume.assert_final_federal_coverage = original_coverage
-        build_federal_resume.page_count_for_docx = original_page_count
-
-def test_unlabeled_federal_header_builds_safe_company_interest_answer(
-    build_cover_letter: object,
-    build_resume: object,
-) -> None:
-    question_prep = build_cover_letter.question_prep
-    job_description = (
-        "Mission Support Specialist\n"
-        "Department of Homeland Security\n"
-        "Immigration and Customs Enforcement\n"
-        "Office of the Principal Legal Advisor\n\n"
-        "As a Mission Support Specialist, GS-12 you will evaluate administrative programs, analyze "
-        "interrelated issues, recommend actions, and improve program operations."
-    )
-    company_name = build_resume.extract_company_name(job_description)
-    assert_true(
-        company_name == "Department of Homeland Security",
-        "Unlabeled federal headers should resolve the department as the employer instead of falling back to "
-        f"the role title; got {company_name!r}",
-    )
-    mission = question_prep.mission_or_context_sentence(company_name, "", job_description)
-    assert_true(
-        mission == "",
-        "mission_or_context_sentence() must not treat an unlabeled role title or duty header containing "
-        "'Mission' as an "
-        f"employer mission statement; got {mission!r}",
-    )
-    resume_text = build_resume.docx_visible_text_from_path(build_resume.IMPLEMENTATION_RESUME)
-    brief = question_prep.build_positioning_brief(
-        job_description,
-        resume_text,
-        notes_text="I am drawn to practical work that turns ambiguous operating problems into reliable processes.",
-    )
-    answer = question_prep.finalize_candidate_answer(
-        "Why are you interested in this role?",
-        question_prep.build_why_company_answer(brief),
-        min_words=8,
-    )
-    assert_true(
-        "Department of Homeland Security" in answer
-        and not answer.startswith("Mission Support Specialist.")
-        and ":." not in answer
-        and not question_prep.sentence_splice_issues(answer),
-        f"Federal company-interest answer should be employer-specific and fragment-free; got {answer!r}",
-    )
 
 def word_count(text: str) -> int:
     return len(re.findall(r"\b[\w+.#'-]+\b", text))
@@ -1519,6 +1301,259 @@ def test_active_federal_structural_requirement_fixture(build_federal_resume: obj
     parsed = requirement_engine.parse_federal_posting(job_description)
     assert_true(parsed.available_grades == ("GS-14",), f"VA fixture grade list drifted: {parsed.available_grades}")
     assert_true(len(parsed.requirements) >= 6 and parsed.verified, f"VA fixture requirements drifted: {parsed}")
+
+
+def test_dhs_multi_grade_parser_fixture() -> None:
+    import requirement_engine
+
+    fixture = SCRIPT_DIR / "test_fixtures" / "federal" / "dhs_multi_grade.txt"
+    parsed = requirement_engine.parse_federal_posting(fixture.read_text(encoding="utf-8"))
+    selected = tuple(requirement for requirement in parsed.requirements if requirement.grade == parsed.selected_grade)
+    assert_true(parsed.duty_grade == "GS-12", f"DHS duty grade drifted: {parsed.duty_grade}")
+    assert_true(parsed.available_grades == ("GS-09", "GS-11"), f"DHS grades drifted: {parsed.available_grades}")
+    assert_true(parsed.selected_grade == "GS-11" and parsed.equivalent_grade == "GS-09", f"DHS selection drifted: {parsed}")
+    assert_true(len(selected) == 4, f"DHS should expose four selected GS-11 requirements; got {len(selected)}")
+    assert_true(
+        any(diagnostic.code == "duty_qualification_grade_mismatch" and diagnostic.requires_draft for diagnostic in parsed.diagnostics),
+        f"DHS mismatch diagnostic drifted: {parsed.diagnostics}",
+    )
+
+
+def test_federal_parser_fixture_matrix() -> None:
+    import requirement_engine
+
+    root = SCRIPT_DIR / "test_fixtures" / "federal"
+    single = requirement_engine.parse_federal_posting((root / "verified_single_grade.txt").read_text(encoding="utf-8"))
+    as_a = requirement_engine.parse_federal_posting((root / "as_a_opening.txt").read_text(encoding="utf-8"))
+    as_an = requirement_engine.parse_federal_posting((root / "as_an_opening.txt").read_text(encoding="utf-8"))
+    empty = requirement_engine.parse_federal_posting((root / "qualification_without_duties.txt").read_text(encoding="utf-8"))
+    mismatch = requirement_engine.parse_federal_posting((root / "duty_grade_mismatch.txt").read_text(encoding="utf-8"))
+    compact = requirement_engine.parse_federal_posting((root / "compact_questionnaire.txt").read_text(encoding="utf-8"))
+    marker = requirement_engine.parse_federal_posting((root / "specialized_marker_style.txt").read_text(encoding="utf-8"))
+    requested = requirement_engine.parse_federal_posting((root / "dhs_multi_grade.txt").read_text(encoding="utf-8"), target_grade="GS-09")
+    unavailable = requirement_engine.parse_federal_posting((root / "dhs_multi_grade.txt").read_text(encoding="utf-8"), target_grade="GS-13")
+    assert_true(single.verified and single.selected_grade == "GS-11", f"Single-grade fixture drifted: {single}")
+    assert_true(as_a.duty_grade == "GS-09" and as_an.duty_grade == "GS-12", f"A/an duty openings drifted: {as_a.duty_grade, as_an.duty_grade}")
+    assert_true(not empty.verified and any(d.code == "qualification_block_without_requirements" for d in empty.diagnostics), f"Empty qualification fixture drifted: {empty}")
+    assert_true(not mismatch.verified and any(d.code == "duty_qualification_grade_mismatch" for d in mismatch.diagnostics), f"Mismatch fixture drifted: {mismatch}")
+    assert_true(compact.selected_grade == "GS-11" and compact.verified, f"Compact questionnaire drifted: {compact}")
+    assert_true(marker.selected_grade == "GS-12" and marker.equivalent_grade == "GS-11", f"Legacy marker fixture drifted: {marker}")
+    assert_true(requested.selected_grade == "GS-09" and len([r for r in requested.requirements if r.grade == "GS-09"]) == 4, f"Available override drifted: {requested}")
+    assert_true(unavailable.selected_grade == "GS-13" and not [r for r in unavailable.requirements if r.grade == "GS-13"] and not unavailable.verified, f"Unavailable override drifted: {unavailable}")
+
+
+def test_smoke_does_not_read_mutable_active_job_descriptions() -> None:
+    module = smoke_test_module_ast()
+    forbidden = {"federal_" + "job_description.txt", "job_" + "description.txt"}
+    offenders: list[str] = []
+
+    def path_parts(node: ast.AST) -> tuple[str, ...]:
+        if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Div):
+            return (*path_parts(node.left), *path_parts(node.right))
+        if isinstance(node, ast.Name):
+            return (node.id,)
+        if isinstance(node, ast.Constant) and isinstance(node.value, str):
+            return (node.value,)
+        return ()
+
+    for node in ast.walk(module):
+        parts = path_parts(node)
+        if len(parts) >= 3 and parts[0] == "PROJECT_ROOT" and parts[-2] == "jobs" and parts[-1] in forbidden:
+            offenders.append("/".join(parts))
+    assert_true(not offenders, f"Smoke checks must use immutable fixtures, not active job files: {offenders}")
+
+
+def test_federal_target_context_grade_overrides_and_identity() -> None:
+    import requirement_engine
+
+    fixture = SCRIPT_DIR / "test_fixtures" / "federal" / "dhs_multi_grade.txt"
+    job_description = fixture.read_text(encoding="utf-8")
+    default = requirement_engine.build_target_context(job_description, workflow="federal")
+    gs09 = requirement_engine.build_target_context(job_description, workflow="federal", target_grade="GS-09")
+    unavailable = requirement_engine.build_target_context(job_description, workflow="federal", target_grade="GS-13")
+    assert_true(default.target_grade == "GS-11" and len(default.requirements) == 4, f"Default context drifted: {default}")
+    assert_true(gs09.target_grade == "GS-09" and len(gs09.requirements) == 4, f"GS-09 context drifted: {gs09}")
+    assert_true(unavailable.target_grade == "GS-13" and not unavailable.requirements and not unavailable.verified, f"Unavailable grade drifted: {unavailable}")
+    assert_true(default.identity_source == "agency" and default.agency == "Department of Homeland Security", f"Federal identity drifted: {default}")
+    assert_true("GS-11" in default.output_label, f"Federal output label must carry the selected grade: {default.output_label}")
+    assert_true(requirement_engine.parse_grade_clause(job_description)[:2] == (default.target_grade, default.equivalent_grade), "TargetContext and compatibility grade wrapper must agree")
+
+
+def test_federal_draft_reason_and_banner_scope(build_federal_resume: object) -> None:
+    import requirement_engine
+
+    fixture = SCRIPT_DIR / "test_fixtures" / "federal" / "dhs_multi_grade.txt"
+    context = requirement_engine.build_target_context(fixture.read_text(encoding="utf-8"), workflow="federal")
+    question, parse, is_draft = build_federal_resume.federal_draft_channels(context)
+    assert_true(not question and parse and is_draft, f"Parse-only draft channel drifted: {question, parse, is_draft}")
+    resume_path, qualifications_path = build_federal_resume.federal_output_paths(context.output_label, is_draft=is_draft)
+    assert_true(" DRAFT Federal Resume" in resume_path.name and " DRAFT Federal Qualifications" in qualifications_path.name, "Both federal filenames must carry DRAFT")
+    question, parse, is_draft = build_federal_resume.federal_draft_channels(context, ("question context mismatch",))
+    assert_true(question and parse and is_draft, "Combined draft channels must retain both reasons")
+    source = Path(build_federal_resume.__file__).read_text(encoding="utf-8")
+    assert_true(
+        "if question_context_issues:\n            question_prep.mark_docx_as_draft" in source,
+        "Visible DRAFT banner must remain scoped to question-context issues only",
+    )
+
+
+def test_active_question_exclusion_precedes_generation(question_prep: object) -> None:
+    original_snapshot = question_prep.selected_resume_snapshot
+    try:
+        question_prep.selected_resume_snapshot = lambda *_args, **_kwargs: (_ for _ in ()).throw(
+            SmokeFailure("Excluded company-interest prompt reached resume selection")
+        )
+        with TemporaryDirectory() as temp_dir:
+            question_path = Path(temp_dir) / "questions.txt"
+            question_path.write_text("Why are you interested in this company?\n", encoding="utf-8")
+            responses = question_prep.active_application_question_responses(
+                DUMMY_JOB_DESCRIPTION,
+                question_path,
+                excluded_categories=("company_interest",),
+            )
+        assert_true(not responses, f"Excluded company-interest prompt should produce no answer: {responses}")
+    finally:
+        question_prep.selected_resume_snapshot = original_snapshot
+
+
+def test_document_set_publisher_rolls_back_every_destination() -> None:
+    import workflow_step_runner
+
+    for failing_replace in (2, 4):
+        with TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            staged_resume = root / "staged_resume.docx"
+            staged_qualifications = root / "staged_qualifications.docx"
+            final_resume = root / "output" / "resume.docx"
+            final_qualifications = root / "output" / "qualifications.docx"
+            quarantine = root / "quarantine"
+            final_resume.parent.mkdir()
+            staged_resume.write_bytes(b"new resume")
+            staged_qualifications.write_bytes(b"new qualifications")
+            final_resume.write_bytes(b"old resume")
+            final_qualifications.write_bytes(b"old qualifications")
+            original_replace = workflow_step_runner.os.replace
+            calls = 0
+
+            def injected_replace(source: object, destination: object) -> None:
+                nonlocal calls
+                calls += 1
+                if calls == failing_replace:
+                    raise OSError("injected replacement failure")
+                original_replace(source, destination)
+
+            workflow_step_runner.os.replace = injected_replace
+            try:
+                try:
+                    workflow_step_runner.publish_document_set(
+                        ((staged_resume, final_resume), (staged_qualifications, final_qualifications)),
+                        quarantine_root=quarantine,
+                    )
+                except OSError:
+                    pass
+                else:
+                    raise SmokeFailure("Injected document-set publication failure did not propagate")
+            finally:
+                workflow_step_runner.os.replace = original_replace
+            assert_true(final_resume.read_bytes() == b"old resume", f"Resume rollback failed at replacement {failing_replace}")
+            assert_true(final_qualifications.read_bytes() == b"old qualifications", f"Qualifications rollback failed at replacement {failing_replace}")
+
+
+def test_document_set_publisher_commits_draft_and_final_sets() -> None:
+    import workflow_step_runner
+
+    for marker in (" DRAFT", ""):
+        with TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            staged_resume = root / "staged_resume.docx"
+            staged_qualifications = root / "staged_qualifications.docx"
+            final_resume = root / f"resume{marker}.docx"
+            final_qualifications = root / f"qualifications{marker}.docx"
+            staged_resume.write_bytes(b"resume")
+            staged_qualifications.write_bytes(b"qualifications")
+            workflow_step_runner.publish_document_set(
+                ((staged_resume, final_resume), (staged_qualifications, final_qualifications)),
+                quarantine_root=root / "quarantine",
+            )
+            assert_true(final_resume.read_bytes() == b"resume" and final_qualifications.read_bytes() == b"qualifications", f"Publication failed for marker {marker!r}")
+
+
+def test_staged_federal_validation_failures_leave_output_unchanged(build_federal_resume: object) -> None:
+    original_ats = build_federal_resume.federal_plain_text_validation
+    original_coverage = build_federal_resume.assert_final_federal_coverage
+    original_page_count = build_federal_resume.page_count_for_docx
+    try:
+        for failure_kind in ("ats", "coverage", "page_count"):
+            with TemporaryDirectory() as temp_dir:
+                root = Path(temp_dir)
+                staged_resume = root / "staged_resume.docx"
+                staged_qualifications = root / "staged_qualifications.docx"
+                published_resume = root / "output_resume.docx"
+                published_qualifications = root / "output_qualifications.docx"
+                staged_resume.write_bytes(b"staged resume")
+                staged_qualifications.write_bytes(b"staged qualifications")
+                published_resume.write_bytes(b"published resume")
+                published_qualifications.write_bytes(b"published qualifications")
+                build_federal_resume.federal_plain_text_validation = (
+                    (lambda _path: {"warnings": [], "blockers": ["injected ATS failure"]})
+                    if failure_kind == "ats"
+                    else (lambda _path: {"warnings": [], "blockers": []})
+                )
+                build_federal_resume.assert_final_federal_coverage = (
+                    (lambda *_args, **_kwargs: (_ for _ in ()).throw(SmokeFailure("injected coverage failure")))
+                    if failure_kind == "coverage"
+                    else (lambda *_args, **_kwargs: None)
+                )
+                build_federal_resume.page_count_for_docx = (
+                    (lambda *_args, **_kwargs: 3)
+                    if failure_kind == "page_count"
+                    else original_page_count
+                )
+                audit = build_federal_resume.FederalAudit((), (), (), ())
+                try:
+                    build_federal_resume.validate_staged_federal_documents(
+                        staged_resume,
+                        staged_qualifications,
+                        "fixture",
+                        audit,
+                        root,
+                        resume_render_label="resume",
+                        qualifications_render_label="qualifications",
+                    )
+                except BaseException:  # expected injected validation failure
+                    pass
+                else:
+                    raise SmokeFailure(f"Injected {failure_kind} failure did not stop staged validation")
+                assert_true(published_resume.read_bytes() == b"published resume", f"{failure_kind} changed the published resume")
+                assert_true(published_qualifications.read_bytes() == b"published qualifications", f"{failure_kind} changed published qualifications")
+    finally:
+        build_federal_resume.federal_plain_text_validation = original_ats
+        build_federal_resume.assert_final_federal_coverage = original_coverage
+        build_federal_resume.page_count_for_docx = original_page_count
+
+
+def test_extract_output_name_has_no_semantic_assignments() -> None:
+    offenders: list[str] = []
+    semantic_names = {"company", "company_name", "current_company", "agency", "employer", "organization"}
+    for path in (PROJECT_ROOT / "scripts").glob("*.py"):
+        source = path.read_text(encoding="utf-8")
+        if "extract_output_name" not in source:
+            continue
+        module = ast.parse(source)
+        for node in ast.walk(module):
+            if not isinstance(node, (ast.Assign, ast.AnnAssign)):
+                continue
+            value = node.value
+            if not isinstance(value, ast.Call):
+                continue
+            function_name = value.func.attr if isinstance(value.func, ast.Attribute) else value.func.id if isinstance(value.func, ast.Name) else ""
+            if function_name != "extract_output_name":
+                continue
+            targets = node.targets if isinstance(node, ast.Assign) else (node.target,)
+            for target in targets:
+                if isinstance(target, ast.Name) and target.id in semantic_names:
+                    offenders.append(f"{path.name}:{target.id}")
+    assert_true(not offenders, f"Filename helper is still assigned to semantic organization variables: {offenders}")
 
 
 def test_federal_layouts_stay_at_ten_point(build_federal_resume: object) -> None:
@@ -2935,6 +2970,52 @@ def test_mission_or_context_sentence_survives_job_label_header(build_cover_lette
         "empower mission-driven organizations" in foundant_mission.lower(),
         "mission_or_context_sentence() should ignore 'Focus' in a role title and select the actual company "
         f"context sentence; got {foundant_mission!r}",
+    )
+
+
+def test_unlabeled_federal_header_builds_safe_company_interest_answer(
+    build_cover_letter: object,
+    build_resume: object,
+) -> None:
+    question_prep = build_cover_letter.question_prep
+    job_description = (
+        "Mission Support Specialist\n"
+        "Department of Homeland Security\n"
+        "Immigration and Customs Enforcement\n"
+        "Office of the Principal Legal Advisor\n\n"
+        "As a Mission Support Specialist, GS-12 you will evaluate administrative programs, analyze "
+        "interrelated issues, recommend actions, and improve program operations."
+    )
+    company_name = build_resume.extract_company_name(job_description)
+    assert_true(
+        company_name == "Department of Homeland Security",
+        "Unlabeled federal headers should resolve the department as the employer instead of falling back to "
+        f"the role title; got {company_name!r}",
+    )
+    mission = question_prep.mission_or_context_sentence(company_name, "", job_description)
+    assert_true(
+        mission == "",
+        "mission_or_context_sentence() must not treat an unlabeled role title or duty header containing "
+        "'Mission' as an "
+        f"employer mission statement; got {mission!r}",
+    )
+    resume_text = build_resume.docx_visible_text_from_path(build_resume.IMPLEMENTATION_RESUME)
+    brief = question_prep.build_positioning_brief(
+        job_description,
+        resume_text,
+        notes_text="I am drawn to practical work that turns ambiguous operating problems into reliable processes.",
+    )
+    answer = question_prep.finalize_candidate_answer(
+        "Why are you interested in this role?",
+        question_prep.build_why_company_answer(brief),
+        min_words=8,
+    )
+    assert_true(
+        "Department of Homeland Security" in answer
+        and not answer.startswith("Mission Support Specialist.")
+        and ":." not in answer
+        and not question_prep.sentence_splice_issues(answer),
+        f"Federal company-interest answer should be employer-specific and fragment-free; got {answer!r}",
     )
 
 
@@ -11731,44 +11812,6 @@ def test_expansion_question_mapping_and_checklist_content(
         assert_true(fragment in checklist_text, f"Generated checklist should include {fragment!r}.")
 
 
-def test_builder_story_routing_and_hero_guarantees(build_resume: object, build_interview_cheat_sheet: object) -> None:
-    resume_text = build_interview_cheat_sheet.question_prep.approved_source_resume_text()
-    signal_jd = "Implementation role requiring scalable standardized workflow documentation, enablement, and repeatable process design."
-    profile = build_resume.job_problem_profile(signal_jd, resume_text)
-    assert_true(build_interview_cheat_sheet.builder_story_required(profile, signal_jd), "Builder routing should activate for a signal-matched implementation posting.")
-    cards = build_interview_cheat_sheet.expanded_story_bank()
-    tagged = {card.title for card in cards if "Repeatable Systems" in card.story_types}
-    assert_true(tagged == {"High-volume inventory automation", "Zero-to-one SMS support channel", "Salesforce backlog and release coordination"}, f"Only source-supported reusable mechanisms may receive Builder tagging; got {tagged}.")
-    selected = build_interview_cheat_sheet.hero_stories(profile, signal_jd, resume_text, eligibility_text=resume_text)
-    selected_types = {story_type for card in selected for story_type in card.story_types}
-    assert_true("Repeatable Systems" in selected_types, "A signal-matched hero set should include one Builder story.")
-    assert_true("Challenge and Failure" in selected_types, "Builder routing must preserve the failure guarantee.")
-    assert_true("Persuasion" in selected_types or "Opposing Views" in selected_types, "Builder routing must preserve the persuasion guarantee.")
-
-def test_commercial_answer_and_lane_question_boundaries(build_resume: object, build_interview_cheat_sheet: object) -> None:
-    resume_text = build_interview_cheat_sheet.question_prep.approved_source_resume_text()
-    answer = build_interview_cheat_sheet.commercial_acumen_answer().lower()
-    for required in ("did not carry a quota", "one million dollars", "qbrs", "executive reviews", "expansion discovery"):
-        assert_true(required in answer, f"Commercial answer missing required source-bound proof: {required}.")
-    for forbidden in ("quota attainment", "closed expansion revenue", "retention percentage"):
-        assert_true(forbidden not in answer, f"Commercial answer must not invent {forbidden}.")
-    cs_profile = build_resume.job_problem_profile("Customer Success Manager responsible for retention and expansion.", resume_text)
-    cs_prompts = {item.question for item in build_interview_cheat_sheet.likely_questions(cs_profile, "Customer Success Manager responsible for retention and expansion.")}
-    assert_true("Walk me through your book: retention, expansion, and risk." in cs_prompts, "CS questions must retain the book prompt.")
-    implementation_profile = build_resume.job_problem_profile("Implementation consultant responsible for go-live delivery and workflow documentation.", resume_text)
-    implementation_prompts = {item.question for item in build_interview_cheat_sheet.likely_questions(implementation_profile, "Implementation consultant responsible for go-live delivery and workflow documentation.")}
-    assert_true("Walk me through your book: retention, expansion, and risk." not in implementation_prompts, "Delivery-only implementation questions must exclude book-of-business prompts.")
-
-def test_competency_decoder_lane_filtering(build_resume: object, build_interview_cheat_sheet: object) -> None:
-    resume_text = build_interview_cheat_sheet.question_prep.approved_source_resume_text()
-    implementation_jd = "Implementation consultant building scalable workflows, standardization, playbooks, and documentation."
-    profile = build_resume.job_problem_profile(implementation_jd, resume_text)
-    rows = build_interview_cheat_sheet.competency_decoder_rows(profile, implementation_jd)
-    labels = {row[0] for row in rows}
-    assert_true("Builder" in labels and "Commercial acumen" not in labels, f"Implementation decoder should include Builder but exclude commercial-acumen row; got {labels}.")
-    builder_row = next(row for row in rows if row[0] == "Builder")
-    assert_true(all(story in builder_row[3] for story in ("Story 3", "Story 5", "Story 20")), "Builder decoder must expose the three source-supported routes.")
-
 def test_item_g_story_hooks_are_concrete(build_interview_cheat_sheet: object) -> None:
     generic_starters = ("The challenge was", "The lesson is", "There was")
     for card in build_interview_cheat_sheet.expanded_story_bank():
@@ -12198,37 +12241,45 @@ def test_linkedin_guidance_helpers(build_resume: object, build_linkedin_update: 
     )
 
 
-def test_cover_letter_signals_ollie_analytics(build_cover_letter: object) -> None:
-    signals = build_cover_letter.build_cover_letter_signals(
-        "Ollie",
-        "Data Analyst, Retention",
-        OLLIE_ANALYTICS_JOB_DESCRIPTION,
-        OLLIE_RESUME_TEXT,
-    )
-    assert_true(
-        signals.company_mission.startswith("Ollie makes human-grade pet food"),
-        f"build_cover_letter_signals() should extract a mission/product promise sentence; got {signals.company_mission!r}",
-    )
-    assert_true(
-        "subscription retention and member loyalty" in signals.role_core_function,
-        f"build_cover_letter_signals() should extract the role core function from the JD; got {signals.role_core_function!r}",
-    )
-    assert_true(
-        all(term in signals.jd_skill_terms for term in ("retention", "lifecycle", "cohort analysis")),
-        f"build_cover_letter_signals() should prefer exact analytics terms from the JD; got {signals.jd_skill_terms}",
-    )
-    assert_true(
-        all(term in signals.jd_test_environments for term in ("lifecycle comms", "mobile apps", "member services")),
-        f"build_cover_letter_signals() should extract test environments from the JD; got {signals.jd_test_environments}",
-    )
-    assert_true(
-        all(term in signals.partner_functions for term in ("product", "marketing", "cx", "research")),
-        f"build_cover_letter_signals() should extract cross-functional partners from the JD; got {signals.partner_functions}",
-    )
-    assert_true(
-        "retention" in signals.jd_pain_area and "lifecycle" in signals.jd_pain_area,
-        f"build_cover_letter_signals() should extract a concrete pain area for the close; got {signals.jd_pain_area!r}",
-    )
+def test_builder_story_routing_and_hero_guarantees(build_resume: object, build_interview_cheat_sheet: object) -> None:
+    resume_text = build_interview_cheat_sheet.question_prep.approved_source_resume_text()
+    signal_jd = "Implementation role requiring scalable standardized workflow documentation, enablement, and repeatable process design."
+    profile = build_resume.job_problem_profile(signal_jd, resume_text)
+    assert_true(build_interview_cheat_sheet.builder_story_required(profile, signal_jd), "Builder routing should activate for a signal-matched implementation posting.")
+    cards = build_interview_cheat_sheet.expanded_story_bank()
+    tagged = {card.title for card in cards if "Repeatable Systems" in card.story_types}
+    assert_true(tagged == {"High-volume inventory automation", "Zero-to-one SMS support channel", "Salesforce backlog and release coordination"}, f"Only source-supported reusable mechanisms may receive Builder tagging; got {tagged}.")
+    selected = build_interview_cheat_sheet.hero_stories(profile, signal_jd, resume_text, eligibility_text=resume_text)
+    selected_types = {story_type for card in selected for story_type in card.story_types}
+    assert_true("Repeatable Systems" in selected_types, "A signal-matched hero set should include one Builder story.")
+    assert_true("Challenge and Failure" in selected_types, "Builder routing must preserve the failure guarantee.")
+    assert_true("Persuasion" in selected_types or "Opposing Views" in selected_types, "Builder routing must preserve the persuasion guarantee.")
+
+
+def test_commercial_answer_and_lane_question_boundaries(build_resume: object, build_interview_cheat_sheet: object) -> None:
+    resume_text = build_interview_cheat_sheet.question_prep.approved_source_resume_text()
+    answer = build_interview_cheat_sheet.commercial_acumen_answer().lower()
+    for required in ("did not carry a quota", "one million dollars", "qbrs", "executive reviews", "expansion discovery"):
+        assert_true(required in answer, f"Commercial answer missing required source-bound proof: {required}.")
+    for forbidden in ("quota attainment", "closed expansion revenue", "retention percentage"):
+        assert_true(forbidden not in answer, f"Commercial answer must not invent {forbidden}.")
+    cs_profile = build_resume.job_problem_profile("Customer Success Manager responsible for retention and expansion.", resume_text)
+    cs_prompts = {item.question for item in build_interview_cheat_sheet.likely_questions(cs_profile, "Customer Success Manager responsible for retention and expansion.")}
+    assert_true("Walk me through your book: retention, expansion, and risk." in cs_prompts, "CS questions must retain the book prompt.")
+    implementation_profile = build_resume.job_problem_profile("Implementation consultant responsible for go-live delivery and workflow documentation.", resume_text)
+    implementation_prompts = {item.question for item in build_interview_cheat_sheet.likely_questions(implementation_profile, "Implementation consultant responsible for go-live delivery and workflow documentation.")}
+    assert_true("Walk me through your book: retention, expansion, and risk." not in implementation_prompts, "Delivery-only implementation questions must exclude book-of-business prompts.")
+
+
+def test_competency_decoder_lane_filtering(build_resume: object, build_interview_cheat_sheet: object) -> None:
+    resume_text = build_interview_cheat_sheet.question_prep.approved_source_resume_text()
+    implementation_jd = "Implementation consultant building scalable workflows, standardization, playbooks, and documentation."
+    profile = build_resume.job_problem_profile(implementation_jd, resume_text)
+    rows = build_interview_cheat_sheet.competency_decoder_rows(profile, implementation_jd)
+    labels = {row[0] for row in rows}
+    assert_true("Builder" in labels and "Commercial acumen" not in labels, f"Implementation decoder should include Builder but exclude commercial-acumen row; got {labels}.")
+    builder_row = next(row for row in rows if row[0] == "Builder")
+    assert_true(all(story in builder_row[3] for story in ("Story 3", "Story 5", "Story 20")), "Builder decoder must expose the three source-supported routes.")
 
 
 def test_linkedin_about_structure_and_prose_handling(build_resume: object, build_linkedin_update: object) -> None:
@@ -12240,6 +12291,7 @@ def test_linkedin_about_structure_and_prose_handling(build_resume: object, build
     assert_true(len(proofs) == 5, f"LinkedIn About should render five proof bullets; got {len(proofs)}.")
     for metric in ("80+", "five sites and 150+ users", "200+", "60+", "$1M+"):
         assert_true(about.count(metric) == 1, f"LinkedIn About must retain {metric} exactly once; got {about.count(metric)}.")
+
 
 def test_study_builder_drill_and_canonical_path_contract() -> None:
     from config.paths import (
@@ -12276,6 +12328,40 @@ def test_study_builder_drill_and_canonical_path_contract() -> None:
     for text in (bank, companion, flashcards):
         assert_true("Builder" in text or "builder" in text, "Every revised study source must contain Builder guidance.")
     assert_true("never become evidence" in digest.lower() and "compensation counterweight" in digest.lower(), "Hiring-signal digest needs provenance and compensation counterweight.")
+
+
+def test_cover_letter_signals_ollie_analytics(build_cover_letter: object) -> None:
+    signals = build_cover_letter.build_cover_letter_signals(
+        "Ollie",
+        "Data Analyst, Retention",
+        OLLIE_ANALYTICS_JOB_DESCRIPTION,
+        OLLIE_RESUME_TEXT,
+    )
+    assert_true(
+        signals.company_mission.startswith("Ollie makes human-grade pet food"),
+        f"build_cover_letter_signals() should extract a mission/product promise sentence; got {signals.company_mission!r}",
+    )
+    assert_true(
+        "subscription retention and member loyalty" in signals.role_core_function,
+        f"build_cover_letter_signals() should extract the role core function from the JD; got {signals.role_core_function!r}",
+    )
+    assert_true(
+        all(term in signals.jd_skill_terms for term in ("retention", "lifecycle", "cohort analysis")),
+        f"build_cover_letter_signals() should prefer exact analytics terms from the JD; got {signals.jd_skill_terms}",
+    )
+    assert_true(
+        all(term in signals.jd_test_environments for term in ("lifecycle comms", "mobile apps", "member services")),
+        f"build_cover_letter_signals() should extract test environments from the JD; got {signals.jd_test_environments}",
+    )
+    assert_true(
+        all(term in signals.partner_functions for term in ("product", "marketing", "cx", "research")),
+        f"build_cover_letter_signals() should extract cross-functional partners from the JD; got {signals.partner_functions}",
+    )
+    assert_true(
+        "retention" in signals.jd_pain_area and "lifecycle" in signals.jd_pain_area,
+        f"build_cover_letter_signals() should extract a concrete pain area for the close; got {signals.jd_pain_area!r}",
+    )
+
 
 def test_cover_lane_keeps_procore_in_implementation(build_resume: object, build_cover_letter: object) -> None:
     profile = build_resume.job_problem_profile(PROCORE_JOB_DESCRIPTION)
@@ -15789,6 +15875,47 @@ def test_shared_workflow_timeout_quarantines_partial_output() -> None:
         )
 
 
+def test_shared_workflow_nonzero_quarantines_partial_output() -> None:
+    import workflow_step_runner
+
+    with TemporaryDirectory(prefix="workflow_nonzero_") as temp_name:
+        root = Path(temp_name)
+        output_dir = root / "output"
+        log_dir = root / "logs"
+        output_dir.mkdir()
+        original_document = output_dir / "resume.docx"
+        original_document.write_text("known-good", encoding="utf-8")
+
+        class FailedProcess:
+            pid = 23456
+            returncode = 1
+
+            def communicate(self, timeout: int | None = None) -> tuple[str, str]:
+                original_document.write_text("failed partial", encoding="utf-8")
+                return "", "injected builder failure"
+
+        original_popen = workflow_step_runner.subprocess.Popen
+        try:
+            workflow_step_runner.subprocess.Popen = lambda *_args, **_kwargs: FailedProcess()
+            result = workflow_step_runner.run_document_step(
+                step_name="Building federal resume",
+                command=[sys.executable, "builder.py"],
+                cwd=root,
+                output_dir=output_dir,
+                log_dir=log_dir,
+                timeout_seconds=600,
+            )
+        finally:
+            workflow_step_runner.subprocess.Popen = original_popen
+
+        assert_true(result.returncode == 1 and not result.timed_out, f"Nonzero process result drifted: {result}")
+        assert_true(original_document.read_text(encoding="utf-8") == "known-good", "Nonzero output should restore the prior usable document")
+        assert_true(
+            result.quarantine_path is not None and (result.quarantine_path / "resume.docx").read_text(encoding="utf-8") == "failed partial",
+            f"Nonzero partial output should be quarantined; got {result.quarantine_path}",
+        )
+
+
 def test_federal_workflow_timeout_stops_supporting_steps() -> None:
     import run_federal_resume_workflow
 
@@ -18103,6 +18230,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run resume-system smoke checks with visible progress.")
     parser.add_argument("--federal", action="store_true", help="Run federal-tagged checks plus bootstrap checks.")
     parser.add_argument("--alignment", action="store_true", help="Run alignment-tagged checks plus bootstrap checks.")
+    parser.add_argument("--quick", action="store_true", help="Run the under-one-minute import and safety subset.")
     return parser.parse_args(argv)
 
 
@@ -18187,16 +18315,6 @@ def main(argv: list[str] | None = None) -> None:
             ("bootstrap failure reports original error", test_bootstrap_failure_reports_original_error),
             ("smoke avoids mutable active job descriptions", test_smoke_does_not_read_mutable_active_job_descriptions),
             ("extract output name has no semantic assignments", test_extract_output_name_has_no_semantic_assignments),
-            ("DHS multi-grade parser fixture", test_dhs_multi_grade_parser_fixture),
-            ("federal parser fixture matrix", test_federal_parser_fixture_matrix),
-            ("federal TargetContext grade overrides and identity", test_federal_target_context_grade_overrides_and_identity),
-            ("federal draft reason and banner scope", lambda: test_federal_draft_reason_and_banner_scope(build_federal_resume)),
-            ("federal active question exclusion precedes generation", lambda: test_active_question_exclusion_precedes_generation(question_prep)),
-            ("federal staged validation failures preserve output", lambda: test_staged_federal_validation_failures_leave_output_unchanged(build_federal_resume)),
-            ("document set publisher rollback", test_document_set_publisher_rolls_back_every_destination),
-            ("document set publisher successful draft and final", test_document_set_publisher_commits_draft_and_final_sets),
-            ("shared workflow nonzero quarantines partial output", test_shared_workflow_nonzero_quarantines_partial_output),
-            ("unlabeled federal header builds safe company interest answer", lambda: test_unlabeled_federal_header_builds_safe_company_interest_answer(build_cover_letter, build_resume)),
             ("validate dummy inputs", lambda: test_validate_inputs(build_resume)),
             ("LinkedIn boilerplate cleanup", lambda: test_validate_inputs_strips_linkedin_boilerplate(build_resume)),
             ("role requirement text resumes after about-us sections", lambda: test_role_requirement_text_resumes_after_about_us_sections(build_resume)),
@@ -18216,6 +18334,14 @@ def main(argv: list[str] | None = None) -> None:
             ("federal ai summary and selection", lambda: test_federal_ai_summary_and_selection(build_federal_resume)),
             ("federal requirement audit and keywords", lambda: test_federal_requirement_audit_and_keywords(build_federal_resume)),
             ("active federal structural requirement fixture", lambda: test_active_federal_structural_requirement_fixture(build_federal_resume)),
+            ("DHS multi-grade parser fixture", test_dhs_multi_grade_parser_fixture),
+            ("federal parser fixture matrix", test_federal_parser_fixture_matrix),
+            ("federal TargetContext grade overrides and identity", test_federal_target_context_grade_overrides_and_identity),
+            ("federal draft reason and banner scope", lambda: test_federal_draft_reason_and_banner_scope(build_federal_resume)),
+            ("federal active question exclusion precedes generation", lambda: test_active_question_exclusion_precedes_generation(question_prep)),
+            ("federal staged validation failures preserve output", lambda: test_staged_federal_validation_failures_leave_output_unchanged(build_federal_resume)),
+            ("document set publisher rollback", test_document_set_publisher_rolls_back_every_destination),
+            ("document set publisher successful draft and final", test_document_set_publisher_commits_draft_and_final_sets),
             ("federal layouts stay at ten point", lambda: test_federal_layouts_stay_at_ten_point(build_federal_resume)),
             ("federal visibility report tracks selected requirements", lambda: test_federal_visibility_report_tracks_selected_requirements(build_federal_resume)),
             ("federal volunteer experience renders separately", lambda: test_federal_volunteer_experience_renders_separately(build_federal_resume)),
@@ -18242,6 +18368,7 @@ def main(argv: list[str] | None = None) -> None:
             ("federal workflow supporting flags", test_federal_workflow_supporting_flag_resolution),
             ("federal workflow supporting step order", test_federal_workflow_runs_supporting_steps_after_resume),
             ("shared workflow timeout quarantines partial output", test_shared_workflow_timeout_quarantines_partial_output),
+            ("shared workflow nonzero quarantines partial output", test_shared_workflow_nonzero_quarantines_partial_output),
             ("federal workflow timeout stops supporting steps", test_federal_workflow_timeout_stops_supporting_steps),
             ("resume workflow dry-run skips upfront validation", test_run_resume_workflow_dry_run_skips_upfront_job_validation),
             ("federal workflow dry-run skips upfront validation", test_run_federal_workflow_dry_run_skips_upfront_job_validation),
@@ -18331,6 +18458,7 @@ def main(argv: list[str] | None = None) -> None:
             ("cover letter colon smoothing", lambda: test_cover_letter_colon_smoothing(build_cover_letter)),
             ("cover sentence score prioritizes signal density over length", lambda: test_cover_sentence_score_prioritizes_signal_density_over_length(build_cover_letter)),
             ("mission or context sentence survives job label header", lambda: test_mission_or_context_sentence_survives_job_label_header(build_cover_letter)),
+            ("unlabeled federal header builds safe company interest answer", lambda: test_unlabeled_federal_header_builds_safe_company_interest_answer(build_cover_letter, build_resume)),
             ("mission or context sentence rejects hard truncated JD fragment", lambda: test_mission_or_context_sentence_rejects_hard_truncated_jd_fragment(build_cover_letter)),
             ("word budget trims opening filler before dense proof", lambda: test_word_budget_trims_opening_filler_before_dense_proof(build_cover_letter)),
             ("Randstad cover hook rejects raw JD fragment", lambda: test_randstad_cover_hook_rejects_raw_jd_fragment(build_cover_letter)),
@@ -18708,15 +18836,20 @@ def main(argv: list[str] | None = None) -> None:
             ("business context separates spoken answer coaching", lambda: test_business_context_question_section_separates_answer_from_coaching(build_resume, build_interview_cheat_sheet, build_detailed_interview_guide)),
         )
 
+        registered_checks = tuple(
+            SmokeCheck(label, check, explicit_smoke_tags(label))
+            for label, check in registered_checks
+        )
         selected_tags = {
             tag
-            for tag, enabled in (("federal", args.federal), ("alignment", args.alignment))
+            for tag, enabled in (("federal", args.federal), ("alignment", args.alignment), ("quick", args.quick))
             if enabled
         }
         selected_checks = select_smoke_checks(registered_checks, selected_tags)
         full_total = len(registered_checks) + 2
         selected_total = len(selected_checks) + 2
-        for index, (label, check) in enumerate(selected_checks, start=3):
+        for index, smoke_check in enumerate(selected_checks, start=3):
+            label, check = smoke_check.label, smoke_check.check
             print(f"[{index}/{selected_total}] {label}...", flush=True)
             started = time.monotonic()
             stdout_buffer = io.StringIO()
