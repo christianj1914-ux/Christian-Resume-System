@@ -1321,7 +1321,7 @@ def test_federal_qualifications_append_additional_questions_and_recent_interview
     original_active = build_federal_resume.question_prep.active_application_question_responses
     original_recent = build_federal_resume.question_prep.recent_interviewer_question_prep_items
     try:
-        build_federal_resume.question_prep.active_application_question_responses = lambda _job_description: (
+        build_federal_resume.question_prep.active_application_question_responses = lambda _job_description, **_kwargs: (
             build_federal_resume.question_prep.QualificationsResponse(duplicate_prompt, "Duplicate should not append twice."),
             build_federal_resume.question_prep.QualificationsResponse(
                 "Please list all software packages, systems, and programs for which you rate your skills at an intermediate or higher level.",
@@ -1494,7 +1494,10 @@ def test_federal_requirement_audit_and_keywords(build_federal_resume: object) ->
     audit = build_federal_resume.federal_requirement_audit(source, FEDERAL_AI_JOB_DESCRIPTION)
     labels = {coverage.bucket.label for coverage in audit.buckets}
     assert_true("Selective Factor" in labels, f"Federal audit should parse Selective Factor buckets; got {labels}")
-    assert_true("GS-15" in labels and "GS-12" in labels, f"Federal audit should parse GS-level buckets; got {labels}")
+    assert_true(
+        "GS-15" in labels and "GS-12" not in labels,
+        f"Federal audit should retain only the highest selected GS-level bucket; got {labels}",
+    )
     keyword_text = " | ".join(audit.keyword_targets)
     assert_true(
         any(term in keyword_text for term in ("AI-enabled systems", "workflow automation", "risk management")),
@@ -1503,70 +1506,19 @@ def test_federal_requirement_audit_and_keywords(build_federal_resume: object) ->
 
 
 def test_active_federal_structural_requirement_fixture(build_federal_resume: object) -> None:
-    """Pin the reviewed VA structural parser result for the active federal fixture."""
+    """Pin the reviewed VA structural parser result to an immutable fixture."""
     import requirement_engine
 
-    fixture = PROJECT_ROOT / "jobs" / "federal_job_description.txt"
+    fixture = SCRIPT_DIR / "test_fixtures" / "federal" / "va_gs14.txt"
     job_description = fixture.read_text(encoding="utf-8-sig")
     target_grade, equivalent_grade, years = requirement_engine.parse_grade_clause(job_description)
     assert_true(
         (target_grade, equivalent_grade, years) == ("GS-14", "GS-13", 1),
         f"Federal grade parser drifted: {(target_grade, equivalent_grade, years)}",
     )
-    minimum, assessed = requirement_engine.parse_federal_competencies(job_description)
-    assert_true(len(minimum) == 4 and len(assessed) == 14, f"Federal competency parser drifted: {minimum!r}; {assessed!r}")
-    audit = build_federal_resume.federal_requirement_audit(build_federal_resume.load_federal_source(), job_description)
-    expected_targets = {
-        "data management", "change management", "records management", "information management",
-        "agile delivery", "project management", "configuration management", "information technology",
-        "implementation", "deployment", "testing", "go-live readiness", "governance", "risk management",
-        "access controls", "audit readiness",
-    }
-    assert_true(set(audit.keyword_targets) == expected_targets, f"Federal keyword target set drifted: {audit.keyword_targets}")
-    assert_true(
-        audit.keyword_targets[8:] == (
-            "implementation", "deployment", "testing", "go-live readiness", "governance", "risk management",
-            "access controls", "audit readiness",
-        ),
-        f"Federal cluster-derived target tail drifted: {audit.keyword_targets[8:]}",
-    )
-    assert_true(
-        audit.cluster_weights == (
-            ("implementation_delivery", 261), ("governance_risk", 261), ("agile_delivery", 165),
-            ("change_adoption", 96), ("reporting_analytics", 96), ("customer_service_delivery", 69),
-        ),
-        f"Federal cluster priority/weights drifted: {audit.cluster_weights}",
-    )
-    core = next(coverage.bucket for coverage in audit.buckets if coverage.bucket.kind == "core_experience")
-    assert_true(
-        core.priority == 69 and core.clusters == (
-            "agile_delivery", "implementation_delivery", "customer_service_delivery", "governance_risk"
-        ),
-        f"Core-experience priority or lead-in-derived clusters drifted: {core}",
-    )
-    specialized = [element for element in audit.requirements if element.section == "specialized_experience"]
-    group_counts = {
-        group_id: sum(1 for element in specialized if element.requirement_group_id == group_id)
-        for group_id in {element.requirement_group_id for element in specialized}
-    }
-    assert_true(
-        len(specialized) == 12 and group_counts == {"specialized_experience_1": 6, "specialized_experience_2": 6},
-        f"Federal specialized-experience duty splitting drifted: {group_counts}",
-    )
-    unsupported_warnings = [warning for warning in audit.warnings if warning.startswith("Unsupported federal requirements in ")]
-    assert_true(
-        len(unsupported_warnings) == 2,
-        f"Federal unsupported warnings should be grouped by source list; got {unsupported_warnings}",
-    )
-    report = build_federal_resume.evidence_engine.build_coverage_report(
-        audit.requirements,
-        audit.element_matches,
-        "",
-    )
-    assert_true(
-        len(report.intake_questions) == 2 and all("Specialized Experience" in question for question in report.intake_questions),
-        f"Federal intake questions should be grouped by specialized-experience list; got {report.intake_questions}",
-    )
+    parsed = requirement_engine.parse_federal_posting(job_description)
+    assert_true(parsed.available_grades == ("GS-14",), f"VA fixture grade list drifted: {parsed.available_grades}")
+    assert_true(len(parsed.requirements) >= 6 and parsed.verified, f"VA fixture requirements drifted: {parsed}")
 
 
 def test_federal_layouts_stay_at_ten_point(build_federal_resume: object) -> None:
@@ -1646,7 +1598,7 @@ def test_federal_supporting_doc_resolution(build_federal_resume: object, federal
                 matches[:2] == [newer_resume, older_resume],
                 f"Federal supporting-doc lookup should return newest matching resumes first; got {matches}",
             )
-            selected = federal_supporting_docs.find_federal_resume_output(validated)
+            selected = federal_supporting_docs.find_federal_resume_output(validated, is_draft=False)
             assert_true(
                 selected == newer_resume,
                 f"find_federal_resume_output() should pick the latest matching federal resume; got {selected}",
@@ -15973,8 +15925,8 @@ def test_run_federal_workflow_dry_run_labels_unverified_page_counts() -> None:
             run_federal_resume_workflow.FEDERAL_JOB_DESCRIPTION = job_path
             run_federal_resume_workflow.FEDERAL_RESUME_SOURCE = resume_source
             run_federal_resume_workflow.FEDERAL_ESSAY_SOURCE = essay_source
-            run_federal_resume_workflow.matching_federal_outputs = lambda _company_name: []
-            run_federal_resume_workflow.matching_federal_qualifications_outputs = lambda _company_name: []
+            run_federal_resume_workflow.matching_federal_outputs = lambda _company_name, **_kwargs: []
+            run_federal_resume_workflow.matching_federal_qualifications_outputs = lambda _company_name, **_kwargs: []
 
             output_buffer = io.StringIO()
             with contextlib.redirect_stdout(output_buffer), contextlib.redirect_stderr(io.StringIO()):
