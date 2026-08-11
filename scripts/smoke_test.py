@@ -11954,6 +11954,16 @@ def test_cover_letter_signals_ollie_analytics(build_cover_letter: object) -> Non
     )
 
 
+def test_linkedin_about_structure_and_prose_handling(build_resume: object, build_linkedin_update: object) -> None:
+    job_description = LANE_JOB_DESCRIPTIONS["customer_success"]
+    profile = build_resume.job_problem_profile(job_description)
+    credential, capability, proofs, cta = build_linkedin_update.about_components(profile, job_description)
+    about = build_linkedin_update.about_section(profile, job_description)
+    assert_true("more than ten years" in credential.lower() and capability and cta.lower().startswith("open to conversations"), "LinkedIn About should have credential opener, capability statement, and low-pressure CTA.")
+    assert_true(len(proofs) == 5, f"LinkedIn About should render five proof bullets; got {len(proofs)}.")
+    for metric in ("80+", "five sites and 150+ users", "200+", "60+", "$1M+"):
+        assert_true(about.count(metric) == 1, f"LinkedIn About must retain {metric} exactly once; got {about.count(metric)}.")
+
 def test_cover_lane_keeps_procore_in_implementation(build_resume: object, build_cover_letter: object) -> None:
     profile = build_resume.job_problem_profile(PROCORE_JOB_DESCRIPTION)
     lane_key = build_cover_letter.effective_lane_key(
@@ -18248,6 +18258,7 @@ def main(argv: list[str] | None = None) -> None:
             ("resume readiness flags finance blockers", lambda: test_resume_readiness_flags_finance_blockers(build_resume)),
             ("cover close uses direct ask", lambda: test_cover_close_uses_direct_ask(build_cover_letter)),
             ("LinkedIn guidance helpers", lambda: test_linkedin_guidance_helpers(build_resume, build_linkedin_update)),
+            ("LinkedIn About structure and prose handling", lambda: test_linkedin_about_structure_and_prose_handling(build_resume, build_linkedin_update)),
             ("cover letter signals ollie analytics", lambda: test_cover_letter_signals_ollie_analytics(build_cover_letter)),
             ("cover lane keeps procore in implementation", lambda: test_cover_lane_keeps_procore_in_implementation(build_resume, build_cover_letter)),
             ("cover lane keeps explicit implementation roles out of support", lambda: test_cover_lane_keeps_explicit_implementation_roles_out_of_support(build_resume, build_cover_letter)),

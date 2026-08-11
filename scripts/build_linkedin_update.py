@@ -12,7 +12,7 @@ from docx.shared import Pt
 
 import job_search_guidance as guidance
 import resume_analysis
-from utils import docx_visible_text, optional_text
+from utils import docx_visible_text, enforce_prose_quality, optional_text
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -55,16 +55,31 @@ def headline_options(profile: resume_analysis.JobProblemProfile, job_description
     return [option[:119] for option in options]
 
 
-def about_section(profile: resume_analysis.JobProblemProfile, job_description: str) -> str:
+def about_components(profile: resume_analysis.JobProblemProfile, job_description: str) -> tuple[str, str, tuple[str, ...], str]:
     specialty = resume_analysis.role_specialty_phrase(job_description, profile.core_problem)
-    return (
-        f"I help teams turn complex {specialty} work into usable outcomes: clearer requirements, cleaner workflows, stronger adoption, "
-        "and better decisions from operational data. My background spans enterprise software implementation, customer success, ERP ownership, "
-        "data validation, reporting, training, and executive-facing workshops.\n\n"
-        "Recent proof includes supporting 80+ client engagements, owning mission-critical systems across five sites and 150+ users, building "
-        "200+ reporting tools, facilitating 60+ workshops and QBRs, and stabilizing high-risk customer accounts representing $1M+ in annual revenue.\n\n"
-        f"I am especially interested in roles where {profile.core_problem} must become practical operating change, not just a launch checklist."
+    credential = (
+        "Enterprise software, implementation, customer-success, and operations professional with more than ten years of experience "
+        "turning customer and system work into reliable operating results."
     )
+    capability = (
+        f"I work where {specialty} requires structured discovery, practical workflow design, stakeholder alignment, adoption, "
+        "and decision-ready reporting."
+    )
+    proof_bullets = (
+        "Supported 80+ client engagements across enterprise software implementation and customer delivery.",
+        "Owned mission-critical systems across five sites and 150+ users.",
+        "Built 200+ reporting tools to strengthen decision visibility.",
+        "Facilitated 60+ workshops and QBRs for users and executive stakeholders.",
+        "Stabilized high-risk customer accounts representing $1M+ in annual revenue.",
+    )
+    cta = f"Open to conversations about roles where {profile.core_problem} needs to become practical, sustained operating change."
+    return credential, capability, proof_bullets, cta
+
+
+def about_section(profile: resume_analysis.JobProblemProfile, job_description: str) -> str:
+    """Plain-text representation for review; the Word builder renders proof as real bullets."""
+    credential, capability, proof_bullets, cta = about_components(profile, job_description)
+    return "\n\n".join((credential, capability, "\n".join(proof_bullets), cta))
 
 
 def featured_proof_points(resume_text: str) -> list[str]:
@@ -139,12 +154,42 @@ def build_linkedin_update() -> Path:
         doc.add_paragraph(option, style="List Bullet")
 
     doc.add_heading("About Section Draft", level=2)
-    for paragraph in about_section(profile, job_description).split("\n\n"):
-        doc.add_paragraph(paragraph)
+    credential, capability, proof_bullets, cta = about_components(profile, job_description)
+    composed_about = " ".join((credential, capability, *proof_bullets, cta))
+    enforce_prose_quality(
+        composed_about,
+        "generic",
+        label="LinkedIn About section",
+        mode="warn",
+        check_template_leakage=False,
+    )
+    doc.add_paragraph(credential)
+    doc.add_paragraph(capability)
+    for proof_bullet in proof_bullets:
+        doc.add_paragraph(proof_bullet, style="List Bullet")
+    doc.add_paragraph(cta)
 
     doc.add_heading("Featured Proof Points", level=2)
     for point in featured_proof_points(resume_text):
         doc.add_paragraph(point, style="List Bullet")
+
+    doc.add_heading("Featured Proof Point Review", level=2)
+    doc.add_paragraph("Self-check only: review scale already supported by the approved source resumes; do not turn blank cells into new claims.")
+    review = doc.add_table(rows=1, cols=5)
+    review.style = "Table Grid"
+    for cell, header in zip(review.rows[0].cells, ("Proof point", "Time", "Money", "Team", "Scope")):
+        cell.text = header
+    review_rows = (
+        ("80+ client engagements", "", "", "", "Client-delivery breadth"),
+        ("Five sites / 150+ users", "", "", "150+ users", "Multi-site systems ownership"),
+        ("200+ reporting tools", "", "", "", "Decision visibility"),
+        ("60+ workshops and QBRs", "", "", "Users and executives", "Enablement and executive communication"),
+        ("$1M+ stabilized annual revenue", "", "$1M+ annual revenue", "Cross-functional recovery", "At-risk account stabilization"),
+    )
+    for row_values in review_rows:
+        row = review.add_row().cells
+        for cell, value in zip(row, row_values):
+            cell.text = value
 
     doc.add_heading("Skills to Consider", level=2)
     doc.add_paragraph("; ".join(skill_suggestions(profile, job_description)))
