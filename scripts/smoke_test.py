@@ -14803,6 +14803,17 @@ def test_queue_readiness_fields_and_stage_timing() -> None:
     )
 
 
+def test_top_third_scoring_guard_blocks_unapproved_promotion() -> None:
+    import top_third_scoring_guard
+
+    baseline = {"a": {"audit_state": "BRIDGE", "alignment_score": 92}}
+    candidate = {"a": {"audit_state": "PASS", "alignment_score": 99}}
+    assert_true(
+        top_third_scoring_guard.unapproved_promotions(baseline, candidate) == ("a",),
+        "Corpus guard must block an unapproved BRIDGE-to-PASS promotion before semantic scoring can ship.",
+    )
+
+
 def test_business_context_module(business_context: object) -> None:
     text = (
         "Company: BioTouch\n"
@@ -19381,6 +19392,7 @@ def main(argv: list[str] | None = None) -> None:
             ("visible status banner and shared flow controls", lambda: test_visible_status_banner_and_shared_flow_controls(build_standard_qualifications_statement)),
             ("sparse final page detection", test_sparse_final_page_detection),
             ("queue readiness fields and stage timing", test_queue_readiness_fields_and_stage_timing),
+            ("top-third scoring guard blocks unapproved promotion", test_top_third_scoring_guard_blocks_unapproved_promotion),
             ("workflow parse args accepts resume only", test_run_resume_workflow_parse_args_accepts_resume_only),
             ("title phrase candidates avoid comma crossing", lambda: test_title_phrase_candidates_do_not_cross_comma_title_segments(build_resume)),
             ("Clorox title and specialties", lambda: test_clorox_style_job_title_and_specialties(build_resume)),
