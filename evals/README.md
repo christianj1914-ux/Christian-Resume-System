@@ -57,7 +57,7 @@ python tasks.py writing-eval --dataset evals/writing_gold_set.reviewed_docx.json
 Grade a candidate summary file:
 
 ```powershell
-python tasks.py writing-eval --text-file scratch/candidate_summary.txt --artifact resume_summary
+python tasks.py writing-eval --text-file scratch/candidate_summary.txt --artifact resume_summary --summary-contract commercial
 ```
 
 Grade a cover-letter opening without failing the command:
@@ -69,7 +69,7 @@ python tasks.py writing-eval --text-file scratch/candidate_opening.txt --artifac
 Grade a Word file directly:
 
 ```powershell
-python tasks.py writing-eval --text-file "evals/examples/bad/Christian Estrada - Bain Resume.docx" --artifact resume_summary --allow-failures
+python tasks.py writing-eval --text-file "evals/examples/bad/Christian Estrada - Bain Resume.docx" --artifact resume_summary --summary-contract commercial --allow-failures
 ```
 
 Extract snippets from Word files into text companions:
@@ -137,7 +137,7 @@ You do not need perfect naming. The real rule is: make it obvious whether the fi
 Example JSONL line:
 
 ```json
-{"id":"resume_summary_clorox_good_02","artifact":"resume_summary","file":"examples/good/resume_summary_clorox_good_02.txt","expected_outcome":"pass","must_not_flag":["system_fit_closer","proof_opener_includes"]}
+{"id":"resume_summary_clorox_good_02","artifact":"resume_summary","summary_contract":"commercial","file":"examples/good/resume_summary_clorox_good_02.txt","expected_outcome":"pass","must_not_flag":["system_fit_closer","proof_opener_includes"]}
 ```
 
 ## JSONL schema
@@ -151,6 +151,7 @@ Each line is one JSON object. Supported fields:
 - `expected_outcome`: optional `pass` or `fail`
 - `must_flag`: optional list of rule codes the evaluator must catch
 - `must_not_flag`: optional list of rule codes the evaluator must avoid
+- `summary_contract`: required for `resume_summary` (`commercial` or `federal`) and forbidden for every other artifact
 
 ## Next step after this scaffold
 

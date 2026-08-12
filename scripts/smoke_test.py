@@ -15172,7 +15172,12 @@ def test_writing_eval_flags_system_narration(writing_eval: object) -> None:
         "That experience also includes stakeholder alignment and data checks. "
         "This background fits teams that need cleaner decisions and stronger cross-functional execution."
     )
-    result = writing_eval.evaluate_text("resume_summary", text, sample_id="templated_summary")
+    result = writing_eval.evaluate_text(
+        "resume_summary",
+        text,
+        sample_id="templated_summary",
+        summary_word_range=writing_eval.COMMERCIAL_SUMMARY_WORD_RANGE,
+    )
     codes = {issue.code for issue in result.issues}
     assert_true(not result.passed, "writing_eval should fail a summary that uses known system-narration patterns")
     assert_true(
@@ -15183,13 +15188,97 @@ def test_writing_eval_flags_system_narration(writing_eval: object) -> None:
 
 def test_writing_eval_passes_clean_summary(writing_eval: object) -> None:
     text = (
-        "Implementation consultant improving data visibility, workflow clarity, and go-live readiness for enterprise software teams operating across complex customer and site environments. "
-        "Delivered onboarding, reporting, and process improvements across 80+ clients, 150+ users, five sites, and 200+ KPI tools while reducing manual inventory work by 78% and discrepancies by 22% in a mission-critical ERP environment. "
-        "Brings implementation, reporting, stakeholder alignment, and adoption experience across ERP, migration, dashboards, and process-improvement work for cleaner decisions, steadier launches, and durable process change."
+        "Implementation consultant improving data visibility, workflow clarity, and go-live readiness for enterprise software teams. "
+        "Delivered onboarding, reporting, and process improvements across 80+ clients, 150+ users, five sites, and 200+ KPI tools while reducing manual inventory work by 78% and discrepancies by 22%. "
+        "Brings ERP, migration, stakeholder alignment, and adoption experience that supports cleaner decisions, steadier launches, and durable process change."
     )
-    result = writing_eval.evaluate_text("resume_summary", text, sample_id="clean_summary")
+    result = writing_eval.evaluate_text(
+        "resume_summary",
+        text,
+        sample_id="clean_summary",
+        summary_word_range=writing_eval.COMMERCIAL_SUMMARY_WORD_RANGE,
+    )
     assert_true(result.passed, f"writing_eval should pass a clean summary; got {[issue.code for issue in result.issues]}")
     assert_true(not result.issues, f"writing_eval should keep the clean sample issue-free; got {result.issues}")
+
+
+def test_writing_eval_requires_domain_summary_contract(writing_eval: object) -> None:
+    commercial = (
+        "Implementation consultant improving data visibility, workflow clarity, and go-live readiness for enterprise software teams. "
+        "Delivered onboarding, reporting, and process improvements across 80+ clients, 150+ users, five sites, and 200+ KPI tools while reducing manual inventory work by 78% and discrepancies by 22%. "
+        "Brings ERP, migration, stakeholder alignment, and adoption experience that supports cleaner decisions, steadier launches, and durable process change."
+    )
+    federal = (
+        "Enterprise technology leader with 12+ years successfully modernizing complex enterprise systems across multi-site manufacturing, SaaS, eCommerce, and legal technology environments. "
+        "Recent operational scope includes platforms for five sites and 150+ users, 200+ SQL/BI reporting tools, 80+ international client engagements, plus 60+ global executive sessions. "
+        "Translates complex requirements into secure delivery decisions for VP- and director-level stakeholders, improving user adoption, service quality, reporting integrity, and operational continuity during high-stakes modernization work."
+    )
+    commercial_result = writing_eval.evaluate_text(
+        "resume_summary",
+        commercial,
+        summary_word_range=writing_eval.COMMERCIAL_SUMMARY_WORD_RANGE,
+    )
+    federal_result = writing_eval.evaluate_text(
+        "resume_summary",
+        federal,
+        summary_word_range=writing_eval.FEDERAL_SUMMARY_WORD_RANGE,
+    )
+    assert_true(commercial_result.passed, f"Commercial contract rejected its approved summary: {commercial_result.issues}")
+    assert_true(federal_result.passed, f"Federal contract rejected its approved summary: {federal_result.issues}")
+    for artifact, supplied_range in (("resume_summary", None), ("cover_letter_opening", (45, 70))):
+        try:
+            writing_eval.evaluate_text(artifact, commercial, summary_word_range=supplied_range)
+        except ValueError:
+            pass
+        else:
+            raise SmokeFailure(f"writing_eval accepted invalid contract input for {artifact}")
+
+
+def test_writing_eval_cli_requires_named_summary_contract() -> None:
+    summary = (
+        "Implementation consultant improving data visibility, workflow clarity, and go-live readiness for enterprise software teams. "
+        "Delivered onboarding, reporting, and process improvements across 80+ clients, 150+ users, five sites, and 200+ KPI tools while reducing manual inventory work by 78% and discrepancies by 22%. "
+        "Brings ERP, migration, stakeholder alignment, and adoption experience that supports cleaner decisions, steadier launches, and durable process change."
+    )
+    missing = subprocess.run(
+        (sys.executable, "scripts/writing_eval.py", "--text", summary, "--artifact", "resume_summary"),
+        cwd=PROJECT_ROOT,
+        capture_output=True,
+        text=True,
+    )
+    valid = subprocess.run(
+        (
+            sys.executable,
+            "scripts/writing_eval.py",
+            "--text",
+            summary,
+            "--artifact",
+            "resume_summary",
+            "--summary-contract",
+            "commercial",
+        ),
+        cwd=PROJECT_ROOT,
+        capture_output=True,
+        text=True,
+    )
+    forbidden = subprocess.run(
+        (
+            sys.executable,
+            "scripts/writing_eval.py",
+            "--text",
+            summary,
+            "--artifact",
+            "generic",
+            "--summary-contract",
+            "commercial",
+        ),
+        cwd=PROJECT_ROOT,
+        capture_output=True,
+        text=True,
+    )
+    assert_true(missing.returncode == 1 and "requires --summary-contract" in missing.stdout, missing.stdout)
+    assert_true(valid.returncode == 0, f"Named commercial summary contract failed: {valid.stdout!r} {valid.stderr!r}")
+    assert_true(forbidden.returncode == 1 and "valid only" in forbidden.stdout, forbidden.stdout)
 
 
 def test_writing_eval_flags_weak_close_and_list_density(writing_eval: object) -> None:
@@ -15244,20 +15333,25 @@ def test_writing_eval_loads_file_backed_dataset(writing_eval: object) -> None:
         root = Path(temp_name)
         sample_file = root / "good_summary.txt"
         sample_file.write_text(
-            "Implementation consultant improving data visibility, workflow clarity, and go-live readiness for enterprise software teams operating across complex customer and site environments. "
-            "Delivered onboarding, reporting, and process improvements across 80+ clients, 150+ users, five sites, and 200+ KPI tools while reducing manual inventory work by 78% and discrepancies by 22% in a mission-critical ERP environment. "
-            "Brings implementation, reporting, stakeholder alignment, and adoption experience across ERP, migration, dashboards, and process-improvement work for cleaner decisions, steadier launches, and durable process change.",
+            "Implementation consultant improving data visibility, workflow clarity, and go-live readiness for enterprise software teams. "
+            "Delivered onboarding, reporting, and process improvements across 80+ clients, 150+ users, five sites, and 200+ KPI tools while reducing manual inventory work by 78% and discrepancies by 22%. "
+            "Brings ERP, migration, stakeholder alignment, and adoption experience that supports cleaner decisions, steadier launches, and durable process change.",
             encoding="utf-8",
         )
         dataset = root / "gold.jsonl"
         dataset.write_text(
-            '{"id":"file_backed_summary","artifact":"resume_summary","file":"good_summary.txt","expected_outcome":"pass"}\n',
+            '{"id":"file_backed_summary","artifact":"resume_summary","summary_contract":"commercial","file":"good_summary.txt","expected_outcome":"pass"}\n',
             encoding="utf-8",
         )
         samples = writing_eval.load_dataset(dataset)
         assert_true(len(samples) == 1, f"writing_eval.load_dataset() should return one file-backed sample; got {len(samples)}")
         assert_true(samples[0].source_path is not None, "writing_eval.load_dataset() should keep the resolved source path for file-backed samples")
-        result = writing_eval.evaluate_text(samples[0].artifact, samples[0].text, samples[0].sample_id)
+        result = writing_eval.evaluate_text(
+            samples[0].artifact,
+            samples[0].text,
+            samples[0].sample_id,
+            summary_word_range=writing_eval.summary_word_range(samples[0].summary_contract),
+        )
         assert_true(result.passed, f"file-backed good sample should pass writing_eval; got {[issue.code for issue in result.issues]}")
 
 
@@ -19420,6 +19514,8 @@ def main(argv: list[str] | None = None) -> None:
             ("role heading detection", lambda: test_role_heading_detection(build_resume)),
             ("writing eval flags system narration", lambda: test_writing_eval_flags_system_narration(writing_eval)),
             ("writing eval passes clean summary", lambda: test_writing_eval_passes_clean_summary(writing_eval)),
+            ("writing eval requires domain summary contract", lambda: test_writing_eval_requires_domain_summary_contract(writing_eval)),
+            ("writing eval CLI requires named summary contract", test_writing_eval_cli_requires_named_summary_contract),
             ("writing eval flags weak closes and list density", lambda: test_writing_eval_flags_weak_close_and_list_density(writing_eval)),
             ("warn-only prose enforcement allows prep text", lambda: test_enforce_prose_quality_warn_mode_allows_prep_text(utils)),
             ("writing eval buried lede warn-only", lambda: test_writing_eval_buried_lede_is_warn_only(writing_eval)),

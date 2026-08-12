@@ -277,14 +277,28 @@ def assert_no_template_leakage(text: str) -> None:
             fail(f"Template leakage detected ({label}) in generated text:\n{normalized}")
 
 
-def prose_quality_report(text: str, artifact: str) -> dict[str, Any]:
+def prose_quality_report(
+    text: str,
+    artifact: str,
+    *,
+    summary_word_range: tuple[int, int] | None = None,
+) -> dict[str, Any]:
+    if artifact == "resume_summary" and summary_word_range is None:
+        raise ValueError("resume_summary prose evaluation requires an explicit summary_word_range")
+    if artifact != "resume_summary" and summary_word_range is not None:
+        raise ValueError(f"summary_word_range is valid only for resume_summary, not {artifact}")
     normalized = re.sub(r"\s+", " ", (text or "")).strip()
     if not normalized:
         return {"score": 100, "passed": True, "failures": [], "warnings": []}
 
     import writing_eval
 
-    result = writing_eval.evaluate_text(artifact, normalized, sample_id="generated")
+    result = writing_eval.evaluate_text(
+        artifact,
+        normalized,
+        sample_id="generated",
+        summary_word_range=summary_word_range,
+    )
     failures: list[str] = []
     warnings: list[str] = []
     for issue in result.issues:
@@ -331,11 +345,12 @@ def enforce_prose_quality(
     label: str = "Generated text",
     mode: str = "auto",
     check_template_leakage: bool = True,
+    summary_word_range: tuple[int, int] | None = None,
 ) -> dict[str, Any]:
     normalized = re.sub(r"\s+", " ", (text or "")).strip()
     if check_template_leakage:
         assert_no_template_leakage(normalized)
-    report = prose_quality_report(normalized, artifact)
+    report = prose_quality_report(normalized, artifact, summary_word_range=summary_word_range)
     failures = [str(item) for item in report.get("failures", ())]
     warnings = [str(item) for item in report.get("warnings", ())]
 

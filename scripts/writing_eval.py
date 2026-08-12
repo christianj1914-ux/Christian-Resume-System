@@ -12,6 +12,14 @@ from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
 
+from config.summary_contracts import (
+    COMMERCIAL_SUMMARY_WORD_RANGE,
+    FEDERAL_SUMMARY_WORD_RANGE,
+    SUMMARY_CONTRACTS,
+    SUMMARY_SENTENCE_COUNT,
+    summary_word_range,
+)
+
 
 ARTIFACT_CHOICES = (
     "generic",
@@ -39,8 +47,6 @@ DOCX_SECTION_CHOICES = (
     "cover_letter_full",
 )
 WORD_NAMESPACE = {"w": "http://schemas.openxmlformats.org/wordprocessingml/2006/main"}
-RESUME_SUMMARY_MIN_WORDS = 70
-RESUME_SUMMARY_MAX_WORDS = 110
 SENDABLE_COVER_ARTIFACTS = {
     "cover_letter_opening",
     "cover_letter_proof",
@@ -85,6 +91,7 @@ class EvaluationSample:
     expected_outcome: str | None = None
     must_flag: tuple[str, ...] = ()
     must_not_flag: tuple[str, ...] = ()
+    summary_contract: str | None = None
 
 
 @dataclass(frozen=True)
@@ -451,8 +458,26 @@ def issue_from_match(code: str, severity: str, message: str, text: str, pattern:
     return Issue(code=code, severity=severity, message=message, snippet=snippet)
 
 
-def evaluate_text(artifact: str, text: str, sample_id: str = "inline") -> EvaluationResult:
+def evaluate_text(
+    artifact: str,
+    text: str,
+    sample_id: str = "inline",
+    *,
+    summary_word_range: tuple[int, int] | None = None,
+) -> EvaluationResult:
     normalized_artifact = normalize_artifact(artifact)
+    if normalized_artifact == "resume_summary":
+        if summary_word_range is None:
+            raise ValueError("resume_summary evaluation requires an explicit summary_word_range")
+        if (
+            len(summary_word_range) != 2
+            or not all(isinstance(value, int) for value in summary_word_range)
+            or summary_word_range[0] < 1
+            or summary_word_range[0] > summary_word_range[1]
+        ):
+            raise ValueError(f"Invalid summary_word_range: {summary_word_range!r}")
+    elif summary_word_range is not None:
+        raise ValueError(f"summary_word_range is valid only for resume_summary, not {normalized_artifact}")
     normalized_text = normalize_text(text)
     issues: list[Issue] = []
 
@@ -496,24 +521,25 @@ def evaluate_text(artifact: str, text: str, sample_id: str = "inline") -> Evalua
             )
 
     if normalized_artifact == "resume_summary":
-        if len(sentences) != 3:
+        if len(sentences) != SUMMARY_SENTENCE_COUNT:
             issues.append(
                 Issue(
                     code="summary_sentence_count",
                     severity="fail",
-                    message="Resume summary should use exactly three recruiter-friendly sentences.",
+                    message=f"Resume summary should use exactly {SUMMARY_SENTENCE_COUNT} recruiter-friendly sentences.",
                     snippet=str(len(sentences)),
                 )
             )
         words = word_count(normalized_text)
-        if words < RESUME_SUMMARY_MIN_WORDS or words > RESUME_SUMMARY_MAX_WORDS:
+        minimum_words, maximum_words = summary_word_range
+        if words < minimum_words or words > maximum_words:
             issues.append(
                 Issue(
                     code="summary_word_count",
                     severity="fail",
                     message=(
                         f"Resume summary should stay between "
-                        f"{RESUME_SUMMARY_MIN_WORDS} and {RESUME_SUMMARY_MAX_WORDS} words."
+                        f"{minimum_words} and {maximum_words} words."
                     ),
                     snippet=str(words),
                 )
@@ -607,6 +633,20 @@ def load_dataset(path: Path) -> list[EvaluationSample]:
 
             must_flag = tuple(str(code) for code in payload.get("must_flag", ()))
             must_not_flag = tuple(str(code) for code in payload.get("must_not_flag", ()))
+            raw_summary_contract = payload.get("summary_contract")
+            if artifact == "resume_summary":
+                if raw_summary_contract is None:
+                    raise ValueError(
+                        f"{path} line {line_number}: resume_summary records require summary_contract"
+                    )
+                normalized_summary_contract = str(raw_summary_contract).strip().lower()
+                summary_word_range(normalized_summary_contract)
+            else:
+                if raw_summary_contract is not None:
+                    raise ValueError(
+                        f"{path} line {line_number}: summary_contract is forbidden for artifact {artifact}"
+                    )
+                normalized_summary_contract = None
             samples.append(
                 EvaluationSample(
                     sample_id=sample_id,
@@ -616,6 +656,7 @@ def load_dataset(path: Path) -> list[EvaluationSample]:
                     expected_outcome=expected_outcome,
                     must_flag=must_flag,
                     must_not_flag=must_not_flag,
+                    summary_contract=normalized_summary_contract,
                 )
             )
     if not samples:
@@ -623,7 +664,11 @@ def load_dataset(path: Path) -> list[EvaluationSample]:
     return samples
 
 
-def build_file_samples(paths: list[Path], artifact: str) -> list[EvaluationSample]:
+def build_file_samples(
+    paths: list[Path],
+    artifact: str,
+    summary_contract: str | None = None,
+) -> list[EvaluationSample]:
     normalized_artifact = normalize_artifact(artifact)
     samples: list[EvaluationSample] = []
     for path in paths:
@@ -634,6 +679,7 @@ def build_file_samples(paths: list[Path], artifact: str) -> list[EvaluationSampl
                 artifact=normalized_artifact,
                 text=text,
                 source_path=str(path),
+                summary_contract=summary_contract,
             )
         )
     return samples
@@ -675,6 +721,11 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--dataset", type=Path, help="JSONL dataset with text samples and optional expected outcomes.")
     parser.add_argument(
+        "--summary-contract",
+        choices=tuple(sorted(SUMMARY_CONTRACTS)),
+        help="Required commercial or federal contract for direct resume_summary inputs.",
+    )
+    parser.add_argument(
         "--text-file",
         action="append",
         type=Path,
@@ -703,19 +754,43 @@ def main() -> int:
         print("Provide exactly one input mode: --dataset, --text-file, or --text.")
         return 1
 
+    if args.dataset and args.summary_contract:
+        print("--summary-contract is forbidden with --dataset; each summary record declares its own contract.")
+        return 1
+    if not args.dataset:
+        if args.artifact == "resume_summary" and not args.summary_contract:
+            print("--artifact resume_summary requires --summary-contract commercial|federal.")
+            return 1
+        if args.artifact != "resume_summary" and args.summary_contract:
+            print("--summary-contract is valid only with --artifact resume_summary.")
+            return 1
+
     if args.dataset:
         samples = load_dataset(args.dataset)
     elif args.text_file:
-        samples = build_file_samples(args.text_file, args.artifact)
+        samples = build_file_samples(args.text_file, args.artifact, args.summary_contract)
     else:
-        samples = [EvaluationSample(sample_id="inline", artifact=args.artifact, text=args.text)]
+        samples = [
+            EvaluationSample(
+                sample_id="inline",
+                artifact=args.artifact,
+                text=args.text,
+                summary_contract=args.summary_contract,
+            )
+        ]
 
     results: list[EvaluationResult] = []
     issue_counter: Counter[str] = Counter()
     mismatch_count = 0
 
     for sample in samples:
-        result = evaluate_text(sample.artifact, sample.text, sample.sample_id)
+        contract_range = summary_word_range(sample.summary_contract) if sample.summary_contract else None
+        result = evaluate_text(
+            sample.artifact,
+            sample.text,
+            sample.sample_id,
+            summary_word_range=contract_range,
+        )
         result = EvaluationResult(sample=sample, issues=result.issues, score=result.score, passed=result.passed)
         mismatches = expectation_mismatches(sample, result)
         mismatch_count += len(mismatches)

@@ -2,11 +2,12 @@
 
 import re
 
+from config.summary_contracts import COMMERCIAL_SUMMARY_WORD_RANGE
+
 # Mandatory resume text for roles impacted by reorganization
 MANDATORY_REORG_SENTENCE = "Position impacted by company reorganization."
 MANDATORY_REORG_COMPANIES = ("East West Manufacturing", "Aptean")
-PROFESSIONAL_SUMMARY_MIN_WORDS = 45
-PROFESSIONAL_SUMMARY_MAX_WORDS = 70
+PROFESSIONAL_SUMMARY_MIN_WORDS, PROFESSIONAL_SUMMARY_MAX_WORDS = COMMERCIAL_SUMMARY_WORD_RANGE
 
 PLACEHOLDER_PATTERNS = (
     r"\bplaceholder\b",

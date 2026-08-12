@@ -50,6 +50,7 @@ from resume_analysis import (
 )
 from resume_content import rewrite_supported_text, strengthen_outcome_framing
 from resume_format import rendered_page_count, unpack_docx
+from config.summary_contracts import FEDERAL_SUMMARY_WORD_RANGE
 from utils import enforce_prose_quality, fail, has_great_eight_signal, read_text
 
 
@@ -63,8 +64,7 @@ FEDERAL_REQUIRED_SECTIONS = (
 TARGET_PAGE_COUNT = 2
 MAX_QUALIFICATIONS_PAGE_COUNT = 3
 DEFAULT_QUESTION_CHAR_LIMIT = 4000
-MAX_SUMMARY_WORDS = 110
-MIN_SUMMARY_WORDS = 70  # Federal summaries stay longer than commercial summaries because they carry explicit proof structure.
+MIN_SUMMARY_WORDS, MAX_SUMMARY_WORDS = FEDERAL_SUMMARY_WORD_RANGE
 NAME_FONT_SIZE = 14
 SECTION_FONT_SIZE = 10
 ROLE_FONT_SIZE = 10
@@ -1659,12 +1659,20 @@ def summary_scope_phrase() -> str:
     )
 
 
-def print_prose_warnings(label: str, text: str, artifact: str, *, fail_on_findings: bool = False) -> None:
+def print_prose_warnings(
+    label: str,
+    text: str,
+    artifact: str,
+    *,
+    fail_on_findings: bool = False,
+    summary_word_range: tuple[int, int] | None = None,
+) -> None:
     enforce_prose_quality(
         text,
         artifact,
         label=label,
         mode="fail" if fail_on_findings else "warn",
+        summary_word_range=summary_word_range,
     )
 
 
@@ -1751,7 +1759,13 @@ def build_gs14_summary(source: FederalSource, job_description: str, audit: Feder
     if not repaired.converged:
         fail("Federal Professional Summary failed shared structural validation: " + ", ".join(item.rule_id for item in repaired.findings))
     summary = repaired.text
-    print_prose_warnings("Federal Professional Summary", summary, "resume_summary", fail_on_findings=True)
+    print_prose_warnings(
+        "Federal Professional Summary",
+        summary,
+        "resume_summary",
+        fail_on_findings=True,
+        summary_word_range=FEDERAL_SUMMARY_WORD_RANGE,
+    )
     return summary
 
 

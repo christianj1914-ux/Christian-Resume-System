@@ -201,7 +201,7 @@ def main() -> None:
             summary_sentences = build_resume.summary_sentences(summary)
             assert_true(
                 build_resume.PROFESSIONAL_SUMMARY_MIN_WORDS <= len(summary.split()) <= build_resume.PROFESSIONAL_SUMMARY_MAX_WORDS,
-                f"Commercial summary should stay within the 70-110 word contract; got {len(summary.split())} words in {summary!r}",
+                f"Commercial summary should stay within the 45-70 word contract; got {len(summary.split())} words in {summary!r}",
             )
             assert_true(
                 len(summary_sentences) == 3 and bool(any(char.isdigit() for char in summary_sentences[1]) or "$" in summary_sentences[1]),
