@@ -71,6 +71,6 @@ Run these commands in order after any change:
 5. `python tasks.py dry-run`
 6. `python tasks.py resume`
 
-Run both `python tasks.py validate` and `python tasks.py integration-test` before committing changes to any core script.
+Run `python tasks.py validate-direct` and `python tasks.py integration-test` before committing changes to any core script. After committing, run `python tasks.py validate` so the detached-worktree gate verifies committed `HEAD`. To verify another committed artifact explicitly, run `python tasks.py validate --commit <sha>`.
 
 Use the checklist as the recommended first document step for a new job description because it summarizes lane detection, keyword coverage, evidence areas, lead story, cover approach, and fit risks before a full build. After the full resume build, review the render check output before using the generated document. Confirm the lane detection, source resume selection, keyword coverage, fit risks, page count, and visual formatting all match the intended role.

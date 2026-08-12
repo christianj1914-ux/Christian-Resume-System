@@ -630,6 +630,43 @@ def test_doctor_reports_required_runtime_health() -> None:
     assert_true("Doctor result" in result.stdout, f"Doctor summary missing from output: {result.stdout!r}")
 
 
+def test_dirty_default_validation_refuses_without_running_suite() -> None:
+    validate_clean_worktree = importlib.import_module("validate_clean_worktree")
+    original_root = validate_clean_worktree.PROJECT_ROOT
+    original_stream = validate_clean_worktree.stream_validation
+    calls: list[list[str]] = []
+    output = io.StringIO()
+    try:
+        with TemporaryDirectory(prefix="dirty-validation-") as temporary_name:
+            repository = Path(temporary_name)
+            subprocess.run(("git", "init"), cwd=repository, check=True, capture_output=True)
+            subprocess.run(("git", "config", "user.email", "smoke@example.invalid"), cwd=repository, check=True)
+            subprocess.run(("git", "config", "user.name", "Smoke Test"), cwd=repository, check=True)
+            tracked = repository / "tracked.txt"
+            tracked.write_text("committed\n", encoding="utf-8")
+            subprocess.run(("git", "add", "tracked.txt"), cwd=repository, check=True)
+            subprocess.run(("git", "commit", "-m", "baseline"), cwd=repository, check=True, capture_output=True)
+            tracked.write_text("dirty\n", encoding="utf-8")
+
+            def suite_runner_spy(command: list[str], *, cwd: Path, env: dict[str, str]) -> tuple[int, None]:
+                calls.append(command)
+                return 0, None
+
+            validate_clean_worktree.PROJECT_ROOT = repository
+            validate_clean_worktree.stream_validation = suite_runner_spy
+            with contextlib.redirect_stdout(output):
+                exit_code = validate_clean_worktree.main([])
+    finally:
+        validate_clean_worktree.PROJECT_ROOT = original_root
+        validate_clean_worktree.stream_validation = original_stream
+
+    report = output.getvalue()
+    assert_true(exit_code == 2, f"Dirty default validation should exit 2; got {exit_code}: {report!r}")
+    assert_true("tracked.txt" in report, f"Dirty path missing from validation refusal: {report!r}")
+    assert_true("HEAD does not include" in report, f"Validation refusal must explain stale HEAD: {report!r}")
+    assert_true(len(calls) == 0, f"Dirty default validation invoked the suite runner {len(calls)} time(s)")
+
+
 def test_smoke_selector_preserves_failing_federal_check() -> None:
     def failing_federal_check() -> None:
         raise SmokeFailure("injected federal failure")
@@ -18918,6 +18955,7 @@ def main(argv: list[str] | None = None) -> None:
             ("informational commands avoid document tooling imports", test_informational_commands_do_not_import_document_tooling),
             ("render tooling loads Pillow on demand", test_render_tooling_loads_pillow_on_demand),
             ("doctor reports required runtime health", test_doctor_reports_required_runtime_health),
+            ("dirty default validation refuses before suite execution", test_dirty_default_validation_refuses_without_running_suite),
             ("pyflakes has no undefined names or redefinitions", test_pyflakes_has_no_undefined_names_or_redefinitions),
             ("orphan detector flags synthetic unreferenced test", test_orphan_detector_flags_synthetic_unreferenced_test),
             ("smoke selector uses nonempty deduplicated tag union", test_smoke_selector_uses_nonempty_deduplicated_tag_union),

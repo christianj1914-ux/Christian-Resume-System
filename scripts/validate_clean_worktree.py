@@ -37,7 +37,10 @@ def parse_args(argv: list[str] | None = None) -> tuple[argparse.Namespace, list[
             "untracked files, and caches cannot affect the result."
         )
     )
-    parser.add_argument("--commit", default="HEAD", help="Candidate commit or revision (default: HEAD).")
+    parser.add_argument(
+        "--commit",
+        help="Validate this exact commit or revision even when the developer workspace is dirty.",
+    )
     parser.add_argument(
         "--expected-count",
         type=int,
@@ -70,11 +73,34 @@ def stream_validation(command: list[str], *, cwd: Path, env: dict[str, str]) -> 
 
 def main(argv: list[str] | None = None) -> int:
     args, forwarded_args = parse_args(argv)
+    explicit_commit = args.commit is not None
+    if not explicit_commit:
+        try:
+            workspace_status = git_output("status", "--porcelain", "--untracked-files=all")
+        except subprocess.CalledProcessError as error:
+            print(f"Could not inspect the developer workspace: {error}")
+            return 1
+        if workspace_status:
+            try:
+                head_sha = git_output("rev-parse", "--verify", "HEAD^{commit}")
+            except subprocess.CalledProcessError:
+                head_sha = "unresolved"
+            print(f"VALIDATION_REFUSED scope=workspace-default resolved_sha={head_sha} result=REFUSED")
+            print("The developer workspace has changes that HEAD does not include:")
+            print(workspace_status)
+            print("Run 'python tasks.py validate-direct' to test the workspace before committing.")
+            print("After committing, run 'python tasks.py validate', or select an artifact with '--commit <sha>'.")
+            return 2
+
+    requested_revision = args.commit or "HEAD"
+    scope = "explicit-commit" if explicit_commit else "clean-head"
     try:
-        candidate_sha = git_output("rev-parse", "--verify", f"{args.commit}^{{commit}}")
+        candidate_sha = git_output("rev-parse", "--verify", f"{requested_revision}^{{commit}}")
     except subprocess.CalledProcessError:
-        print(f"Could not resolve candidate commit: {args.commit}")
+        print(f"Could not resolve candidate commit: {requested_revision}")
         return 2
+
+    print(f"VALIDATION_REQUEST scope={scope} resolved_sha={candidate_sha}")
 
     with tempfile.TemporaryDirectory(prefix="resume-system-clean-") as temporary_root:
         worktree = Path(temporary_root) / "candidate"
@@ -93,7 +119,10 @@ def main(argv: list[str] | None = None) -> int:
                 text=True,
             ).stdout.strip()
             if status:
-                print(f"CLEAN_VALIDATION commit={candidate_sha} untracked_dependencies=FAILED")
+                print(
+                    f"CLEAN_VALIDATION resolved_sha={candidate_sha} scope={scope} "
+                    "registered_checks=unknown executed_checks=unknown result=FAILED"
+                )
                 print(status)
                 return 1
 
@@ -106,15 +135,20 @@ def main(argv: list[str] | None = None) -> int:
                 env=environment,
             )
             if result is None:
-                print(f"CLEAN_VALIDATION commit={candidate_sha} registered_checks=unknown result=FAILED")
+                print(
+                    f"CLEAN_VALIDATION resolved_sha={candidate_sha} scope={scope} "
+                    "registered_checks=unknown executed_checks=unknown result=FAILED"
+                )
                 return 1 if return_code == 0 else return_code
 
             registered = int(result.group("registered"))
+            executed = int(result.group("executed"))
             passed = result.group("status") == "PASSED" and return_code == 0
             expected_matches = args.expected_count is None or registered == args.expected_count
             status_label = "PASS" if passed and expected_matches else "FAIL"
             print(
-                f"CLEAN_VALIDATION commit={candidate_sha} registered_checks={registered} "
+                f"CLEAN_VALIDATION resolved_sha={candidate_sha} scope={scope} "
+                f"registered_checks={registered} executed_checks={executed} "
                 f"result={status_label}"
             )
             if not expected_matches:

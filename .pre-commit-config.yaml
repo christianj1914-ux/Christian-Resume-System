@@ -5,7 +5,7 @@ repos:
       - id: resume-system-smoke-test
         name: Resume system smoke test
         description: Verify resume system lane detection and language rules.
-        entry: python scripts/smoke_test.py
+        entry: python tasks.py validate-direct
         language: system
         pass_filenames: false
         types: [python]

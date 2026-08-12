@@ -124,6 +124,9 @@ After editing `scripts/config/language_rules.py` or `scripts/config/job_profiles
 After meaningful script changes:
 
 - run the smoke suite
+- before committing, run `python tasks.py validate-direct` to test the current workspace
+- after committing or in CI, run `python tasks.py validate` to test committed `HEAD`
+- use `python tasks.py validate --commit <sha>` when validating a specific committed artifact
 
 When changing command surfaces, command docs, or maturity labels:
 
@@ -132,7 +135,8 @@ When changing command surfaces, command docs, or maturity labels:
 
 When changing resume or interview logic:
 
-- run `python tasks.py validate`
+- run `python tasks.py validate-direct` before committing
+- run `python tasks.py validate` after committing
 - run at least the most relevant output builder for the changed area
 
 Use `scripts/post_interview_debrief.py` after interview updates so new interview intelligence flows into later prep.

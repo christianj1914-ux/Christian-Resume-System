@@ -67,6 +67,8 @@ Use Claude in two passes:
 
 ## Routine Workflow
 
+Before committing script changes, run `python tasks.py validate-direct` so the current workspace is tested. After committing, run `python tasks.py validate` to verify committed `HEAD` in a clean detached worktree. Use `python tasks.py validate --commit <sha>` for a specific committed artifact. Bare `validate` deliberately refuses a dirty workspace because its edits are not part of `HEAD`.
+
 1. Before replacing `jobs/job_description.txt`, run `python tasks.py jd-archive` if the current posting should remain available for tracker refresh or pattern review.
 2. Put one active job posting in `jobs/job_description.txt`.
 3. Keep the reusable application-question prompts in `jobs/application_questions_bank.txt`; paste late-discovered job-specific extras in `jobs/application_questions.txt` only.
