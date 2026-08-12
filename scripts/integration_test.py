@@ -46,9 +46,10 @@ FEDERAL_SAMPLE_JOB_DESCRIPTION = """
 Agency: Department of Veterans Affairs
 Role: IT Program Manager
 
-This federal role leads enterprise implementation, data migration, acquisition support,
-program governance, executive stakeholder briefings, reporting, change management,
-and cross-functional delivery across a multi-site environment.
+As an IT Program Manager, GS-11 you will lead enterprise implementation and governance.
+You qualify for the GS-11 grade level if you possess one of the following:
+Experience: One (1) year of specialized experience at the GS-09 grade level or equivalent performing duties such as:
+Leading enterprise implementation, data migration, acquisition support, program governance, executive stakeholder briefings, reporting, change management, and cross-functional delivery across a multi-site environment.
 """
 
 
@@ -73,7 +74,7 @@ def assert_federal_wrapper_delegation(
     try:
         wrapper_module.federal_supporting_docs.resolve_federal_context = lambda: context
         if original_parse_args is not None and cover_mode is not None:
-            wrapper_module.parse_args = lambda: SimpleNamespace(mode=cover_mode)
+            wrapper_module.parse_args = lambda *_args, **_kwargs: SimpleNamespace(mode=cover_mode, target_grade="")
 
         def fake_helper(**kwargs):
             captured.update(kwargs)
@@ -119,11 +120,12 @@ def run_federal_supporting_doc_checks() -> None:
     validated = federal_supporting_docs.read_validated_federal_job_description(FEDERAL_SAMPLE_JOB_DESCRIPTION)
     agency = build_federal_resume.extract_federal_agency_name(validated)
     role = build_federal_resume.extract_federal_role_title(validated)
-    output_name = build_federal_resume.extract_federal_output_name(validated)
+    target_context = build_federal_resume.requirement_engine.build_target_context(validated, workflow="federal")
+    output_name = target_context.output_label
     assert_true(agency == "Department of Veterans Affairs", f"Expected a federal agency name; got {agency!r}")
     assert_true(role == "IT Program Manager", f"Expected a federal role title; got {role!r}")
     assert_true(
-        output_name == "Department of Veterans Affairs - IT Program Manager",
+        output_name == "Department of Veterans Affairs - IT Program Manager - GS-11",
         f"Federal output name should combine the agency and role; got {output_name!r}",
     )
 

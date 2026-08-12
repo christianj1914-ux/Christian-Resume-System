@@ -60,6 +60,16 @@ Review-heavy commands:
 
 Run `python tasks.py commands` for the live inventory, maturity labels, and script targets.
 
+Federal grade and DRAFT behavior:
+
+- `python tasks.py federal-resume --target-grade GS-11` selects an explicit parsed qualification block; without the flag, the highest listed qualification grade is selected.
+- `python tasks.py federal-dry-run --target-grade GS-XX` previews the same grade selection without publishing documents.
+- Federal parse uncertainty is non-blocking: valid documents publish with `DRAFT` in every federal filename and stable parse diagnostics in build feedback.
+- Parse-only drafts do not receive the visible red banner. The banner remains reserved for application-question context issues.
+- Federal resume and qualifications documents are staged, validated, rendered, and committed together. A failed set restores prior output files.
+- Supporting federal documents accept the same `--target-grade` flag, inherit DRAFT status, and resolve only the matching grade-specific resume.
+- `python tasks.py validate --quick` runs the import, federal parser, target-context, question-routing, and publication-safety subset; the target runtime is under 60 seconds.
+
 Commercial resume keyword policy:
 
 - `--keyword-policy balanced` is the production default; it blocks supported-but-unwritten core

@@ -13,9 +13,9 @@ import csv
 import json
 import subprocess
 import sys
-from functools import lru_cache
 from dataclasses import dataclass
 from datetime import datetime
+from functools import lru_cache
 from pathlib import Path
 
 import claude_review_bundle
@@ -95,6 +95,9 @@ BROAD_EXCERPTS = (
     fx("scripts/run_resume_workflow.py", "run_dry_run", "Workflow dry-run readiness logic", head_lines=90),
     fx("scripts/run_resume_workflow.py", "main", "Workflow resume, cover, and tracker sequencing"),
     fx("scripts/post_interview_debrief.py", "update_tracker_from_debrief", "Debrief-to-tracker synchronization"),
+    fx("scripts/requirement_engine.py", "parse_federal_posting", "Federal multi-grade parsing and diagnostics"),
+    fx("scripts/requirement_engine.py", "build_target_context", "Shared target identity and federal grade selection"),
+    fx("scripts/workflow_step_runner.py", "publish_document_set", "Transactional document-set publication"),
 )
 
 PACKET_MODES = {
@@ -305,21 +308,32 @@ PACKET_MODES = {
             "The federal resume should stay at exactly two pages with 10pt minimum body text, while the federal qualifications statement remains a separate Word document.",
             "Federal supporting documents should reuse shared cover and interview engines where safe, without importing commercial-only assumptions or output naming.",
             "Federal workflow diagnostics should make requirement visibility gaps, layout choices, and supporting-doc wrapper behavior easy to audit.",
+            "Federal parse uncertainty should publish grade-specific DRAFT files without a visible banner unless question-context issues independently require that banner.",
+            "Highest listed qualification grade is the default, --target-grade is the explicit override, and unavailable requested grades remain DRAFT with zero fabricated requirements.",
+            "The resume and qualifications statement should remain staged until ATS, coverage, page-count, and render checks pass, then commit together or roll back together.",
         ),
         questions=(
             "Identify the highest-risk bugs or stale assumptions in the federal resume, qualifications-statement, supporting-doc wrapper, or federal workflow path.",
             "Call out places where commercial logic leaks into the federal contract or where federal-specific guardrails are too weak.",
             "Point out exact smoke-test or integration-test additions that should protect federal planning, qualifications output, and supporting-doc portability.",
             "If one more snippet is required, name only the smallest additional federal function to inspect.",
+            "Verify the selected automatic-DRAFT design and do not recommend parser hard stops as an implementation outcome; strict mode remains analysis-only.",
         ),
         excerpts=(
+            fx("scripts/requirement_engine.py", "select_federal_grade", "Federal grade selection and stable diagnostics"),
+            fx("scripts/requirement_engine.py", "parse_federal_posting", "Federal multi-grade parse aggregate", head_lines=120),
+            fx("scripts/requirement_engine.py", "build_target_context", "Federal TargetContext consolidation"),
             fx("scripts/build_federal_resume.py", "validate_inputs", "Federal posting validation"),
             fx("scripts/build_federal_resume.py", "federal_requirement_audit", "Federal requirement audit and coverage classification", head_lines=100),
             fx("scripts/build_federal_resume.py", "build_gs14_summary", "Federal summary construction"),
             fx("scripts/build_federal_resume.py", "resume_plan", "Federal resume and qualifications planning", head_lines=100),
             fx("scripts/build_federal_resume.py", "federal_plain_text_validation", "Federal ATS plain-text validation"),
-            fx("scripts/build_federal_resume.py", "build_federal_resume", "Federal resume build orchestration", head_lines=50),
+            fx("scripts/build_federal_resume.py", "federal_draft_channels", "Reason-scoped DRAFT decision"),
+            fx("scripts/build_federal_resume.py", "validate_staged_federal_documents", "Staged federal validation and rendering"),
+            fx("scripts/build_federal_resume.py", "build_federal_resume", "Federal resume build orchestration", head_lines=120),
+            fx("scripts/question_prep.py", "active_application_question_responses", "Pre-generation question-category exclusion"),
             fx("scripts/federal_supporting_docs.py", "resolve_federal_context", "Federal supporting-doc context resolution"),
+            fx("scripts/workflow_step_runner.py", "publish_document_set", "Transactional two-document publisher"),
             fx("scripts/run_federal_resume_workflow.py", "run_dry_run", "Federal workflow dry-run readiness", head_lines=100),
             fx("scripts/run_federal_resume_workflow.py", "print_failure_summary", "Federal workflow failure messaging"),
             fx("scripts/run_federal_resume_workflow.py", "main", "Federal workflow orchestration", head_lines=60),
@@ -683,6 +697,12 @@ def current_system_contract() -> str:
         "- Tracker fields are separate today: `lane_label`, `fit_status`, and `audit_flag` are not interchangeable.",
         f"- Commercial cover-letter modes live today: `standard` = `{standard_min}-{standard_max}` words, `long` = `{long_min}-{long_max}` words.",
         f"- Federal resume contract live today: exactly `{build_federal_resume.TARGET_PAGE_COUNT}` pages at `{build_federal_resume.MIN_BODY_FONT_SIZE:.0f}pt` minimum body text, plus a separate federal qualifications statement.",
+        "- Federal grade selection live today: highest listed qualification grade by default, with `--target-grade GS-XX` propagated across the federal resume and supporting-document command surface.",
+        "- Federal parse uncertainty is non-blocking and produces grade-specific `DRAFT` filenames. Parse diagnostics alone never trigger the visible red banner; question-context issues retain the banner.",
+        "- The live DHS posting resolves duty grade GS-12, available grades GS-09/GS-11, selected grade GS-11, four selected requirements, and a draft-required `duty_qualification_grade_mismatch` diagnostic.",
+        "- Federal resume and qualifications files are staged through ATS, coverage, unsupported-claim, page-count, and render checks, then published transactionally with rollback after either replacement failure.",
+        "- Selected/rejected federal alternatives: automatic DRAFT, highest-listed grade, TargetContext consolidation, grade-bearing sections/elements, builder transaction plus workflow recovery, and optimized existing smoke metadata are live; parser hard-stop, strict-parse override, separate TargetIdentity, parallel FederalGradeBlock, and builder-only/workflow-only publication remain rejected analysis options.",
+        "- Validation evidence for this implementation: quick smoke 16/16 in 23 seconds, federal smoke 41/41, full smoke 505/505, integration passed, and the four-page DHS document set was visually inspected with no clipping or overlap.",
         "- Federal outputs do not use commercial filename audit states or tracker fit-state semantics today.",
         "- Federal cover, interview cheat sheet, and detailed guide are wrappers over shared commercial builders with federal context resolution.",
         f"- Current packet modes: `{packet_modes}`.",
