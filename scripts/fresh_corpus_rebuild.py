@@ -18,6 +18,7 @@ import zipfile
 from xml.etree import ElementTree as ET
 
 from config.paths import PYTHON_EXECUTABLE
+from render_manifest import verify_render_directory
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -98,9 +99,9 @@ def rendered_page_count(render_dir: Path) -> int:
         reverse=True,
     )
     for candidate in candidates:
-        count = len(list(candidate.glob("page-*.png")))
-        if count:
-            return count
+        verification = verify_render_directory(candidate)
+        if verification.verified:
+            return verification.page_count
     return 0
 
 

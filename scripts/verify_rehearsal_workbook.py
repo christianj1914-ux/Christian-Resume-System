@@ -9,11 +9,12 @@ import re
 from zipfile import ZipFile
 
 import xml.etree.ElementTree as ET
-from config.paths import DAILY_INTERVIEW_REHEARSAL_WORKBOOK, PROJECT_ROOT
+from config.paths import DAILY_INTERVIEW_REHEARSAL_WORKBOOK, PROJECT_ROOT, RENDER_CHECK_DIR
+from render_manifest import verify_render_directory
 
 
 DOCX = DAILY_INTERVIEW_REHEARSAL_WORKBOOK
-DEFAULT_RENDER_DIR = PROJECT_ROOT / "render_check" / "Daily_Interview_Rehearsal_Workbook_repaired_20260802"
+DEFAULT_RENDER_DIR = RENDER_CHECK_DIR / "Daily_Interview_Rehearsal_Workbook_repaired_20260802"
 STORY_BANK = PROJECT_ROOT / "interview_prep" / "Christian Estrada - Project Delivery Interview Stories.md"
 BASELINE_BYTES = 77851
 BASELINE_PAGES = 55
@@ -130,8 +131,9 @@ def parse_bank_openers() -> dict[str, str]:
     return openers
 
 
-def render_page_count(render_dir: Path) -> int:
-    return len(list(render_dir.glob("page-*.png"))) if render_dir.exists() else 0
+def render_page_count(render_dir: Path, docx: Path) -> tuple[int, str]:
+    verification = verify_render_directory(render_dir, docx)
+    return verification.page_count, verification.status if verification.verified else f"UNVERIFIED: {verification.reason}"
 
 
 def check_story_lists(sections: dict[int, list[str]]) -> dict[str, list[int]]:
@@ -197,12 +199,12 @@ def main() -> int:
     alternates = [name for name in ("East West ERP ownership", "Aptean lifecycle delivery", "Failure lesson and stronger validation") if name in text]
     story_q = sum(block.count("Q. ") for section in part2.values() for block in section)
     story_a = sum(block.count("A. ") for section in part2.values() for block in section)
-    page_count = render_page_count(args.render_dir)
+    page_count, render_status = render_page_count(args.render_dir, args.docx)
     size = args.docx.stat().st_size
     mtime = args.docx.stat().st_mtime
     checks: list[tuple[str, str, object, bool]] = [
         ("1", "File size changed from baseline", f"{size} bytes (baseline {BASELINE_BYTES})", size != BASELINE_BYTES),
-        ("2", "Rendered page count", f"{page_count} (expected > {BASELINE_PAGES})", page_count > BASELINE_PAGES),
+        ("2", "Rendered page count", f"{page_count} (expected > {BASELINE_PAGES}); {render_status}", render_status == "VERIFIED" and page_count > BASELINE_PAGES),
         ("3", "Part 2 story sections", len(part2), len(part2) == 22),
         ("4", "Part 4 reference sections", len(part4), len(part4) == 22),
         ("5", "Stories with non-empty PREP", f"22/22; missing {missing['PREP']}", not missing["PREP"]),
@@ -233,7 +235,7 @@ def main() -> int:
     ]
     print("Daily Interview Rehearsal Workbook Verification")
     print(f"DOCX: {args.docx}")
-    print(f"Size: {size} bytes; mtime: {mtime}; pages: {page_count}; paragraphs: {document.paragraph_count}; tables: {document.table_count}")
+    print(f"Size: {size} bytes; mtime: {mtime}; pages: {page_count} ({render_status}); paragraphs: {document.paragraph_count}; tables: {document.table_count}")
     print(f"Expected baseline: {BASELINE_BYTES} bytes; {BASELINE_PAGES} pages; {BASELINE_TABLES} tables")
     print("\nExpected versus actual")
     for number, label, actual, passed in checks:

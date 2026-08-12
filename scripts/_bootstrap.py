@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import atexit
 import os
+import shutil
 import sys
-import uuid
+import tempfile
 from pathlib import Path
 
 _SCRIPT_DIR = Path(__file__).resolve().parent
@@ -31,18 +33,21 @@ def ensure_script_path() -> None:
 
 
 def configure_fresh_pycache(project_root: Path | None = None) -> Path:
-    """Route pyc writes to a fresh per-run cache directory."""
+    """Route pyc writes to a temporary process-owned cache directory."""
 
     existing_env = os.environ.get("PYTHONPYCACHEPREFIX", "").strip()
-    existing_runtime = getattr(sys, "pycache_prefix", None)
-    if existing_env and existing_runtime and Path(existing_env) == Path(str(existing_runtime)):
+    managed_owner = os.environ.get("RESUME_MANAGED_PYCACHE_OWNER_PID", "").strip()
+    if existing_env and not managed_owner:
         prefix = Path(existing_env)
         prefix.mkdir(parents=True, exist_ok=True)
+        sys.pycache_prefix = str(prefix)
         return prefix
+    if existing_env and managed_owner == str(os.getpid()):
+        return Path(existing_env)
 
-    root = (project_root or _PROJECT_ROOT).resolve()
-    prefix = root / "scratch" / "pycache" / f"session-{os.getpid()}-{uuid.uuid4().hex}"
-    prefix.mkdir(parents=True, exist_ok=True)
+    prefix = Path(tempfile.mkdtemp(prefix=f"resume-system-pycache-{os.getpid()}-"))
     os.environ["PYTHONPYCACHEPREFIX"] = str(prefix)
+    os.environ["RESUME_MANAGED_PYCACHE_OWNER_PID"] = str(os.getpid())
     sys.pycache_prefix = str(prefix)
+    atexit.register(shutil.rmtree, prefix, True)
     return prefix

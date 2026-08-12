@@ -20,6 +20,7 @@ from pathlib import Path
 import build_standard_qualifications_statement
 import question_prep
 import render_checks
+from render_manifest import rebind_render_manifest, verify_render_directory
 import evidence_engine
 import requirement_engine
 import prose_engine
@@ -3181,7 +3182,7 @@ def validate_staged_federal_documents(
     *,
     resume_render_label: str,
     qualifications_render_label: str,
-) -> tuple[int | None, int | None]:
+) -> tuple[int | None, int | None, Path | None, Path | None]:
     ats_report = federal_plain_text_validation(resume_candidate)
     for warning in ats_report["warnings"]:
         print(f"FEDERAL ATS WARNING: {warning}")
@@ -3206,7 +3207,7 @@ def validate_staged_federal_documents(
     )
     if render_checks.RENDER_AVAILABLE and (resume_render is None or qualifications_render is None):
         fail("Federal render validation failed before publication.")
-    return final_page_count, qualifications_page_count
+    return final_page_count, qualifications_page_count, resume_render, qualifications_render
 
 
 def build_federal_resume(*, target_grade: str = "") -> FederalBuildResult:
@@ -3267,7 +3268,12 @@ def build_federal_resume(*, target_grade: str = "") -> FederalBuildResult:
         if question_context_issues:
             question_prep.mark_docx_as_draft(qualifications_candidate, question_context_issues)
 
-        final_page_count, qualifications_page_count = validate_staged_federal_documents(
+        (
+            final_page_count,
+            qualifications_page_count,
+            resume_render,
+            qualifications_render,
+        ) = validate_staged_federal_documents(
             resume_candidate,
             qualifications_candidate,
             job_description,
@@ -3289,6 +3295,11 @@ def build_federal_resume(*, target_grade: str = "") -> FederalBuildResult:
             level = "WARNING" if diagnostic.requires_draft else "INFO"
             print(f"FEDERAL PARSE {level} [{diagnostic.code}]: {diagnostic.message}")
 
+        if resume_render is not None:
+            rebind_render_manifest(resume_render, output_docx, content_source=resume_candidate)
+        if qualifications_render is not None:
+            rebind_render_manifest(qualifications_render, qualifications_docx, content_source=qualifications_candidate)
+
         workflow_step_runner.publish_document_set(
             (
                 (resume_candidate, output_docx),
@@ -3296,6 +3307,14 @@ def build_federal_resume(*, target_grade: str = "") -> FederalBuildResult:
             ),
             quarantine_root=SCRATCH_DIR / "run_logs" / "quarantine",
         )
+        for render_dir, published_docx in (
+            (resume_render, output_docx),
+            (qualifications_render, qualifications_docx),
+        ):
+            if render_dir is not None:
+                verification = verify_render_directory(render_dir, published_docx)
+                if not verification.verified:
+                    fail(f"Published federal render is UNVERIFIED: {verification.reason}")
     finally:
         shutil.rmtree(temp_root, ignore_errors=True)
 

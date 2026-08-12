@@ -5811,24 +5811,34 @@ def test_exact_scored_surface_targets_survive_placement(build_resume: object) ->
 
 def test_fresh_harness_page_authority_fails_closed() -> None:
     import fresh_corpus_rebuild
+    import render_manifest
 
     with TemporaryDirectory(prefix="fresh_page_authority_") as temp_name:
         fixture_dir = Path(temp_name)
         result_path = fixture_dir / "result.json"
         render_dir = fixture_dir / "render_check" / "latest"
         render_dir.mkdir(parents=True)
+        source = fixture_dir / "resume.docx"
+        source.write_bytes(b"docx fixture")
         (render_dir / "page-1.png").write_bytes(b"png")
         (render_dir / "page-2.png").write_bytes(b"png")
+        render_manifest.write_render_manifest(
+            render_dir,
+            source,
+            renderer_executable="fixture-renderer",
+            renderer_version="1",
+            python_executable=sys.executable,
+        )
         (fixture_dir / "build.log").write_text(
             "Fit render: pages=3\n",
             encoding="utf-8",
         )
         fresh_corpus_rebuild.atomic_write_json(
             result_path,
-            {"exit_state": "success", "resume_path": ""},
+            {"exit_state": "success", "resume_path": str(source)},
         )
         result = fresh_corpus_rebuild.normalize_result_page_count(
-            {"exit_state": "success", "resume_path": ""},
+            {"exit_state": "success", "resume_path": str(source)},
             result_path,
         )
         assert_true(
@@ -14973,9 +14983,12 @@ def test_application_readiness_state_banner_and_tracker_consistency() -> None:
 def test_sparse_final_page_detection() -> None:
     from PIL import Image, ImageDraw
     import render_checks
+    import render_manifest
 
     with TemporaryDirectory(prefix="sparse_final_page_") as temp_name:
         root = Path(temp_name)
+        source = root / "source.docx"
+        source.write_bytes(b"source")
         dense = Image.new("RGB", (300, 500), "white")
         dense_draw = ImageDraw.Draw(dense)
         for y in range(80, 410, 24):
@@ -14984,9 +14997,57 @@ def test_sparse_final_page_detection() -> None:
         sparse = Image.new("RGB", (300, 500), "white")
         ImageDraw.Draw(sparse).line((40, 70, 220, 70), fill="black", width=3)
         sparse.save(root / "page-2.png")
+        render_manifest.write_render_manifest(
+            root,
+            source,
+            renderer_executable="fixture-renderer",
+            renderer_version=None,
+            python_executable=sys.executable,
+        )
         assert_true(render_checks.final_page_is_sparse(root), "Sparse trailing render page should trigger a compact reflow retry.")
         dense.save(root / "page-2.png")
         assert_true(not render_checks.final_page_is_sparse(root), "Dense trailing render page should not be falsely marked sparse.")
+
+
+def test_render_manifest_rejects_stale_source_and_page_inventory() -> None:
+    import render_manifest
+
+    with TemporaryDirectory(prefix="render_manifest_smoke_") as temp_name:
+        root = Path(temp_name)
+        source = root / "artifact.docx"
+        source.write_bytes(b"first")
+        render_dir = root / "render"
+        render_dir.mkdir()
+        (render_dir / "page-1.png").write_bytes(b"page")
+        manifest_path = render_manifest.write_render_manifest(
+            render_dir,
+            source,
+            renderer_executable="fixture-renderer",
+            renderer_version="1.0",
+            python_executable=sys.executable,
+        )
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        assert_true(
+            manifest["schema_version"] == 1
+            and manifest["source_path"] == str(source.resolve())
+            and manifest["page_filenames"] == ["page-1.png"],
+            f"render manifest should record the source and ordered pages; got {manifest}",
+        )
+        assert_true(render_manifest.verify_render_directory(render_dir, source).verified, "fresh matching render should verify")
+        source.write_bytes(b"second")
+        stale = render_manifest.verify_render_directory(render_dir, source)
+        assert_true(not stale.verified and stale.status == "UNVERIFIED" and "hash" in stale.reason, f"stale source should be rejected; got {stale}")
+        source.write_bytes(b"first")
+        (render_dir / "page-2.png").write_bytes(b"extra")
+        changed_pages = render_manifest.verify_render_directory(render_dir, source)
+        assert_true(not changed_pages.verified and "page" in changed_pages.reason, f"page inventory drift should be rejected; got {changed_pages}")
+        (render_dir / "page-2.png").unlink()
+        published = root / "published" / "artifact.docx"
+        render_manifest.rebind_render_manifest(render_dir, published, content_source=source)
+        published.parent.mkdir()
+        published.write_bytes(source.read_bytes())
+        rebound = render_manifest.verify_render_directory(render_dir, published)
+        assert_true(rebound.verified, f"staged federal render should follow its byte-identical published file; got {rebound}")
 
 
 def test_queue_readiness_fields_and_stage_timing() -> None:
@@ -18426,6 +18487,7 @@ def test_bootstrap_copy_filter_preserves_render_checks_module() -> None:
 def test_bootstrap_configure_fresh_pycache_avoids_stale_timestamp_bytecode() -> None:
     helper_env = os.environ.copy()
     helper_env.pop("PYTHONPYCACHEPREFIX", None)
+    helper_env.pop("RESUME_MANAGED_PYCACHE_OWNER_PID", None)
     helper_env["PYTHONPATH"] = (
         str(SCRIPT_DIR)
         if not helper_env.get("PYTHONPATH")
@@ -18476,9 +18538,8 @@ def test_bootstrap_configure_fresh_pycache_avoids_stale_timestamp_bytecode() -> 
             text=True,
             check=True,
         )
-        pycache_root = (root / "scratch" / "pycache").resolve()
-
     payload = json.loads(fresh_result.stdout.strip())
+    temporary_cache = Path(payload["pycache_prefix"]).resolve()
 
     assert_true(
         stale_result.stdout.strip() == "1",
@@ -18493,9 +18554,36 @@ def test_bootstrap_configure_fresh_pycache_avoids_stale_timestamp_bytecode() -> 
         f"configure_fresh_pycache() should keep env and runtime pycache prefixes aligned; got {payload}",
     )
     assert_true(
-        Path(payload["pycache_prefix"]).resolve().is_relative_to(pycache_root),
-        f"configure_fresh_pycache() should write under scratch/pycache for the provided project root; got {payload}",
+        not temporary_cache.is_relative_to(root.resolve()),
+        f"configure_fresh_pycache() should keep managed bytecode outside the repository; got {payload}",
     )
+    assert_true(
+        not temporary_cache.exists(),
+        f"process-owned pycache should be removed at subprocess exit; still present: {temporary_cache}",
+    )
+
+
+def test_bootstrap_honors_external_pycache_prefix() -> None:
+    helper_env = os.environ.copy()
+    helper_env.pop("RESUME_MANAGED_PYCACHE_OWNER_PID", None)
+    with TemporaryDirectory(prefix="external_pycache_") as temp_name:
+        external = Path(temp_name) / "caller-owned"
+        helper_env["PYTHONPYCACHEPREFIX"] = str(external)
+        helper_env["PYTHONPATH"] = str(SCRIPT_DIR)
+        probe = subprocess.run(
+            [
+                sys.executable,
+                "-c",
+                "import json, _bootstrap; p=_bootstrap.configure_fresh_pycache(); print(json.dumps({'prefix': str(p)}))",
+            ],
+            env=helper_env,
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        payload = json.loads(probe.stdout.strip())
+        assert_true(Path(payload["prefix"]).resolve() == external.resolve(), f"external pycache prefix should be honored; got {payload}")
+        assert_true(external.exists(), "caller-owned pycache should not be removed by bootstrap cleanup")
 
 
 def test_bootstrap_gitignore_ignores_generated_bundle_manifest() -> None:
@@ -19361,6 +19449,7 @@ def main(argv: list[str] | None = None) -> None:
             ("cleanup render checks only targets timestamped nested folders", test_cleanup_render_checks_limits_nested_cleanup_to_timestamped_folders),
             ("bootstrap copy filter preserves render checks module", test_bootstrap_copy_filter_preserves_render_checks_module),
             ("bootstrap configure fresh pycache avoids stale timestamp bytecode", test_bootstrap_configure_fresh_pycache_avoids_stale_timestamp_bytecode),
+            ("bootstrap honors external pycache prefix", test_bootstrap_honors_external_pycache_prefix),
             ("bootstrap gitignore ignores generated bundle manifest", test_bootstrap_gitignore_ignores_generated_bundle_manifest),
             ("bootstrap copy filter excludes retired onedrive markers", test_bootstrap_copy_filter_excludes_retired_onedrive_markers),
             ("bootstrap writes live canonical launchers", test_bootstrap_writes_live_canonical_launchers),
@@ -19789,6 +19878,7 @@ def main(argv: list[str] | None = None) -> None:
             ("visible status banner and shared flow controls", lambda: test_visible_status_banner_and_shared_flow_controls(build_standard_qualifications_statement)),
             ("readiness state banner and tracker consistency", test_application_readiness_state_banner_and_tracker_consistency),
             ("sparse final page detection", test_sparse_final_page_detection),
+            ("render manifest rejects stale source and page inventory", test_render_manifest_rejects_stale_source_and_page_inventory),
             ("queue readiness fields and stage timing", test_queue_readiness_fields_and_stage_timing),
             ("top-third scoring guard blocks unapproved promotion", test_top_third_scoring_guard_blocks_unapproved_promotion),
             ("workflow parse args accepts resume only", test_run_resume_workflow_parse_args_accepts_resume_only),

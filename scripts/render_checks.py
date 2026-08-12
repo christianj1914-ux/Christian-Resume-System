@@ -5,15 +5,18 @@ from __future__ import annotations
 
 import argparse
 import re
+import shutil
 import subprocess
 import sys
-from datetime import datetime
+import uuid
+from datetime import datetime, timezone
 from pathlib import Path
 
 from PIL import Image
 
 from config.paths import OUTPUT_DIR, PROJECT_ROOT, RENDER_CHECK_DIR
 from resolve_python import candidate_paths, resolve_python
+from render_manifest import verify_render_directory, write_render_manifest
 from workflow_step_runner import ProcessTreeTimeout, run_process_tree_safe
 
 
@@ -94,13 +97,14 @@ def render_docx(docx_path: Path, label: str | None = None) -> Path | None:
         return None
 
     ensure_render_root()
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S_%f")
     folder_label = safe_folder_name(label or docx_path.stem)
-    output_dir = RENDER_ROOT / f"{folder_label}_{timestamp}"
+    output_dir = RENDER_ROOT / f"{timestamp}_{folder_label}_{uuid.uuid4().hex[:8]}"
     output_dir.mkdir(parents=True, exist_ok=False)
 
+    python_executable = render_python_executable()
     command = [
-            render_python_executable(),
+            python_executable,
             str(render_script),
             str(docx_path),
             "--output_dir",
@@ -115,6 +119,7 @@ def render_docx(docx_path: Path, label: str | None = None) -> Path | None:
         )
     except ProcessTreeTimeout as exc:
         print(f"WARNING: {exc}", file=sys.stderr)
+        shutil.rmtree(output_dir, ignore_errors=True)
         return None
     if result.returncode != 0:
         print(f"WARNING: render failed for {docx_path.name}", file=sys.stderr)
@@ -128,9 +133,33 @@ def render_docx(docx_path: Path, label: str | None = None) -> Path | None:
                 )
             else:
                 print(stderr_text, file=sys.stderr)
+        shutil.rmtree(output_dir, ignore_errors=True)
         return None
 
     page_count = len(list(output_dir.glob("page-*.png")))
+    if page_count == 0:
+        print(f"WARNING: render produced no page images for {docx_path.name}", file=sys.stderr)
+        shutil.rmtree(output_dir, ignore_errors=True)
+        return None
+    renderer_executable = str(render_script.resolve())
+    renderer_version: str | None = None
+    if render_script.name == "render_docx_windows.py":
+        try:
+            from render_docx_windows import find_soffice
+
+            renderer = find_soffice()
+            renderer_executable = str(renderer.resolve())
+            version_result = subprocess.run([str(renderer), "--version"], capture_output=True, text=True, timeout=15)
+            renderer_version = (version_result.stdout or version_result.stderr).strip() or None
+        except (OSError, subprocess.SubprocessError):
+            renderer_version = None
+    write_render_manifest(
+        output_dir,
+        docx_path,
+        renderer_executable=renderer_executable,
+        renderer_version=renderer_version,
+        python_executable=python_executable,
+    )
     print(f"Render check: {output_dir} ({page_count} page image(s))")
     return output_dir
 
@@ -142,7 +171,10 @@ def final_page_is_sparse(render_dir: Path, *, minimum_vertical_coverage: float =
     layout guard for document types where a mostly empty final page is not an
     intentional cover sheet.
     """
-    pages = sorted(Path(render_dir).glob("page-*.png"))
+    verification = verify_render_directory(render_dir)
+    if not verification.verified:
+        raise ValueError(f"Visual QA is UNVERIFIED: {verification.reason}")
+    pages = list(verification.page_files)
     if len(pages) < 2:
         return False
     with Image.open(pages[-1]).convert("RGB") as image:

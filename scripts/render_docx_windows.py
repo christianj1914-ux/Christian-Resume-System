@@ -25,6 +25,7 @@ import tempfile
 from pathlib import Path
 
 from workflow_step_runner import ProcessTreeTimeout, run_process_tree_safe
+from render_manifest import write_render_manifest
 
 
 LIBREOFFICE_TIMEOUT_SECONDS = 120
@@ -197,6 +198,20 @@ def main() -> None:
         raise SystemExit(f"ERROR: {exc}") from exc
     if not list(output_dir.glob("page-*.png")):
         raise SystemExit("No page images were generated")
+    renderer = find_soffice()
+    renderer_version: str | None = None
+    try:
+        version_result = subprocess.run([str(renderer), "--version"], capture_output=True, text=True, timeout=15)
+        renderer_version = (version_result.stdout or version_result.stderr).strip() or None
+    except (OSError, subprocess.SubprocessError):
+        pass
+    write_render_manifest(
+        output_dir,
+        input_docx,
+        renderer_executable=str(renderer.resolve()),
+        renderer_version=renderer_version,
+        python_executable=sys.executable,
+    )
 
 
 if __name__ == "__main__":

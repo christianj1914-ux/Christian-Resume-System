@@ -7,6 +7,8 @@ backups/
 tmp/
 __pycache__/
 *.py[cod]
+.~lock.*#
+~$*
 /err.txt
 /err_c
 /err_tmp

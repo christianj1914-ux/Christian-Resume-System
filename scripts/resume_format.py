@@ -17,6 +17,7 @@ from xml.etree import ElementTree as ET
 from utils import debug_print, fail
 from workflow_step_runner import ProcessTreeTimeout, run_process_tree_safe
 from document_flow import apply_resume_xml_flow_controls
+from render_manifest import verify_render_directory, write_render_manifest
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
@@ -1023,8 +1024,9 @@ def rendered_page_count(
         return None
     output_dir = temp_root / f"render_{uuid.uuid4().hex}"
     output_dir.mkdir(parents=True, exist_ok=True)
+    python_executable = render_python_executable()
     command = [
-            render_python_executable(),
+            python_executable,
             str(render_script),
             str(docx_path),
             "--output_dir",
@@ -1068,7 +1070,17 @@ def rendered_page_count(
             print(f"Page count: estimated {estimated} pages (render failed, using XML fallback estimate)")
             return estimated
         return None
-    page_count = len(list(output_dir.glob("page-*.png")))
+    write_render_manifest(
+        output_dir,
+        docx_path,
+        renderer_executable=str(render_script.resolve()),
+        renderer_version=None,
+        python_executable=python_executable,
+    )
+    verification = verify_render_directory(output_dir, docx_path)
+    page_count = verification.page_count if verification.verified else 0
+    if not verification.verified:
+        print(f"Visual QA is UNVERIFIED: {verification.reason}")
     if page_count == 0 and document_xml is not None:
         estimated = estimate_page_count_from_xml(
             document_xml,
