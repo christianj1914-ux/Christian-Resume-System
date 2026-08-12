@@ -10,6 +10,8 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
+from PIL import Image
+
 from config.paths import OUTPUT_DIR, PROJECT_ROOT, RENDER_CHECK_DIR
 from workflow_step_runner import ProcessTreeTimeout, run_process_tree_safe
 
@@ -132,6 +134,34 @@ def render_docx(docx_path: Path, label: str | None = None) -> Path | None:
     page_count = len(list(output_dir.glob("page-*.png")))
     print(f"Render check: {output_dir} ({page_count} page image(s))")
     return output_dir
+
+
+def final_page_is_sparse(render_dir: Path, *, minimum_vertical_coverage: float = 0.30) -> bool:
+    """Return True when the final rendered page has only a stranded tail of text.
+
+    The crop ignores page margins and looks for visibly non-white rows. It is a
+    layout guard for document types where a mostly empty final page is not an
+    intentional cover sheet.
+    """
+    pages = sorted(Path(render_dir).glob("page-*.png"))
+    if len(pages) < 2:
+        return False
+    with Image.open(pages[-1]).convert("RGB") as image:
+        width, height = image.size
+        left, right = int(width * 0.08), int(width * 0.92)
+        top, bottom = int(height * 0.08), int(height * 0.92)
+        sample_width = 180
+        sample_height = max(1, round((bottom - top) * (sample_width / max(1, right - left))))
+        sample = image.crop((left, top, right, bottom)).resize((sample_width, sample_height))
+        rows_with_ink: list[int] = []
+        for y in range(sample_height):
+            row = [sample.getpixel((x, y)) for x in range(sample_width)]
+            if sum(1 for red, green, blue in row if min(red, green, blue) < 210) >= 1:
+                rows_with_ink.append(y)
+        if not rows_with_ink:
+            return True
+        coverage = (max(rows_with_ink) - min(rows_with_ink) + 1) / sample_height
+        return coverage < minimum_vertical_coverage
 
 
 def latest_output_docx(count: int) -> list[Path]:

@@ -18,6 +18,7 @@ from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.shared import Inches, Pt, RGBColor
 
 import build_resume
+import document_flow
 import interview_story_engine
 import question_bank_audit
 import question_prep
@@ -404,6 +405,9 @@ def build_document(
     document_notes: tuple[str, ...] = (),
     recent_interviewer_scripts: tuple[tuple[str, str], ...] = (),
     used_custom_questions: bool,
+    audit_status: str = "PASS",
+    review_reasons: tuple[str, ...] = (),
+    compact: bool = False,
 ) -> Document:
     document = Document()
     section = document.sections[0]
@@ -412,7 +416,10 @@ def build_document(
     section.left_margin = Inches(1.0)
     section.right_margin = Inches(1.0)
     set_normal_style(document)
+    if compact:
+        document.styles["Normal"].paragraph_format.line_spacing = 1.0
 
+    document_flow.add_status_banner(document, audit_status, review_reasons)
     add_paragraph(document, "Christian Estrada", size=NAME_FONT_SIZE, bold=True, centered=True, space_after=2)
     add_paragraph(document, "Qualifications Statement", size=TITLE_FONT_SIZE, bold=True, centered=True, color=TITLE_BLUE, space_after=4)
     add_paragraph(document, f"Target Position: {company_name} - {role_title}", italic=True, centered=True, space_after=10)
@@ -443,6 +450,14 @@ def build_document(
         for prompt, spoken in recent_interviewer_scripts:
             add_paragraph(document, prompt, size=BODY_FONT_SIZE, bold=True, space_after=3)
             add_paragraph(document, spoken)
+    document_flow.apply_docx_flow_controls(document)
+    if compact:
+        for paragraph in document.paragraphs:
+            if paragraph.text.strip() and not paragraph.text.upper().startswith(("NOT READY", "REVIEW REQUIRED")):
+                space_after = paragraph.paragraph_format.space_after
+                current_after = space_after.pt if space_after is not None else 0
+                paragraph.paragraph_format.space_after = Pt(min(current_after, 4))
+                paragraph.paragraph_format.line_spacing = 1.0
     return document
 
 
@@ -509,6 +524,20 @@ def build_standard_qualifications_statement() -> QualificationsBuildResult:
     draft_suffix = " DRAFT" if review_issues else ""
     output_docx = OUTPUT_DIR / f"Christian Estrada - {output_target_name}{audit_suffix}{draft_suffix} Qualifications Statement.docx"
     OUTPUT_DIR.mkdir(exist_ok=True)
+    readiness = build_resume.resume_readiness_for_output(
+        job_description,
+        matching_resumes[0],
+        source_resume_text=resume_text,
+        audit_status=audit_state,
+        keyword_policy=build_resume.active_keyword_policy(),
+    ) if matching_resumes else None
+    review_reasons = tuple(
+        build_resume.resume_gap_summary_line(gap)
+        for gap in (readiness.fit_blockers if readiness else ())[:3]
+    )
+    effective_status = "DRAFT" if review_issues and audit_state == "PASS" else audit_state
+    review_reasons = tuple(dict.fromkeys((*review_reasons, *review_issues)))
+    compact_initial_layout = effective_status != "PASS"
     document = build_document(
         company_name,
         role_title,
@@ -518,11 +547,47 @@ def build_standard_qualifications_statement() -> QualificationsBuildResult:
         document_notes=resolved_question_rows.document_notes,
         recent_interviewer_scripts=recent_interviewer_scripts,
         used_custom_questions=used_custom_questions,
+        audit_status=effective_status,
+        review_reasons=review_reasons,
+        compact=compact_initial_layout,
     )
     document.save(str(output_docx))
-    if review_issues:
-        question_prep.mark_docx_as_draft(output_docx, review_issues)
-    render_checks.render_docx(output_docx)
+    render_dir = render_checks.render_docx(output_docx)
+    if render_dir and render_checks.final_page_is_sparse(render_dir):
+        if not compact_initial_layout:
+            print("QUALIFICATIONS LAYOUT: sparse final page detected; rebuilding with compact flow profile.")
+            compact_document = build_document(
+                company_name,
+                role_title,
+                responses,
+                active_responses=active_responses,
+                additional_responses=additional_responses,
+                document_notes=resolved_question_rows.document_notes,
+                recent_interviewer_scripts=recent_interviewer_scripts,
+                used_custom_questions=used_custom_questions,
+                audit_status=effective_status,
+                review_reasons=review_reasons,
+                compact=True,
+            )
+            compact_document.save(str(output_docx))
+            render_dir = render_checks.render_docx(output_docx, label=output_docx.stem + "_compact")
+        if not render_dir or render_checks.final_page_is_sparse(render_dir):
+            layout_reason = "Qualification layout review: compact reflow still left a sparse final page."
+            print("QUALIFICATIONS LAYOUT WARNING: " + layout_reason)
+            review_reasons = tuple(dict.fromkeys((*review_reasons, layout_reason)))
+            build_document(
+                company_name,
+                role_title,
+                responses,
+                active_responses=active_responses,
+                additional_responses=additional_responses,
+                document_notes=resolved_question_rows.document_notes,
+                recent_interviewer_scripts=recent_interviewer_scripts,
+                used_custom_questions=used_custom_questions,
+                audit_status="DRAFT" if effective_status == "PASS" else effective_status,
+                review_reasons=review_reasons,
+                compact=True,
+            ).save(str(output_docx))
     return QualificationsBuildResult(
         output_docx=output_docx,
         company_name=company_name,

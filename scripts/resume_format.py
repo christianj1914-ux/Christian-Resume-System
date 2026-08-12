@@ -16,6 +16,7 @@ from xml.etree import ElementTree as ET
 
 from utils import debug_print, fail
 from workflow_step_runner import ProcessTreeTimeout, run_process_tree_safe
+from document_flow import apply_resume_xml_flow_controls
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
@@ -499,6 +500,7 @@ def apply_spacing_and_layout_pass(document_xml: Path) -> None:
         elif current_section in {"Education", SKILLS_SECTION_HEADING, "Professional Development"}:
             set_paragraph_alignment(paragraph, "center")
 
+    apply_resume_xml_flow_controls(root)
     tree.write(document_xml, encoding="utf-8", xml_declaration=True)
 
 def force_styles_font(styles_xml: Path, font_name: str = RESUME_FONT) -> None:

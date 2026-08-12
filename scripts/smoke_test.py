@@ -14728,6 +14728,63 @@ def test_commercial_queue_status_continuation_skip_rerun_and_integrity(build_res
         assert_true(calls == list(fixtures), f"--rerun must bypass every completed-entry skip: {calls}")
 
 
+def test_visible_status_banner_and_shared_flow_controls(build_standard_qualifications_statement: object) -> None:
+    module = build_standard_qualifications_statement
+    response = module.QualificationsResponse("Describe relevant experience.", "Supported response text for the application.")
+    blocked = module.build_document(
+        "Acme",
+        "Implementation Consultant",
+        (response,),
+        additional_responses=(response,),
+        used_custom_questions=False,
+        audit_status="FAIL",
+        review_reasons=("project manager: unsupported-do-not-insert",),
+    )
+    visible = [paragraph for paragraph in blocked.paragraphs if paragraph.text.strip()]
+    assert_true(
+        visible[0].text == "NOT READY FOR SUBMISSION"
+        and "unsupported-do-not-insert" in visible[1].text
+        and visible[0].paragraph_format.keep_with_next,
+        f"Blocked qualifications statements must start with a visible status banner; got {[paragraph.text for paragraph in visible[:3]]}",
+    )
+    question = next(paragraph for paragraph in blocked.paragraphs if paragraph.text == response.prompt)
+    answer = next(paragraph for paragraph in blocked.paragraphs if paragraph.text == response.answer)
+    assert_true(
+        question.paragraph_format.keep_with_next and answer.paragraph_format.widow_control,
+        "Shared flow controls must keep questions with answers and protect ordinary answer paragraphs from widows/orphans.",
+    )
+    passed = module.build_document(
+        "Acme",
+        "Implementation Consultant",
+        (response,),
+        additional_responses=(response,),
+        used_custom_questions=False,
+    )
+    assert_true(
+        passed.paragraphs[0].text == "Christian Estrada",
+        "Passing qualifications statements must not receive a review banner.",
+    )
+
+
+def test_sparse_final_page_detection() -> None:
+    from PIL import Image, ImageDraw
+    import render_checks
+
+    with TemporaryDirectory(prefix="sparse_final_page_") as temp_name:
+        root = Path(temp_name)
+        dense = Image.new("RGB", (300, 500), "white")
+        dense_draw = ImageDraw.Draw(dense)
+        for y in range(80, 410, 24):
+            dense_draw.line((40, y, 260, y), fill="black", width=3)
+        dense.save(root / "page-1.png")
+        sparse = Image.new("RGB", (300, 500), "white")
+        ImageDraw.Draw(sparse).line((40, 70, 220, 70), fill="black", width=3)
+        sparse.save(root / "page-2.png")
+        assert_true(render_checks.final_page_is_sparse(root), "Sparse trailing render page should trigger a compact reflow retry.")
+        dense.save(root / "page-2.png")
+        assert_true(not render_checks.final_page_is_sparse(root), "Dense trailing render page should not be falsely marked sparse.")
+
+
 def test_business_context_module(business_context: object) -> None:
     text = (
         "Company: BioTouch\n"
@@ -19303,6 +19360,8 @@ def main(argv: list[str] | None = None) -> None:
             ("isolated commercial paths and historical cases", lambda: test_isolated_commercial_path_overrides_and_historical_cases(build_resume)),
             ("commercial queue pairing and duplicate preflight", lambda: test_commercial_queue_pairing_and_duplicate_preflight(build_resume)),
             ("commercial queue continuation skip rerun and integrity", lambda: test_commercial_queue_status_continuation_skip_rerun_and_integrity(build_resume)),
+            ("visible status banner and shared flow controls", lambda: test_visible_status_banner_and_shared_flow_controls(build_standard_qualifications_statement)),
+            ("sparse final page detection", test_sparse_final_page_detection),
             ("workflow parse args accepts resume only", test_run_resume_workflow_parse_args_accepts_resume_only),
             ("title phrase candidates avoid comma crossing", lambda: test_title_phrase_candidates_do_not_cross_comma_title_segments(build_resume)),
             ("Clorox title and specialties", lambda: test_clorox_style_job_title_and_specialties(build_resume)),

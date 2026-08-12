@@ -35,6 +35,7 @@ from docx.oxml.ns import qn
 from docx.shared import Inches, Pt, RGBColor
 
 import build_resume
+import document_flow
 import business_context
 import evidence_engine
 import interview_context
@@ -6373,6 +6374,10 @@ def build_document(
 
     document = Document()
     set_default_style(document)
+    audit_state = resume_analysis.output_audit_state(resume_docx)
+    review_reasons = ()
+    if readiness and readiness.fit_blockers:
+        review_reasons = tuple(build_resume.resume_gap_summary_line(gap) for gap in readiness.fit_blockers[:3])
     add_header(document, resume_texts)
     cover_warnings: list[str] = list(plan.warnings)
 
@@ -6475,11 +6480,9 @@ def build_document(
         rule_ids = cover_failure_rule_ids(failure_text)
         failure_text = f"Rule IDs: {', '.join(rule_ids)}. {failure_text}"
         actual_output = draft_output_path(output_docx)
-        if document.paragraphs:
-            banner = document.paragraphs[0].insert_paragraph_before("DRAFT - REQUIRES HUMAN REVIEW")
-            banner.alignment = WD_ALIGN_PARAGRAPH.CENTER
-            for run in banner.runs:
-                run.bold = True
+        # Keep the cover-letter QC failure visible, while retaining the linked
+        # resume's source-bound bridge explanation in the same first-page banner.
+        document_flow.add_status_banner(document, "DRAFT", (failure_text, *review_reasons))
         actual_output.parent.mkdir(exist_ok=True)
         document.save(str(actual_output))
         feedback_path = actual_output.with_name(actual_output.stem + " Build Feedback.txt")
@@ -6499,8 +6502,12 @@ def build_document(
             failure=failure_text,
         )
         print(f"COVER LETTER TRACE: {trace_path}")
+        document_flow.apply_docx_flow_controls(document)
+        document.save(str(actual_output))
         return min(len(evidence), 3), specificity_warnings, cover_warnings, preflight_warnings, actual_output, True
     output_docx.parent.mkdir(exist_ok=True)
+    document_flow.add_status_banner(document, audit_state, review_reasons)
+    document_flow.apply_docx_flow_controls(document)
     document.save(str(output_docx))
     trace_path = write_cover_letter_trace(
         plan,
