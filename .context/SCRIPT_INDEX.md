@@ -146,6 +146,14 @@ Formatting and validation:
 - `write_cover_letter_trace()`: trace payload with chosen company fact, role fact, proof bullet, fallback use, and blocker reason.
 - `smooth_cover_letter_text()`, `enforce_result_first_ordering()`: language cleanup.
 
+## `scripts/document_flow.py`
+
+Shared commercial companion-document status and pagination controls. Builders must use this helper instead of formatting their own submission banner.
+
+- `status_message()`, `submission_readiness()`: canonical status mapping. `PASS` receives no banner; `BRIDGE`/`DRAFT` require review; `FAIL`/`POOR` are not ready for submission.
+- `add_status_banner()`: inserts the status and source-bound reason as the first body content, never as filename-only metadata or a footer.
+- `apply_docx_flow_controls()`, `apply_resume_xml_flow_controls()`: keep headings/questions with their first content and protect ordinary body paragraphs from widows/orphans.
+
 ## `scripts/build_interview_cheat_sheet.py`
 
 Generates compact interview prep. It imports resume analysis from `build_resume.py`.
@@ -188,6 +196,13 @@ Validation:
 
 - `assert_cheat_sheet_qc()`, `validate_text()`: document quality and prohibited-language checks.
 - warn-only prose checks now run on pitch and story-answer sections through `utils.enforce_prose_quality()`.
+
+## `scripts/interview_story_engine.py`
+
+Neutral story model and lane-routing layer shared by interview outputs.
+
+- story registry, type routing, hero-card selection, and question guidance live here rather than in a single document builder.
+- `build_interview_cheat_sheet.py` re-exports shared story symbols for compatibility; new logic should import the engine directly when possible.
 
 ## `scripts/build_detailed_interview_guide.py`
 
@@ -304,6 +319,21 @@ Builds the standing career operating manual with active-job and tracker context.
 
 - `add_active_job_context()`: summarizes active-job lane, problem, keywords, and lead story.
 - `add_current_search_performance()`: summarizes tracker counts and uses tracker lane helpers rather than raw CSV assumptions.
+
+## `scripts/run_commercial_queue.py`
+
+Sequential multi-posting commercial runner with a manifest that separates technical completion from sendability.
+
+- `execute_queue()`: runs postings independently and records per-job artifacts.
+- `execution_status`, `submission_readiness`, `resume_audit_state`, `blocker_reason`, and `stage_timings_seconds`: manifest contract; retain legacy `status` for runner compatibility.
+- artifact filtering and opening-fingerprint checks prevent cross-job attribution and flag repeated generic cover-letter openings for review.
+
+## `scripts/top_third_scoring_guard.py`
+
+Corpus-report comparator installed ahead of any semantic top-third equivalence change.
+
+- `compare_reports()`, `unapproved_promotions()`: report score/state changes and reject an unallowlisted `BRIDGE` or `FAIL` to `PASS` promotion.
+- Semantic matching is deliberately not enabled; use this guard before shipping any later scoring relaxation.
 
 ## `scripts/build_claude_review_packet.py`
 
