@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import os
-import shutil
 import sys
 from pathlib import Path
 
@@ -13,33 +12,22 @@ def is_windowsapps_stub(path: Path) -> bool:
     return "windowsapps" in str(path).lower()
 
 
-def candidate_paths() -> list[Path]:
+def candidate_paths(project_root: Path | None = None) -> list[Path]:
+    root = (project_root or Path(__file__).resolve().parents[1]).resolve()
     candidates: list[Path] = []
     env_override = os.environ.get("RESUME_PYTHON", "").strip()
     if env_override:
         candidates.append(Path(env_override))
 
-    codex_runtime = (
-        Path.home()
-        / ".cache"
-        / "codex-runtimes"
-        / "codex-primary-runtime"
-        / "dependencies"
-        / "python"
-        / "python.exe"
-    )
-    candidates.append(codex_runtime)
+    candidates.append(root / "venv" / "Scripts" / "python.exe")
+    candidates.append(root / "venv" / "bin" / "python")
     candidates.append(Path(sys.executable))
-
-    discovered = shutil.which("python") or shutil.which("python3")
-    if discovered:
-        candidates.append(Path(discovered))
 
     return candidates
 
 
-def resolve_python() -> Path | None:
-    for candidate in candidate_paths():
+def resolve_python(project_root: Path | None = None) -> Path | None:
+    for candidate in candidate_paths(project_root):
         if candidate.is_file() and not is_windowsapps_stub(candidate):
             return candidate
     return None

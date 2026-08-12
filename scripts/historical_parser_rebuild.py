@@ -21,6 +21,7 @@ from typing import Iterator
 import build_resume
 import requirement_engine
 import resume_analysis
+from config.paths import PYTHON_EXECUTABLE
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -354,7 +355,7 @@ def run(timeout_seconds: int = 600) -> int:
         started = datetime.now()
         try:
             completed = subprocess.run(
-                [sys.executable, str(PROJECT_ROOT / "scripts" / "build_resume.py")],
+                [str(PYTHON_EXECUTABLE), str(PROJECT_ROOT / "scripts" / "build_resume.py")],
                 cwd=PROJECT_ROOT,
                 env=environment,
                 capture_output=True,

@@ -17,6 +17,7 @@ import csv
 import os
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
+from enum import Enum
 from pathlib import Path
 import re
 import xml.etree.ElementTree as ET
@@ -29,7 +30,8 @@ import _bootstrap  # type: ignore[import-not-found]
 
 _bootstrap.ensure_script_path()
 _bootstrap.configure_fresh_pycache(PROJECT_ROOT)
-from config.paths import JOB_DESCRIPTION
+from config.paths import FEDERAL_JOB_DESCRIPTION, JOB_DESCRIPTION
+from resolve_python import resolve_python
 
 
 APPLICATIONS_CSV = PROJECT_ROOT / "scratch" / "applications.csv"
@@ -37,11 +39,17 @@ DEBRIEF_HISTORY = PROJECT_ROOT / "jobs" / "debrief_history.txt"
 DEBRIEF_DELIMITER = "POST-INTERVIEW DEBRIEF CAPTURED"
 
 
+class InputRequirement(str, Enum):
+    NONE = "none"
+    COMMERCIAL = "commercial"
+    FEDERAL = "federal"
+
+
 @dataclass(frozen=True)
 class Task:
     description: str
     args: tuple[str, ...]
-    needs_job_description: bool = True
+    input_requirement: InputRequirement
     maturity: str = "Stable"
     production_safe: bool = True
 
@@ -50,279 +58,284 @@ TASKS: dict[str, Task] = {
     "validate": Task(
         "Run the smoke suite from a temporary detached clean worktree; add --commit, --expected-count, --quick, --federal, and/or --alignment as needed.",
         ("scripts/validate_clean_worktree.py",),
-        False,
+        InputRequirement.NONE,
     ),
     "validate-direct": Task(
         "Internal-only direct smoke runner used by clean-worktree validation.",
         ("scripts/smoke_test.py",),
-        False,
+        InputRequirement.NONE,
     ),
     "doctor": Task(
         "Check the required runtime, configured paths, Git health, and optional rendering support.",
         ("scripts/doctor.py",),
-        False,
+        InputRequirement.NONE,
     ),
-    "source-lint": Task("Validate source resume bullets before JD-specific tailoring selects them.", ("scripts/source_lint.py",), False),
+    "source-lint": Task("Validate source resume bullets before JD-specific tailoring selects them.", ("scripts/source_lint.py",), InputRequirement.NONE),
     "keyword-corpus": Task(
         "Project keyword/policy outcomes for archived fixtures or exact DOCX paths from --rebuild-manifest; add --ownership-only for the lightweight skim audit.",
         ("scripts/keyword_reliability_corpus.py",),
-        False,
+        InputRequirement.NONE,
     ),
     "parser-audit": Task(
         "Audit archived commercial requirement parsing without mutating the job-description library.",
         ("scripts/parser_audit.py",),
-        False,
+        InputRequirement.NONE,
     ),
     "parser-rebuild-audit": Task(
         "Rebuild and compare the five surviving legacy zero-parse resumes plus the structured Paylocity control in isolation.",
         ("scripts/historical_parser_rebuild.py",),
-        False,
+        InputRequirement.NONE,
     ),
     "fresh-keyword-corpus": Task(
         "Rebuild isolated recent/legacy keyword corpora without touching active jobs or output; supports --corpus, --batch-dir, --workers, and --fixture.",
         ("scripts/fresh_corpus_rebuild.py",),
-        False,
+        InputRequirement.NONE,
     ),
     "balanced-promotion-report": Task(
         "Create the safety/disruption summary and Claude decision packet from fresh recent and legacy CSVs.",
         ("scripts/balanced_promotion_report.py",),
-        False,
+        InputRequirement.NONE,
     ),
-    "integration-test": Task("Run the end-to-end function-chain integration test.", ("scripts/integration_test.py",), False),
-    "morning": Task("Show a one-screen job-search briefing.", (), False),
-    "ci": Task("Show how to run or trigger the GitHub Actions smoke-test workflow.", (), False),
-    "jd-check": Task("Check job description quality without building anything.", (), True),
-    "business-context-check": Task("Show detected business context and research gaps.", (), True),
-    "align": Task("Show the pre-build alignment score without writing files.", (), True),
-    "ats-check": Task("Validate the latest generated resume as plain ATS text.", (), True),
-    "preview-summary": Task("Preview the generated Professional Summary without writing files.", ("scripts/preview_summary.py",), True),
-    "writing-eval": Task("Grade resume or cover-letter prose against the writing-style evaluator.", ("scripts/writing_eval.py",), False),
-    "writing-extract": Task("Extract resume summaries and cover-letter sections from DOCX examples into text snippets.", ("scripts/extract_writing_examples.py",), False),
+    "integration-test": Task("Run the end-to-end function-chain integration test.", ("scripts/integration_test.py",), InputRequirement.NONE),
+    "morning": Task("Show a one-screen job-search briefing.", (), InputRequirement.NONE),
+    "ci": Task("Show how to run or trigger the GitHub Actions smoke-test workflow.", (), InputRequirement.NONE),
+    "jd-check": Task("Check job description quality without building anything.", (), InputRequirement.COMMERCIAL),
+    "business-context-check": Task("Show detected business context and research gaps.", (), InputRequirement.COMMERCIAL),
+    "align": Task("Show the pre-build alignment score without writing files.", (), InputRequirement.COMMERCIAL),
+    "ats-check": Task("Validate the latest generated resume as plain ATS text.", (), InputRequirement.COMMERCIAL),
+    "preview-summary": Task("Preview the generated Professional Summary without writing files.", ("scripts/preview_summary.py",), InputRequirement.COMMERCIAL),
+    "writing-eval": Task("Grade resume or cover-letter prose against the writing-style evaluator.", ("scripts/writing_eval.py",), InputRequirement.NONE),
+    "writing-extract": Task("Extract resume summaries and cover-letter sections from DOCX examples into text snippets.", ("scripts/extract_writing_examples.py",), InputRequirement.NONE),
     "check": Task(
         "Pre-flight analysis: shows lane detection, keyword gaps, evidence coverage, and fit risks without building anything.",
         (),
+        InputRequirement.COMMERCIAL,
     ),
-    "dry-run": Task("Validate the current job description and planned workflow without writing files.", ("scripts/run_resume_workflow.py", "--dry-run"), False),
+    "dry-run": Task("Validate the current job description and planned workflow without writing files.", ("scripts/run_resume_workflow.py", "--dry-run"), InputRequirement.COMMERCIAL),
     "resume": Task(
         "Build the tailored commercial workflow. Optional flags include --keyword-policy advisory|balanced|exhaustive.",
         ("scripts/run_resume_workflow.py",),
+        InputRequirement.COMMERCIAL,
     ),
     "resume-queue": Task(
         "Process commercial postings from jobs/commercial_queue sequentially; add --resume-only or --rerun as needed.",
         ("scripts/run_commercial_queue.py",),
-        False,
+        InputRequirement.NONE,
     ),
-    "federal-dry-run": Task("Validate the federal workflow without writing files; optionally select --target-grade GS-XX.", ("scripts/run_federal_resume_workflow.py", "--dry-run"), False),
+    "federal-dry-run": Task("Validate the federal workflow without writing files; optionally select --target-grade GS-XX.", ("scripts/run_federal_resume_workflow.py", "--dry-run"), InputRequirement.FEDERAL),
     "federal-resume": Task(
         "Build the tailored federal resume workflow. Optional flags: --target-grade GS-XX, --with-cover, --with-interview, --with-guide, --with-supporting-docs.",
         ("scripts/run_federal_resume_workflow.py",),
-        False,
+        InputRequirement.FEDERAL,
     ),
     "federal-cover": Task(
         "Build the matching federal cover letter directly from the latest federal resume.",
         ("scripts/build_federal_cover_letter.py",),
-        False,
+        InputRequirement.FEDERAL,
         "Experimental",
         False,
     ),
     "federal-interview": Task(
         "Build the matching federal interview cheat sheet directly from the latest federal resume.",
         ("scripts/build_federal_interview_cheat_sheet.py",),
-        False,
+        InputRequirement.FEDERAL,
         "Experimental",
         False,
     ),
     "federal-guide": Task(
         "Build the matching federal detailed interview guide directly from the latest federal resume.",
         ("scripts/build_federal_detailed_interview_guide.py",),
-        False,
+        InputRequirement.FEDERAL,
         "Experimental",
         False,
     ),
-    "cover": Task("Build the default concise cover letter directly from the latest matching resume.", ("scripts/build_cover_letter.py",)),
+    "cover": Task("Build the default concise cover letter directly from the latest matching resume.", ("scripts/build_cover_letter.py",), InputRequirement.COMMERCIAL),
     "qualifications": Task(
         "Build the standard qualifications statement or application-question companion document.",
         ("scripts/build_standard_qualifications_statement.py",),
+        InputRequirement.COMMERCIAL,
     ),
     "question-bank-audit": Task(
         "Audit application question banks for redundancy, category collisions, and unmapped prompts. Read only Word report.",
         ("scripts/build_question_bank_audit.py",),
-        False,
+        InputRequirement.NONE,
         "Experimental",
         False,
     ),
     "cover-short": Task(
         "Legacy alias: build the default concise cover letter directly from the latest matching resume.",
         ("scripts/build_cover_letter.py", "--mode", "standard"),
+        InputRequirement.COMMERCIAL,
     ),
     "cover-long": Task(
         "Legacy alias: build the default one-page cover letter directly from the latest matching resume.",
         ("scripts/build_cover_letter.py", "--mode", "standard"),
+        InputRequirement.COMMERCIAL,
     ),
-    "cover-check": Task("Preview the default concise cover letter structure and opening pattern selection without generating a file.", (), True),
-    "checklist": Task("Build a one-page job-specific application checklist.", ("scripts/build_application_checklist.py",), True),
-    "thank-you": Task("Build a post-interview thank-you note.", ("scripts/build_thank_you.py",), True),
+    "cover-check": Task("Preview the default concise cover letter structure and opening pattern selection without generating a file.", (), InputRequirement.COMMERCIAL),
+    "checklist": Task("Build a one-page job-specific application checklist.", ("scripts/build_application_checklist.py",), InputRequirement.COMMERCIAL),
+    "thank-you": Task("Build a post-interview thank-you note.", ("scripts/build_thank_you.py",), InputRequirement.COMMERCIAL),
     "followup": Task(
         "Build a no-response application follow-up email guide.",
         ("scripts/build_followup_email.py",),
-        True,
+        InputRequirement.COMMERCIAL,
         "Experimental",
         False,
     ),
     "interview-followup": Task(
         "Build a post-interview follow-up email document from the latest debrief.",
         ("scripts/build_interview_followup.py",),
-        True,
+        InputRequirement.COMMERCIAL,
         "Experimental",
         False,
     ),
     "post-round": Task(
         "Build post-round follow-up and next-round prep from the latest debrief.",
         ("scripts/build_post_round.py",),
-        True,
+        InputRequirement.COMMERCIAL,
         "Experimental",
         False,
     ),
-    "linkedin": Task("Build a LinkedIn profile update guide.", ("scripts/build_linkedin_update.py",), True),
+    "linkedin": Task("Build a LinkedIn profile update guide.", ("scripts/build_linkedin_update.py",), InputRequirement.COMMERCIAL),
     "linkedin-calendar": Task(
         "Build a 30-day LinkedIn content calendar.",
         ("scripts/build_linkedin_calendar.py",),
-        True,
+        InputRequirement.COMMERCIAL,
         "Experimental",
         False,
     ),
     "outreach": Task(
         "Build networking outreach templates.",
         ("scripts/build_networking_outreach.py",),
-        True,
+        InputRequirement.COMMERCIAL,
         "Experimental",
         False,
     ),
     "plan": Task(
         "Build a role-specific first 90 days plan.",
         ("scripts/build_first_90_days.py",),
-        True,
+        InputRequirement.COMMERCIAL,
         "Experimental",
         False,
     ),
-    "track": Task("Add the active job to the application tracker.", ("scripts/track_applications.py", "add"), True),
-    "track-list": Task("List tracked applications.", ("scripts/track_applications.py", "list"), False),
-    "track-report": Task("Print an application tracker summary.", ("scripts/track_applications.py", "report"), False),
-    "track-refresh": Task("Refresh tracker lane and fit metadata from current or archived job descriptions.", ("scripts/track_applications.py", "refresh"), False),
-    "application-status": Task("Show active application package readiness.", ("scripts/application_status.py",), True),
-    "analytics": Task("Build the job-search analytics report.", ("scripts/build_search_analytics.py",), False),
+    "track": Task("Add the active job to the application tracker.", ("scripts/track_applications.py", "add"), InputRequirement.COMMERCIAL),
+    "track-list": Task("List tracked applications.", ("scripts/track_applications.py", "list"), InputRequirement.NONE),
+    "track-report": Task("Print an application tracker summary.", ("scripts/track_applications.py", "report"), InputRequirement.NONE),
+    "track-refresh": Task("Refresh tracker lane and fit metadata from current or archived job descriptions.", ("scripts/track_applications.py", "refresh"), InputRequirement.NONE),
+    "application-status": Task("Show active application package readiness.", ("scripts/application_status.py",), InputRequirement.COMMERCIAL),
+    "analytics": Task("Build the job-search analytics report.", ("scripts/build_search_analytics.py",), InputRequirement.NONE),
     "assess": Task(
         "Build a Four Career Value Driver Assessment.",
         ("scripts/build_career_value_assessment.py",),
-        False,
+        InputRequirement.NONE,
         "Template-only",
         False,
     ),
     "trajectory": Task(
         "Build an Up-or-Out Trajectory Analysis.",
         ("scripts/build_trajectory_analysis.py",),
-        False,
+        InputRequirement.NONE,
         "Template-only",
         False,
     ),
     "story-audit": Task(
         "Audit and improve a candidate-provided interview story.",
         ("scripts/build_story_audit.py",),
-        False,
+        InputRequirement.NONE,
         "Template-only",
         False,
     ),
     "salary-guide": Task(
         "Build a salary negotiation preparation guide.",
         ("scripts/build_salary_guide.py",),
-        True,
+        InputRequirement.COMMERCIAL,
         "Experimental",
         False,
     ),
     "internal-interview": Task(
         "Build an internal interview guide.",
         ("scripts/build_internal_interview.py",),
-        True,
+        InputRequirement.COMMERCIAL,
         "Experimental",
         False,
     ),
     "monthly-review": Task(
         "Build the monthly job-search review report.",
         ("scripts/build_monthly_review.py",),
-        False,
+        InputRequirement.NONE,
         "Experimental",
         False,
     ),
     "skills-gap": Task(
         "Build the future-proofing skills gap analysis.",
         ("scripts/build_skills_gap.py",),
-        False,
+        InputRequirement.NONE,
         "Experimental",
         False,
     ),
-    "skills-db": Task("Build or refresh the structured skills database from the source resumes.", ("scripts/build_skills_database.py",), False),
-    "skills-db-refresh": Task("Force-refresh the structured skills database from the source resumes.", ("scripts/build_skills_database.py", "--refresh"), False),
+    "skills-db": Task("Build or refresh the structured skills database from the source resumes.", ("scripts/build_skills_database.py",), InputRequirement.NONE),
+    "skills-db-refresh": Task("Force-refresh the structured skills database from the source resumes.", ("scripts/build_skills_database.py", "--refresh"), InputRequirement.NONE),
     "weekly-plan": Task(
         "Build the weekly job-search plan.",
         ("scripts/build_weekly_tracker.py",),
-        False,
+        InputRequirement.NONE,
         "Experimental",
         False,
     ),
-    "jd-archive": Task("Archive the active job description.", ("scripts/build_jd_library.py", "archive"), True),
-    "jd-archive-refresh": Task("Refresh archived job-description metadata.", ("scripts/build_jd_library.py", "refresh-metadata")),
-    "jd-patterns": Task("Show job-description library patterns.", ("scripts/build_jd_library.py", "patterns"), False),
-    "interview": Task("Build the standard interview cheat sheet directly.", ("scripts/build_interview_cheat_sheet.py",)),
-    "guide": Task("Build the detailed interview guide directly. Optional flags: --stage <key> [--interviewer-context PATH].", ("scripts/build_detailed_interview_guide.py",)),
+    "jd-archive": Task("Archive the active job description.", ("scripts/build_jd_library.py", "archive"), InputRequirement.COMMERCIAL),
+    "jd-archive-refresh": Task("Refresh archived job-description metadata.", ("scripts/build_jd_library.py", "refresh-metadata"), InputRequirement.NONE),
+    "jd-patterns": Task("Show job-description library patterns.", ("scripts/build_jd_library.py", "patterns"), InputRequirement.NONE),
+    "interview": Task("Build the standard interview cheat sheet directly.", ("scripts/build_interview_cheat_sheet.py",), InputRequirement.COMMERCIAL),
+    "guide": Task("Build the detailed interview guide directly. Optional flags: --stage <key> [--interviewer-context PATH].", ("scripts/build_detailed_interview_guide.py",), InputRequirement.COMMERCIAL),
     "self-inventory": Task(
         "Build the provisional self-inventory one-pager and spoken strengths/weaknesses answers.",
         ("scripts/build_self_inventory_onepager.py",),
-        False,
+        InputRequirement.NONE,
         "Experimental",
         False,
     ),
     "daily-prep": Task(
         "Build the daily interview prep plan. Optional flags: --mode job_search|on_the_job [--log-complete --reps-done N --hedge-count N --self-rated-clarity N].",
         ("scripts/build_daily_prep_plan.py",),
-        False,
+        InputRequirement.NONE,
         "Experimental",
         False,
     ),
     "career-plan": Task(
         "Build the career operating plan linking target roles, gaps, Study tracks, daily prep, and review checkpoints.",
         ("scripts/build_career_operating_plan.py",),
-        False,
+        InputRequirement.NONE,
         "Experimental",
         False,
     ),
     "interview-review": Task(
         "Build the latest interview review and positioning-diagnosis document from structured debriefs.",
         ("scripts/build_interview_review.py",),
-        False,
+        InputRequirement.NONE,
         "Experimental",
         False,
     ),
-    "debrief": Task("Capture a new post-interview debrief.", ("scripts/post_interview_debrief.py", "--capture")),
+    "debrief": Task("Capture a new post-interview debrief.", ("scripts/post_interview_debrief.py", "--capture"), InputRequirement.COMMERCIAL),
     "prepare-company-notes": Task(
         "Create or open the canonical company interview dossier scaffold.",
         ("scripts/post_interview_debrief.py", "--prepare-company-notes"),
-        False,
+        InputRequirement.NONE,
     ),
-    "list-debriefs": Task("List captured debrief entries.", ("scripts/post_interview_debrief.py", "--list"), False),
-    "debrief-patterns": Task("Analyze captured debriefs for repeated questions, story signals, interviewer language, and delivery habits.", ("scripts/build_debrief_analysis.py",), False),
+    "list-debriefs": Task("List captured debrief entries.", ("scripts/post_interview_debrief.py", "--list"), InputRequirement.NONE),
+    "debrief-patterns": Task("Analyze captured debriefs for repeated questions, story signals, interviewer language, and delivery habits.", ("scripts/build_debrief_analysis.py",), InputRequirement.NONE),
     "debrief-repair": Task(
         "Back up and repair legacy debrief and company-research artifacts into structured round records.",
         ("scripts/post_interview_debrief.py", "--repair-legacy"),
-        False,
+        InputRequirement.NONE,
     ),
-    "reset-jobs": Task("Archive job context and optionally clear active job files.", ("scripts/reset_jobs.py",), False),
-    "list-archives": Task("List archived job context snapshots.", ("scripts/reset_jobs.py", "--list-archives"), False),
-    "clean-renders": Task("Delete render check folders older than 24 hours.", ("scripts/cleanup_render_checks.py", "--delete", "--hours", "24"), False),
-    "cleanup": Task("Safely clean stale outputs; supports archived debug/PDF cleanup and preview-first bundle pruning.", ("scripts/cleanup_output.py",), False),
-    "advice": Task("Build the Career Operating Manual.", ("scripts/build_general_advice.py",), False),
-    "claude-packet": Task("Rebuild the ready-to-upload Claude review packet from live files.", ("scripts/build_claude_review_packet.py",), False),
-    "claude-prompt": Task("Print the Claude review or plan prompt for a packet mode.", ("scripts/build_claude_prompt.py",), False),
-    "claude-refresh": Task("Refresh the common Claude Review upload bundle in one step.", ("scripts/refresh_claude_review_bundle.py",), False),
+    "reset-jobs": Task("Archive job context and optionally clear active job files.", ("scripts/reset_jobs.py",), InputRequirement.NONE),
+    "list-archives": Task("List archived job context snapshots.", ("scripts/reset_jobs.py", "--list-archives"), InputRequirement.NONE),
+    "clean-renders": Task("Delete render check folders older than 24 hours.", ("scripts/cleanup_render_checks.py", "--delete", "--hours", "24"), InputRequirement.NONE),
+    "cleanup": Task("Safely clean stale outputs; supports archived debug/PDF cleanup and preview-first bundle pruning.", ("scripts/cleanup_output.py",), InputRequirement.NONE),
+    "advice": Task("Build the Career Operating Manual.", ("scripts/build_general_advice.py",), InputRequirement.NONE),
+    "claude-packet": Task("Rebuild the ready-to-upload Claude review packet from live files.", ("scripts/build_claude_review_packet.py",), InputRequirement.NONE),
+    "claude-prompt": Task("Print the Claude review or plan prompt for a packet mode.", ("scripts/build_claude_prompt.py",), InputRequirement.NONE),
+    "claude-refresh": Task("Refresh the common Claude Review upload bundle in one step.", ("scripts/refresh_claude_review_bundle.py",), InputRequirement.NONE),
 }
 
 COMMERCIAL_AUTO_ARCHIVE_COMMANDS = {
@@ -493,14 +506,22 @@ def run_morning() -> int:
     return 0
 
 
-def validate_job_description() -> bool:
-    if not JOB_DESCRIPTION.exists():
-        print("jobs/job_description.txt is missing. Add one complete job description before running this command.")
+def validate_input_path(path: Path, label: str) -> bool:
+    if not path.exists():
+        print(f"{label} is missing at {path}. Add one complete posting before running this command.")
         return False
-    if not JOB_DESCRIPTION.read_text(encoding="utf-8-sig").strip():
-        print("jobs/job_description.txt is empty. Add one complete job description before running this command.")
+    if not path.read_text(encoding="utf-8-sig").strip():
+        print(f"{label} is empty at {path}. Add one complete posting before running this command.")
         return False
     return True
+
+
+def validate_job_description() -> bool:
+    return validate_input_path(JOB_DESCRIPTION, "Commercial job description")
+
+
+def validate_federal_job_description() -> bool:
+    return validate_input_path(FEDERAL_JOB_DESCRIPTION, "Federal job description")
 
 
 def load_build_resume() -> object:
@@ -966,14 +987,20 @@ def archive_environment_for_command(command_name: str) -> dict[str, str]:
 
 
 def run_task(command_name: str, task: Task, extra_args: tuple[str, ...]) -> int:
-    if task.needs_job_description and not validate_job_description():
+    if task.input_requirement is InputRequirement.COMMERCIAL and not validate_job_description():
+        return 1
+    if task.input_requirement is InputRequirement.FEDERAL and not validate_federal_job_description():
         return 1
     try:
         env = archive_environment_for_command(command_name)
     except Exception as error:  # noqa: BLE001
         print(f"Could not archive the active job context before running {command_name}: {error}")
         return 1
-    command = (sys.executable, *task.args, *extra_args)
+    python_executable = resolve_python(PROJECT_ROOT)
+    if python_executable is None:
+        print("No usable Python executable found. Set RESUME_PYTHON or install Python 3.11+.")
+        return 1
+    command = (str(python_executable), *task.args, *extra_args)
     result = subprocess.run(command, cwd=PROJECT_ROOT, env=env)
     return result.returncode
 

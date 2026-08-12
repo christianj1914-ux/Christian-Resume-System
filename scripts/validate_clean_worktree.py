@@ -12,6 +12,9 @@ from pathlib import Path
 
 import _bootstrap  # type: ignore[import-not-found]
 
+_bootstrap.ensure_script_path()
+from resolve_python import resolve_python
+
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 RESULT_PATTERN = re.compile(
@@ -130,7 +133,7 @@ def main(argv: list[str] | None = None) -> int:
             environment = os.environ.copy()
             environment["PYTHONPYCACHEPREFIX"] = str(pycache)
             return_code, result = stream_validation(
-                [sys.executable, "tasks.py", "validate-direct", *forwarded_args],
+                [str(resolve_python(worktree) or sys.executable), "tasks.py", "validate-direct", *forwarded_args],
                 cwd=worktree,
                 env=environment,
             )

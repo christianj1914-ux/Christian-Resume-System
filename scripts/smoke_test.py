@@ -16941,8 +16941,8 @@ def test_tasks_register_federal_supporting_doc_commands() -> None:
         task = tasks.TASKS[command_name]
         assert_true(task.args == (script_name,), f"{command_name} should point to {script_name}; got {task.args}")
         assert_true(
-            not task.needs_job_description,
-            f"{command_name} should bypass commercial job-description validation and use the federal file instead",
+            task.input_requirement is tasks.InputRequirement.FEDERAL,
+            f"{command_name} should require the federal job description; got {task.input_requirement}",
         )
         assert_true(task.maturity == "Experimental", f"{command_name} should be marked Experimental; got {task.maturity}")
         assert_true(not task.production_safe, f"{command_name} should start as review-heavy until it has more runtime coverage")
@@ -16964,7 +16964,7 @@ def test_tasks_register_interview_review_command() -> None:
         task.args == ("scripts/build_interview_review.py",),
         f"interview-review should point to the dedicated review builder; got {task.args}",
     )
-    assert_true(not task.needs_job_description, "interview-review should be able to use structured debrief history even without an active JD")
+    assert_true(task.input_requirement is tasks.InputRequirement.NONE, "interview-review should be able to use structured debrief history even without an active JD")
     assert_true(task.maturity == "Experimental", f"interview-review should start as Experimental; got {task.maturity}")
     assert_true(not task.production_safe, "interview-review should remain review-heavy until it has more runtime coverage")
     assert_true(
@@ -17632,7 +17632,7 @@ def test_tasks_register_self_inventory_command() -> None:
         task.args == ("scripts/build_self_inventory_onepager.py",),
         f"self-inventory should point to the dedicated one-pager builder; got {task.args}",
     )
-    assert_true(not task.needs_job_description, "self-inventory should not require an active job description")
+    assert_true(task.input_requirement is tasks.InputRequirement.NONE, "self-inventory should not require an active job description")
     assert_true(task.maturity == "Experimental", f"self-inventory should start as Experimental; got {task.maturity}")
     assert_true(not task.production_safe, "self-inventory should remain review-heavy until Christian confirms the language")
 
@@ -17645,7 +17645,7 @@ def test_tasks_register_daily_prep_command() -> None:
         task.args == ("scripts/build_daily_prep_plan.py",),
         f"daily-prep should point to the dedicated plan builder; got {task.args}",
     )
-    assert_true(not task.needs_job_description, "daily-prep should not require an active job description")
+    assert_true(task.input_requirement is tasks.InputRequirement.NONE, "daily-prep should not require an active job description")
     assert_true(task.maturity == "Experimental", f"daily-prep should start as Experimental; got {task.maturity}")
     assert_true(not task.production_safe, "daily-prep should remain human-review while the habit loop is new")
 
@@ -17658,7 +17658,7 @@ def test_tasks_register_career_plan_command() -> None:
         task.args == ("scripts/build_career_operating_plan.py",),
         f"career-plan should point to the dedicated operating-plan builder; got {task.args}",
     )
-    assert_true(not task.needs_job_description, "career-plan should not require an active job description")
+    assert_true(task.input_requirement is tasks.InputRequirement.NONE, "career-plan should not require an active job description")
     assert_true(task.maturity == "Experimental", f"career-plan should start as Experimental; got {task.maturity}")
     assert_true(not task.production_safe, "career-plan should remain human-review while Phase 5 is new")
 
@@ -18800,7 +18800,7 @@ def test_tasks_register_cleanup_command() -> None:
         f"tasks.py should register cleanup against scripts/cleanup_output.py; got {cleanup_task.args}",
     )
     assert_true(
-        not cleanup_task.needs_job_description,
+        cleanup_task.input_requirement is tasks.InputRequirement.NONE,
         "cleanup should not require an active job description",
     )
     output_buffer = io.StringIO()
@@ -18811,6 +18811,99 @@ def test_tasks_register_cleanup_command() -> None:
         "cleanup:" in inventory_output and "scripts/cleanup_output.py" in inventory_output,
         f"Command inventory should include the cleanup task; got {inventory_output!r}",
     )
+
+
+def test_task_input_requirements_and_preflights() -> None:
+    import tasks
+
+    assert_true(
+        all(isinstance(task.input_requirement, tasks.InputRequirement) for task in tasks.TASKS.values()),
+        "every command should declare exactly one InputRequirement",
+    )
+    assert_true(
+        tasks.TASKS["jd-archive-refresh"].input_requirement is tasks.InputRequirement.NONE,
+        "jd-archive-refresh should work without an active commercial posting",
+    )
+
+    original_commercial = tasks.validate_job_description
+    original_federal = tasks.validate_federal_job_description
+    original_archive = tasks.archive_environment_for_command
+    original_resolve = tasks.resolve_python
+    original_run = tasks.subprocess.run
+    calls: list[str] = []
+    try:
+        tasks.validate_job_description = lambda: calls.append("commercial") or True
+        tasks.validate_federal_job_description = lambda: calls.append("federal") or True
+        tasks.archive_environment_for_command = lambda _name: {}
+        tasks.resolve_python = lambda _root: Path(sys.executable)
+        tasks.subprocess.run = lambda *_args, **_kwargs: SimpleNamespace(returncode=0)
+        for requirement, expected in (
+            (tasks.InputRequirement.NONE, []),
+            (tasks.InputRequirement.COMMERCIAL, ["commercial"]),
+            (tasks.InputRequirement.FEDERAL, ["federal"]),
+        ):
+            calls.clear()
+            task = tasks.Task("test", ("noop.py",), requirement)
+            assert_true(tasks.run_task("input-contract-test", task, ()) == 0, f"{requirement.value} task should run")
+            assert_true(calls == expected, f"{requirement.value} should invoke only its corresponding preflight; got {calls}")
+    finally:
+        tasks.validate_job_description = original_commercial
+        tasks.validate_federal_job_description = original_federal
+        tasks.archive_environment_for_command = original_archive
+        tasks.resolve_python = original_resolve
+        tasks.subprocess.run = original_run
+
+
+def test_configured_input_error_reports_resolved_path() -> None:
+    import tasks
+
+    with TemporaryDirectory(prefix="configured_path_smoke_") as temp_name:
+        configured = Path(temp_name).resolve() / "overrides" / "custom_federal_posting.txt"
+        output_buffer = io.StringIO()
+        with contextlib.redirect_stdout(output_buffer):
+            result = tasks.validate_input_path(configured, "Federal job description")
+        output = output_buffer.getvalue()
+    assert_true(not result, "a missing configured posting should fail preflight")
+    assert_true(str(configured) in output, f"preflight should print the resolved override instead of a default path; got {output!r}")
+
+
+def test_python_resolution_order_and_windows_store_rejection() -> None:
+    import resolve_python
+
+    original_override = os.environ.get("RESUME_PYTHON")
+    original_executable = resolve_python.sys.executable
+    try:
+        with TemporaryDirectory(prefix="python_resolution_smoke_") as temp_name:
+            root = Path(temp_name)
+            windows_venv = root / "venv" / "Scripts" / "python.exe"
+            posix_venv = root / "venv" / "bin" / "python"
+            override = root / "override" / "python.exe"
+            system = root / "system" / "python.exe"
+            for candidate in (windows_venv, posix_venv, override, system):
+                candidate.parent.mkdir(parents=True, exist_ok=True)
+                candidate.touch()
+            os.environ["RESUME_PYTHON"] = str(override)
+            resolve_python.sys.executable = str(system)
+            assert_true(resolve_python.resolve_python(root) == override, "RESUME_PYTHON should be preferred")
+            override.unlink()
+            assert_true(resolve_python.resolve_python(root) == windows_venv, "Windows venv Python should precede POSIX and system Python")
+            windows_venv.unlink()
+            assert_true(resolve_python.resolve_python(root) == posix_venv, "POSIX venv Python should precede system Python")
+            posix_venv.unlink()
+            assert_true(resolve_python.resolve_python(root) == system, "sys.executable should be the final fallback")
+
+            store_stub = root / "WindowsApps" / "python.exe"
+            store_stub.parent.mkdir(parents=True, exist_ok=True)
+            store_stub.touch()
+            os.environ["RESUME_PYTHON"] = str(store_stub)
+            resolve_python.sys.executable = str(store_stub)
+            assert_true(resolve_python.resolve_python(root) is None, "Windows Store execution aliases should be rejected")
+    finally:
+        if original_override is None:
+            os.environ.pop("RESUME_PYTHON", None)
+        else:
+            os.environ["RESUME_PYTHON"] = original_override
+        resolve_python.sys.executable = original_executable
 
 
 def test_tasks_check_prefers_latest_generated_resume() -> None:
@@ -19674,6 +19767,9 @@ def main(argv: list[str] | None = None) -> None:
             ("federal resume import stays isolated from commercial builders", test_federal_resume_import_stays_isolated_from_commercial_builders),
             ("tasks check prefers latest generated resume", test_tasks_check_prefers_latest_generated_resume),
             ("tasks register cleanup command", test_tasks_register_cleanup_command),
+            ("task input requirements and preflights", test_task_input_requirements_and_preflights),
+            ("configured input error reports resolved path", test_configured_input_error_reports_resolved_path),
+            ("python resolution order and Windows Store rejection", test_python_resolution_order_and_windows_store_rejection),
             ("interview negotiation section avoids bracket placeholders", lambda: test_interview_negotiation_section_avoids_bracket_placeholders(build_interview_cheat_sheet)),
             ("collapse redundant role blanks", lambda: test_collapse_redundant_role_blanks(build_resume)),
             ("resume experience alignment", lambda: test_resume_experience_alignment(build_resume)),

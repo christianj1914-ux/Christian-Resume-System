@@ -20,6 +20,7 @@ from pathlib import Path
 
 import claude_review_bundle
 import workspace_health
+from config.paths import PYTHON_EXECUTABLE
 from utils import read_text
 
 
@@ -569,7 +570,7 @@ def run_command(command_name: str) -> str:
     if command_name in COMMAND_OUTPUT_CACHE:
         return COMMAND_OUTPUT_CACHE[command_name]
     result = subprocess.run(
-        [sys.executable, str(TASKS_PATH), command_name],
+        [str(PYTHON_EXECUTABLE), str(TASKS_PATH), command_name],
         cwd=PROJECT_ROOT,
         text=True,
         capture_output=True,

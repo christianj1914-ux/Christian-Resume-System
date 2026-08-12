@@ -13,6 +13,7 @@ from pathlib import Path
 from PIL import Image
 
 from config.paths import OUTPUT_DIR, PROJECT_ROOT, RENDER_CHECK_DIR
+from resolve_python import candidate_paths, resolve_python
 from workflow_step_runner import ProcessTreeTimeout, run_process_tree_safe
 
 
@@ -35,10 +36,7 @@ RENDER_AVAILABLE = find_render_docx_script() is not None
 
 
 def _render_python_candidates() -> list[Path]:
-    candidates = [
-        Path(sys.executable),
-        Path.home() / ".cache" / "codex-runtimes" / "codex-primary-runtime" / "dependencies" / "python" / "python.exe",
-    ]
+    candidates = candidate_paths(PROJECT_ROOT)
     unique: list[Path] = []
     seen: set[str] = set()
     for candidate in candidates:
@@ -60,7 +58,8 @@ def render_python_executable() -> str:
         )
         if result.returncode == 0:
             return str(candidate)
-    return sys.executable
+    resolved = resolve_python(PROJECT_ROOT)
+    return str(resolved) if resolved is not None else sys.executable
 
 
 def safe_folder_name(value: str) -> str:

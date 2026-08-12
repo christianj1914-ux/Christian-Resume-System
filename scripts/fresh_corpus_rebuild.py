@@ -17,6 +17,8 @@ from typing import Any
 import zipfile
 from xml.etree import ElementTree as ET
 
+from config.paths import PYTHON_EXECUTABLE
+
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS_DIR = PROJECT_ROOT / "scripts"
@@ -310,7 +312,7 @@ def reusable_result(result_path: Path, fingerprint: str) -> dict[str, Any] | Non
 
 def run_worker(config_path: Path, log_path: Path) -> int:
     command = [
-        sys.executable,
+        str(PYTHON_EXECUTABLE),
         str(Path(__file__).resolve()),
         "--worker-config",
         str(config_path),

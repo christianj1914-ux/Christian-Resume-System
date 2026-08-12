@@ -269,7 +269,7 @@ def repair_generated_docx_outputs(output: str) -> tuple[list[str], list[str], li
 
 def run_tracker_auto_add() -> None:
     tracker = subprocess.run(
-        [sys.executable, str(SCRIPTS_DIR / "track_applications.py"), "add", "--status", "draft", "--notes", "Auto-tracked by resume workflow."],
+        [str(PYTHON), str(SCRIPTS_DIR / "track_applications.py"), "add", "--status", "draft", "--notes", "Auto-tracked by resume workflow."],
         cwd=PROJECT_ROOT,
         text=True,
         capture_output=True,

@@ -18,6 +18,7 @@ from typing import Callable, Iterable
 
 import requirement_engine
 import resume_analysis
+from config.paths import PYTHON_EXECUTABLE
 from utils import paragraph_texts
 
 
@@ -406,7 +407,7 @@ def execute_queue(
             output_dir=output_dir,
             render_dir=render_dir,
         )
-        command = [sys.executable, str(project_root / "tasks.py"), "resume"]
+        command = [str(PYTHON_EXECUTABLE), str(project_root / "tasks.py"), "resume"]
         if mode == "resume-only":
             command.append("--resume-only")
         started = time.monotonic()

@@ -6527,14 +6527,14 @@ def alignment_gate_decision(
         unsupported = int(lane_fit.get("unsupported", 0)) if isinstance(lane_fit, dict) else 0
         if unsupported >= 2:
             actions.append(
-                "Use gap_address_paragraph() in the cover letter to address the largest unsupported requirement directly."
+                "Address the largest unsupported requirement directly in the cover letter with a truthful evidence bridge."
             )
     else:
         decision = "STRETCH FIT - evaluate before applying"
         actions = [
             f"Raise the score above the automatic fail floor of {ALIGNMENT_FAIL_FLOOR} before submitting; below that threshold the resume should be treated as FAIL.",
             "Identify whether the gap is a keyword gap (solvable in 30 minutes) or a skill gap (requires a bridge story). Keyword gaps are fixable. Skill gaps require a cover letter.",
-            "Write the cover letter first rather than last. The cover letter is where stretch candidates make their case.",
+            "Review the matching resume first, then use the cover letter to explain the strongest truthful bridge.",
             f"Consider whether better-fit roles exist at {company_name} or similar companies where alignment is {ALIGNMENT_FAIL_FLOOR}+ before investing full preparation time here.",
             "If you apply, run python tasks.py cover-check to verify the specificity score is passing before submitting.",
         ]

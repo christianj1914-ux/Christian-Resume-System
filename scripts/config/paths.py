@@ -25,7 +25,7 @@ def _path_override(environment_name: str, default: Path) -> Path:
 # Job management paths
 JOBS_DIR = PROJECT_ROOT / "jobs"
 JOB_DESCRIPTION = _path_override("RESUME_JOB_DESCRIPTION_PATH", JOBS_DIR / "job_description.txt")
-FEDERAL_JOB_DESCRIPTION = JOBS_DIR / "federal_job_description.txt"
+FEDERAL_JOB_DESCRIPTION = _path_override("RESUME_FEDERAL_JOB_DESCRIPTION_PATH", JOBS_DIR / "federal_job_description.txt")
 APPLICATION_QUESTIONS = _path_override("RESUME_APPLICATION_QUESTIONS_PATH", JOBS_DIR / "application_questions.txt")
 COMPANY_RESEARCH = _path_override("RESUME_COMPANY_RESEARCH_PATH", JOBS_DIR / "company_research.txt")
 INTERVIEW_NOTES = _path_override("RESUME_INTERVIEW_NOTES_PATH", JOBS_DIR / "interview_notes.txt")
@@ -64,12 +64,13 @@ PERSONAL_OPERATING_WORKBOOK = STUDY_GUIDES_DIR / "Personal_Operating_Workbook.do
 BACKUPS_DIR = PROJECT_ROOT / "backups"
 RENDER_CHECK_DIR = _path_override("RESUME_RENDER_DIR", PROJECT_ROOT / "render_check")
 
-# Python executable (for subprocess calls)
-PYTHON_EXECUTABLE = Path(__file__).resolve().parent.parent.parent / "venv" / "bin" / "python"
-if not PYTHON_EXECUTABLE.exists():
-    # Fallback to system Python if venv not found
-    import sys
-    PYTHON_EXECUTABLE = Path(sys.executable)
+# Python executable (for subprocess calls). Resolution is centralized so every
+# workflow honors the same override, virtual-environment, and safety rules.
+from resolve_python import resolve_python
+
+PYTHON_EXECUTABLE = resolve_python(PROJECT_ROOT)
+if PYTHON_EXECUTABLE is None:
+    raise RuntimeError("No usable Python executable found. Set RESUME_PYTHON or install Python 3.11+.")
 
 # Scripts directory
 SCRIPTS_DIR = PROJECT_ROOT / "scripts"

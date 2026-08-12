@@ -926,10 +926,9 @@ def find_render_docx_script() -> Path | None:
 
 
 def render_python_executable() -> str:
-    candidates = [
-        Path(sys.executable),
-        Path.home() / ".cache" / "codex-runtimes" / "codex-primary-runtime" / "dependencies" / "python" / "python.exe",
-    ]
+    from resolve_python import candidate_paths, resolve_python
+
+    candidates = candidate_paths(PROJECT_ROOT)
     seen: set[str] = set()
     for candidate in candidates:
         key = str(candidate).lower()
@@ -944,7 +943,8 @@ def render_python_executable() -> str:
         )
         if result.returncode == 0:
             return str(candidate)
-    return sys.executable
+    resolved = resolve_python(PROJECT_ROOT)
+    return str(resolved) if resolved is not None else sys.executable
 
 
 def estimate_page_count_from_xml(
