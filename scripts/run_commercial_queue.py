@@ -18,6 +18,7 @@ from typing import Callable, Iterable
 
 import requirement_engine
 import resume_analysis
+from utils import paragraph_texts
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -27,6 +28,8 @@ DEFAULT_OUTPUT_DIR = PROJECT_ROOT / "output"
 DEFAULT_RENDER_DIR = PROJECT_ROOT / "render_check"
 SKIPPABLE_STATUSES = {"success", "fallback-warning", "review-required"}
 STATUS_ORDER = ("success", "fallback-warning", "review-required", "failed", "timed-out", "skipped")
+AUDIT_STATE_RE = re.compile(r"^Final audit:\s*(PASS|BRIDGE|FAIL|POOR|DRAFT)\s*$", re.MULTILINE)
+STEP_DURATION_RE = re.compile(r"^Workflow step elapsed:\s*([0-9.]+)s\s*$", re.MULTILINE)
 
 
 @dataclass(frozen=True)
@@ -200,6 +203,91 @@ def status_for_result(returncode: int, verified_parse: bool, artifacts: list[str
     return "success" if verified_parse else "fallback-warning"
 
 
+def artifacts_for_job(paths: list[str], job: QueueJob) -> list[str]:
+    """Keep one queue result from claiming artifacts written by another job."""
+    target = normalized_target(job.output_target)
+    return [path for path in paths if target in normalized_target(Path(path).stem)]
+
+
+def resume_audit_state_from_output(stdout: str) -> str:
+    resume_output = stdout.split("Building cover letter", 1)[0]
+    matches = AUDIT_STATE_RE.findall(resume_output)
+    return matches[-1] if matches else "UNKNOWN"
+
+
+def stage_timings_from_output(stdout: str) -> dict[str, float]:
+    names = ("resume", "cover_letter", "qualifications")
+    values = [float(value) for value in STEP_DURATION_RE.findall(stdout)]
+    return {name: values[index] for index, name in enumerate(names) if index < len(values)}
+
+
+def submission_readiness_for_result(
+    *,
+    status: str,
+    returncode: int,
+    resume_audit_state: str,
+    artifacts: list[str],
+) -> str:
+    if status in {"failed", "timed-out"}:
+        return "blocked"
+    if resume_audit_state in {"FAIL", "POOR"}:
+        return "blocked"
+    if returncode == 2 or resume_audit_state in {"BRIDGE", "DRAFT"}:
+        return "review-required"
+    if any(" DRAFT" in Path(path).stem.upper() for path in artifacts):
+        return "review-required"
+    return "ready"
+
+
+def blocker_reason_from_output(stdout: str, readiness: str) -> str:
+    if readiness == "ready":
+        return ""
+    candidates = [
+        line.strip().removeprefix("Audit note: ").strip()
+        for line in stdout.splitlines()
+        if line.strip().startswith("Audit note:")
+        and any(token in line.lower() for token in ("bridge gaps", "fail reason", "hard blocker", "keyword placement"))
+    ]
+    if candidates:
+        return candidates[-1]
+    return "Generated packet requires human review before submission."
+
+
+def cover_opening_fingerprint(artifacts: list[str], companies: Iterable[str]) -> str:
+    cover = next((Path(path) for path in artifacts if "cover letter" in Path(path).stem.lower() and Path(path).suffix.lower() == ".docx"), None)
+    if cover is None or not cover.exists():
+        return ""
+    paragraphs = [text.strip() for text in paragraph_texts(cover) if text.strip()]
+    try:
+        salutation_index = next(index for index, text in enumerate(paragraphs) if text.lower().startswith("dear "))
+    except StopIteration:
+        return ""
+    if salutation_index + 1 >= len(paragraphs):
+        return ""
+    opening = paragraphs[salutation_index + 1].lower()
+    for company in companies:
+        opening = re.sub(re.escape(company.lower()), "<company>", opening)
+    return re.sub(r"[^a-z0-9]+", " ", opening).strip()
+
+
+def apply_queue_boilerplate_warnings(results: list[dict[str, object]]) -> None:
+    companies = [str(result.get("company", "")) for result in results]
+    groups: dict[str, list[dict[str, object]]] = {}
+    for result in results:
+        fingerprint = cover_opening_fingerprint(list(result.get("artifacts", [])), companies)
+        if fingerprint:
+            groups.setdefault(fingerprint, []).append(result)
+    for duplicate_results in groups.values():
+        if len(duplicate_results) < 2:
+            continue
+        names = ", ".join(str(result.get("company", "")) for result in duplicate_results)
+        warning = f"Possible repeated cover-letter opening across queue entries: {names}."
+        for result in duplicate_results:
+            result["queue_warnings"] = [warning]
+            if result.get("submission_readiness") == "ready":
+                result["submission_readiness"] = "review-required"
+
+
 def _job_environment(
     job: QueueJob,
     *,
@@ -295,6 +383,9 @@ def execute_queue(
                 "company": job.company,
                 "role": job.role,
                 "status": "skipped",
+                "execution_status": "skipped",
+                "submission_readiness": previous.get("submission_readiness", "review-required"),
+                "resume_audit_state": previous.get("resume_audit_state", "UNKNOWN"),
                 "duration_seconds": 0.0,
                 "completion_key": key,
                 "artifacts": previous.get("artifacts", []),
@@ -330,8 +421,17 @@ def execute_queue(
         except OSError as exc:
             completed = subprocess.CompletedProcess(command, 1, "", f"Queue child could not start: {exc}")
         duration = time.monotonic() - started
-        artifacts = changed_artifacts(output_dir, before_artifacts)
+        artifacts = artifacts_for_job(changed_artifacts(output_dir, before_artifacts), job)
         status = status_for_result(completed.returncode, parse_result.verified, artifacts)
+        resume_audit_state = resume_audit_state_from_output(completed.stdout or "")
+        submission_readiness = submission_readiness_for_result(
+            status=status,
+            returncode=completed.returncode,
+            resume_audit_state=resume_audit_state,
+            artifacts=artifacts,
+        )
+        blocker_reason = blocker_reason_from_output(completed.stdout or "", submission_readiness)
+        stage_timings = stage_timings_from_output(completed.stdout or "")
         log_path = run_root / f"{job.stem}.log"
         log_path.write_text(
             f"COMMAND: {' '.join(command)}\nRETURN CODE: {completed.returncode}\nSTATUS: {status}\n"
@@ -344,6 +444,11 @@ def execute_queue(
             "company": job.company,
             "role": job.role,
             "status": status,
+            "execution_status": "completed" if status in {"success", "fallback-warning", "review-required"} else status,
+            "submission_readiness": submission_readiness,
+            "resume_audit_state": resume_audit_state,
+            "blocker_reason": blocker_reason,
+            "stage_timings_seconds": stage_timings,
             "returncode": completed.returncode,
             "duration_seconds": round(duration, 3),
             "cumulative_seconds": round(time.monotonic() - queue_started, 3),
@@ -363,12 +468,14 @@ def execute_queue(
         atomic_json(state_path, state)
         manifest["jobs"] = results
         atomic_json(manifest_path, manifest)
-        print(f"  {status}; {duration:.1f}s; log {log_path}", flush=True)
+        display_status = submission_readiness.replace("-", " ").title()
+        print(f"  Completed — {display_status}; {duration:.1f}s; log {log_path}", flush=True)
 
     active_after = active_hash_provider(project_root)
     if active_before != active_after:
         raise RuntimeError("Queue execution changed one or more active job/context files")
     cumulative = time.monotonic() - queue_started
+    apply_queue_boilerplate_warnings(results)
     manifest.update(
         {
             "completed_at": datetime.now().astimezone().isoformat(timespec="seconds"),
@@ -383,6 +490,10 @@ def execute_queue(
         matching = [result for result in results if result["status"] == status_name]
         if matching:
             print(f"  {status_name}: {len(matching)}", flush=True)
+    for readiness_name in ("ready", "review-required", "blocked"):
+        matching = [result for result in results if result.get("submission_readiness") == readiness_name]
+        if matching:
+            print(f"  submission {readiness_name}: {len(matching)}", flush=True)
     print(f"Manifest: {manifest_path}", flush=True)
     return (1 if any(result["status"] in {"failed", "timed-out"} for result in results) else 0), manifest_path, results
 

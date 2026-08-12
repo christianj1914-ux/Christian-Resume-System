@@ -14670,7 +14670,10 @@ def test_commercial_queue_status_continuation_skip_rerun_and_integrity(build_res
             returncode = fixtures[stem][0]
             if returncode in {0, 2}:
                 output_dir.mkdir(parents=True, exist_ok=True)
-                (output_dir / f"{stem}-{len(calls)} Resume.docx").write_bytes(f"artifact {len(calls)}".encode("utf-8"))
+                posting_lines = fixtures[stem][1].splitlines()
+                company = posting_lines[0].split(":", 1)[1].strip()
+                role = posting_lines[1].split(":", 1)[1].strip()
+                (output_dir / f"Christian Estrada - {company} - {role} Resume.docx").write_bytes(f"artifact {len(calls)}".encode("utf-8"))
             return subprocess.CompletedProcess(command, returncode, f"stdout {stem}", f"stderr {stem}" if returncode else "")
 
         active_before = run_commercial_queue.active_file_hashes(root)
@@ -14783,6 +14786,21 @@ def test_sparse_final_page_detection() -> None:
         assert_true(render_checks.final_page_is_sparse(root), "Sparse trailing render page should trigger a compact reflow retry.")
         dense.save(root / "page-2.png")
         assert_true(not render_checks.final_page_is_sparse(root), "Dense trailing render page should not be falsely marked sparse.")
+
+
+def test_queue_readiness_fields_and_stage_timing() -> None:
+    import run_commercial_queue
+
+    stdout = """Building resume...\nFinal audit: FAIL\nAudit note: FAIL reason: top-third job language is missing.\nWorkflow step elapsed: 10.2s\nBuilding cover letter...\nFinal audit: FAIL\nWorkflow step elapsed: 4.1s\nBuilding qualifications statement...\nWorkflow step elapsed: 8.5s\n"""
+    audit = run_commercial_queue.resume_audit_state_from_output(stdout)
+    timings = run_commercial_queue.stage_timings_from_output(stdout)
+    readiness = run_commercial_queue.submission_readiness_for_result(
+        status="success", returncode=0, resume_audit_state=audit, artifacts=["Example FAIL Resume.docx"]
+    )
+    assert_true(
+        audit == "FAIL" and readiness == "blocked" and timings == {"resume": 10.2, "cover_letter": 4.1, "qualifications": 8.5},
+        f"Queue manifests must distinguish a completed runner from blocked submission readiness; got audit={audit}, readiness={readiness}, timings={timings}",
+    )
 
 
 def test_business_context_module(business_context: object) -> None:
@@ -19362,6 +19380,7 @@ def main(argv: list[str] | None = None) -> None:
             ("commercial queue continuation skip rerun and integrity", lambda: test_commercial_queue_status_continuation_skip_rerun_and_integrity(build_resume)),
             ("visible status banner and shared flow controls", lambda: test_visible_status_banner_and_shared_flow_controls(build_standard_qualifications_statement)),
             ("sparse final page detection", test_sparse_final_page_detection),
+            ("queue readiness fields and stage timing", test_queue_readiness_fields_and_stage_timing),
             ("workflow parse args accepts resume only", test_run_resume_workflow_parse_args_accepts_resume_only),
             ("title phrase candidates avoid comma crossing", lambda: test_title_phrase_candidates_do_not_cross_comma_title_segments(build_resume)),
             ("Clorox title and specialties", lambda: test_clorox_style_job_title_and_specialties(build_resume)),
