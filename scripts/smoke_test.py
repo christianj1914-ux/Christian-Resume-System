@@ -14855,6 +14855,121 @@ def test_visible_status_banner_and_shared_flow_controls(build_standard_qualifica
     )
 
 
+def test_application_readiness_state_banner_and_tracker_consistency() -> None:
+    import application_status
+    import document_flow
+    import resume_analysis
+    import track_applications
+    from docx import Document
+
+    expected_status = {
+        "PASS": "READY",
+        "BRIDGE": "REVIEW",
+        "FAIL": "BLOCKED",
+        "POOR": "BLOCKED",
+        "DRAFT": "REVIEW",
+    }
+    assert_true(
+        application_status.parse_required_set("resume,tracker") == ("resume", "tracker"),
+        "Explicit readiness requirements should preserve the requested order.",
+    )
+    for invalid in ("resume,resume", "resume,unknown"):
+        try:
+            application_status.parse_required_set(invalid)
+        except ValueError:
+            pass
+        else:
+            raise SmokeFailure(f"Invalid readiness requirement was accepted: {invalid}")
+    for state_name, readiness in expected_status.items():
+        suffix = "" if state_name == "PASS" else f" {state_name}"
+        path = Path(f"Christian Estrada - Example - Role{suffix} Resume.docx")
+        state = resume_analysis.output_artifact_state(path)
+        record = application_status.artifact_record("resume", path, required=True, selected_resume=path)
+        document = Document()
+        document.add_paragraph("Candidate content")
+        document_flow.add_status_banner(document, state_name)
+        first_body_text = next(paragraph.text for paragraph in document.paragraphs if paragraph.text.strip())
+        expected_banner = document_flow.status_message(state_name)[0] or "Candidate content"
+        tracker_flag = track_applications.derive_audit_flag(path) or "PASS"
+        assert_true(state.value == state_name, f"Filename state mismatch for {path.name}: {state}")
+        assert_true(record.status == readiness, f"Readiness mismatch for {state_name}: {record.status}")
+        assert_true(first_body_text == expected_banner, f"Banner mismatch for {state_name}: {first_body_text!r}")
+        assert_true(tracker_flag == state_name, f"Tracker audit mismatch for {state_name}: {tracker_flag}")
+
+    original_output = application_status.OUTPUT_DIR
+    original_rows = application_status.track_applications.read_rows
+    original_current_snapshot = application_status.job_context_archive.current_snapshot_id
+    original_find_snapshot = application_status.job_context_archive.find_snapshot_id_for_active_context
+    try:
+        with TemporaryDirectory(prefix="readiness-") as temporary_name:
+            root = Path(temporary_name)
+            application_status.OUTPUT_DIR = root
+            application_status.track_applications.read_rows = lambda: []
+            application_status.job_context_archive.current_snapshot_id = lambda: "snapshot-1"
+            application_status.job_context_archive.find_snapshot_id_for_active_context = lambda: ""
+            for label in ("Resume", "Cover Letter", "Qualifications Statement"):
+                (root / f"Christian Estrada - Example - Role {label}.docx").write_text("fixture", encoding="utf-8")
+            report = application_status.build_report(
+                "Company: Example\nJob Title: Role\nOwn implementation delivery.",
+                application_status.DEFAULT_REQUIRED,
+            )
+            guide = next(record for record in report.artifacts if record.artifact_type == "guide")
+            assert_true(report.overall_state == "READY", f"PASS required set should be READY: {report}")
+            assert_true(guide.status == "NOT BUILT", f"Missing optional guide should not block: {guide}")
+
+            selected = root / "Christian Estrada - Example - Role FAIL Resume.docx"
+            selected.write_text("resume", encoding="utf-8")
+            current_row = {
+                "company": "Example",
+                "role_title": "Role",
+                "snapshot_id": "snapshot-1",
+                "output_file": str(selected),
+                "audit_flag": "FAIL",
+                "current_status": "draft",
+            }
+            application_status.track_applications.read_rows = lambda: [current_row]
+            tracker = application_status.tracker_record(
+                "Example", "Role", "snapshot-1", selected, required=True
+            )
+            assert_true(tracker.status == "READY", f"Matching tracker row should be current: {tracker}")
+            for changed_field, changed_value in (
+                ("snapshot_id", "snapshot-old"),
+                ("output_file", str(root / "other.docx")),
+                ("audit_flag", "PASS"),
+            ):
+                stale_row = dict(current_row)
+                stale_row[changed_field] = changed_value
+                application_status.track_applications.read_rows = lambda row=stale_row: [row]
+                tracker = application_status.tracker_record(
+                    "Example", "Role", "snapshot-1", selected, required=True
+                )
+                assert_true(tracker.status == "STALE", f"Tracker {changed_field} mismatch was not stale: {tracker}")
+
+            pass_resume = root / "Christian Estrada - Example - Role Resume.docx"
+            pass_cover = root / "Christian Estrada - Example - Role Cover Letter.docx"
+            pass_resume.write_text("resume", encoding="utf-8")
+            pass_cover.write_text("cover", encoding="utf-8")
+            os.utime(pass_cover, (pass_resume.stat().st_mtime - 5, pass_resume.stat().st_mtime - 5))
+            stale_cover = application_status.artifact_record(
+                "cover", pass_cover, required=True, selected_resume=pass_resume
+            )
+            assert_true(stale_cover.status == "STALE", f"Older companion was not stale: {stale_cover}")
+            fail_cover = root / "Christian Estrada - Example - Role FAIL Cover Letter.docx"
+            fail_cover.write_text("cover", encoding="utf-8")
+            state_stale_cover = application_status.artifact_record(
+                "cover", fail_cover, required=True, selected_resume=pass_resume
+            )
+            assert_true(
+                state_stale_cover.status == "STALE",
+                f"Companion with mismatched state was not stale: {state_stale_cover}",
+            )
+    finally:
+        application_status.OUTPUT_DIR = original_output
+        application_status.track_applications.read_rows = original_rows
+        application_status.job_context_archive.current_snapshot_id = original_current_snapshot
+        application_status.job_context_archive.find_snapshot_id_for_active_context = original_find_snapshot
+
+
 def test_sparse_final_page_detection() -> None:
     from PIL import Image, ImageDraw
     import render_checks
@@ -19576,6 +19691,7 @@ def main(argv: list[str] | None = None) -> None:
             ("commercial queue pairing and duplicate preflight", lambda: test_commercial_queue_pairing_and_duplicate_preflight(build_resume)),
             ("commercial queue continuation skip rerun and integrity", lambda: test_commercial_queue_status_continuation_skip_rerun_and_integrity(build_resume)),
             ("visible status banner and shared flow controls", lambda: test_visible_status_banner_and_shared_flow_controls(build_standard_qualifications_statement)),
+            ("readiness state banner and tracker consistency", test_application_readiness_state_banner_and_tracker_consistency),
             ("sparse final page detection", test_sparse_final_page_detection),
             ("queue readiness fields and stage timing", test_queue_readiness_fields_and_stage_timing),
             ("top-third scoring guard blocks unapproved promotion", test_top_third_scoring_guard_blocks_unapproved_promotion),

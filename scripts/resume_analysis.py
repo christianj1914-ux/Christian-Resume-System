@@ -1237,6 +1237,7 @@ def matching_output_files(
     suffix_pattern: str,
     *,
     allow_company_fallback: bool | None = None,
+    include_drafts: bool = False,
 ) -> list[Path]:
     if not output_dir.exists():
         return []
@@ -1260,7 +1261,7 @@ def matching_output_files(
     for priority, output_name in enumerate(search_names):
         pattern = f"Christian Estrada - {output_name}*{suffix_pattern}"
         for candidate in output_dir.glob(pattern):
-            if " DRAFT" in candidate.stem.upper():
+            if not include_drafts and " DRAFT" in candidate.stem.upper():
                 continue
             if candidate in seen:
                 continue
@@ -2902,19 +2903,33 @@ def fit_status(current: str, candidate: str) -> str:
     return candidate if AUDIT_STATUS_ORDER[candidate] > AUDIT_STATUS_ORDER[current] else current
 
 
-def output_audit_state(output_file: str | Path | None) -> str:
+class ArtifactState(str, Enum):
+    PASS = "PASS"
+    BRIDGE = "BRIDGE"
+    FAIL = "FAIL"
+    POOR = "POOR"
+    DRAFT = "DRAFT"
+
+
+def output_artifact_state(output_file: str | Path | None) -> ArtifactState:
+    """Parse the canonical artifact-state suffix from an output filename."""
     if not output_file:
-        return "PASS"
+        return ArtifactState.PASS
     stem = Path(output_file).stem.upper()
     if " DRAFT" in stem:
-        return "DRAFT"
+        return ArtifactState.DRAFT
     if " POOR" in stem:
-        return "POOR"
+        return ArtifactState.POOR
     if " FAIL" in stem:
-        return "FAIL"
+        return ArtifactState.FAIL
     if " BRIDGE" in stem:
-        return "BRIDGE"
-    return "PASS"
+        return ArtifactState.BRIDGE
+    return ArtifactState.PASS
+
+
+def output_audit_state(output_file: str | Path | None) -> str:
+    """Backward-compatible string view of the canonical artifact state."""
+    return output_artifact_state(output_file).value
 
 
 def output_audit_suffix(status: str) -> str:
