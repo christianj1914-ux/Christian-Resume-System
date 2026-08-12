@@ -8,7 +8,7 @@ from pathlib import Path
 import re
 from zipfile import ZipFile
 
-from lxml import etree
+import xml.etree.ElementTree as ET
 from config.paths import DAILY_INTERVIEW_REHEARSAL_WORKBOOK, PROJECT_ROOT
 
 
@@ -65,30 +65,34 @@ class DocumentBlocks:
     anchor_count: int
 
 
-def _text(element: etree._Element) -> str:
-    return "".join(element.xpath(".//w:t/text()", namespaces=NS)).strip()
+def _text(element: ET.Element) -> str:
+    return "".join(node.text or "" for node in element.findall(".//w:t", NS)).strip()
 
 
 def read_docx(path: Path) -> DocumentBlocks:
     with ZipFile(path) as archive:
         xml_bytes = archive.read("word/document.xml")
-    root = etree.fromstring(xml_bytes)
-    body = root.find("w:body", namespaces=NS)
+    root = ET.fromstring(xml_bytes)
+    body = root.find("w:body", NS)
     blocks: list[str] = []
     if body is not None:
         for child in body:
             if child.tag == f"{{{NS['w']}}}p":
                 blocks.append(_text(child))
             elif child.tag == f"{{{NS['w']}}}tbl":
-                cells = [_text(cell) for cell in child.xpath(".//w:tc", namespaces=NS)]
+                cells = [_text(cell) for cell in child.findall(".//w:tc", NS)]
                 blocks.append("\n".join(cell for cell in cells if cell))
     return DocumentBlocks(
         blocks=blocks,
         xml=xml_bytes.decode("utf-8"),
-        paragraph_count=len(root.xpath(".//w:body/w:p", namespaces=NS)),
-        table_count=len(root.xpath(".//w:body/w:tbl", namespaces=NS)),
-        bookmark_count=len(root.xpath(".//w:bookmarkStart", namespaces=NS)),
-        anchor_count=len(root.xpath(".//w:hyperlink[@w:anchor]", namespaces=NS)),
+        paragraph_count=len(root.findall(".//w:body/w:p", NS)),
+        table_count=len(root.findall(".//w:body/w:tbl", NS)),
+        bookmark_count=len(root.findall(".//w:bookmarkStart", NS)),
+        anchor_count=sum(
+            1
+            for hyperlink in root.findall(".//w:hyperlink", NS)
+            if f"{{{NS['w']}}}anchor" in hyperlink.attrib
+        ),
     )
 
 

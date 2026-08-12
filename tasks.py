@@ -29,8 +29,6 @@ import _bootstrap  # type: ignore[import-not-found]
 
 _bootstrap.ensure_script_path()
 _bootstrap.configure_fresh_pycache(PROJECT_ROOT)
-import render_checks  # type: ignore[import-not-found]
-import business_context  # type: ignore[import-not-found]
 from config.paths import JOB_DESCRIPTION
 
 
@@ -57,6 +55,11 @@ TASKS: dict[str, Task] = {
     "validate-direct": Task(
         "Internal-only direct smoke runner used by clean-worktree validation.",
         ("scripts/smoke_test.py",),
+        False,
+    ),
+    "doctor": Task(
+        "Check the required runtime, configured paths, Git health, and optional rendering support.",
+        ("scripts/doctor.py",),
         False,
     ),
     "source-lint": Task("Validate source resume bullets before JD-specific tailoring selects them.", ("scripts/source_lint.py",), False),
@@ -347,7 +350,7 @@ COMMERCIAL_AUTO_ARCHIVE_COMMANDS = {
 
 def print_help() -> None:
     print("Usage: python tasks.py COMMAND")
-    if render_checks.RENDER_AVAILABLE:
+    if render_support_available():
         print("Render: available")
     else:
         print("Render: unavailable (page count estimated from XML)")
@@ -358,6 +361,14 @@ def print_help() -> None:
         print(f"  {name:<14} [{task.maturity:<12} | {safe_label:<6}] {task.description}")
     print("  help           Show this command list.")
     print("  commands       Print registered commands and script targets.")
+
+
+def render_support_available() -> bool:
+    """Report renderer discovery without importing Pillow or document builders."""
+    if sys.platform == "win32" and (SCRIPTS_DIR / "render_docx_windows.py").exists():
+        return True
+    plugin_root = Path.home() / ".codex" / "plugins" / "cache" / "openai-primary-runtime" / "documents"
+    return plugin_root.is_dir() and any(plugin_root.glob("*/skills/documents/render_docx.py"))
 
 
 def print_command_inventory() -> int:
@@ -805,6 +816,8 @@ def run_jd_check() -> int:
 def run_business_context_check() -> int:
     if not validate_job_description():
         return 1
+    import business_context  # type: ignore[import-not-found]
+
     job_description = JOB_DESCRIPTION.read_text(encoding="utf-8-sig")
     for line in business_context.business_context_check_lines(job_description):
         print(line)

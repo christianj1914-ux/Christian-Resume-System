@@ -581,6 +581,55 @@ def test_python_runtime_guard_and_no_datetime_utc_import() -> None:
     assert_true(not offenders, f"Use timezone.utc instead of fragile datetime.UTC imports: {offenders}")
 
 
+def test_informational_commands_do_not_import_document_tooling() -> None:
+    forbidden = ("PIL", "render_checks", "build_resume", "build_cover_letter", "build_federal_resume")
+    for command in ("help", "commands"):
+        probe = (
+            "import runpy,sys; "
+            f"sys.argv=['tasks.py','{command}']; "
+            "code=0; "
+            "\ntry:\n runpy.run_path('tasks.py',run_name='__main__')"
+            "\nexcept SystemExit as exc:\n code=int(exc.code or 0)"
+            f"\nbad=[name for name in {forbidden!r} if name in sys.modules]"
+            "\nraise SystemExit(code or (3 if bad else 0))"
+        )
+        result = subprocess.run(
+            (sys.executable, "-c", probe),
+            cwd=PROJECT_ROOT,
+            capture_output=True,
+            text=True,
+        )
+        assert_true(
+            result.returncode == 0,
+            f"tasks.py {command} imported document tooling or failed: stdout={result.stdout!r} stderr={result.stderr!r}",
+        )
+
+
+def test_render_tooling_loads_pillow_on_demand() -> None:
+    probe = (
+        "import sys; sys.path.insert(0, 'scripts'); import render_checks; "
+        "raise SystemExit(0 if 'PIL' in sys.modules else 3)"
+    )
+    result = subprocess.run(
+        (sys.executable, "-c", probe),
+        cwd=PROJECT_ROOT,
+        capture_output=True,
+        text=True,
+    )
+    assert_true(result.returncode == 0, f"Render tooling did not load Pillow on demand: {result.stderr!r}")
+
+
+def test_doctor_reports_required_runtime_health() -> None:
+    result = subprocess.run(
+        (sys.executable, "tasks.py", "doctor"),
+        cwd=PROJECT_ROOT,
+        capture_output=True,
+        text=True,
+    )
+    assert_true(result.returncode in {0, 2}, f"Doctor reported a required failure: {result.stdout!r} {result.stderr!r}")
+    assert_true("Doctor result" in result.stdout, f"Doctor summary missing from output: {result.stdout!r}")
+
+
 def test_smoke_selector_preserves_failing_federal_check() -> None:
     def failing_federal_check() -> None:
         raise SmokeFailure("injected federal failure")
@@ -18866,6 +18915,9 @@ def main(argv: list[str] | None = None) -> None:
             ("AGENTS word budget", test_agents_word_budget),
             ("smoke registry has no orphaned test functions", test_smoke_registry_has_no_orphaned_test_functions),
             ("Python runtime guard and datetime UTC import policy", test_python_runtime_guard_and_no_datetime_utc_import),
+            ("informational commands avoid document tooling imports", test_informational_commands_do_not_import_document_tooling),
+            ("render tooling loads Pillow on demand", test_render_tooling_loads_pillow_on_demand),
+            ("doctor reports required runtime health", test_doctor_reports_required_runtime_health),
             ("pyflakes has no undefined names or redefinitions", test_pyflakes_has_no_undefined_names_or_redefinitions),
             ("orphan detector flags synthetic unreferenced test", test_orphan_detector_flags_synthetic_unreferenced_test),
             ("smoke selector uses nonempty deduplicated tag union", test_smoke_selector_uses_nonempty_deduplicated_tag_union),

@@ -4,7 +4,6 @@
 
 # Core document processing
 python-docx==1.2.0
+Pillow==12.2.0
 
-# Note: The system uses primarily Python standard library modules
-# (re, json, pathlib, xml.etree, subprocess, zipfile, etc.)
-# No other external dependencies are required for the core functionality.
+# Note: The system otherwise uses primarily Python standard library modules.
