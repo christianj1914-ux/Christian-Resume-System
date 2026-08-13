@@ -19313,6 +19313,25 @@ def test_equivalence_foundation_isolation_and_lane_contract() -> None:
         equivalence_harness.archived_snapshots = original_archive_reader
 
 
+def test_equivalence_artifact_state_and_required_commercial_coverage() -> None:
+    import equivalence_harness
+
+    expected = {
+        "Christian Estrada - Example Resume.docx": "PASS",
+        "Christian Estrada - Example BRIDGE Resume.docx": "BRIDGE",
+        "Christian Estrada - Example FAIL Resume.docx": "FAIL",
+        "Christian Estrada - Example POOR Resume.docx": "POOR",
+        "Christian Estrada - Example DRAFT Federal Resume.docx": "DRAFT",
+    }
+    for name, state in expected.items():
+        assert_true(equivalence_harness.artifact_state(Path(name)) == state, f"state parser drifted for {name}")
+    plan = equivalence_harness.commercial_fixture_plan(PROJECT_ROOT)
+    assert_true(
+        set(plan["selected_snapshots"]) == set(plan["live_lanes"]),
+        "every live lane must resolve to exactly one deterministic commercial fixture",
+    )
+
+
 def main(argv: list[str] | None = None) -> None:
     args = parse_args(argv)
     passed = 0
@@ -19392,6 +19411,7 @@ def main(argv: list[str] | None = None) -> None:
             ("render tooling loads Pillow on demand", test_render_tooling_loads_pillow_on_demand),
             ("doctor reports required runtime health", test_doctor_reports_required_runtime_health),
             ("equivalence foundation isolation and lane contract", test_equivalence_foundation_isolation_and_lane_contract),
+            ("equivalence commercial state and fixture coverage", test_equivalence_artifact_state_and_required_commercial_coverage),
             ("dirty default validation refuses before suite execution", test_dirty_default_validation_refuses_without_running_suite),
             ("pyflakes has no undefined names or redefinitions", test_pyflakes_has_no_undefined_names_or_redefinitions),
             ("orphan detector flags synthetic unreferenced test", test_orphan_detector_flags_synthetic_unreferenced_test),
