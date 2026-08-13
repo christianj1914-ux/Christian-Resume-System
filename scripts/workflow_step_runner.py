@@ -24,7 +24,7 @@ class ProcessStepResult:
 
 
 class ProcessTreeTimeout(TimeoutError):
-    def __init__(self, phase: str, timeout_seconds: int, stdout: str = "", stderr: str = "") -> None:
+    def __init__(self, phase: str, timeout_seconds: float, stdout: str = "", stderr: str = "") -> None:
         super().__init__(f"{phase} timed out after {timeout_seconds} seconds")
         self.phase = phase
         self.timeout_seconds = timeout_seconds
@@ -156,7 +156,7 @@ def run_process_tree_safe(
     *,
     cwd: Path | None = None,
     env: Mapping[str, str] | None = None,
-    timeout_seconds: int,
+    timeout_seconds: float,
     phase: str,
 ) -> subprocess.CompletedProcess[str]:
     """Run a subprocess with a phase-specific ceiling and kill its complete tree on timeout."""

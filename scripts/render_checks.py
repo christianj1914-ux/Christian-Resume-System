@@ -21,6 +21,7 @@ from workflow_step_runner import ProcessTreeTimeout, run_process_tree_safe
 
 
 RENDER_ROOT = RENDER_CHECK_DIR
+DOCX_RENDER_WRAPPER_TIMEOUT_SECONDS = 450
 
 
 def find_render_docx_script() -> Path | None:
@@ -114,7 +115,7 @@ def render_docx(docx_path: Path, label: str | None = None) -> Path | None:
         result = run_process_tree_safe(
             command,
             cwd=PROJECT_ROOT,
-            timeout_seconds=195,
+            timeout_seconds=DOCX_RENDER_WRAPPER_TIMEOUT_SECONDS,
             phase="DOCX render wrapper",
         )
     except ProcessTreeTimeout as exc:

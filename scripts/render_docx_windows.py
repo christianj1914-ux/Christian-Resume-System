@@ -18,10 +18,12 @@ from __future__ import annotations
 
 import argparse
 import os
+import re
 import shutil
 import subprocess
 import sys
 import tempfile
+import time
 from pathlib import Path
 
 from workflow_step_runner import ProcessTreeTimeout, run_process_tree_safe
@@ -29,7 +31,26 @@ from render_manifest import write_render_manifest
 
 
 LIBREOFFICE_TIMEOUT_SECONDS = 120
-RASTERIZATION_TIMEOUT_SECONDS = 60
+PDFINFO_TIMEOUT_SECONDS = 15
+RASTERIZATION_BASE_SECONDS = 30
+RASTERIZATION_SECONDS_PER_PAGE = 1.5
+RASTERIZATION_MAX_SECONDS = 300
+RASTERIZATION_UNKNOWN_PAGE_SECONDS = 90
+
+
+class RenderPhaseTimeout(TimeoutError):
+    """A renderer timeout with enough workload context to diagnose the bound."""
+
+    def __init__(self, phase: str, page_count: int | None, computed_bound: float, elapsed: float) -> None:
+        page_label = str(page_count) if page_count is not None else "unknown"
+        super().__init__(
+            f"{phase} timed out: page_count={page_label}; "
+            f"computed_bound={computed_bound:.1f}s; elapsed={elapsed:.1f}s"
+        )
+        self.phase = phase
+        self.page_count = page_count
+        self.computed_bound = computed_bound
+        self.elapsed = elapsed
 
 
 def find_soffice() -> Path:
@@ -78,6 +99,23 @@ def find_pdftoppm() -> str:
     raise FileNotFoundError("pdftoppm executable not found")
 
 
+def find_pdfinfo(pdftoppm: str | None = None) -> str:
+    """Find pdfinfo in the selected Poppler installation before consulting PATH."""
+    rasterizer = Path(pdftoppm or find_pdftoppm())
+    candidates: list[str | None] = [
+        str(rasterizer.with_name("pdfinfo.exe")),
+        str(rasterizer.with_name("pdfinfo")),
+        str(rasterizer.with_name("pdfinfo.cmd")),
+        shutil.which("pdfinfo.exe"),
+        shutil.which("pdfinfo"),
+        shutil.which("pdfinfo.cmd"),
+    ]
+    for candidate in candidates:
+        if candidate and Path(candidate).exists():
+            return candidate
+    raise FileNotFoundError("pdfinfo executable not found")
+
+
 def build_lo_env(profile_dir: Path) -> dict[str, str]:
     env = os.environ.copy()
     env["RESUME_LO_PROFILE_ROOT"] = str(profile_dir)
@@ -89,7 +127,7 @@ def run_logged(
     *,
     env: dict[str, str],
     verbose: bool,
-    timeout_seconds: int,
+    timeout_seconds: float,
     phase: str,
 ) -> subprocess.CompletedProcess[str]:
     result = run_process_tree_safe(
@@ -133,13 +171,24 @@ def convert_docx_to_pdf(input_docx: Path, work_dir: Path, *, verbose: bool) -> P
         str(convert_dir),
         str(staged_docx),
     ]
-    result = run_logged(
-        cmd,
-        env=env,
-        verbose=verbose,
-        timeout_seconds=LIBREOFFICE_TIMEOUT_SECONDS,
-        phase="LibreOffice conversion",
-    )
+    # PDF page count does not exist until conversion completes, so conversion
+    # retains its own fixed bound while rasterization scales with actual pages.
+    started = time.monotonic()
+    try:
+        result = run_logged(
+            cmd,
+            env=env,
+            verbose=verbose,
+            timeout_seconds=LIBREOFFICE_TIMEOUT_SECONDS,
+            phase="LibreOffice conversion",
+        )
+    except ProcessTreeTimeout as exc:
+        raise RenderPhaseTimeout(
+            "LibreOffice conversion",
+            None,
+            float(LIBREOFFICE_TIMEOUT_SECONDS),
+            time.monotonic() - started,
+        ) from exc
     pdf_path = convert_dir / "input.pdf"
     if result.returncode == 0 and pdf_path.exists() and pdf_path.stat().st_size > 0:
         return pdf_path
@@ -150,8 +199,51 @@ def convert_docx_to_pdf(input_docx: Path, work_dir: Path, *, verbose: bool) -> P
     raise RuntimeError(f"LibreOffice conversion failed with exit code {result.returncode}")
 
 
+def parse_pdf_page_count(output: str) -> int:
+    match = re.search(r"^Pages:\s*(\d+)\s*$", output, flags=re.IGNORECASE | re.MULTILINE)
+    if not match or int(match.group(1)) < 1:
+        raise ValueError("pdfinfo output did not contain a positive Pages value")
+    return int(match.group(1))
+
+
+def expected_pdf_page_count(pdf_path: Path, pdftoppm: str, *, verbose: bool) -> int | None:
+    try:
+        pdfinfo = find_pdfinfo(pdftoppm)
+        result = run_logged(
+            [pdfinfo, str(pdf_path)],
+            env=os.environ.copy(),
+            verbose=verbose,
+            timeout_seconds=PDFINFO_TIMEOUT_SECONDS,
+            phase="PDF page-count probe",
+        )
+        if result.returncode != 0:
+            detail = (result.stderr or result.stdout or "").strip()
+            raise RuntimeError(detail.splitlines()[-1] if detail else f"pdfinfo exited {result.returncode}")
+        return parse_pdf_page_count(result.stdout)
+    except (FileNotFoundError, ProcessTreeTimeout, RuntimeError, ValueError) as exc:
+        print(
+            "WARNING: PDF page count unavailable; "
+            f"using {RASTERIZATION_UNKNOWN_PAGE_SECONDS}s rasterization fallback: {exc}",
+            file=sys.stderr,
+        )
+        return None
+
+
+def rasterization_timeout_seconds(expected_pages: int | None) -> float:
+    if expected_pages is None:
+        return float(RASTERIZATION_UNKNOWN_PAGE_SECONDS)
+    if expected_pages < 1:
+        raise ValueError("expected page count must be positive")
+    return min(
+        float(RASTERIZATION_MAX_SECONDS),
+        RASTERIZATION_BASE_SECONDS + RASTERIZATION_SECONDS_PER_PAGE * expected_pages,
+    )
+
+
 def rasterize_pdf(pdf_path: Path, output_dir: Path, *, verbose: bool) -> None:
     pdftoppm = find_pdftoppm()
+    page_count = expected_pdf_page_count(pdf_path, pdftoppm, verbose=verbose)
+    timeout_seconds = rasterization_timeout_seconds(page_count)
     prefix = output_dir / "page"
     cmd = [
         pdftoppm,
@@ -159,13 +251,22 @@ def rasterize_pdf(pdf_path: Path, output_dir: Path, *, verbose: bool) -> None:
         str(pdf_path),
         str(prefix),
     ]
-    result = run_logged(
-        cmd,
-        env=os.environ.copy(),
-        verbose=verbose,
-        timeout_seconds=RASTERIZATION_TIMEOUT_SECONDS,
-        phase="PDF rasterization",
-    )
+    started = time.monotonic()
+    try:
+        result = run_logged(
+            cmd,
+            env=os.environ.copy(),
+            verbose=verbose,
+            timeout_seconds=timeout_seconds,
+            phase="PDF rasterization",
+        )
+    except ProcessTreeTimeout as exc:
+        raise RenderPhaseTimeout(
+            "PDF rasterization",
+            page_count,
+            timeout_seconds,
+            time.monotonic() - started,
+        ) from exc
     if result.returncode != 0:
         detail = (result.stderr or result.stdout or "").strip()
         if detail:
@@ -194,7 +295,7 @@ def main() -> None:
             if args.emit_pdf:
                 shutil.copy2(pdf_path, output_dir / f"{input_docx.stem}.pdf")
             rasterize_pdf(pdf_path, output_dir, verbose=args.verbose)
-    except ProcessTreeTimeout as exc:
+    except (ProcessTreeTimeout, RenderPhaseTimeout) as exc:
         raise SystemExit(f"ERROR: {exc}") from exc
     if not list(output_dir.glob("page-*.png")):
         raise SystemExit("No page images were generated")

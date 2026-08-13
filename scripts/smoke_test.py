@@ -16676,6 +16676,7 @@ def test_shared_workflow_timeout_quarantines_partial_output() -> None:
 
 
 def test_renderer_phase_timeouts_terminate_process_trees() -> None:
+    import render_checks
     import render_docx_windows
     import resume_format
     import workflow_step_runner
@@ -16689,7 +16690,7 @@ def test_renderer_phase_timeouts_terminate_process_trees() -> None:
         def __init__(self) -> None:
             self.calls = 0
 
-        def communicate(self, timeout: int | None = None) -> tuple[str, str]:
+        def communicate(self, timeout: float | None = None) -> tuple[str, str]:
             self.calls += 1
             if self.calls == 1:
                 raise subprocess.TimeoutExpired("renderer", timeout)
@@ -16718,8 +16719,106 @@ def test_renderer_phase_timeouts_terminate_process_trees() -> None:
 
     assert_true(terminated == [45678], f"Renderer timeout must terminate the complete process tree: {terminated}")
     assert_true(
-        render_docx_windows.RASTERIZATION_TIMEOUT_SECONDS == 60,
-        "PDF rasterization ceiling must remain 60 seconds.",
+        render_docx_windows.rasterization_timeout_seconds(2) == 33.0
+        and render_docx_windows.rasterization_timeout_seconds(119) == 208.5
+        and render_docx_windows.rasterization_timeout_seconds(180) == 300.0
+        and render_docx_windows.rasterization_timeout_seconds(1000) == 300.0
+        and render_docx_windows.rasterization_timeout_seconds(None) == 90.0,
+        "PDF rasterization bounds must scale with pages, retain the fallback, and cap at 300 seconds.",
+    )
+    assert_true(
+        render_docx_windows.parse_pdf_page_count("Title: fixture\nPages:          119\n") == 119,
+        "pdfinfo page parsing should accept its standard Pages field.",
+    )
+    try:
+        render_docx_windows.parse_pdf_page_count("Pages: 0\n")
+        raise SmokeFailure("A non-positive pdfinfo page count should be rejected")
+    except ValueError:
+        pass
+    assert_true(
+        render_checks.DOCX_RENDER_WRAPPER_TIMEOUT_SECONDS
+        >= render_docx_windows.LIBREOFFICE_TIMEOUT_SECONDS
+        + render_docx_windows.RASTERIZATION_MAX_SECONDS
+        + 30,
+        "The DOCX render wrapper must not preempt the maximum conversion and rasterization path.",
+    )
+    with TemporaryDirectory(prefix="poppler_pair_") as temp_name:
+        poppler_dir = Path(temp_name)
+        pdftoppm_path = poppler_dir / "pdftoppm.exe"
+        pdfinfo_path = poppler_dir / "pdfinfo.exe"
+        pdftoppm_path.write_bytes(b"fixture")
+        pdfinfo_path.write_bytes(b"fixture")
+        assert_true(
+            render_docx_windows.find_pdfinfo(str(pdftoppm_path)) == str(pdfinfo_path),
+            "pdfinfo discovery should prefer the executable beside the selected pdftoppm.",
+        )
+
+    original_find_pdfinfo = render_docx_windows.find_pdfinfo
+    original_run_logged = render_docx_windows.run_logged
+    original_find_pdftoppm = render_docx_windows.find_pdftoppm
+    original_expected_pages = render_docx_windows.expected_pdf_page_count
+    original_monotonic = render_docx_windows.time.monotonic
+    try:
+        render_docx_windows.find_pdfinfo = lambda _pdftoppm=None: "pdfinfo.exe"
+        render_docx_windows.run_logged = lambda *_args, **_kwargs: subprocess.CompletedProcess(
+            ["pdfinfo.exe"], 0, "Pages: 2\n", ""
+        )
+        assert_true(
+            render_docx_windows.expected_pdf_page_count(Path("fixture.pdf"), "pdftoppm.exe", verbose=False) == 2,
+            "A successful pdfinfo probe should feed the proportional timeout.",
+        )
+
+        render_docx_windows.run_logged = lambda *_args, **_kwargs: (_ for _ in ()).throw(
+            workflow_step_runner.ProcessTreeTimeout("PDF page-count probe", 15)
+        )
+        stderr_buffer = io.StringIO()
+        with contextlib.redirect_stderr(stderr_buffer):
+            fallback_pages = render_docx_windows.expected_pdf_page_count(
+                Path("fixture.pdf"), "pdftoppm.exe", verbose=False
+            )
+        assert_true(
+            fallback_pages is None and "using 90s rasterization fallback" in stderr_buffer.getvalue(),
+            "A failed page-count probe should explain and use the 90-second fallback.",
+        )
+
+        render_docx_windows.find_pdftoppm = lambda: "pdftoppm.exe"
+        render_docx_windows.expected_pdf_page_count = lambda *_args, **_kwargs: 180
+        ticks = iter((10.0, 310.25))
+        render_docx_windows.time.monotonic = lambda: next(ticks)
+        seen_bounds: list[float] = []
+
+        def raster_timeout(*_args: object, **kwargs: object) -> subprocess.CompletedProcess[str]:
+            bound = float(kwargs["timeout_seconds"])
+            seen_bounds.append(bound)
+            raise workflow_step_runner.ProcessTreeTimeout("PDF rasterization", bound)
+
+        render_docx_windows.run_logged = raster_timeout
+        try:
+            render_docx_windows.rasterize_pdf(Path("fixture.pdf"), Path("render"), verbose=False)
+            raise SmokeFailure("An over-ceiling raster job should surface a bounded timeout")
+        except render_docx_windows.RenderPhaseTimeout as exc:
+            message = str(exc)
+            assert_true(
+                exc.page_count == 180
+                and exc.computed_bound == 300.0
+                and "PDF rasterization" in message
+                and "page_count=180" in message
+                and "computed_bound=300.0s" in message
+                and "elapsed=300.2s" in message,
+                f"Raster timeout diagnostic is incomplete: {message}",
+            )
+        assert_true(seen_bounds == [300.0], f"Rasterization should receive the hard ceiling once: {seen_bounds}")
+    finally:
+        render_docx_windows.find_pdfinfo = original_find_pdfinfo
+        render_docx_windows.run_logged = original_run_logged
+        render_docx_windows.find_pdftoppm = original_find_pdftoppm
+        render_docx_windows.expected_pdf_page_count = original_expected_pages
+        render_docx_windows.time.monotonic = original_monotonic
+
+    render_checks_source = Path(render_checks.__file__).read_text(encoding="utf-8")
+    assert_true(
+        '"--emit_pdf"' not in render_checks_source,
+        "The persistent visual-QA command must not retain its temporary PDF.",
     )
     with TemporaryDirectory(prefix="render_profile_") as temp_name:
         environment = render_docx_windows.build_lo_env(Path(temp_name))
