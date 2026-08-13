@@ -19361,6 +19361,37 @@ def test_equivalence_federal_parse_and_transaction_contract() -> None:
     )
 
 
+def test_detailed_guide_uses_canonical_path_overrides() -> None:
+    source = (SCRIPT_DIR / "build_detailed_interview_guide.py").read_text(encoding="utf-8")
+    assert_true(
+        "from config.paths import COMPANY_RESEARCH, INTERVIEW_NOTES, JOB_DESCRIPTION, OUTPUT_DIR, PROJECT_ROOT" in source,
+        "detailed guide must use the canonical override-aware path layer",
+    )
+    assert_true(
+        'JOB_DESCRIPTION = PROJECT_ROOT / "jobs" / "job_description.txt"' not in source
+        and 'OUTPUT_DIR = PROJECT_ROOT / "output"' not in source,
+        "detailed guide must not shadow canonical paths with hardcoded live-workspace paths",
+    )
+
+
+def test_equivalence_render_fallback_and_system_matrix_contract() -> None:
+    import equivalence_harness
+
+    source = (SCRIPT_DIR / "equivalence_harness.py").read_text(encoding="utf-8")
+    assert_true(
+        'fallback = render_root / ("h" + sha256_text(docx_path.name)[:8])' in source,
+        "equivalence fallback renders must use a bounded hashed path on Windows",
+    )
+    assert_true(
+        'for state in ("PASS", "BRIDGE", "FAIL")' in source,
+        "equivalence companion capture must retain PASS, BRIDGE, and FAIL coverage",
+    )
+    assert_true(
+        'states["STALE"]' in source and 'states["NOT_BUILT"]' in source,
+        "equivalence readiness capture must include STALE and NOT BUILT",
+    )
+
+
 def main(argv: list[str] | None = None) -> None:
     args = parse_args(argv)
     passed = 0
@@ -19442,6 +19473,8 @@ def main(argv: list[str] | None = None) -> None:
             ("equivalence foundation isolation and lane contract", test_equivalence_foundation_isolation_and_lane_contract),
             ("equivalence commercial state and fixture coverage", test_equivalence_artifact_state_and_required_commercial_coverage),
             ("equivalence federal parse and transaction contract", test_equivalence_federal_parse_and_transaction_contract),
+            ("detailed guide honors canonical path overrides", test_detailed_guide_uses_canonical_path_overrides),
+            ("equivalence render fallback and system matrix", test_equivalence_render_fallback_and_system_matrix_contract),
             ("dirty default validation refuses before suite execution", test_dirty_default_validation_refuses_without_running_suite),
             ("pyflakes has no undefined names or redefinitions", test_pyflakes_has_no_undefined_names_or_redefinitions),
             ("orphan detector flags synthetic unreferenced test", test_orphan_detector_flags_synthetic_unreferenced_test),

@@ -41,6 +41,7 @@ import question_prep
 import prose_engine
 import resume_analysis
 from config.language_rules import PLACEHOLDER_PATTERNS, remove_approved_bracketed_metadata
+from config.paths import COMPANY_RESEARCH, INTERVIEW_NOTES, JOB_DESCRIPTION, OUTPUT_DIR, PROJECT_ROOT
 from modules.employer_playbooks import consulting_bigfour
 from modules.employer_playbooks import state_farm as state_farm_playbook
 from modules.employer_playbooks.state_farm import (
@@ -53,12 +54,6 @@ from modules.employer_playbooks.state_farm import (
 import render_checks
 from utils import assert_company_name_in_source, assert_no_template_leakage, clean_source_text, enforce_prose_quality, fail, optional_text, read_text
 
-
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
-JOB_DESCRIPTION = PROJECT_ROOT / "jobs" / "job_description.txt"
-COMPANY_RESEARCH = PROJECT_ROOT / "jobs" / "company_research.txt"
-INTERVIEW_NOTES = PROJECT_ROOT / "jobs" / "interview_notes.txt"
-OUTPUT_DIR = PROJECT_ROOT / "output"
 
 FONT = "Carlito"
 NAME_BLUE = RGBColor(31, 78, 121)

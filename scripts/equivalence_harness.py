@@ -362,7 +362,28 @@ def run_fixture_script(
     return ProcessCapture(result.returncode, result.stdout, result.stderr, output_dir, render_dir)
 
 
-def _render_record(render_root: Path, docx_path: Path) -> dict[str, Any]:
+def run_in_environment(
+    commit_root: Path,
+    env: dict[str, str],
+    script_name: str,
+    arguments: tuple[str, ...] = (),
+    *,
+    timeout_seconds: int = 900,
+) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        [sys.executable, str(commit_root / "scripts" / script_name), *arguments],
+        cwd=commit_root,
+        env=env,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        encoding="utf-8",
+        errors="replace",
+        timeout=timeout_seconds,
+    )
+
+
+def _render_record(render_root: Path, docx_path: Path, commit_root: Path | None = None) -> dict[str, Any]:
     manifests = sorted(render_root.glob("*/manifest.json"), key=lambda item: item.stat().st_mtime_ns)
     expected_hash = file_sha256(docx_path)
     for manifest_path in reversed(manifests):
@@ -390,6 +411,22 @@ def _render_record(render_root: Path, docx_path: Path) -> dict[str, Any]:
             "manifest": normalized,
             "manifest_sha256": sha256_text(canonical_json(normalized)),
         }
+    if commit_root is not None:
+        fallback = render_root / ("h" + sha256_text(docx_path.name)[:8])
+        shutil.rmtree(fallback, ignore_errors=True)
+        result = subprocess.run(
+            [sys.executable, str(commit_root / "scripts" / "render_docx_windows.py"), str(docx_path), "--output_dir", str(fallback)],
+            cwd=commit_root,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            encoding="utf-8",
+            errors="replace",
+            timeout=240,
+        )
+        if result.returncode:
+            raise HarnessError((result.stderr or result.stdout).strip() or f"fallback render failed for {docx_path.name}")
+        return _render_record(render_root, docx_path)
     raise HarnessError(f"verified render manifest not found for {docx_path.name}")
 
 
@@ -433,7 +470,7 @@ def capture_commercial_resume(
                 "stdout": normalized_console(capture.stdout, (baseline_root, run_root)),
                 "stderr": normalized_console(capture.stderr, (baseline_root, run_root)),
             },
-            "render": _render_record(capture.render_dir, docx_path),
+            "render": _render_record(capture.render_dir, docx_path, baseline_root),
         }
     )
     return record
@@ -481,7 +518,7 @@ def capture_federal_document_set(
             {
                 "artifact_type": artifact_type,
                 "artifact_state": artifact_state(path),
-                "render": _render_record(capture.render_dir, path),
+                "render": _render_record(capture.render_dir, path, baseline_root),
             }
         )
         documents.append(item)
@@ -683,6 +720,188 @@ def capture_federal_fixtures(baseline_root: Path, run_root: Path) -> list[dict[s
     return records
 
 
+def capture_companion_set(
+    baseline_root: Path,
+    run_root: Path,
+    fixture_id: str,
+    snapshot_id: str,
+) -> dict[str, Any]:
+    snapshot = baseline_root / "scratch" / "jd_library" / snapshot_id
+    fixture_root = run_root / "c" / sha256_text(fixture_id)[:8]
+    env, output_dir, render_dir = fixture_environment(
+        baseline_root,
+        fixture_root,
+        job_description=snapshot / "job_description.txt",
+        questions=(snapshot / "application_questions.txt") if (snapshot / "application_questions.txt").is_file() else None,
+    )
+    commands = (
+        ("resume", "build_resume.py", ("--no-pdf",)),
+        ("cover", "build_cover_letter.py", ("--mode", "standard")),
+        ("qualifications", "build_standard_qualifications_statement.py", ()),
+        ("interview", "build_interview_cheat_sheet.py", ()),
+        ("guide", "build_detailed_interview_guide.py", ()),
+    )
+    processes = []
+    for label, script, arguments in commands:
+        result = run_in_environment(baseline_root, env, script, arguments)
+        processes.append(
+            {
+                "label": label,
+                "returncode": result.returncode,
+                "stdout": normalized_console(result.stdout, (baseline_root, run_root)),
+                "stderr": normalized_console(result.stderr, (baseline_root, run_root)),
+            }
+        )
+        if result.returncode:
+            detail = (result.stderr or result.stdout).strip().splitlines()
+            suffix = f": {detail[-1]}" if detail else ""
+            raise HarnessError(f"{fixture_id} companion command {label} failed with {result.returncode}{suffix}")
+    documents = []
+    for path in sorted(output_dir.glob("*.docx")):
+        record = document_record(path)
+        record["artifact_state"] = artifact_state(path)
+        record["render"] = _render_record(render_dir, path, baseline_root)
+        documents.append(record)
+    expected_terms = ("Resume", "Cover Letter", "Qualifications Statement", "Interview Cheat Sheet", "Detailed Interview Guide")
+    for term in expected_terms:
+        if not any(term in item["filename"] for item in documents):
+            raise HarnessError(f"{fixture_id} did not produce {term}")
+    return {
+        "fixture_id": fixture_id,
+        "snapshot_id": snapshot_id,
+        "documents": documents,
+        "processes": processes,
+    }
+
+
+SYSTEM_PROBE = r'''
+import contextlib, io, json, os, shutil, sys, time
+from pathlib import Path
+import application_status, job_context_archive, track_applications
+
+root = Path(sys.argv[1])
+job = Path(os.environ["RESUME_JOB_DESCRIPTION_PATH"])
+output = Path(os.environ["RESUME_OUTPUT_DIR"])
+tracker = Path(os.environ["RESUME_APPLICATIONS_CSV_PATH"])
+library = Path(os.environ["RESUME_JD_LIBRARY_DIR"])
+job.write_text("Company: Probe Company\nRole: Implementation Consultant\nResponsibilities\n- Lead ERP implementation delivery.\n", encoding="utf-8")
+output.mkdir(parents=True, exist_ok=True)
+library.mkdir(parents=True, exist_ok=True)
+
+states = {}
+for state, suffix in (("READY", ""), ("REVIEW", " BRIDGE"), ("BLOCKED", " FAIL")):
+    for path in output.glob("*.docx"): path.unlink()
+    resume = output / f"Christian Estrada - Probe Company - Implementation Consultant{suffix} Resume.docx"
+    resume.write_bytes(b"probe")
+    report = application_status.build_report(job.read_text(encoding="utf-8"), ("resume",))
+    states[state] = {"overall": report.overall_state, "resume_status": report.artifacts[0].status}
+for path in output.glob("*.docx"): path.unlink()
+missing = application_status.build_report(job.read_text(encoding="utf-8"), ("resume",))
+states["MISSING"] = missing.artifacts[0].status
+resume = output / "Christian Estrada - Probe Company - Implementation Consultant Resume.docx"
+resume.write_bytes(b"probe")
+optional = application_status.build_report(job.read_text(encoding="utf-8"), ("resume",))
+states["NOT_BUILT"] = {r.artifact_type:r.status for r in optional.artifacts if r.status == "NOT BUILT"}
+cover = output / "Christian Estrada - Probe Company - Implementation Consultant Cover Letter.docx"
+cover.write_bytes(b"probe cover")
+os.utime(cover, (time.time() - 100, time.time() - 100))
+os.utime(resume, None)
+stale = application_status.build_report(job.read_text(encoding="utf-8"), ("resume", "cover"))
+states["STALE"] = next(r.status for r in stale.artifacts if r.artifact_type == "cover")
+
+snapshot = job_context_archive.archive_active_context(source_command="equivalence", archive_reason="probe")
+results = {"readiness": states, "snapshot_id_present": bool(snapshot)}
+print(json.dumps(results, sort_keys=True))
+'''
+
+
+def capture_system_behavior(baseline_root: Path, run_root: Path) -> dict[str, Any]:
+    fixture_root = run_root / "s"
+    env, output_dir, _render_dir = fixture_environment(baseline_root, fixture_root)
+    probe = fixture_root / "probe.py"
+    probe.write_text(SYSTEM_PROBE, encoding="utf-8")
+    env["PYTHONPATH"] = str(baseline_root / "scripts")
+    result = subprocess.run(
+        [sys.executable, str(probe), str(fixture_root)], cwd=baseline_root, env=env,
+        text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding="utf-8", errors="replace", timeout=60,
+    )
+    if result.returncode:
+        raise HarnessError(result.stderr.strip() or "system behavior probe failed")
+    payload = json.loads(result.stdout)
+    expected = payload.get("readiness", {})
+    if expected.get("READY", {}).get("overall") != "READY" or expected.get("BLOCKED", {}).get("overall") != "BLOCKED":
+        raise HarnessError("readiness system probe did not cover READY and BLOCKED")
+
+    baseline_library = baseline_root / "scratch" / "jd_library"
+    isolated_library = Path(env["RESUME_JD_LIBRARY_DIR"])
+    if isolated_library.exists():
+        shutil.rmtree(isolated_library)
+    shutil.copytree(baseline_library, isolated_library)
+    refresh = run_in_environment(baseline_root, env, "build_jd_library.py", ("refresh-metadata",), timeout_seconds=300)
+    if refresh.returncode:
+        raise HarnessError("isolated jd-archive-refresh failed")
+    snapshots = commercial_fixture_plan(baseline_root)["selected_snapshots"]
+    queue_dir = fixture_root / "queue"
+    queue_dir.mkdir(parents=True, exist_ok=True)
+    for index, lane in enumerate(("implementation_delivery", "change_enablement"), start=1):
+        source = baseline_root / "scratch" / "jd_library" / snapshots[lane] / "job_description.txt"
+        shutil.copy2(source, queue_dir / f"{index:02d}_{lane}.txt")
+    queue_state = fixture_root / "queue_state"
+    queue_output = fixture_root / "queue_output"
+    queue_render = fixture_root / "queue_render"
+    queue = run_in_environment(
+        baseline_root,
+        env,
+        "run_commercial_queue.py",
+        (
+            "--resume-only", "--queue-dir", str(queue_dir), "--state-root", str(queue_state),
+            "--output-dir", str(queue_output), "--render-dir", str(queue_render),
+        ),
+        timeout_seconds=1200,
+    )
+    if queue.returncode:
+        raise HarnessError(f"two-posting queue failed with {queue.returncode}")
+    manifests = sorted(queue_state.glob("**/*.json"))
+    queue_payloads = [json.loads(path.read_text(encoding="utf-8")) for path in manifests]
+    return {
+        "fixture_id": "system_readiness_tracker_archive",
+        "payload": payload,
+        "archive_refresh": {
+            "returncode": refresh.returncode,
+            "stdout": normalized_console(refresh.stdout, (baseline_root, run_root)),
+            "stderr": normalized_console(refresh.stderr, (baseline_root, run_root)),
+            "snapshot_count": len(list(isolated_library.glob("*/metadata.json"))),
+        },
+        "queue": {
+            "returncode": queue.returncode,
+            "stdout": normalized_console(queue.stdout, (baseline_root, run_root)),
+            "stderr": normalized_console(queue.stderr, (baseline_root, run_root)),
+            "manifest_payloads": queue_payloads,
+            "resume_count": len(list(queue_output.glob("*Resume.docx"))),
+        },
+    }
+
+
+def capture_companion_and_system_fixtures(
+    baseline_root: Path,
+    run_root: Path,
+    commercial_records: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    records = []
+    for state in ("PASS", "BRIDGE", "FAIL"):
+        representative = next(item for item in commercial_records if item["artifact_state"] == state)
+        records.append(
+            capture_companion_set(
+                baseline_root,
+                run_root,
+                f"companion_{state.lower()}",
+                representative["snapshot_id"],
+            )
+        )
+    records.append(capture_system_behavior(baseline_root, run_root))
+    return records
+
+
 def write_json(path: Path, payload: Any) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_suffix(path.suffix + ".tmp")
@@ -701,6 +920,7 @@ def capture_behavior(baseline_revision: str) -> dict[str, Any]:
             for lane, snapshot_id in plan["selected_snapshots"].items()
         ]
         federal_records = capture_federal_fixtures(baseline.root, run_root)
+        companion_records = capture_companion_and_system_fixtures(baseline.root, run_root, records)
         observed_states = sorted({record["artifact_state"] for record in records})
         poor_candidates = scan_archive_poor_candidates(baseline.root)
         representatives = {
@@ -731,7 +951,7 @@ def capture_behavior(baseline_revision: str) -> dict[str, Any]:
                 "poor_candidate_scan_count": len(poor_candidates),
                 "poor_candidates": list(poor_candidates),
             },
-            "records": [*records, *federal_records],
+            "records": [*records, *federal_records, *companion_records],
             "step_result": {"availability": "not_present_at_release_a"},
         }
     finally:
