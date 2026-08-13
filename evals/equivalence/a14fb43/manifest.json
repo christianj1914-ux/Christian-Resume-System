@@ -1,0 +1,148 @@
+{
+  "baseline_id": "a14fb43",
+  "behavior_sha": "a14fb43d58a8cc8f3817fd3ac7665fc913bb22f4",
+  "canonical_projection_version": 2,
+  "capture_adapters": [
+    "override-aware scratch/tracker/archive paths",
+    "override-aware detailed interview guide paths"
+  ],
+  "capture_duration_seconds": [
+    927.508,
+    953.696
+  ],
+  "capture_implementation_sha": "a14fb43d58a8cc8f3817fd3ac7665fc913bb22f4",
+  "certification_incidents": [
+    {
+      "candidate_sha": "a70930b6b451eb52196f920fb55873cff301212a",
+      "changed_fields": [
+        "processes"
+      ],
+      "date": "2026-08-12",
+      "disposition": "require two consecutive full green comparisons at one candidate SHA",
+      "evidence_limit": "comparison report schema v1 retained only the difference hash, not nested before/after values",
+      "fixture_id": "companion_bridge",
+      "kind": "unreproduced_comparison_difference",
+      "reproduction": "not reproduced by two independent Release A process captures or a fresh baseline-versus-candidate capture",
+      "visible_text_differences": 0
+    },
+    {
+      "cause": "the queue fingerprint hashes the complete Python tree and is designed to change between code candidates",
+      "changed_fields": [
+        "queue.pipeline_fingerprint",
+        "queue.completion_key"
+      ],
+      "date": "2026-08-12",
+      "disposition": "validate fingerprint and completion-key consistency, then project candidate identity out of cross-version behavior comparison",
+      "fixture_id": "system_readiness_tracker_archive",
+      "kind": "candidate_identity_category_error"
+    }
+  ],
+  "coverage": {
+    "missing_required_commercial_states": [],
+    "observed_commercial_states": [
+      "BRIDGE",
+      "FAIL",
+      "PASS"
+    ],
+    "poor": "coverage_gap_no_canonical_candidates_in_full_archive",
+    "poor_candidate_scan_count": 0,
+    "poor_candidates": [],
+    "state_representatives": {
+      "BRIDGE": "commercial_change_enablement",
+      "FAIL": "commercial_presales_solution",
+      "PASS": "commercial_implementation_delivery",
+      "POOR": null
+    }
+  },
+  "determinism": {
+    "identical_fixtures": 17,
+    "runs": 2,
+    "unexplained": 0
+  },
+  "fixture_count": 17,
+  "fixture_plan": {
+    "archive_snapshot_count": 475,
+    "historical_archive_lanes": [
+      "corporate_strategy"
+    ],
+    "live_lanes": [
+      "change_enablement",
+      "presales_solution",
+      "customer_success",
+      "program_delivery",
+      "product_ownership",
+      "process_improvement",
+      "technical_support_admin",
+      "implementation_delivery",
+      "analytics_operations"
+    ],
+    "selected_snapshots": {
+      "analytics_operations": "20260623_222037_State_Farm_Digital_Marketing_Data_Analyst_-_Digital_Channel_Performance_12981cca",
+      "change_enablement": "20260623_222036_Guidehouse_Senior_Consultant_-_Organizational_Change_Management_-_Healthcar_d775911e",
+      "customer_success": "20260623_222036_Barracuda_Partner_Success_Manager_I_5450c500",
+      "implementation_delivery": "20260623_222036_Acumatica_ERP_Implementation_Consultant_5bb29e84",
+      "presales_solution": "20260623_222037_Shopify_Solutions_Engineer_8b0f0c23",
+      "process_improvement": "20260624_211743_Manager_Project_Integration_-_Merchandising_Manager_Project_Integration_-_Merchandising_0772837b",
+      "product_ownership": "20260624_194024_State_Farm_Product_Analyst_Sharing_Economy_0407c47f",
+      "program_delivery": "20260623_222037_Shopify_Professional_Services_Delivery_Manager_9959d2bd",
+      "technical_support_admin": "20260719_181337_Hard_Rock_Digital_Senior_Systems_Administrator_f0708924"
+    }
+  },
+  "known_product_limitations": [
+    {
+      "artifact": "detailed_interview_guide",
+      "behavior_not_requirement": true,
+      "fixture_id": "companion_bridge",
+      "future_change_policy": "A reviewed stage-aware guide reduction is expected to differ and must not be rejected merely because page count decreases.",
+      "observed_page_count": 119,
+      "statement": "Captured Release A behavior; explicitly not a minimum, target, or quality requirement."
+    }
+  ],
+  "record_files": [
+    "records/commercial_analytics_operations.json",
+    "records/commercial_change_enablement.json",
+    "records/commercial_customer_success.json",
+    "records/commercial_implementation_delivery.json",
+    "records/commercial_presales_solution.json",
+    "records/commercial_process_improvement.json",
+    "records/commercial_product_ownership.json",
+    "records/commercial_program_delivery.json",
+    "records/commercial_technical_support_admin.json",
+    "records/companion_bridge.json",
+    "records/companion_fail.json",
+    "records/companion_pass.json",
+    "records/federal_multi_grade_standard.json",
+    "records/federal_single_grade_ai_control.json",
+    "records/federal_single_grade_standard.json",
+    "records/federal_transactional_behavior.json",
+    "records/system_readiness_tracker_archive.json"
+  ],
+  "record_sha256": {
+    "commercial_analytics_operations": "1c7406af9cf56fdfae9e08746a15af269c10b9c6a77d0e29dd874a0a3930c2e3",
+    "commercial_change_enablement": "272c5a4d9016bf0d953c0d0e6312e634a035963a96269f7ce33c24679a8b40c2",
+    "commercial_customer_success": "23c7a276348f3cce8befb95336cfc8b8d686f5a6141016f0551b2adca65a39ba",
+    "commercial_implementation_delivery": "9b70b9c2b5035b9d6269841325d01dc8d706b8b048e6784ef7c3621942353e83",
+    "commercial_presales_solution": "cf66fa5aaa6fd69a2544c1dc0a093078f4c99617cd8c954701a1799b5409fc72",
+    "commercial_process_improvement": "fd8880d422d07e89c7106e54fd10b6469cae6538557c2d713da17d6b8dd5a33a",
+    "commercial_product_ownership": "05c4e32167f453cc7cc0bebdb20a30745f481bd5d12166dffb028b876b243966",
+    "commercial_program_delivery": "05c8aa9ae45b1ddbb12ae852e934b88a934d5c41321a61ef7e03d6e856873be6",
+    "commercial_technical_support_admin": "ee7921c168e97c590159a5e3f5f2d83c3f63fb77be2d3e39d15dee4639ef3f65",
+    "companion_bridge": "debee9d6197b5f47f5d94c4d9b85b95ff090f31f8b551b5de5ef365443c971c0",
+    "companion_fail": "29208a2963c87b253010eaa6ddc2dfba524beba7d2b2a33c118c99c323f7a7f3",
+    "companion_pass": "c30066f2145339101aa3d6922eb00dd9f342d7b15c0f8ca53da443b04c1ae276",
+    "federal_multi_grade_standard": "13a326c828e0c9777cfc814a4c759a61464b0c3bf79beced04e9ec0d863392bf",
+    "federal_single_grade_ai_control": "70dac1855cb7116f6edb84708f816c66b2eda474c123f5f4fdfa6235fe53e4aa",
+    "federal_single_grade_standard": "abcfd6dd1cf16a58963d2f144d6559565577102b95aa6f7af5ad135c691de923",
+    "federal_transactional_behavior": "d5420bc1d94990477f2e1931ce6078a7c597bde5aa779da20079734e1c97276e",
+    "system_readiness_tracker_archive": "c555e1194e7e2a75af83e003bd987575ed919280a249259af04cb758369cfd23"
+  },
+  "renderer_versions": [
+    "LibreOffice 7.6.5.2 38d5f62f85355c192ef5f1dd47c5c0c0c6d6598b"
+  ],
+  "recertification": {
+    "certified_candidate_ref": "the branch tip carrying this manifest",
+    "exact_candidate_sha_and_run_ids": "retained schema-v2 comparison reports under scratch/equivalence/reports",
+    "required_consecutive_full_runs": 2
+  },
+  "schema_version": 1
+}

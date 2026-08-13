@@ -1,0 +1,34 @@
+{
+  "fixture_id": "federal_transactional_behavior",
+  "outcomes": {
+    "nonzero_quarantine": {
+      "original_restored": true,
+      "quarantined_content": "failed partial",
+      "returncode": 1,
+      "terminated": [],
+      "timed_out": false
+    },
+    "rollback": {
+      "qualifications_restored": true,
+      "raised": true,
+      "resume_restored": true
+    },
+    "success": {
+      "qualifications_sha256": "7120fa44099f88a5fce188df4d4283bbe250ada8a79ea3a8ea8e0cbf73ebaca4",
+      "resume_sha256": "0b28dfa490437783c6b0645a9eb71674f5a814500660a6260aeb09f8553d64b5",
+      "staged_removed": false
+    },
+    "timeout_quarantine": {
+      "original_restored": true,
+      "quarantined_content": "partial",
+      "returncode": 124,
+      "terminated": [
+        24680
+      ],
+      "timed_out": true
+    }
+  },
+  "step_result": {
+    "availability": "not_present_at_release_a"
+  }
+}

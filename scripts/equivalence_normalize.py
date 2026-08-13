@@ -233,6 +233,7 @@ def canonical_volatile_text(text: str, roots: tuple[Path, ...] = ()) -> str:
     value = text.replace("\r\n", "\n").replace("\\", "/")
     for root in sorted((path.resolve().as_posix() for path in roots), key=len, reverse=True):
         value = re.sub(re.escape(root), "<WORKSPACE>", value, flags=re.I)
+    value = re.sub(r"(?i)^[A-Z]:/.*/scratch/e/r/[0-9a-f]+", "<WORKSPACE>", value)
     value = re.sub(
         r"\b20\d{2}-\d{2}-\d{2}(?:[T ]\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})?)?\b",
         "<TIMESTAMP>",

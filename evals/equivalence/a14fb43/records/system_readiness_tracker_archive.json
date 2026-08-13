@@ -1,0 +1,155 @@
+{
+  "archive_refresh": {
+    "returncode": 0,
+    "snapshot_count": 475,
+    "stderr": "",
+    "stdout": "Refreshed archive metadata for 475 snapshot(s); all lanes are populated.\n"
+  },
+  "fixture_id": "system_readiness_tracker_archive",
+  "payload": {
+    "readiness": {
+      "BLOCKED": {
+        "overall": "BLOCKED",
+        "resume_status": "BLOCKED"
+      },
+      "MISSING": "MISSING",
+      "NOT_BUILT": {
+        "checklist": "NOT BUILT",
+        "cover": "NOT BUILT",
+        "follow-up": "NOT BUILT",
+        "guide": "NOT BUILT",
+        "interview": "NOT BUILT",
+        "post-round": "NOT BUILT",
+        "qualifications": "NOT BUILT",
+        "thank-you": "NOT BUILT"
+      },
+      "READY": {
+        "overall": "READY",
+        "resume_status": "READY"
+      },
+      "REVIEW": {
+        "overall": "REVIEW",
+        "resume_status": "REVIEW"
+      },
+      "STALE": "STALE"
+    },
+    "snapshot_id_present": true
+  },
+  "queue": {
+    "manifest_payloads": [
+      {
+        "active_files_unchanged": true,
+        "completed_at": "<TIMESTAMP>",
+        "jobs": [
+          {
+            "artifacts": [
+              "<WORKSPACE>/s/queue_output/Christian Estrada - Acumatica - ERP Implementation Consultant Resume Notes.txt",
+              "<WORKSPACE>/s/queue_output/Christian Estrada - Acumatica - ERP Implementation Consultant Resume.docx"
+            ],
+            "blocker_reason": "",
+            "company": "Acumatica",
+            "completion_key": "c90076ec3f32ff7d0d7a30ecddf383366481f1b174ef50a84914f9af761045b3",
+            "execution_status": "completed",
+            "log": "<WORKSPACE>/s/queue_state/runs/<TIMESTAMP>/01_implementation_delivery.log",
+            "parse_mode": "structured",
+            "parse_verified": true,
+            "pipeline_fingerprint": "3d8ec3091a4e5a56f47d5e7765542cb292c716e7f65b9fafb71ffa157928023f",
+            "posting_hash": "107c5dbab0a88c1ff6f27dd97fbb935fbe097d0aa0b507f06a9d2452360dd3c1",
+            "questions_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "resume_audit_state": "PASS",
+            "returncode": 0,
+            "role": "ERP Implementation Consultant",
+            "status": "success",
+            "stem": "01_implementation_delivery",
+            "submission_readiness": "ready",
+            "workflow_mode": "resume-only"
+          },
+          {
+            "artifacts": [
+              "<WORKSPACE>/s/queue_output/Christian Estrada - Guidehouse - Senior Consultant - Organizational Change Management - Healthcare Technology Con BRIDGE Resume Notes.txt",
+              "<WORKSPACE>/s/queue_output/Christian Estrada - Guidehouse - Senior Consultant - Organizational Change Management - Healthcare Technology Con BRIDGE Resume.docx"
+            ],
+            "blocker_reason": "Bridge gaps remain for this role: senior consultant: not visible in the summary or early bullets [unsupported-do-not-insert]; organizational change management: not visible in the summary or early bullets [unsupported-do-not-insert]. Address them directly in the cover letter and interview without overstating direct ownership.",
+            "company": "Guidehouse",
+            "completion_key": "5970866dd77f43412acb96947429989da7879988744e65530d896237f139d04e",
+            "execution_status": "completed",
+            "log": "<WORKSPACE>/s/queue_state/runs/<TIMESTAMP>/02_change_enablement.log",
+            "parse_mode": "structured",
+            "parse_verified": true,
+            "pipeline_fingerprint": "3d8ec3091a4e5a56f47d5e7765542cb292c716e7f65b9fafb71ffa157928023f",
+            "posting_hash": "f4407b9fcbaab16b58b543f26df4250148cda60c02ff25e07fc76d0809b56a0e",
+            "questions_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "resume_audit_state": "BRIDGE",
+            "returncode": 0,
+            "role": "Senior Consultant - Organizational Change Management - Healthcare Technology Con",
+            "status": "success",
+            "stem": "02_change_enablement",
+            "submission_readiness": "review-required",
+            "workflow_mode": "resume-only"
+          }
+        ],
+        "mode": "resume-only",
+        "pipeline_fingerprint": "3d8ec3091a4e5a56f47d5e7765542cb292c716e7f65b9fafb71ffa157928023f",
+        "rerun": false,
+        "started_at": "<TIMESTAMP>",
+        "version": 1
+      },
+      {
+        "entries": {
+          "5970866dd77f43412acb96947429989da7879988744e65530d896237f139d04e": {
+            "artifacts": [
+              "<WORKSPACE>/s/queue_output/Christian Estrada - Guidehouse - Senior Consultant - Organizational Change Management - Healthcare Technology Con BRIDGE Resume Notes.txt",
+              "<WORKSPACE>/s/queue_output/Christian Estrada - Guidehouse - Senior Consultant - Organizational Change Management - Healthcare Technology Con BRIDGE Resume.docx"
+            ],
+            "blocker_reason": "Bridge gaps remain for this role: senior consultant: not visible in the summary or early bullets [unsupported-do-not-insert]; organizational change management: not visible in the summary or early bullets [unsupported-do-not-insert]. Address them directly in the cover letter and interview without overstating direct ownership.",
+            "company": "Guidehouse",
+            "completion_key": "5970866dd77f43412acb96947429989da7879988744e65530d896237f139d04e",
+            "execution_status": "completed",
+            "log": "<WORKSPACE>/s/queue_state/runs/<TIMESTAMP>/02_change_enablement.log",
+            "parse_mode": "structured",
+            "parse_verified": true,
+            "pipeline_fingerprint": "3d8ec3091a4e5a56f47d5e7765542cb292c716e7f65b9fafb71ffa157928023f",
+            "posting_hash": "f4407b9fcbaab16b58b543f26df4250148cda60c02ff25e07fc76d0809b56a0e",
+            "questions_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "resume_audit_state": "BRIDGE",
+            "returncode": 0,
+            "role": "Senior Consultant - Organizational Change Management - Healthcare Technology Con",
+            "status": "success",
+            "stem": "02_change_enablement",
+            "submission_readiness": "review-required",
+            "workflow_mode": "resume-only"
+          },
+          "c90076ec3f32ff7d0d7a30ecddf383366481f1b174ef50a84914f9af761045b3": {
+            "artifacts": [
+              "<WORKSPACE>/s/queue_output/Christian Estrada - Acumatica - ERP Implementation Consultant Resume Notes.txt",
+              "<WORKSPACE>/s/queue_output/Christian Estrada - Acumatica - ERP Implementation Consultant Resume.docx"
+            ],
+            "blocker_reason": "",
+            "company": "Acumatica",
+            "completion_key": "c90076ec3f32ff7d0d7a30ecddf383366481f1b174ef50a84914f9af761045b3",
+            "execution_status": "completed",
+            "log": "<WORKSPACE>/s/queue_state/runs/<TIMESTAMP>/01_implementation_delivery.log",
+            "parse_mode": "structured",
+            "parse_verified": true,
+            "pipeline_fingerprint": "3d8ec3091a4e5a56f47d5e7765542cb292c716e7f65b9fafb71ffa157928023f",
+            "posting_hash": "107c5dbab0a88c1ff6f27dd97fbb935fbe097d0aa0b507f06a9d2452360dd3c1",
+            "questions_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "resume_audit_state": "PASS",
+            "returncode": 0,
+            "role": "ERP Implementation Consultant",
+            "status": "success",
+            "stem": "01_implementation_delivery",
+            "submission_readiness": "ready",
+            "workflow_mode": "resume-only"
+          }
+        },
+        "updated_at": "<TIMESTAMP>",
+        "version": 1
+      }
+    ],
+    "resume_count": 2,
+    "returncode": 0,
+    "stderr": "",
+    "stdout": "Queue contains 2 posting(s). Base worst case: 20 minutes (10 minutes per posting for resume-only).\nThere is no queue-level timeout. Each required workflow step retains its ten-minute ceiling, and an affected page-fit renderer may receive one bounded retry.\n[1/2] Acumatica - ERP Implementation Consultant\n  Completed — Ready; <DURATION>; log <WORKSPACE>/s/queue_state/runs/<TIMESTAMP>/01_implementation_delivery.log\n[2/2] Guidehouse - Senior Consultant - Organizational Change Management - Healthcare Technology Con\n  Completed — Review Required; <DURATION>; log <WORKSPACE>/s/queue_state/runs/<TIMESTAMP>/02_change_enablement.log\n\nQueue complete in <DURATION>\n  success: 2\n  submission ready: 1\n  submission review-required: 1\nManifest: <WORKSPACE>/s/queue_state/manifests/<TIMESTAMP>.json\n"
+  }
+}

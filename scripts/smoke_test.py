@@ -19503,6 +19503,44 @@ def test_equivalence_planted_builder_change_is_detected() -> None:
     )
 
 
+def test_equivalence_frozen_manifest_is_complete() -> None:
+    import equivalence_harness
+
+    baseline_dir = PROJECT_ROOT / "evals" / "equivalence" / "a14fb43"
+    manifest = json.loads((baseline_dir / "manifest.json").read_text(encoding="utf-8"))
+    allowlist = json.loads((baseline_dir / "allowlist.json").read_text(encoding="utf-8"))
+    assert_true(manifest["behavior_sha"].startswith("a14fb43"), "frozen equivalence baseline must identify Release A")
+    assert_true(manifest["fixture_count"] == 17, f"frozen fixture count drifted: {manifest['fixture_count']}")
+    assert_true(manifest["canonical_projection_version"] == 2, "frozen baseline must name queue-aware canonical projection v2")
+    assert_true(
+        manifest["determinism"] == {"runs": 2, "identical_fixtures": 17, "unexplained": 0},
+        "frozen baseline must retain its two-run determinism proof",
+    )
+    assert_true(allowlist == {"schema_version": 1, "entries": []}, "Release A baseline allowlist must start empty")
+    incidents = manifest["certification_incidents"]
+    assert_true(
+        any(item.get("fixture_id") == "companion_bridge" and item.get("visible_text_differences") == 0 for item in incidents)
+        and any(item.get("kind") == "candidate_identity_category_error" for item in incidents),
+        "frozen baseline must retain both recertification incidents",
+    )
+    limitation = manifest["known_product_limitations"][0]
+    assert_true(
+        limitation["observed_page_count"] == 119 and limitation["behavior_not_requirement"] is True,
+        "119-page detailed-guide behavior must never become a minimum or quality target",
+    )
+    for relative in manifest["record_files"]:
+        record_path = baseline_dir / relative
+        assert_true(record_path.is_file(), f"frozen equivalence record is missing: {relative}")
+        record = json.loads(record_path.read_text(encoding="utf-8"))
+        digest = equivalence_harness.sha256_text(
+            equivalence_harness.canonical_json(equivalence_harness.canonical_fixture(record))
+        )
+        assert_true(
+            manifest["record_sha256"][record["fixture_id"]] == digest,
+            f"frozen canonical record hash drifted: {record['fixture_id']}",
+        )
+
+
 def main(argv: list[str] | None = None) -> None:
     args = parse_args(argv)
     passed = 0
@@ -19590,6 +19628,7 @@ def main(argv: list[str] | None = None) -> None:
             ("equivalence queue identity projection and validation", test_equivalence_queue_identity_projection_and_validation),
             ("equivalence volatile text and report contract", test_equivalence_volatile_text_and_report_contract),
             ("equivalence planted builder change detection", test_equivalence_planted_builder_change_is_detected),
+            ("equivalence frozen baseline manifest", test_equivalence_frozen_manifest_is_complete),
             ("dirty default validation refuses before suite execution", test_dirty_default_validation_refuses_without_running_suite),
             ("pyflakes has no undefined names or redefinitions", test_pyflakes_has_no_undefined_names_or_redefinitions),
             ("orphan detector flags synthetic unreferenced test", test_orphan_detector_flags_synthetic_unreferenced_test),

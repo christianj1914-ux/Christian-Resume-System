@@ -36,6 +36,37 @@ SCHEMA_VERSION = 1
 COMPARISON_REPORT_SCHEMA_VERSION = 2
 LOCKED_BASELINE = "a14fb43d58a8cc8f3817fd3ac7665fc913bb22f4"
 BASELINE_ID = "a14fb43"
+BASELINE_CERTIFICATION_INCIDENTS = [
+    {
+        "date": "2026-08-12",
+        "kind": "unreproduced_comparison_difference",
+        "candidate_sha": "a70930b6b451eb52196f920fb55873cff301212a",
+        "fixture_id": "companion_bridge",
+        "changed_fields": ["processes"],
+        "visible_text_differences": 0,
+        "evidence_limit": "comparison report schema v1 retained only the difference hash, not nested before/after values",
+        "reproduction": "not reproduced by two independent Release A process captures or a fresh baseline-versus-candidate capture",
+        "disposition": "require two consecutive full green comparisons at one candidate SHA",
+    },
+    {
+        "date": "2026-08-12",
+        "kind": "candidate_identity_category_error",
+        "fixture_id": "system_readiness_tracker_archive",
+        "changed_fields": ["queue.pipeline_fingerprint", "queue.completion_key"],
+        "cause": "the queue fingerprint hashes the complete Python tree and is designed to change between code candidates",
+        "disposition": "validate fingerprint and completion-key consistency, then project candidate identity out of cross-version behavior comparison",
+    },
+]
+BASELINE_PRODUCT_LIMITATIONS = [
+    {
+        "fixture_id": "companion_bridge",
+        "artifact": "detailed_interview_guide",
+        "observed_page_count": 119,
+        "behavior_not_requirement": True,
+        "statement": "Captured Release A behavior; explicitly not a minimum, target, or quality requirement.",
+        "future_change_policy": "A reviewed stage-aware guide reduction is expected to differ and must not be rejected merely because page count decreases.",
+    }
+]
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 TRACKED_ROOT = PROJECT_ROOT / "evals" / "equivalence"
 TRANSIENT_ROOT = Path(
@@ -954,6 +985,8 @@ DIAGNOSTIC_KEYS = {
     "captured_at_utc",
     "duration_seconds",
     "rendered_at_utc",
+    "cumulative_seconds",
+    "stage_timings_seconds",
 }
 
 QUEUE_IDENTITY = "<CANDIDATE_IDENTITY>"
@@ -1220,6 +1253,65 @@ def run_planted_change_self_test(code_revision: str = "HEAD") -> dict[str, Any]:
         return result
     finally:
         shutil.rmtree(run_root, ignore_errors=True)
+
+
+def freeze_deterministic_baseline(first_report: Path, second_report: Path) -> dict[str, Any]:
+    first = json.loads(Path(first_report).read_text(encoding="utf-8"))
+    second = json.loads(Path(second_report).read_text(encoding="utf-8"))
+    if first.get("baseline_sha") != LOCKED_BASELINE or second.get("baseline_sha") != LOCKED_BASELINE:
+        raise HarnessError("both freeze reports must use the locked Release A baseline")
+    comparison = compare_record_sets(
+        first.get("records", []), second.get("records", []), {"schema_version": 1, "entries": []}
+    )
+    if comparison["unexplained"]:
+        changed = ", ".join(
+            item["fixture_id"] for item in comparison["results"] if item["classification"] != "IDENTICAL"
+        )
+        raise HarnessError(f"baseline capture is nondeterministic: {changed}")
+    baseline_dir = TRACKED_ROOT / BASELINE_ID
+    records_dir = baseline_dir / "records"
+    records_dir.mkdir(parents=True, exist_ok=True)
+    record_files = []
+    record_hashes = {}
+    renderer_versions = set()
+    for record in sorted(first["records"], key=lambda item: item["fixture_id"]):
+        canonical = canonical_fixture(record)
+        relative = Path("records") / f"{record['fixture_id']}.json"
+        write_json(baseline_dir / relative, canonical)
+        record_files.append(relative.as_posix())
+        record_hashes[record["fixture_id"]] = sha256_text(canonical_json(canonical))
+        documents = [record] if "render" in record else record.get("documents", [])
+        for document in documents:
+            version = document.get("render", {}).get("renderer_version") if isinstance(document, dict) else None
+            if version:
+                renderer_versions.add(str(version))
+    manifest = {
+        "schema_version": SCHEMA_VERSION,
+        "canonical_projection_version": 2,
+        "baseline_id": BASELINE_ID,
+        "behavior_sha": LOCKED_BASELINE,
+        "capture_implementation_sha": first.get("implementation_sha"),
+        "capture_adapters": first.get("capture_adapters", []),
+        "fixture_count": len(record_files),
+        "record_files": record_files,
+        "record_sha256": record_hashes,
+        "fixture_plan": first.get("fixture_plan"),
+        "coverage": first.get("coverage"),
+        "renderer_versions": sorted(renderer_versions),
+        "capture_duration_seconds": [first.get("duration_seconds"), second.get("duration_seconds")],
+        "determinism": {"runs": 2, "identical_fixtures": comparison["identical"], "unexplained": 0},
+        "certification_incidents": BASELINE_CERTIFICATION_INCIDENTS,
+        "known_product_limitations": BASELINE_PRODUCT_LIMITATIONS,
+        "recertification": {
+            "required_consecutive_full_runs": 2,
+            "certified_candidate_ref": "the branch tip carrying this manifest",
+            "exact_candidate_sha_and_run_ids": "retained schema-v2 comparison reports under scratch/equivalence/reports",
+        },
+    }
+    write_json(baseline_dir / "manifest.json", manifest)
+    write_json(baseline_dir / "allowlist.json", {"schema_version": 1, "entries": []})
+    write_json(TRACKED_ROOT / "default.json", {"baseline": BASELINE_ID, "behavior_sha": LOCKED_BASELINE})
+    return manifest
 
 
 def capture_behavior(code_revision: str, *, input_revision: str = LOCKED_BASELINE) -> dict[str, Any]:
