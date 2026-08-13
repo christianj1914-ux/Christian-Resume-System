@@ -19488,6 +19488,21 @@ def test_equivalence_volatile_text_and_report_contract() -> None:
     assert_true(first != second and first.name.endswith("_one.json") and second.name.endswith("_two.json"), "comparison reports must retain distinct runs")
 
 
+def test_equivalence_planted_builder_change_is_detected() -> None:
+    import equivalence_harness
+
+    result = equivalence_harness.run_planted_change_self_test("HEAD")
+    assert_true(result["unexplained"] == 1, "planted builder change must affect exactly one fixture")
+    item = result["results"][0]
+    readable = "\n".join(item["visible_text_diffs"])
+    assert_true("turning" in readable and "translating" in readable, "planted builder change must include a readable one-word diff")
+    evidence = item.get("field_differences", {}).get("visible_text", {})
+    assert_true(
+        "turning" in evidence.get("before", "") and "translating" in evidence.get("after", ""),
+        "planted builder change must retain canonical nested before/after evidence",
+    )
+
+
 def main(argv: list[str] | None = None) -> None:
     args = parse_args(argv)
     passed = 0
@@ -19574,6 +19589,7 @@ def main(argv: list[str] | None = None) -> None:
             ("equivalence fixture comparison and exact allowlist", test_equivalence_compare_is_fixture_oriented_and_exactly_allowlisted),
             ("equivalence queue identity projection and validation", test_equivalence_queue_identity_projection_and_validation),
             ("equivalence volatile text and report contract", test_equivalence_volatile_text_and_report_contract),
+            ("equivalence planted builder change detection", test_equivalence_planted_builder_change_is_detected),
             ("dirty default validation refuses before suite execution", test_dirty_default_validation_refuses_without_running_suite),
             ("pyflakes has no undefined names or redefinitions", test_pyflakes_has_no_undefined_names_or_redefinitions),
             ("orphan detector flags synthetic unreferenced test", test_orphan_detector_flags_synthetic_unreferenced_test),

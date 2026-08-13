@@ -1192,6 +1192,36 @@ def load_baseline(baseline_id: str) -> tuple[dict[str, Any], dict[str, Any]]:
     return {"manifest": manifest, "records": records}, allowlist
 
 
+def run_planted_change_self_test(code_revision: str = "HEAD") -> dict[str, Any]:
+    run_root = new_run_root("selftest")
+    try:
+        code = export_commit(code_revision, run_root / "c")
+        inputs = export_commit(LOCKED_BASELINE, run_root / "i")
+        apply_release_a_capture_adapters(code)
+        plan = commercial_fixture_plan(inputs.root)
+        lane = "implementation_delivery"
+        snapshot_id = plan["selected_snapshots"][lane]
+        baseline_record = capture_commercial_resume(code.root, inputs.root, run_root / "before", lane, snapshot_id)
+        target = code.root / "scripts" / "resume_content.py"
+        source = target.read_text(encoding="utf-8")
+        old = "turning ambiguous cross-functional delivery"
+        new = "translating ambiguous cross-functional delivery"
+        if source.count(old) != 1:
+            raise HarnessError(f"planted-change anchor count drifted: expected 1, found {source.count(old)}")
+        target.write_text(source.replace(old, new, 1), encoding="utf-8")
+        candidate_record = capture_commercial_resume(code.root, inputs.root, run_root / "after", lane, snapshot_id)
+        result = compare_record_sets(
+            [baseline_record], [candidate_record], {"schema_version": 1, "entries": []}
+        )
+        item = result["results"][0]
+        readable = "\n".join(item.get("visible_text_diffs", []))
+        if result["unexplained"] != 1 or "turning" not in readable or "translating" not in readable:
+            raise HarnessError("planted one-word builder change was not detected as exactly one readable unexplained fixture")
+        return result
+    finally:
+        shutil.rmtree(run_root, ignore_errors=True)
+
+
 def capture_behavior(code_revision: str, *, input_revision: str = LOCKED_BASELINE) -> dict[str, Any]:
     started = time.monotonic()
     run_root = new_run_root("capture")
@@ -1257,6 +1287,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     compare.add_argument("--baseline", default=BASELINE_ID)
     compare.add_argument("--candidate", default="HEAD")
     compare.add_argument("--fixture")
+    compare.add_argument("--self-test", action="store_true", help="Run the permanent one-fixture planted-change proof.")
     return parser.parse_args(argv)
 
 
@@ -1275,6 +1306,11 @@ def main(argv: list[str] | None = None) -> int:
                 write_json(report_path, payload)
                 print(f"Captured {len(payload['records'])} fixture(s) for inputs {payload['baseline_sha']} with implementation {payload['implementation_sha']}")
                 print(f"Report: {report_path}")
+                return 0
+            if args.self_test:
+                result = run_planted_change_self_test(args.candidate)
+                print("PLANTED CHANGE SELF-TEST: PASS")
+                print(result["results"][0]["visible_text_diffs"][0])
                 return 0
             baseline, allowlist = load_baseline(args.baseline)
             candidate_sha = resolve_commit(args.candidate)
