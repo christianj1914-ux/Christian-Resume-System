@@ -19392,6 +19392,102 @@ def test_equivalence_render_fallback_and_system_matrix_contract() -> None:
     )
 
 
+def test_equivalence_compare_is_fixture_oriented_and_exactly_allowlisted() -> None:
+    import equivalence_harness
+
+    baseline = [{"fixture_id": "one", "visible_text": "alpha\nbeta", "filename": "one.docx"}]
+    candidate = [{"fixture_id": "one", "visible_text": "alpha\ngamma", "filename": "one changed.docx"}]
+    empty = {"schema_version": 1, "entries": []}
+    result = equivalence_harness.compare_record_sets(baseline, candidate, empty)
+    assert_true(result["unexplained"] == 1, "correlated field changes must count as one unexplained fixture")
+    item = result["results"][0]
+    assert_true(
+        item["changed_fields"] == ["filename", "visible_text"] and "-beta" in item["visible_text_diffs"][0] and "+gamma" in item["visible_text_diffs"][0],
+        f"equivalence diff should be readable and field-complete: {item}",
+    )
+    assert_true(
+        item["field_differences"] == {
+            "filename": {"before": "one.docx", "after": "one changed.docx"},
+            "visible_text": {"before": "alpha\nbeta", "after": "alpha\ngamma"},
+        },
+        f"equivalence reports must retain canonical before/after evidence: {item}",
+    )
+    approved = {
+        "schema_version": 1,
+        "entries": [{"fixture_id": "one", "expected_diff_sha256": item["expected_diff_sha256"], "reason": "test"}],
+    }
+    allowed = equivalence_harness.compare_record_sets(baseline, candidate, approved)
+    assert_true(allowed["allowed"] == 1 and allowed["unexplained"] == 0, "exact diff hash should allow one reviewed change")
+    candidate[0]["visible_text"] = "alpha\ndelta"
+    changed = equivalence_harness.compare_record_sets(baseline, candidate, approved)
+    assert_true(changed["unexplained"] == 1, "an approval must not apply after the exact difference changes")
+
+
+def test_equivalence_queue_identity_projection_and_validation() -> None:
+    import copy
+    import equivalence_harness
+
+    def record(fingerprint: str, *, status: str = "success") -> dict[str, object]:
+        posting_hash = "b" * 64
+        questions_hash = "c" * 64
+        mode = "resume-only"
+        completion = equivalence_harness.sha256_text("|".join((posting_hash, questions_hash, mode, fingerprint)))
+        job = {
+            "stem": "01_fixture",
+            "posting_hash": posting_hash,
+            "questions_hash": questions_hash,
+            "workflow_mode": mode,
+            "pipeline_fingerprint": fingerprint,
+            "completion_key": completion,
+            "status": status,
+        }
+        return {
+            "fixture_id": "system_readiness_tracker_archive",
+            "queue": {
+                "manifest_payloads": [
+                    {"mode": mode, "pipeline_fingerprint": fingerprint, "jobs": [copy.deepcopy(job)]},
+                    {"entries": {completion: copy.deepcopy(job)}},
+                ]
+            },
+        }
+
+    baseline = record("a" * 64)
+    candidate = record("d" * 64)
+    comparison = equivalence_harness.compare_record_sets(
+        [baseline], [candidate], {"schema_version": 1, "entries": []}
+    )
+    assert_true(comparison["identical"] == 1, "candidate-local queue identity must not be behavioral drift")
+    changed = record("d" * 64, status="failed")
+    behavioral = equivalence_harness.compare_record_sets(
+        [baseline], [changed], {"schema_version": 1, "entries": []}
+    )
+    assert_true(behavioral["unexplained"] == 1, "queue decisions must remain behaviorally authoritative")
+    invalid = record("d" * 64)
+    invalid["queue"]["manifest_payloads"][0]["jobs"][0]["completion_key"] = "0" * 64
+    try:
+        equivalence_harness.canonical_fixture(invalid)
+    except equivalence_harness.HarnessError:
+        pass
+    else:
+        raise AssertionError("invalid queue completion-key derivation must fail the harness")
+
+
+def test_equivalence_volatile_text_and_report_contract() -> None:
+    import equivalence_harness
+    from equivalence_normalize import canonical_volatile_text
+
+    sample = (
+        r"C:\scratch\20260812_231445_trace.json "
+        "/tmp/20260812_231735_123456_trace.json 2026-08-12T23:17:35.123456-04:00 12.5s"
+    )
+    normalized = canonical_volatile_text(sample)
+    assert_true("\\" not in normalized and normalized.count("<TIMESTAMP>") == 3, f"volatile text normalization drifted: {normalized}")
+    assert_true(canonical_volatile_text(normalized) == normalized, "volatile text normalization must be idempotent")
+    first = equivalence_harness.comparison_report_path("a14fb43", "a" * 64, "one")
+    second = equivalence_harness.comparison_report_path("a14fb43", "a" * 64, "two")
+    assert_true(first != second and first.name.endswith("_one.json") and second.name.endswith("_two.json"), "comparison reports must retain distinct runs")
+
+
 def main(argv: list[str] | None = None) -> None:
     args = parse_args(argv)
     passed = 0
@@ -19475,6 +19571,9 @@ def main(argv: list[str] | None = None) -> None:
             ("equivalence federal parse and transaction contract", test_equivalence_federal_parse_and_transaction_contract),
             ("detailed guide honors canonical path overrides", test_detailed_guide_uses_canonical_path_overrides),
             ("equivalence render fallback and system matrix", test_equivalence_render_fallback_and_system_matrix_contract),
+            ("equivalence fixture comparison and exact allowlist", test_equivalence_compare_is_fixture_oriented_and_exactly_allowlisted),
+            ("equivalence queue identity projection and validation", test_equivalence_queue_identity_projection_and_validation),
+            ("equivalence volatile text and report contract", test_equivalence_volatile_text_and_report_contract),
             ("dirty default validation refuses before suite execution", test_dirty_default_validation_refuses_without_running_suite),
             ("pyflakes has no undefined names or redefinitions", test_pyflakes_has_no_undefined_names_or_redefinitions),
             ("orphan detector flags synthetic unreferenced test", test_orphan_detector_flags_synthetic_unreferenced_test),

@@ -5,6 +5,8 @@ from __future__ import annotations
 
 import argparse
 import contextlib
+import copy
+import difflib
 import hashlib
 import json
 import os
@@ -21,6 +23,7 @@ from pathlib import Path
 from typing import Any, Iterator
 
 from equivalence_normalize import (
+    canonical_volatile_text,
     canonical_json,
     document_record,
     file_sha256,
@@ -30,6 +33,7 @@ from equivalence_normalize import (
 
 
 SCHEMA_VERSION = 1
+COMPARISON_REPORT_SCHEMA_VERSION = 2
 LOCKED_BASELINE = "a14fb43d58a8cc8f3817fd3ac7665fc913bb22f4"
 BASELINE_ID = "a14fb43"
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -119,6 +123,35 @@ def export_commit(revision: str, destination: Path) -> CommitExport:
     finally:
         archive_path.unlink(missing_ok=True)
     return CommitExport(sha=sha, root=destination)
+
+
+def apply_release_a_capture_adapters(commit: CommitExport) -> None:
+    """Add only override plumbing that Release A omitted from two modules.
+
+    These adapters operate on the disposable export and are recorded in the
+    baseline manifest.  Default paths and generated content are unchanged.
+    """
+    if commit.sha != LOCKED_BASELINE:
+        return
+    paths = commit.root / "scripts" / "config" / "paths.py"
+    text = paths.read_text(encoding="utf-8")
+    text = text.replace('SCRATCH_DIR = PROJECT_ROOT / "scratch"', 'SCRATCH_DIR = _path_override("RESUME_SCRATCH_DIR", PROJECT_ROOT / "scratch")')
+    text = text.replace('SCRATCH_JD_LIBRARY = SCRATCH_DIR / "jd_library"', 'SCRATCH_JD_LIBRARY = _path_override("RESUME_JD_LIBRARY_DIR", SCRATCH_DIR / "jd_library")')
+    text = text.replace('SCRATCH_APPLICATIONS_CSV = SCRATCH_DIR / "applications.csv"', 'SCRATCH_APPLICATIONS_CSV = _path_override("RESUME_APPLICATIONS_CSV_PATH", SCRATCH_DIR / "applications.csv")')
+    paths.write_text(text, encoding="utf-8")
+    guide = commit.root / "scripts" / "build_detailed_interview_guide.py"
+    text = guide.read_text(encoding="utf-8")
+    marker = "from config.language_rules import PLACEHOLDER_PATTERNS, remove_approved_bracketed_metadata\n"
+    text = text.replace(marker, marker + "from config.paths import COMPANY_RESEARCH, INTERVIEW_NOTES, JOB_DESCRIPTION, OUTPUT_DIR, PROJECT_ROOT\n")
+    for line in (
+        'PROJECT_ROOT = Path(__file__).resolve().parents[1]\n',
+        'JOB_DESCRIPTION = PROJECT_ROOT / "jobs" / "job_description.txt"\n',
+        'COMPANY_RESEARCH = PROJECT_ROOT / "jobs" / "company_research.txt"\n',
+        'INTERVIEW_NOTES = PROJECT_ROOT / "jobs" / "interview_notes.txt"\n',
+        'OUTPUT_DIR = PROJECT_ROOT / "output"\n',
+    ):
+        text = text.replace(line, "")
+    guide.write_text(text, encoding="utf-8")
 
 
 def _tree_payload(root: Path) -> list[dict[str, Any]]:
@@ -438,19 +471,20 @@ def _single_docx(output_dir: Path, pattern: str) -> Path:
 
 
 def capture_commercial_resume(
-    baseline_root: Path,
+    code_root: Path,
+    input_root: Path,
     run_root: Path,
     lane: str,
     snapshot_id: str,
 ) -> dict[str, Any]:
-    snapshot_dir = baseline_root / "scratch" / "jd_library" / snapshot_id
+    snapshot_dir = input_root / "scratch" / "jd_library" / snapshot_id
     job_description = snapshot_dir / "job_description.txt"
     if not job_description.is_file():
         raise HarnessError(f"commercial fixture input is missing: {job_description}")
     questions = snapshot_dir / "application_questions.txt"
     fixture_root = run_root / "f" / sha256_text(snapshot_id)[:8]
     capture = run_fixture_script(
-        baseline_root,
+        code_root,
         fixture_root,
         "build_resume.py",
         job_description=job_description,
@@ -467,10 +501,10 @@ def capture_commercial_resume(
             "artifact_state": artifact_state(docx_path),
             "process": {
                 "returncode": capture.returncode,
-                "stdout": normalized_console(capture.stdout, (baseline_root, run_root)),
-                "stderr": normalized_console(capture.stderr, (baseline_root, run_root)),
+                "stdout": normalized_console(capture.stdout, (code_root, input_root, run_root)),
+                "stderr": normalized_console(capture.stderr, (code_root, input_root, run_root)),
             },
-            "render": _render_record(capture.render_dir, docx_path, baseline_root),
+            "render": _render_record(capture.render_dir, docx_path, code_root),
         }
     )
     return record
@@ -495,14 +529,14 @@ def _parse_federal_status(stdout: str) -> dict[str, Any]:
 
 
 def capture_federal_document_set(
-    baseline_root: Path,
+    code_root: Path,
     run_root: Path,
     fixture_id: str,
     posting_path: Path,
 ) -> dict[str, Any]:
     fixture_root = run_root / "f" / sha256_text(fixture_id)[:8]
     capture = run_fixture_script(
-        baseline_root,
+        code_root,
         fixture_root,
         "build_federal_resume.py",
         federal_job_description=posting_path,
@@ -518,7 +552,7 @@ def capture_federal_document_set(
             {
                 "artifact_type": artifact_type,
                 "artifact_state": artifact_state(path),
-                "render": _render_record(capture.render_dir, path, baseline_root),
+                "render": _render_record(capture.render_dir, path, code_root),
             }
         )
         documents.append(item)
@@ -530,8 +564,8 @@ def capture_federal_document_set(
         "documents": documents,
         "process": {
             "returncode": capture.returncode,
-            "stdout": normalized_console(capture.stdout, (baseline_root, run_root)),
-            "stderr": normalized_console(capture.stderr, (baseline_root, run_root)),
+            "stdout": normalized_console(capture.stdout, (code_root, run_root)),
+            "stderr": normalized_console(capture.stderr, (code_root, run_root)),
         },
     }
 
@@ -691,8 +725,8 @@ def capture_transaction_probes(baseline_root: Path, run_root: Path) -> dict[str,
     }
 
 
-def capture_federal_fixtures(baseline_root: Path, run_root: Path) -> list[dict[str, Any]]:
-    fixture_dir = baseline_root / "scripts" / "test_fixtures" / "federal"
+def capture_federal_fixtures(code_root: Path, input_root: Path, run_root: Path) -> list[dict[str, Any]]:
+    fixture_dir = input_root / "scripts" / "test_fixtures" / "federal"
     single = fixture_dir / "verified_single_grade.txt"
     multi = fixture_dir / "dhs_multi_grade.txt"
     if not single.is_file() or not multi.is_file():
@@ -705,10 +739,10 @@ def capture_federal_fixtures(baseline_root: Path, run_root: Path) -> list[dict[s
         encoding="utf-8",
     )
     records = [
-        capture_federal_document_set(baseline_root, run_root, "federal_single_grade_standard", single),
-        capture_federal_document_set(baseline_root, run_root, "federal_multi_grade_standard", multi),
-        capture_federal_document_set(baseline_root, run_root, "federal_single_grade_ai_control", ai_control),
-        capture_transaction_probes(baseline_root, run_root),
+        capture_federal_document_set(code_root, run_root, "federal_single_grade_standard", single),
+        capture_federal_document_set(code_root, run_root, "federal_multi_grade_standard", multi),
+        capture_federal_document_set(code_root, run_root, "federal_single_grade_ai_control", ai_control),
+        capture_transaction_probes(code_root, run_root),
     ]
     standard_text = records[0]["documents"][0]["visible_text"]
     ai_text = records[2]["documents"][0]["visible_text"]
@@ -721,15 +755,16 @@ def capture_federal_fixtures(baseline_root: Path, run_root: Path) -> list[dict[s
 
 
 def capture_companion_set(
-    baseline_root: Path,
+    code_root: Path,
+    input_root: Path,
     run_root: Path,
     fixture_id: str,
     snapshot_id: str,
 ) -> dict[str, Any]:
-    snapshot = baseline_root / "scratch" / "jd_library" / snapshot_id
+    snapshot = input_root / "scratch" / "jd_library" / snapshot_id
     fixture_root = run_root / "c" / sha256_text(fixture_id)[:8]
     env, output_dir, render_dir = fixture_environment(
-        baseline_root,
+        code_root,
         fixture_root,
         job_description=snapshot / "job_description.txt",
         questions=(snapshot / "application_questions.txt") if (snapshot / "application_questions.txt").is_file() else None,
@@ -743,13 +778,13 @@ def capture_companion_set(
     )
     processes = []
     for label, script, arguments in commands:
-        result = run_in_environment(baseline_root, env, script, arguments)
+        result = run_in_environment(code_root, env, script, arguments)
         processes.append(
             {
                 "label": label,
                 "returncode": result.returncode,
-                "stdout": normalized_console(result.stdout, (baseline_root, run_root)),
-                "stderr": normalized_console(result.stderr, (baseline_root, run_root)),
+                "stdout": normalized_console(result.stdout, (code_root, input_root, run_root)),
+                "stderr": normalized_console(result.stderr, (code_root, input_root, run_root)),
             }
         )
         if result.returncode:
@@ -760,7 +795,7 @@ def capture_companion_set(
     for path in sorted(output_dir.glob("*.docx")):
         record = document_record(path)
         record["artifact_state"] = artifact_state(path)
-        record["render"] = _render_record(render_dir, path, baseline_root)
+        record["render"] = _render_record(render_dir, path, code_root)
         documents.append(record)
     expected_terms = ("Resume", "Cover Letter", "Qualifications Statement", "Interview Cheat Sheet", "Detailed Interview Guide")
     for term in expected_terms:
@@ -815,14 +850,14 @@ print(json.dumps(results, sort_keys=True))
 '''
 
 
-def capture_system_behavior(baseline_root: Path, run_root: Path) -> dict[str, Any]:
+def capture_system_behavior(code_root: Path, input_root: Path, run_root: Path) -> dict[str, Any]:
     fixture_root = run_root / "s"
-    env, output_dir, _render_dir = fixture_environment(baseline_root, fixture_root)
+    env, output_dir, _render_dir = fixture_environment(code_root, fixture_root)
     probe = fixture_root / "probe.py"
     probe.write_text(SYSTEM_PROBE, encoding="utf-8")
-    env["PYTHONPATH"] = str(baseline_root / "scripts")
+    env["PYTHONPATH"] = str(code_root / "scripts")
     result = subprocess.run(
-        [sys.executable, str(probe), str(fixture_root)], cwd=baseline_root, env=env,
+        [sys.executable, str(probe), str(fixture_root)], cwd=code_root, env=env,
         text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding="utf-8", errors="replace", timeout=60,
     )
     if result.returncode:
@@ -832,25 +867,25 @@ def capture_system_behavior(baseline_root: Path, run_root: Path) -> dict[str, An
     if expected.get("READY", {}).get("overall") != "READY" or expected.get("BLOCKED", {}).get("overall") != "BLOCKED":
         raise HarnessError("readiness system probe did not cover READY and BLOCKED")
 
-    baseline_library = baseline_root / "scratch" / "jd_library"
+    baseline_library = input_root / "scratch" / "jd_library"
     isolated_library = Path(env["RESUME_JD_LIBRARY_DIR"])
     if isolated_library.exists():
         shutil.rmtree(isolated_library)
     shutil.copytree(baseline_library, isolated_library)
-    refresh = run_in_environment(baseline_root, env, "build_jd_library.py", ("refresh-metadata",), timeout_seconds=300)
+    refresh = run_in_environment(code_root, env, "build_jd_library.py", ("refresh-metadata",), timeout_seconds=300)
     if refresh.returncode:
         raise HarnessError("isolated jd-archive-refresh failed")
-    snapshots = commercial_fixture_plan(baseline_root)["selected_snapshots"]
+    snapshots = commercial_fixture_plan(input_root)["selected_snapshots"]
     queue_dir = fixture_root / "queue"
     queue_dir.mkdir(parents=True, exist_ok=True)
     for index, lane in enumerate(("implementation_delivery", "change_enablement"), start=1):
-        source = baseline_root / "scratch" / "jd_library" / snapshots[lane] / "job_description.txt"
+        source = input_root / "scratch" / "jd_library" / snapshots[lane] / "job_description.txt"
         shutil.copy2(source, queue_dir / f"{index:02d}_{lane}.txt")
     queue_state = fixture_root / "queue_state"
     queue_output = fixture_root / "queue_output"
     queue_render = fixture_root / "queue_render"
     queue = run_in_environment(
-        baseline_root,
+        code_root,
         env,
         "run_commercial_queue.py",
         (
@@ -862,20 +897,23 @@ def capture_system_behavior(baseline_root: Path, run_root: Path) -> dict[str, An
     if queue.returncode:
         raise HarnessError(f"two-posting queue failed with {queue.returncode}")
     manifests = sorted(queue_state.glob("**/*.json"))
-    queue_payloads = [json.loads(path.read_text(encoding="utf-8")) for path in manifests]
+    queue_payloads = [
+        json.loads(normalized_console(path.read_text(encoding="utf-8"), (code_root, input_root, run_root)))
+        for path in manifests
+    ]
     return {
         "fixture_id": "system_readiness_tracker_archive",
         "payload": payload,
         "archive_refresh": {
             "returncode": refresh.returncode,
-            "stdout": normalized_console(refresh.stdout, (baseline_root, run_root)),
-            "stderr": normalized_console(refresh.stderr, (baseline_root, run_root)),
+            "stdout": normalized_console(refresh.stdout, (code_root, input_root, run_root)),
+            "stderr": normalized_console(refresh.stderr, (code_root, input_root, run_root)),
             "snapshot_count": len(list(isolated_library.glob("*/metadata.json"))),
         },
         "queue": {
             "returncode": queue.returncode,
-            "stdout": normalized_console(queue.stdout, (baseline_root, run_root)),
-            "stderr": normalized_console(queue.stderr, (baseline_root, run_root)),
+            "stdout": normalized_console(queue.stdout, (code_root, input_root, run_root)),
+            "stderr": normalized_console(queue.stderr, (code_root, input_root, run_root)),
             "manifest_payloads": queue_payloads,
             "resume_count": len(list(queue_output.glob("*Resume.docx"))),
         },
@@ -883,7 +921,8 @@ def capture_system_behavior(baseline_root: Path, run_root: Path) -> dict[str, An
 
 
 def capture_companion_and_system_fixtures(
-    baseline_root: Path,
+    code_root: Path,
+    input_root: Path,
     run_root: Path,
     commercial_records: list[dict[str, Any]],
 ) -> list[dict[str, Any]]:
@@ -892,13 +931,14 @@ def capture_companion_and_system_fixtures(
         representative = next(item for item in commercial_records if item["artifact_state"] == state)
         records.append(
             capture_companion_set(
-                baseline_root,
+                code_root,
+                input_root,
                 run_root,
                 f"companion_{state.lower()}",
                 representative["snapshot_id"],
             )
         )
-    records.append(capture_system_behavior(baseline_root, run_root))
+    records.append(capture_system_behavior(code_root, input_root, run_root))
     return records
 
 
@@ -909,20 +949,265 @@ def write_json(path: Path, payload: Any) -> None:
     os.replace(temporary, path)
 
 
-def capture_behavior(baseline_revision: str) -> dict[str, Any]:
+DIAGNOSTIC_KEYS = {
+    "raw_docx_sha256",
+    "captured_at_utc",
+    "duration_seconds",
+    "rendered_at_utc",
+}
+
+QUEUE_IDENTITY = "<CANDIDATE_IDENTITY>"
+
+
+def _queue_completion_key(entry: dict[str, Any], fingerprint: str, default_mode: str) -> str:
+    posting_hash = str(entry.get("posting_hash", ""))
+    questions_hash = str(entry.get("questions_hash", ""))
+    mode = str(entry.get("workflow_mode") or default_mode)
+    if not all((posting_hash, questions_hash, mode)):
+        raise HarnessError("queue identity entry is missing posting hash, questions hash, or workflow mode")
+    return sha256_text("|".join((posting_hash, questions_hash, mode, fingerprint)))
+
+
+def _project_queue_identity(record: dict[str, Any]) -> dict[str, Any]:
+    """Validate candidate-local queue identity, then remove it from behavior comparison."""
+    if record.get("fixture_id") != "system_readiness_tracker_archive":
+        return record
+    queue = record.get("queue")
+    payloads = queue.get("manifest_payloads") if isinstance(queue, dict) else None
+    if not isinstance(payloads, list):
+        raise HarnessError("system fixture queue manifest payloads are missing")
+    manifests = [item for item in payloads if isinstance(item, dict) and isinstance(item.get("jobs"), list)]
+    states = [item for item in payloads if isinstance(item, dict) and isinstance(item.get("entries"), dict)]
+    if len(manifests) != 1 or len(states) != 1:
+        raise HarnessError("queue capture must contain exactly one run manifest and one state payload")
+    manifest = manifests[0]
+    state = states[0]
+    fingerprint = str(manifest.get("pipeline_fingerprint", ""))
+    if len(fingerprint) != 64 or any(character not in "0123456789abcdefABCDEF" for character in fingerprint):
+        raise HarnessError("queue pipeline fingerprint is not a SHA-256 value")
+    default_mode = str(manifest.get("mode", ""))
+    completion_tokens: dict[str, str] = {}
+    for job in manifest["jobs"]:
+        if not isinstance(job, dict) or job.get("pipeline_fingerprint") != fingerprint:
+            raise HarnessError("queue job pipeline fingerprint disagrees with the run manifest")
+        expected = _queue_completion_key(job, fingerprint, default_mode)
+        if job.get("completion_key") != expected:
+            raise HarnessError("queue job completion key is not derived from its current fingerprint")
+        stem = str(job.get("stem", "")).strip()
+        if not stem or expected in completion_tokens:
+            raise HarnessError("queue jobs require unique nonempty stems and completion keys")
+        completion_tokens[expected] = f"<DERIVED_COMPLETION_KEY:{stem}>"
+        job["pipeline_fingerprint"] = QUEUE_IDENTITY
+        job["completion_key"] = completion_tokens[expected]
+    entries = state["entries"]
+    if set(entries) != set(completion_tokens):
+        raise HarnessError("queue state keys disagree with the run manifest completion keys")
+    projected_entries: dict[str, Any] = {}
+    for key, entry in entries.items():
+        if not isinstance(entry, dict) or entry.get("pipeline_fingerprint") != fingerprint:
+            raise HarnessError("queue state pipeline fingerprint disagrees with the run manifest")
+        expected = _queue_completion_key(entry, fingerprint, default_mode)
+        if key != expected or entry.get("completion_key") != expected:
+            raise HarnessError("queue state completion key is not derived from its current fingerprint")
+        token = completion_tokens[expected]
+        entry["pipeline_fingerprint"] = QUEUE_IDENTITY
+        entry["completion_key"] = token
+        projected_entries[token] = entry
+    state["entries"] = projected_entries
+    manifest["pipeline_fingerprint"] = QUEUE_IDENTITY
+    return record
+
+
+def _normalize_value(value: Any) -> Any:
+    if isinstance(value, dict):
+        normalized = {
+            key: _normalize_value(item)
+            for key, item in value.items()
+            if key not in DIAGNOSTIC_KEYS
+        }
+        manifest = normalized.get("manifest")
+        if isinstance(manifest, dict) and "source_docx_sha256" in manifest:
+            manifest["source_docx_sha256"] = "<CANONICAL_SOURCE>"
+            normalized["manifest_sha256"] = sha256_text(canonical_json(manifest))
+        return normalized
+    if isinstance(value, list):
+        return [_normalize_value(item) for item in value]
+    if isinstance(value, str):
+        return canonical_volatile_text(value)
+    return value
+
+
+def canonical_fixture(record: dict[str, Any]) -> dict[str, Any]:
+    return _normalize_value(_project_queue_identity(copy.deepcopy(record)))
+
+
+def fixture_map(records: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    mapped: dict[str, dict[str, Any]] = {}
+    for record in records:
+        fixture_id = str(record.get("fixture_id", "")).strip()
+        if not fixture_id or fixture_id in mapped:
+            raise HarnessError(f"invalid or duplicate fixture ID: {fixture_id!r}")
+        mapped[fixture_id] = canonical_fixture(record)
+    return mapped
+
+
+def difference_hash(before: Any, after: Any) -> str:
+    return sha256_text(canonical_json({"before": before, "after": after}))
+
+
+def _changed_fields(before: dict[str, Any], after: dict[str, Any]) -> list[str]:
+    return sorted(key for key in set(before) | set(after) if before.get(key) != after.get(key))
+
+
+def _visible_texts(record: dict[str, Any]) -> list[str]:
+    values: list[str] = []
+    if isinstance(record.get("visible_text"), str):
+        values.append(record["visible_text"])
+    for document in record.get("documents", []):
+        if isinstance(document, dict) and isinstance(document.get("visible_text"), str):
+            values.append(document["visible_text"])
+    return values
+
+
+def compare_record_sets(
+    baseline_records: list[dict[str, Any]],
+    candidate_records: list[dict[str, Any]],
+    allowlist: dict[str, Any],
+    *,
+    only_fixture: str | None = None,
+) -> dict[str, Any]:
+    baseline = fixture_map(baseline_records)
+    candidate = fixture_map(candidate_records)
+    if only_fixture:
+        if only_fixture not in baseline:
+            raise HarnessError(f"unknown fixture: {only_fixture}")
+        baseline = {only_fixture: baseline[only_fixture]}
+        candidate = {only_fixture: candidate.get(only_fixture)} if only_fixture in candidate else {}
+    entries = allowlist.get("entries", [])
+    if allowlist.get("schema_version") != 1 or not isinstance(entries, list):
+        raise HarnessError("allowlist schema is invalid")
+    approvals = {
+        (str(item.get("fixture_id")), str(item.get("expected_diff_sha256"))): item
+        for item in entries
+        if isinstance(item, dict)
+    }
+    results = []
+    used: set[tuple[str, str]] = set()
+    for fixture_id in sorted(set(baseline) | set(candidate)):
+        before = baseline.get(fixture_id)
+        after = candidate.get(fixture_id)
+        if before == after:
+            results.append({"fixture_id": fixture_id, "classification": "IDENTICAL", "changed_fields": []})
+            continue
+        diff_hash = difference_hash(before, after)
+        approval_key = (fixture_id, diff_hash)
+        classification = "ALLOWED" if approval_key in approvals else "UNEXPLAINED"
+        if classification == "ALLOWED":
+            used.add(approval_key)
+        changed_fields = _changed_fields(before or {}, after or {})
+        field_differences = {
+            field: {
+                "before": before.get(field) if isinstance(before, dict) else None,
+                "after": after.get(field) if isinstance(after, dict) else None,
+            }
+            for field in changed_fields
+        }
+        text_diffs = []
+        for index, (left, right) in enumerate(zip(_visible_texts(before or {}), _visible_texts(after or {}))):
+            if left != right:
+                text_diffs.append(
+                    "\n".join(
+                        difflib.unified_diff(
+                            left.splitlines(), right.splitlines(),
+                            fromfile=f"{fixture_id}:baseline:{index}", tofile=f"{fixture_id}:candidate:{index}", lineterm="",
+                        )
+                    )
+                )
+        results.append(
+            {
+                "fixture_id": fixture_id,
+                "classification": classification,
+                "changed_fields": changed_fields,
+                "expected_diff_sha256": diff_hash,
+                "field_differences": field_differences,
+                "visible_text_diffs": text_diffs,
+            }
+        )
+    stale = sorted(
+        f"{fixture}:{digest}" for fixture, digest in approvals if (fixture, digest) not in used
+    )
+    return {
+        "results": results,
+        "identical": sum(item["classification"] == "IDENTICAL" for item in results),
+        "allowed": sum(item["classification"] == "ALLOWED" for item in results),
+        "unexplained": sum(item["classification"] == "UNEXPLAINED" for item in results),
+        "stale_allowlist_entries": stale,
+    }
+
+
+def canonical_record_hashes(records: list[dict[str, Any]]) -> dict[str, str]:
+    return {
+        fixture_id: sha256_text(canonical_json(record))
+        for fixture_id, record in sorted(fixture_map(records).items())
+    }
+
+
+def comparison_report(
+    *,
+    baseline_id: str,
+    baseline_manifest: dict[str, Any],
+    candidate_sha: str,
+    candidate: dict[str, Any],
+    comparison: dict[str, Any],
+) -> dict[str, Any]:
+    return {
+        "schema_version": COMPARISON_REPORT_SCHEMA_VERSION,
+        "run_id": uuid.uuid4().hex,
+        "created_at_utc": datetime.now(timezone.utc).isoformat(),
+        "baseline_id": baseline_id,
+        "baseline_behavior_sha": baseline_manifest.get("behavior_sha"),
+        "candidate_sha": candidate_sha,
+        "fixture_count": len(comparison["results"]),
+        "fixture_plan": candidate.get("fixture_plan"),
+        "candidate_record_sha256": canonical_record_hashes(candidate["records"]),
+        **comparison,
+    }
+
+
+def comparison_report_path(baseline_id: str, candidate_sha: str, run_id: str) -> Path:
+    return TRANSIENT_ROOT / "reports" / f"compare_{baseline_id}_{candidate_sha[:8]}_{run_id}.json"
+
+
+def load_baseline(baseline_id: str) -> tuple[dict[str, Any], dict[str, Any]]:
+    baseline_dir = TRACKED_ROOT / baseline_id
+    manifest_path = baseline_dir / "manifest.json"
+    allowlist_path = baseline_dir / "allowlist.json"
+    if not manifest_path.is_file() or not allowlist_path.is_file():
+        raise HarnessError(f"baseline is not frozen: {baseline_dir}")
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    records = []
+    for relative in manifest.get("record_files", []):
+        records.append(json.loads((baseline_dir / relative).read_text(encoding="utf-8")))
+    allowlist = json.loads(allowlist_path.read_text(encoding="utf-8"))
+    return {"manifest": manifest, "records": records}, allowlist
+
+
+def capture_behavior(code_revision: str, *, input_revision: str = LOCKED_BASELINE) -> dict[str, Any]:
     started = time.monotonic()
     run_root = new_run_root("capture")
     try:
-        baseline = export_commit(baseline_revision, run_root / "b")
-        plan = commercial_fixture_plan(baseline.root)
+        code = export_commit(code_revision, run_root / "c")
+        inputs = export_commit(input_revision, run_root / "i")
+        apply_release_a_capture_adapters(code)
+        plan = commercial_fixture_plan(inputs.root)
         records = [
-            capture_commercial_resume(baseline.root, run_root, lane, snapshot_id)
+            capture_commercial_resume(code.root, inputs.root, run_root, lane, snapshot_id)
             for lane, snapshot_id in plan["selected_snapshots"].items()
         ]
-        federal_records = capture_federal_fixtures(baseline.root, run_root)
-        companion_records = capture_companion_and_system_fixtures(baseline.root, run_root, records)
+        federal_records = capture_federal_fixtures(code.root, inputs.root, run_root)
+        companion_records = capture_companion_and_system_fixtures(code.root, inputs.root, run_root, records)
         observed_states = sorted({record["artifact_state"] for record in records})
-        poor_candidates = scan_archive_poor_candidates(baseline.root)
+        poor_candidates = scan_archive_poor_candidates(inputs.root)
         representatives = {
             state: next(
                 (record["fixture_id"] for record in records if record["artifact_state"] == state),
@@ -932,8 +1217,13 @@ def capture_behavior(baseline_revision: str) -> dict[str, Any]:
         }
         return {
             "schema_version": SCHEMA_VERSION,
-            "baseline_sha": baseline.sha,
-            "baseline_id": BASELINE_ID if baseline.sha == LOCKED_BASELINE else baseline.sha[:8],
+            "baseline_sha": inputs.sha,
+            "baseline_id": BASELINE_ID if inputs.sha == LOCKED_BASELINE else inputs.sha[:8],
+            "implementation_sha": code.sha,
+            "capture_adapters": [
+                "override-aware scratch/tracker/archive paths",
+                "override-aware detailed interview guide paths",
+            ] if code.sha == LOCKED_BASELINE else [],
             "captured_at_utc": datetime.now(timezone.utc).isoformat(),
             "duration_seconds": round(time.monotonic() - started, 3),
             "fixture_plan": plan,
@@ -983,15 +1273,38 @@ def main(argv: list[str] | None = None) -> int:
                 payload = capture_behavior(args.baseline)
                 report_path = TRANSIENT_ROOT / "reports" / f"capture_{payload['baseline_id']}.json"
                 write_json(report_path, payload)
-                print(f"Captured {len(payload['records'])} fixture(s) for {payload['baseline_sha']}")
+                print(f"Captured {len(payload['records'])} fixture(s) for inputs {payload['baseline_sha']} with implementation {payload['implementation_sha']}")
                 print(f"Report: {report_path}")
                 return 0
+            baseline, allowlist = load_baseline(args.baseline)
             candidate_sha = resolve_commit(args.candidate)
-            baseline_dir = TRACKED_ROOT / args.baseline
-            if not baseline_dir.is_dir():
-                raise HarnessError(f"baseline is not frozen: {baseline_dir}")
             print(f"EQUIVALENCE baseline={args.baseline} candidate={candidate_sha}")
-            raise HarnessError("comparison records are not implemented yet")
+            candidate = capture_behavior(candidate_sha)
+            comparison = compare_record_sets(
+                baseline["records"], candidate["records"], allowlist, only_fixture=args.fixture,
+            )
+            report = comparison_report(
+                baseline_id=args.baseline,
+                baseline_manifest=baseline["manifest"],
+                candidate_sha=candidate_sha,
+                candidate=candidate,
+                comparison=comparison,
+            )
+            report_path = comparison_report_path(args.baseline, candidate_sha, report["run_id"])
+            write_json(report_path, report)
+            for item in comparison["results"]:
+                if item["classification"] == "IDENTICAL":
+                    continue
+                print(f"{item['classification']}: {item['fixture_id']} ({', '.join(item['changed_fields'])})")
+                for diff in item.get("visible_text_diffs", []):
+                    print(diff)
+            print(
+                f"fixtures={len(comparison['results'])} identical={comparison['identical']} "
+                f"allowed={comparison['allowed']} unexplained={comparison['unexplained']} "
+                f"result={'PASS' if comparison['unexplained'] == 0 else 'FAIL'}"
+            )
+            print(f"Report: {report_path}")
+            return 2 if comparison["unexplained"] else 0
     except HarnessError as error:
         print(f"EQUIVALENCE HARNESS ERROR: {error}", file=sys.stderr)
         return 1

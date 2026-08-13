@@ -228,9 +228,22 @@ def document_record(docx_path: Path) -> dict[str, Any]:
     }
 
 
-def normalized_console(text: str, roots: tuple[Path, ...]) -> str:
-    value = text.replace("\r\n", "\n")
-    for root in sorted((str(path.resolve()) for path in roots), key=len, reverse=True):
+def canonical_volatile_text(text: str, roots: tuple[Path, ...] = ()) -> str:
+    """Normalize only approved transient text and remain idempotent."""
+    value = text.replace("\r\n", "\n").replace("\\", "/")
+    for root in sorted((path.resolve().as_posix() for path in roots), key=len, reverse=True):
         value = re.sub(re.escape(root), "<WORKSPACE>", value, flags=re.I)
-    value = re.sub(r"\b20\d{2}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})\b", "<TIMESTAMP>", value)
+    value = re.sub(
+        r"\b20\d{2}-\d{2}-\d{2}(?:[T ]\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})?)?\b",
+        "<TIMESTAMP>",
+        value,
+    )
+    value = re.sub(r"20\d{6}[_T]\d{6}(?:_\d{6})?", "<TIMESTAMP>", value)
+    value = re.sub(r"\b\d+(?:\.\d+)?s\b", "<DURATION>", value)
+    value = re.sub(r"(?<![0-9a-f])[0-9a-f]{32}(?![0-9a-f])", "<RUN_ID>", value, flags=re.I)
+    value = re.sub(r"(?<=_)[0-9a-f]{8}(?=(?:\s|/|\.|$))", "<RUN_ID>", value, flags=re.I)
     return value
+
+
+def normalized_console(text: str, roots: tuple[Path, ...]) -> str:
+    return canonical_volatile_text(text, roots)
