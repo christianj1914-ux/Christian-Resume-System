@@ -19332,6 +19332,35 @@ def test_equivalence_artifact_state_and_required_commercial_coverage() -> None:
     )
 
 
+def test_equivalence_federal_parse_and_transaction_contract() -> None:
+    import equivalence_harness
+
+    parsed = equivalence_harness._parse_federal_status(
+        "FEDERAL PARSE STATUS: duty_grade=GS-12 selected_grade=GS-11 "
+        "available_grades=GS-09,GS-11 selected_requirements=4 verified=False"
+    )
+    assert_true(
+        parsed
+        == {
+            "duty_grade": "GS-12",
+            "selected_grade": "GS-11",
+            "available_grades": ["GS-09", "GS-11"],
+            "selected_requirements": 4,
+            "verified": False,
+        },
+        f"federal equivalence parse metadata drifted: {parsed}",
+    )
+    with TemporaryDirectory(prefix="equivalence_transaction_") as temp_name:
+        result = equivalence_harness.capture_transaction_probes(PROJECT_ROOT, Path(temp_name))
+    outcomes = result["outcomes"]
+    assert_true(outcomes["rollback"]["resume_restored"], "equivalence rollback probe must restore the resume")
+    assert_true(outcomes["timeout_quarantine"]["returncode"] == 124, "equivalence timeout probe must retain exit 124")
+    assert_true(
+        outcomes["nonzero_quarantine"]["quarantined_content"] == "failed partial",
+        "equivalence nonzero probe must preserve quarantined output",
+    )
+
+
 def main(argv: list[str] | None = None) -> None:
     args = parse_args(argv)
     passed = 0
@@ -19412,6 +19441,7 @@ def main(argv: list[str] | None = None) -> None:
             ("doctor reports required runtime health", test_doctor_reports_required_runtime_health),
             ("equivalence foundation isolation and lane contract", test_equivalence_foundation_isolation_and_lane_contract),
             ("equivalence commercial state and fixture coverage", test_equivalence_artifact_state_and_required_commercial_coverage),
+            ("equivalence federal parse and transaction contract", test_equivalence_federal_parse_and_transaction_contract),
             ("dirty default validation refuses before suite execution", test_dirty_default_validation_refuses_without_running_suite),
             ("pyflakes has no undefined names or redefinitions", test_pyflakes_has_no_undefined_names_or_redefinitions),
             ("orphan detector flags synthetic unreferenced test", test_orphan_detector_flags_synthetic_unreferenced_test),

@@ -439,6 +439,250 @@ def capture_commercial_resume(
     return record
 
 
+def _parse_federal_status(stdout: str) -> dict[str, Any]:
+    import re
+
+    match = re.search(
+        r"FEDERAL PARSE STATUS:\s*duty_grade=(\S+)\s+selected_grade=(\S+)\s+available_grades=(.*?)\s+selected_requirements=(\d+)\s+verified=(\S+)",
+        stdout,
+    )
+    if not match:
+        return {}
+    return {
+        "duty_grade": match.group(1),
+        "selected_grade": match.group(2),
+        "available_grades": match.group(3).split(",") if match.group(3) else [],
+        "selected_requirements": int(match.group(4)),
+        "verified": match.group(5).lower() == "true",
+    }
+
+
+def capture_federal_document_set(
+    baseline_root: Path,
+    run_root: Path,
+    fixture_id: str,
+    posting_path: Path,
+) -> dict[str, Any]:
+    fixture_root = run_root / "f" / sha256_text(fixture_id)[:8]
+    capture = run_fixture_script(
+        baseline_root,
+        fixture_root,
+        "build_federal_resume.py",
+        federal_job_description=posting_path,
+        arguments=("--no-pdf",),
+        timeout_seconds=900,
+    )
+    resume_path = _single_docx(capture.output_dir, "*Federal Resume.docx")
+    qualifications_path = _single_docx(capture.output_dir, "*Federal Qualifications Statement.docx")
+    documents = []
+    for artifact_type, path in (("federal_resume", resume_path), ("federal_qualifications", qualifications_path)):
+        item = document_record(path)
+        item.update(
+            {
+                "artifact_type": artifact_type,
+                "artifact_state": artifact_state(path),
+                "render": _render_record(capture.render_dir, path),
+            }
+        )
+        documents.append(item)
+    return {
+        "fixture_id": fixture_id,
+        "artifact_state": artifact_state(resume_path),
+        "posting_sha256": file_sha256(posting_path),
+        "federal_parse": _parse_federal_status(capture.stdout),
+        "documents": documents,
+        "process": {
+            "returncode": capture.returncode,
+            "stdout": normalized_console(capture.stdout, (baseline_root, run_root)),
+            "stderr": normalized_console(capture.stderr, (baseline_root, run_root)),
+        },
+    }
+
+
+TRANSACTION_PROBE = r'''
+import hashlib, json, subprocess, sys
+from pathlib import Path
+import workflow_step_runner as runner
+
+root = Path(sys.argv[1])
+root.mkdir(parents=True, exist_ok=True)
+def digest(path):
+    return hashlib.sha256(path.read_bytes()).hexdigest() if path.is_file() else None
+
+results = {}
+success = root / "success"
+success.mkdir()
+staged_resume = success / "staged_resume.docx"
+staged_quals = success / "staged_qualifications.docx"
+final_resume = success / "resume.docx"
+final_quals = success / "qualifications.docx"
+staged_resume.write_bytes(b"new resume")
+staged_quals.write_bytes(b"new qualifications")
+runner.publish_document_set(((staged_resume, final_resume), (staged_quals, final_quals)), quarantine_root=success / "quarantine")
+results["success"] = {
+    "resume_sha256": digest(final_resume),
+    "qualifications_sha256": digest(final_quals),
+    "staged_removed": not staged_resume.exists() and not staged_quals.exists(),
+}
+
+rollback = root / "rollback"
+rollback.mkdir()
+staged_resume = rollback / "staged_resume.docx"
+staged_quals = rollback / "staged_qualifications.docx"
+final_resume = rollback / "resume.docx"
+final_quals = rollback / "qualifications.docx"
+staged_resume.write_bytes(b"new resume")
+staged_quals.write_bytes(b"new qualifications")
+final_resume.write_bytes(b"old resume")
+final_quals.write_bytes(b"old qualifications")
+original_replace = runner.os.replace
+calls = 0
+def injected_replace(source, destination):
+    global calls
+    calls += 1
+    if calls == 2:
+        raise OSError("injected replacement failure")
+    original_replace(source, destination)
+runner.os.replace = injected_replace
+raised = False
+try:
+    runner.publish_document_set(((staged_resume, final_resume), (staged_quals, final_quals)), quarantine_root=rollback / "quarantine")
+except OSError:
+    raised = True
+finally:
+    runner.os.replace = original_replace
+results["rollback"] = {
+    "raised": raised,
+    "resume_restored": final_resume.read_bytes() == b"old resume",
+    "qualifications_restored": final_quals.read_bytes() == b"old qualifications",
+}
+
+def workflow_case(case_name, timed_out):
+    case = root / case_name
+    output = case / "output"
+    logs = case / "logs"
+    output.mkdir(parents=True)
+    original = output / "resume.docx"
+    original.write_bytes(b"known-good")
+    terminated = []
+    class Process:
+        pid = 24680 if timed_out else 13579
+        returncode = 0 if timed_out else 1
+        def __init__(self): self.calls = 0
+        def communicate(self, timeout=None):
+            self.calls += 1
+            if timed_out and self.calls == 1:
+                raise subprocess.TimeoutExpired("builder", timeout)
+            original.write_bytes(b"partial" if timed_out else b"failed partial")
+            return ("partial output", "" if timed_out else "injected builder failure")
+    original_popen = runner.subprocess.Popen
+    original_terminate = runner.terminate_process_tree
+    runner.subprocess.Popen = lambda *_args, **_kwargs: Process()
+    runner.terminate_process_tree = lambda process: terminated.append(process.pid)
+    try:
+        result = runner.run_document_step(
+            step_name="Building federal resume",
+            command=[sys.executable, "builder.py"],
+            cwd=case,
+            output_dir=output,
+            log_dir=logs,
+            timeout_seconds=600,
+        )
+    finally:
+        runner.subprocess.Popen = original_popen
+        runner.terminate_process_tree = original_terminate
+    quarantined = None
+    if result.quarantine_path is not None:
+        candidate = result.quarantine_path / "resume.docx"
+        quarantined = candidate.read_text(encoding="utf-8") if candidate.is_file() else None
+    return {
+        "returncode": result.returncode,
+        "timed_out": result.timed_out,
+        "terminated": terminated,
+        "original_restored": original.read_bytes() == b"known-good",
+        "quarantined_content": quarantined,
+    }
+
+results["timeout_quarantine"] = workflow_case("timeout", True)
+results["nonzero_quarantine"] = workflow_case("nonzero", False)
+print(json.dumps(results, sort_keys=True))
+'''
+
+
+def capture_transaction_probes(baseline_root: Path, run_root: Path) -> dict[str, Any]:
+    probe_root = run_root / "p"
+    probe_root.mkdir(parents=True, exist_ok=True)
+    probe_path = probe_root / "probe.py"
+    probe_path.write_text(TRANSACTION_PROBE, encoding="utf-8")
+    env = os.environ.copy()
+    env["PYTHONPATH"] = str(baseline_root / "scripts")
+    env["PYTHONUTF8"] = "1"
+    result = subprocess.run(
+        [sys.executable, str(probe_path), str(probe_root / "state")],
+        cwd=baseline_root,
+        env=env,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        encoding="utf-8",
+        errors="replace",
+        timeout=60,
+    )
+    if result.returncode:
+        raise HarnessError(result.stderr.strip() or "federal transaction probe failed")
+    try:
+        payload = json.loads(result.stdout)
+    except json.JSONDecodeError as error:
+        raise HarnessError(f"federal transaction probe returned invalid JSON: {error}") from error
+    expected = (
+        payload.get("success", {}).get("resume_sha256")
+        and payload.get("rollback", {}).get("raised") is True
+        and payload.get("rollback", {}).get("resume_restored") is True
+        and payload.get("rollback", {}).get("qualifications_restored") is True
+        and payload.get("timeout_quarantine", {}).get("returncode") == 124
+        and payload.get("timeout_quarantine", {}).get("original_restored") is True
+        and payload.get("timeout_quarantine", {}).get("quarantined_content") == "partial"
+        and payload.get("nonzero_quarantine", {}).get("returncode") == 1
+        and payload.get("nonzero_quarantine", {}).get("original_restored") is True
+    )
+    if not expected:
+        raise HarnessError("federal transaction probe did not preserve the Release A recovery contract")
+    return {
+        "fixture_id": "federal_transactional_behavior",
+        "step_result": {"availability": "not_present_at_release_a"},
+        "outcomes": payload,
+    }
+
+
+def capture_federal_fixtures(baseline_root: Path, run_root: Path) -> list[dict[str, Any]]:
+    fixture_dir = baseline_root / "scripts" / "test_fixtures" / "federal"
+    single = fixture_dir / "verified_single_grade.txt"
+    multi = fixture_dir / "dhs_multi_grade.txt"
+    if not single.is_file() or not multi.is_file():
+        raise HarnessError("tracked federal parser fixtures are missing")
+    ai_control = run_root / "i" / "federal_ai_control.txt"
+    ai_control.parent.mkdir(parents=True, exist_ok=True)
+    ai_control.write_text(
+        single.read_text(encoding="utf-8-sig")
+        + "\nThe role uses generative AI to support secure program analysis and documentation.\n",
+        encoding="utf-8",
+    )
+    records = [
+        capture_federal_document_set(baseline_root, run_root, "federal_single_grade_standard", single),
+        capture_federal_document_set(baseline_root, run_root, "federal_multi_grade_standard", multi),
+        capture_federal_document_set(baseline_root, run_root, "federal_single_grade_ai_control", ai_control),
+        capture_transaction_probes(baseline_root, run_root),
+    ]
+    standard_text = records[0]["documents"][0]["visible_text"]
+    ai_text = records[2]["documents"][0]["visible_text"]
+    if standard_text == ai_text or "AI-assisted documentation" not in ai_text:
+        raise HarnessError("controlled federal AI fixture did not exercise the AI summary branch")
+    states = {record.get("artifact_state") for record in records if record.get("artifact_state")}
+    if "DRAFT" not in states:
+        raise HarnessError("federal fixtures did not produce required DRAFT coverage")
+    return records
+
+
 def write_json(path: Path, payload: Any) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_suffix(path.suffix + ".tmp")
@@ -456,6 +700,7 @@ def capture_behavior(baseline_revision: str) -> dict[str, Any]:
             capture_commercial_resume(baseline.root, run_root, lane, snapshot_id)
             for lane, snapshot_id in plan["selected_snapshots"].items()
         ]
+        federal_records = capture_federal_fixtures(baseline.root, run_root)
         observed_states = sorted({record["artifact_state"] for record in records})
         poor_candidates = scan_archive_poor_candidates(baseline.root)
         representatives = {
@@ -486,7 +731,7 @@ def capture_behavior(baseline_revision: str) -> dict[str, Any]:
                 "poor_candidate_scan_count": len(poor_candidates),
                 "poor_candidates": list(poor_candidates),
             },
-            "records": records,
+            "records": [*records, *federal_records],
             "step_result": {"availability": "not_present_at_release_a"},
         }
     finally:
