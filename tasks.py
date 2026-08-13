@@ -70,6 +70,16 @@ TASKS: dict[str, Task] = {
         ("scripts/doctor.py",),
         InputRequirement.NONE,
     ),
+    "equivalence-capture": Task(
+        "Capture exact-commit behavioral fixtures for Release B preparation.",
+        ("scripts/equivalence_harness.py", "capture"),
+        InputRequirement.NONE,
+    ),
+    "equivalence-compare": Task(
+        "Compare an exact candidate commit with the frozen Release A baseline.",
+        ("scripts/equivalence_harness.py", "compare"),
+        InputRequirement.NONE,
+    ),
     "source-lint": Task("Validate source resume bullets before JD-specific tailoring selects them.", ("scripts/source_lint.py",), InputRequirement.NONE),
     "keyword-corpus": Task(
         "Project keyword/policy outcomes for archived fixtures or exact DOCX paths from --rebuild-manifest; add --ownership-only for the lightweight skim audit.",

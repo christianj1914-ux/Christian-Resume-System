@@ -19267,6 +19267,52 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
+def test_equivalence_foundation_isolation_and_lane_contract() -> None:
+    import equivalence_harness
+
+    with TemporaryDirectory(prefix="equivalence_guard_") as temp_name:
+        root = Path(temp_name)
+        for relative in equivalence_harness.PROTECTED_FILES:
+            path = root / relative
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(relative.as_posix(), encoding="utf-8")
+        for relative in equivalence_harness.PROTECTED_TREES:
+            (root / relative).mkdir(parents=True, exist_ok=True)
+        with equivalence_harness.isolation_guard(root):
+            pass
+        try:
+            with equivalence_harness.isolation_guard(root):
+                (root / "jobs" / "job_description.txt").write_text("changed", encoding="utf-8")
+        except equivalence_harness.HarnessError as error:
+            assert_true("job_description.txt" in str(error), "isolation failure should name the changed path")
+        else:
+            raise SmokeFailure("equivalence isolation guard accepted a protected-file mutation")
+
+    plan = equivalence_harness.commercial_fixture_plan(PROJECT_ROOT)
+    live_lanes = tuple(plan["live_lanes"])
+    assert_true(len(live_lanes) == 9, f"equivalence lane inventory should contain nine live lanes; got {live_lanes}")
+    assert_true("technical_support_admin" in live_lanes, "technical support must have an equivalence fixture")
+    assert_true("corporate_strategy" not in live_lanes, "historical corporate strategy metadata is not a live lane")
+    assert_true(
+        "corporate_strategy" in plan["historical_archive_lanes"],
+        "archive-only lanes should be reported as historical metadata",
+    )
+
+    original_archive_reader = equivalence_harness.archived_snapshots
+    try:
+        equivalence_harness.archived_snapshots = lambda _root: tuple(
+            item for item in original_archive_reader(PROJECT_ROOT) if item.get("lane") != "technical_support_admin"
+        )
+        try:
+            equivalence_harness.commercial_fixture_plan(PROJECT_ROOT)
+        except equivalence_harness.HarnessError as error:
+            assert_true("technical_support_admin" in str(error), "missing-lane failure should name technical support")
+        else:
+            raise SmokeFailure("equivalence capture accepted a missing live lane")
+    finally:
+        equivalence_harness.archived_snapshots = original_archive_reader
+
+
 def main(argv: list[str] | None = None) -> None:
     args = parse_args(argv)
     passed = 0
@@ -19345,6 +19391,7 @@ def main(argv: list[str] | None = None) -> None:
             ("informational commands avoid document tooling imports", test_informational_commands_do_not_import_document_tooling),
             ("render tooling loads Pillow on demand", test_render_tooling_loads_pillow_on_demand),
             ("doctor reports required runtime health", test_doctor_reports_required_runtime_health),
+            ("equivalence foundation isolation and lane contract", test_equivalence_foundation_isolation_and_lane_contract),
             ("dirty default validation refuses before suite execution", test_dirty_default_validation_refuses_without_running_suite),
             ("pyflakes has no undefined names or redefinitions", test_pyflakes_has_no_undefined_names_or_redefinitions),
             ("orphan detector flags synthetic unreferenced test", test_orphan_detector_flags_synthetic_unreferenced_test),

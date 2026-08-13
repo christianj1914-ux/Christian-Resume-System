@@ -43,12 +43,14 @@ GLOBAL_NOTES = SOURCE_DIR / "global_notes.txt"
 # Output directory for generated documents
 OUTPUT_DIR = _path_override("RESUME_OUTPUT_DIR", PROJECT_ROOT / "output")
 
-# Working directories
-SCRATCH_DIR = PROJECT_ROOT / "scratch"
-SCRATCH_JD_LIBRARY = SCRATCH_DIR / "jd_library"
+# Working directories.  The equivalence harness uses these overrides to keep
+# tracker and archive exercises completely outside the active workspace while
+# preserving the existing paths for every normal command.
+SCRATCH_DIR = _path_override("RESUME_SCRATCH_DIR", PROJECT_ROOT / "scratch")
+SCRATCH_JD_LIBRARY = _path_override("RESUME_JD_LIBRARY_DIR", SCRATCH_DIR / "jd_library")
 SCRATCH_TARGET_JDS = SCRATCH_DIR / "target_jds"
 SCRATCH_JOBS_ARCHIVE = SCRATCH_DIR / "jobs_archive"
-SCRATCH_APPLICATIONS_CSV = SCRATCH_DIR / "applications.csv"
+SCRATCH_APPLICATIONS_CSV = _path_override("RESUME_APPLICATIONS_CSV_PATH", SCRATCH_DIR / "applications.csv")
 SCRATCH_RENDER_LOGS = SCRATCH_DIR / "run_logs"
 
 # Study artifacts. Keep generated and maintained guides under Study/Guides so
