@@ -2,7 +2,7 @@
 
 ## Release B prerequisite baseline
 
-The output-equivalence harness is frozen against Release A behavior SHA `a14fb43d58a8cc8f3817fd3ac7665fc913bb22f4`. Two independent full captures produced 17/17 canonically identical fixtures with zero unexplained differences in 927.508 and 953.696 seconds using LibreOffice `7.6.5.2 38d5f62f85355c192ef5f1dd47c5c0c0c6d6598b`. The baseline covers all nine live commercial lanes, PASS/BRIDGE/FAIL/DRAFT states, federal standard/AI and grade paths, publication recovery, companion documents, readiness, archive refresh, tracker isolation, and the two-posting queue. No baseline archive posting triggered the canonical POOR detector, so POOR remains an explicit coverage gap.
+The output-equivalence harness is frozen against Release A behavior SHA `a14fb43d58a8cc8f3817fd3ac7665fc913bb22f4`; its permanent planted-change certification is commit `210380f9eafeed18f5922cacdee9ab5d510a3203`. Two independent full captures produced 17/17 canonically identical fixtures with zero unexplained differences in 927.508 and 953.696 seconds using LibreOffice `7.6.5.2 38d5f62f85355c192ef5f1dd47c5c0c0c6d6598b` and Poppler `26.05.0`. The baseline covers all nine live commercial lanes, PASS/BRIDGE/FAIL/DRAFT states, federal standard/AI and grade paths, publication recovery, companion documents, readiness, archive refresh, tracker isolation, and the two-posting queue. No baseline archive posting triggered the canonical POOR detector, so POOR remains an explicit coverage gap.
 
 Release B itself remains blocked. Release A has not yet completed the required real application cycle or one-week regression-free observation period, and no approval has been given for Phase B1 through B7.
 

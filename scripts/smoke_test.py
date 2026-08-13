@@ -19382,6 +19382,7 @@ def test_equivalence_render_fallback_and_system_matrix_contract() -> None:
         'fallback = render_root / ("h" + sha256_text(docx_path.name)[:8])' in source,
         "equivalence fallback renders must use a bounded hashed path on Windows",
     )
+    assert_true("for attempt in range(2):" in source, "equivalence fallback rendering must retain one bounded retry")
     assert_true(
         'for state in ("PASS", "BRIDGE", "FAIL")' in source,
         "equivalence companion capture must retain PASS, BRIDGE, and FAIL coverage",
@@ -19510,6 +19511,7 @@ def test_equivalence_frozen_manifest_is_complete() -> None:
     manifest = json.loads((baseline_dir / "manifest.json").read_text(encoding="utf-8"))
     allowlist = json.loads((baseline_dir / "allowlist.json").read_text(encoding="utf-8"))
     assert_true(manifest["behavior_sha"].startswith("a14fb43"), "frozen equivalence baseline must identify Release A")
+    assert_true(manifest["harness_certification_sha"].startswith("210380f"), "frozen baseline must identify its permanent planted-change certification")
     assert_true(manifest["fixture_count"] == 17, f"frozen fixture count drifted: {manifest['fixture_count']}")
     assert_true(manifest["canonical_projection_version"] == 2, "frozen baseline must name queue-aware canonical projection v2")
     assert_true(
@@ -19528,6 +19530,7 @@ def test_equivalence_frozen_manifest_is_complete() -> None:
         limitation["observed_page_count"] == 119 and limitation["behavior_not_requirement"] is True,
         "119-page detailed-guide behavior must never become a minimum or quality target",
     )
+    assert_true(manifest["poppler_versions"] == ["26.05.0"], "frozen Poppler version must remain exact")
     for relative in manifest["record_files"]:
         record_path = baseline_dir / relative
         assert_true(record_path.is_file(), f"frozen equivalence record is missing: {relative}")
@@ -19539,6 +19542,13 @@ def test_equivalence_frozen_manifest_is_complete() -> None:
             manifest["record_sha256"][record["fixture_id"]] == digest,
             f"frozen canonical record hash drifted: {record['fixture_id']}",
         )
+
+
+def test_equivalence_ci_contract() -> None:
+    workflow = (PROJECT_ROOT / ".github" / "workflows" / "equivalence.yml").read_text(encoding="utf-8")
+    assert_true("runs-on: windows-2025" in workflow and 'python-version: "3.12"' in workflow, "equivalence CI runtime drifted")
+    assert_true("LibreOffice 7\\.6\\.5\\.2" in workflow and "26\\.05\\.0" in workflow, "equivalence CI must verify exact renderer versions")
+    assert_true("--self-test" in workflow and "--baseline a14fb43 --candidate HEAD" in workflow, "equivalence CI must run both the planted proof and full comparison")
 
 
 def main(argv: list[str] | None = None) -> None:
@@ -19629,6 +19639,7 @@ def main(argv: list[str] | None = None) -> None:
             ("equivalence volatile text and report contract", test_equivalence_volatile_text_and_report_contract),
             ("equivalence planted builder change detection", test_equivalence_planted_builder_change_is_detected),
             ("equivalence frozen baseline manifest", test_equivalence_frozen_manifest_is_complete),
+            ("equivalence CI contract", test_equivalence_ci_contract),
             ("dirty default validation refuses before suite execution", test_dirty_default_validation_refuses_without_running_suite),
             ("pyflakes has no undefined names or redefinitions", test_pyflakes_has_no_undefined_names_or_redefinitions),
             ("orphan detector flags synthetic unreferenced test", test_orphan_detector_flags_synthetic_unreferenced_test),

@@ -60,6 +60,7 @@
     "unexplained": 0
   },
   "fixture_count": 17,
+  "harness_certification_sha": "210380f9eafeed18f5922cacdee9ab5d510a3203",
   "fixture_plan": {
     "archive_snapshot_count": 475,
     "historical_archive_lanes": [
@@ -136,6 +137,9 @@
     "federal_transactional_behavior": "d5420bc1d94990477f2e1931ce6078a7c597bde5aa779da20079734e1c97276e",
     "system_readiness_tracker_archive": "c555e1194e7e2a75af83e003bd987575ed919280a249259af04cb758369cfd23"
   },
+  "poppler_versions": [
+    "26.05.0"
+  ],
   "renderer_versions": [
     "LibreOffice 7.6.5.2 38d5f62f85355c192ef5f1dd47c5c0c0c6d6598b"
   ],

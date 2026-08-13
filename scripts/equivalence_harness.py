@@ -36,6 +36,7 @@ SCHEMA_VERSION = 1
 COMPARISON_REPORT_SCHEMA_VERSION = 2
 LOCKED_BASELINE = "a14fb43d58a8cc8f3817fd3ac7665fc913bb22f4"
 BASELINE_ID = "a14fb43"
+BASELINE_POPPLER_VERSION = "26.05.0"
 BASELINE_CERTIFICATION_INCIDENTS = [
     {
         "date": "2026-08-12",
@@ -477,20 +478,25 @@ def _render_record(render_root: Path, docx_path: Path, commit_root: Path | None 
         }
     if commit_root is not None:
         fallback = render_root / ("h" + sha256_text(docx_path.name)[:8])
-        shutil.rmtree(fallback, ignore_errors=True)
-        result = subprocess.run(
-            [sys.executable, str(commit_root / "scripts" / "render_docx_windows.py"), str(docx_path), "--output_dir", str(fallback)],
-            cwd=commit_root,
-            text=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            encoding="utf-8",
-            errors="replace",
-            timeout=240,
+        failures: list[str] = []
+        for attempt in range(2):
+            shutil.rmtree(fallback, ignore_errors=True)
+            result = subprocess.run(
+                [sys.executable, str(commit_root / "scripts" / "render_docx_windows.py"), str(docx_path), "--output_dir", str(fallback)],
+                cwd=commit_root,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                encoding="utf-8",
+                errors="replace",
+                timeout=240,
+            )
+            if result.returncode == 0:
+                return _render_record(render_root, docx_path)
+            failures.append((result.stderr or result.stdout).strip() or f"exit {result.returncode}")
+        raise HarnessError(
+            f"fallback render failed twice for {docx_path.name}: " + " | ".join(failures)
         )
-        if result.returncode:
-            raise HarnessError((result.stderr or result.stdout).strip() or f"fallback render failed for {docx_path.name}")
-        return _render_record(render_root, docx_path)
     raise HarnessError(f"verified render manifest not found for {docx_path.name}")
 
 
@@ -1298,6 +1304,7 @@ def freeze_deterministic_baseline(first_report: Path, second_report: Path) -> di
         "fixture_plan": first.get("fixture_plan"),
         "coverage": first.get("coverage"),
         "renderer_versions": sorted(renderer_versions),
+        "poppler_versions": [BASELINE_POPPLER_VERSION],
         "capture_duration_seconds": [first.get("duration_seconds"), second.get("duration_seconds")],
         "determinism": {"runs": 2, "identical_fixtures": comparison["identical"], "unexplained": 0},
         "certification_incidents": BASELINE_CERTIFICATION_INCIDENTS,
