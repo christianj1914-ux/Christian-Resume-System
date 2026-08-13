@@ -19576,10 +19576,23 @@ def test_equivalence_queue_identity_projection_and_validation() -> None:
         [baseline], [posix], {"schema_version": 1, "entries": []}
     )
     assert_true(posix_comparison["identical"] == 1, "POSIX queue run paths must project identically")
+    doubled_forward = record(
+        "d" * 64,
+        run_root="C://dev//Christian-Resume-System//scratch//equivalence//r//abcd1234",
+    )
+    doubled_comparison = equivalence_harness.compare_record_sets(
+        [baseline], [doubled_forward], {"schema_version": 1, "entries": []}
+    )
+    assert_true(doubled_comparison["identical"] == 1, "C:// drive paths must be paths before URL detection")
     queue_url = "https://example.com/scratch/equivalence/r/abcd1234/file.docx"
     assert_true(
         equivalence_harness._project_queue_path(queue_url) == queue_url,
         "queue projection must preserve URL schemes and contents",
+    )
+    linkedin = "linkedin.com/in/cjne"
+    assert_true(
+        equivalence_harness._project_queue_path(linkedin) == linkedin,
+        "queue path projection must never alter the resume LinkedIn contact value",
     )
     projected = equivalence_harness.canonical_fixture(baseline)
     projected_job = projected["queue"]["manifest_payloads"][0]["jobs"][0]
@@ -19649,7 +19662,7 @@ def test_equivalence_queue_identity_projection_and_validation() -> None:
 def test_equivalence_volatile_text_and_report_contract() -> None:
     import copy
     import equivalence_harness
-    from equivalence_normalize import canonical_volatile_text, sha256_text
+    from equivalence_normalize import canonical_volatile_text, normalized_json_value, sha256_text
 
     sample = (
         r"C:\scratch\20260812_231445_trace.json "
@@ -19671,6 +19684,30 @@ def test_equivalence_volatile_text_and_report_contract() -> None:
     assert_true(
         canonical_volatile_text("https://example.com/a//b") == "https://example.com/a//b",
         "general volatile-text projection must not rewrite URL separators",
+    )
+    run_root = PROJECT_ROOT / "scratch" / "equivalence" / "r" / "abcd1234"
+    decoded_payload = {
+        "jobs": [
+            {
+                "artifacts": [str(run_root / "s" / "queue_output" / "Resume.docx")],
+                "log": str(run_root / "s" / "queue_state" / "runs" / "trace.log"),
+                "contact": "linkedin.com/in/cjne",
+            }
+        ]
+    }
+    serialized_payload = json.dumps(decoded_payload)
+    assert_true("\\\\" in serialized_payload, "Windows JSON fixture must contain escaped backslashes")
+    normalized_payload = normalized_json_value(json.loads(serialized_payload), (run_root,))
+    normalized_job = normalized_payload["jobs"][0]
+    assert_true(
+        normalized_job["artifacts"] == ["<WORKSPACE>/s/queue_output/Resume.docx"]
+        and normalized_job["log"] == "<WORKSPACE>/s/queue_state/runs/trace.log",
+        f"decoded JSON paths must normalize without doubled separators: {normalized_job}",
+    )
+    assert_true(
+        normalized_job["contact"] == "linkedin.com/in/cjne"
+        and normalized_json_value(normalized_payload, (run_root,)) == normalized_payload,
+        "decoded JSON normalization must preserve LinkedIn and remain idempotent",
     )
 
     def document_record(date_line: str | None) -> dict[str, object]:
@@ -19770,6 +19807,14 @@ def test_equivalence_frozen_manifest_is_complete() -> None:
         == ["companion_bridge", "companion_fail", "companion_pass"]
         and "already stores queue paths" in repair["canonical_hash_migration"]["unchanged_system_reason"],
         "projection-v3 history must explain why the frozen system hash remains stable",
+    )
+    drive_repair = next((item for item in incidents if item.get("kind") == "drive_path_json_escape_repair"), None)
+    assert_true(
+        drive_repair is not None
+        and drive_repair.get("comparison_run_id") == "8347d7f6795641e887968f970f2e3dd7"
+        and drive_repair.get("candidate_sha", "").startswith("be020ac")
+        and "JSON was normalized before parsing" in drive_repair.get("cause", ""),
+        "frozen baseline must retain the drive-path and JSON-escape incident rationale",
     )
     limitation = manifest["known_product_limitations"][0]
     assert_true(

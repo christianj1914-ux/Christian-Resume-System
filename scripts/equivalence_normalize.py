@@ -254,3 +254,14 @@ def canonical_volatile_text(text: str, roots: tuple[Path, ...] = ()) -> str:
 
 def normalized_console(text: str, roots: tuple[Path, ...]) -> str:
     return canonical_volatile_text(text, roots)
+
+
+def normalized_json_value(value: object, roots: tuple[Path, ...]) -> object:
+    """Normalize decoded JSON values without corrupting JSON escape syntax."""
+    if isinstance(value, dict):
+        return {key: normalized_json_value(item, roots) for key, item in value.items()}
+    if isinstance(value, list):
+        return [normalized_json_value(item, roots) for item in value]
+    if isinstance(value, str):
+        return canonical_volatile_text(value, roots)
+    return value

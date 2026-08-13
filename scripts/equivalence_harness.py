@@ -29,6 +29,7 @@ from equivalence_normalize import (
     document_record,
     file_sha256,
     normalized_console,
+    normalized_json_value,
     sha256_text,
 )
 
@@ -78,6 +79,18 @@ BASELINE_CERTIFICATION_INCIDENTS = [
             "unchanged_system_reason": "the frozen system record already stores queue paths as <WORKSPACE>/..., so projection v3 changes raw later captures but not that frozen canonical value",
         },
         "future_direction": "Format normalization is inherently reactive because it recognizes volatile forms after they surface. A frozen clock in Release B's RunContext is the preferred long-term design because it eliminates wall-clock variation at generation time. That future work is not authorized by this repair.",
+    },
+    {
+        "date": "2026-08-13",
+        "kind": "drive_path_json_escape_repair",
+        "candidate_sha": "be020aca5078cdb788907a547b30fd22e1ca1305",
+        "comparison_run_id": "8347d7f6795641e887968f970f2e3dd7",
+        "fixture_id": "system_readiness_tracker_archive",
+        "result": "16 identical, 0 allowed, 1 unexplained",
+        "cause": "queue JSON was normalized before parsing, so escaped Windows backslashes became slashes and decoded paths acquired doubled separators; the URL guard then mistook C:// for a URL before checking for a drive prefix",
+        "evidence": "the candidate record contained both <WORKSPACE> console paths and raw C:// queue payload paths, proving the doubling was nonuniform and upstream of comparison projection",
+        "disposition": "parse JSON first, recursively sanitize decoded values, and classify drive-prefixed paths before URL schemes",
+        "canonical_hash_migration": "only the three companion hashes change under projection v3; the frozen system record was already fully canonical, so its hash remains unchanged",
     },
 ]
 BASELINE_PRODUCT_LIMITATIONS = [
@@ -957,7 +970,10 @@ def capture_system_behavior(code_root: Path, input_root: Path, run_root: Path) -
         raise HarnessError(f"two-posting queue failed with {queue.returncode}")
     manifests = sorted(queue_state.glob("**/*.json"))
     queue_payloads = [
-        json.loads(normalized_console(path.read_text(encoding="utf-8"), (code_root, input_root, run_root)))
+        normalized_json_value(
+            json.loads(path.read_text(encoding="utf-8")),
+            (code_root, input_root, run_root),
+        )
         for path in manifests
     ]
     return {
@@ -1018,6 +1034,8 @@ DIAGNOSTIC_KEYS = {
 }
 
 QUEUE_IDENTITY = "<CANDIDATE_IDENTITY>"
+WINDOWS_DRIVE_PATH_RE = re.compile(r"^[A-Za-z]:[\\/]+")
+URL_SCHEME_RE = re.compile(r"^[A-Za-z][A-Za-z0-9+.-]*://")
 QUEUE_RUN_ROOT_RE = re.compile(
     r"^(?:[A-Za-z]:)?/.*?/scratch/equivalence/r/[0-9a-f]{8,32}(?P<suffix>/.*)$",
     flags=re.I,
@@ -1026,7 +1044,13 @@ QUEUE_RUN_ROOT_RE = re.compile(
 
 def _project_queue_path(value: str) -> str:
     """Project only recognized isolated-run queue paths; preserve all other text."""
-    if value.startswith("<WORKSPACE>/") or "://" in value:
+    if value.startswith("<WORKSPACE>/"):
+        return value
+    is_drive_path = bool(WINDOWS_DRIVE_PATH_RE.match(value))
+    is_posix_path = value.startswith("/")
+    if not is_drive_path and not is_posix_path:
+        if URL_SCHEME_RE.match(value):
+            return value
         return value
     path_value = re.sub(r"/+", "/", value.replace("\\", "/"))
     match = QUEUE_RUN_ROOT_RE.match(path_value)

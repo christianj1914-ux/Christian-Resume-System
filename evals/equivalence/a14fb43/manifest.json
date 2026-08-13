@@ -59,6 +59,18 @@
       "execution_note": "the comparison report persisted before the external 30-minute invocation ceiling; later recertification invocations receive 45 minutes externally without changing repository limits",
       "future_direction": "Format normalization is inherently reactive because it recognizes volatile forms after they surface. A frozen clock in Release B's RunContext is the preferred long-term design because it eliminates wall-clock variation at generation time. That future work is not authorized by this repair.",
       "kind": "projection_v3_normalization_repair"
+    },
+    {
+      "candidate_sha": "be020aca5078cdb788907a547b30fd22e1ca1305",
+      "canonical_hash_migration": "only the three companion hashes change under projection v3; the frozen system record was already fully canonical, so its hash remains unchanged",
+      "cause": "queue JSON was normalized before parsing, so escaped Windows backslashes became slashes and decoded paths acquired doubled separators; the URL guard then mistook C:// for a URL before checking for a drive prefix",
+      "comparison_run_id": "8347d7f6795641e887968f970f2e3dd7",
+      "date": "2026-08-13",
+      "disposition": "parse JSON first, recursively sanitize decoded values, and classify drive-prefixed paths before URL schemes",
+      "evidence": "the candidate record contained both <WORKSPACE> console paths and raw C:// queue payload paths, proving the doubling was nonuniform and upstream of comparison projection",
+      "fixture_id": "system_readiness_tracker_archive",
+      "kind": "drive_path_json_escape_repair",
+      "result": "16 identical, 0 allowed, 1 unexplained"
     }
   ],
   "coverage": {
