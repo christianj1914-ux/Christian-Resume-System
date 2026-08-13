@@ -1,7 +1,7 @@
 {
   "baseline_id": "a14fb43",
   "behavior_sha": "a14fb43d58a8cc8f3817fd3ac7665fc913bb22f4",
-  "canonical_projection_version": 2,
+  "canonical_projection_version": 3,
   "capture_adapters": [
     "override-aware scratch/tracker/archive paths",
     "override-aware detailed interview guide paths"
@@ -35,6 +35,30 @@
       "disposition": "validate fingerprint and completion-key consistency, then project candidate identity out of cross-version behavior comparison",
       "fixture_id": "system_readiness_tracker_archive",
       "kind": "candidate_identity_category_error"
+    },
+    {
+      "candidate_sha": "6475add50a3024fa6c60ff6646f176171a46c7e2",
+      "canonical_hash_migration": {
+        "changed": [
+          "companion_bridge",
+          "companion_fail",
+          "companion_pass"
+        ],
+        "unchanged_system_reason": "the frozen system record already stores queue paths as <WORKSPACE>/..., so projection v3 changes raw later captures but not that frozen canonical value"
+      },
+      "changed_fixtures": [
+        "companion_pass",
+        "companion_bridge",
+        "companion_fail",
+        "system_readiness_tracker_archive"
+      ],
+      "comparison_run_id": "bc70b23b4b3a490089846686d5cab125",
+      "date": "2026-08-13",
+      "disposition": "projection v3 normalizes the two volatile categories symmetrically without an allowlist entry or frozen-record rewrite",
+      "evidence": "schema-v2 retained complete before/after values showing raw cover-letter build dates and transient queue run paths with no behavioral change",
+      "execution_note": "the comparison report persisted before the external 30-minute invocation ceiling; later recertification invocations receive 45 minutes externally without changing repository limits",
+      "future_direction": "Format normalization is inherently reactive because it recognizes volatile forms after they surface. A frozen clock in Release B's RunContext is the preferred long-term design because it eliminates wall-clock variation at generation time. That future work is not authorized by this repair.",
+      "kind": "projection_v3_normalization_repair"
     }
   ],
   "coverage": {
@@ -128,9 +152,9 @@
     "commercial_product_ownership": "05c4e32167f453cc7cc0bebdb20a30745f481bd5d12166dffb028b876b243966",
     "commercial_program_delivery": "05c8aa9ae45b1ddbb12ae852e934b88a934d5c41321a61ef7e03d6e856873be6",
     "commercial_technical_support_admin": "ee7921c168e97c590159a5e3f5f2d83c3f63fb77be2d3e39d15dee4639ef3f65",
-    "companion_bridge": "debee9d6197b5f47f5d94c4d9b85b95ff090f31f8b551b5de5ef365443c971c0",
-    "companion_fail": "29208a2963c87b253010eaa6ddc2dfba524beba7d2b2a33c118c99c323f7a7f3",
-    "companion_pass": "c30066f2145339101aa3d6922eb00dd9f342d7b15c0f8ca53da443b04c1ae276",
+    "companion_bridge": "778485359471825d9c30a45e83e87b4bb6fff226bfc96a1af8777d59c0ed36dc",
+    "companion_fail": "4a281556dddad7f9e0268f85faf063ecfea93618cd9a8f1d5fd30478b999966b",
+    "companion_pass": "cf198cd07f5997d30ac13efa09427772f844ce3b1abd4b0d870a847e6f82a52c",
     "federal_multi_grade_standard": "13a326c828e0c9777cfc814a4c759a61464b0c3bf79beced04e9ec0d863392bf",
     "federal_single_grade_ai_control": "70dac1855cb7116f6edb84708f816c66b2eda474c123f5f4fdfa6235fe53e4aa",
     "federal_single_grade_standard": "abcfd6dd1cf16a58963d2f144d6559565577102b95aa6f7af5ad135c691de923",

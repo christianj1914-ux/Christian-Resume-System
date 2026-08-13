@@ -19527,7 +19527,13 @@ def test_equivalence_queue_identity_projection_and_validation() -> None:
     import copy
     import equivalence_harness
 
-    def record(fingerprint: str, *, status: str = "success") -> dict[str, object]:
+    def record(
+        fingerprint: str,
+        *,
+        status: str = "success",
+        run_root: str = "<WORKSPACE>",
+        artifact_name: str = "Resume.docx",
+    ) -> dict[str, object]:
         posting_hash = "b" * 64
         questions_hash = "c" * 64
         mode = "resume-only"
@@ -19540,6 +19546,11 @@ def test_equivalence_queue_identity_projection_and_validation() -> None:
             "pipeline_fingerprint": fingerprint,
             "completion_key": completion,
             "status": status,
+            "blocker_reason": "",
+            "returncode": 0,
+            "decision": "build",
+            "artifacts": [f"{run_root}/s/queue_output/{artifact_name}"],
+            "log": f"{run_root}/s/queue_state/runs/<TIMESTAMP>/01_fixture.log",
         }
         return {
             "fixture_id": "system_readiness_tracker_archive",
@@ -19552,16 +19563,71 @@ def test_equivalence_queue_identity_projection_and_validation() -> None:
         }
 
     baseline = record("a" * 64)
-    candidate = record("d" * 64)
+    candidate = record(
+        "d" * 64,
+        run_root=r"C:\\dev\\Christian-Resume-System\\scratch\\equivalence\\r\\abcd1234",
+    )
     comparison = equivalence_harness.compare_record_sets(
         [baseline], [candidate], {"schema_version": 1, "entries": []}
     )
     assert_true(comparison["identical"] == 1, "candidate-local queue identity must not be behavioral drift")
+    posix = record("d" * 64, run_root="/tmp/work/scratch/equivalence/r/abcd1234")
+    posix_comparison = equivalence_harness.compare_record_sets(
+        [baseline], [posix], {"schema_version": 1, "entries": []}
+    )
+    assert_true(posix_comparison["identical"] == 1, "POSIX queue run paths must project identically")
+    queue_url = "https://example.com/scratch/equivalence/r/abcd1234/file.docx"
+    assert_true(
+        equivalence_harness._project_queue_path(queue_url) == queue_url,
+        "queue projection must preserve URL schemes and contents",
+    )
+    projected = equivalence_harness.canonical_fixture(baseline)
+    projected_job = projected["queue"]["manifest_payloads"][0]["jobs"][0]
+    assert_true(
+        projected_job["artifacts"] == ["<WORKSPACE>/s/queue_output/Resume.docx"]
+        and projected_job["log"].startswith("<WORKSPACE>/s/queue_state/"),
+        "existing workspace placeholders must remain stable",
+    )
     changed = record("d" * 64, status="failed")
     behavioral = equivalence_harness.compare_record_sets(
         [baseline], [changed], {"schema_version": 1, "entries": []}
     )
     assert_true(behavioral["unexplained"] == 1, "queue decisions must remain behaviorally authoritative")
+    for field, value in (
+        ("posting_hash", "e" * 64),
+        ("questions_hash", "f" * 64),
+        ("workflow_mode", "full"),
+        ("returncode", 2),
+        ("blocker_reason", "blocked"),
+        ("decision", "skip"),
+    ):
+        changed_field = record("d" * 64)
+        payloads = changed_field["queue"]["manifest_payloads"]
+        manifest_job = payloads[0]["jobs"][0]
+        state_payload = payloads[1]
+        old_key = next(iter(state_payload["entries"]))
+        state_entry = state_payload["entries"][old_key]
+        manifest_job[field] = value
+        state_entry[field] = value
+        if field in {"posting_hash", "questions_hash", "workflow_mode"}:
+            new_key = equivalence_harness._queue_completion_key(manifest_job, "d" * 64, "resume-only")
+            manifest_job["completion_key"] = new_key
+            state_entry["completion_key"] = new_key
+            state_payload["entries"] = {new_key: state_entry}
+        changed_result = equivalence_harness.compare_record_sets(
+            [baseline], [changed_field], {"schema_version": 1, "entries": []}
+        )
+        assert_true(changed_result["unexplained"] == 1, f"queue field must remain detectable: {field}")
+    renamed = record("d" * 64, artifact_name="Changed.docx")
+    renamed_result = equivalence_harness.compare_record_sets(
+        [baseline], [renamed], {"schema_version": 1, "entries": []}
+    )
+    assert_true(renamed_result["unexplained"] == 1, "queue artifact filenames must remain behavioral")
+    external = record("d" * 64, run_root="D:/external/run")
+    external_result = equivalence_harness.compare_record_sets(
+        [baseline], [external], {"schema_version": 1, "entries": []}
+    )
+    assert_true(external_result["unexplained"] == 1, "paths outside the isolated run root must remain literal")
     invalid = record("d" * 64)
     invalid["queue"]["manifest_payloads"][0]["jobs"][0]["completion_key"] = "0" * 64
     try:
@@ -19570,11 +19636,20 @@ def test_equivalence_queue_identity_projection_and_validation() -> None:
         pass
     else:
         raise AssertionError("invalid queue completion-key derivation must fail the harness")
+    bad_fingerprint = record("d" * 64)
+    bad_fingerprint["queue"]["manifest_payloads"][0]["pipeline_fingerprint"] = "not-a-hash"
+    try:
+        equivalence_harness.canonical_fixture(bad_fingerprint)
+    except equivalence_harness.HarnessError:
+        pass
+    else:
+        raise AssertionError("invalid queue fingerprints must fail before path projection")
 
 
 def test_equivalence_volatile_text_and_report_contract() -> None:
+    import copy
     import equivalence_harness
-    from equivalence_normalize import canonical_volatile_text
+    from equivalence_normalize import canonical_volatile_text, sha256_text
 
     sample = (
         r"C:\scratch\20260812_231445_trace.json "
@@ -19583,6 +19658,62 @@ def test_equivalence_volatile_text_and_report_contract() -> None:
     normalized = canonical_volatile_text(sample)
     assert_true("\\" not in normalized and normalized.count("<TIMESTAMP>") == 3, f"volatile text normalization drifted: {normalized}")
     assert_true(canonical_volatile_text(normalized) == normalized, "volatile text normalization must be idempotent")
+    english_dates = "August 2, 2026\nAugust 13, 2026"
+    assert_true(
+        canonical_volatile_text(english_dates) == "<BUILD_DATE>\n<BUILD_DATE>",
+        "full English build dates must normalize without changing their line position",
+    )
+    literal_dates = "08/13/2026\n2026/08/13\nAugust 13 2026\nMarch 2023 - November 2025"
+    assert_true(
+        canonical_volatile_text(literal_dates) == literal_dates,
+        "numeric dates, punctuation changes, and employment ranges must remain literal",
+    )
+    assert_true(
+        canonical_volatile_text("https://example.com/a//b") == "https://example.com/a//b",
+        "general volatile-text projection must not rewrite URL separators",
+    )
+
+    def document_record(date_line: str | None) -> dict[str, object]:
+        lines = ["Christian Estrada"]
+        if date_line is not None:
+            lines.append(date_line)
+        lines.append("Dear Hiring Manager:")
+        text = "\n".join(lines)
+        xml_text = f"<document><text>{text}</text></document>"
+        return {
+            "fixture_id": "companion_test",
+            "visible_text": text,
+            "visible_text_sha256": sha256_text(text),
+            "xml": {"word/document.xml": xml_text},
+            "xml_sha256": {"word/document.xml": sha256_text(xml_text)},
+        }
+
+    august_12 = document_record("August 12, 2026")
+    august_13 = document_record("August 13, 2026")
+    projected_12 = equivalence_harness.canonical_fixture(august_12)
+    projected_13 = equivalence_harness.canonical_fixture(august_13)
+    assert_true(projected_12 == projected_13, "untouched August 12 records must match later build dates")
+    assert_true(
+        projected_12["visible_text_sha256"] == sha256_text(projected_12["visible_text"])
+        and projected_12["xml_sha256"]["word/document.xml"]
+        == sha256_text(projected_12["xml"]["word/document.xml"]),
+        "document hashes must be recomputed from projected text and XML",
+    )
+    capture_sanitized = copy.deepcopy(august_12)
+    capture_sanitized["visible_text"] = canonical_volatile_text(capture_sanitized["visible_text"])
+    capture_sanitized["xml"]["word/document.xml"] = canonical_volatile_text(
+        capture_sanitized["xml"]["word/document.xml"]
+    )
+    assert_true(
+        equivalence_harness.canonical_fixture(capture_sanitized) == projected_12
+        and equivalence_harness.canonical_fixture(projected_12) == projected_12,
+        "raw, capture-sanitized, and frozen-canonical records must converge",
+    )
+    for changed_date in ("08/13/2026", "August 13 2026", None):
+        difference = equivalence_harness.compare_record_sets(
+            [august_12], [document_record(changed_date)], {"schema_version": 1, "entries": []}
+        )
+        assert_true(difference["unexplained"] == 1, f"date change must remain visible: {changed_date!r}")
     first = equivalence_harness.comparison_report_path("a14fb43", "a" * 64, "one")
     second = equivalence_harness.comparison_report_path("a14fb43", "a" * 64, "two")
     assert_true(first != second and first.name.endswith("_one.json") and second.name.endswith("_two.json"), "comparison reports must retain distinct runs")
@@ -19612,7 +19743,10 @@ def test_equivalence_frozen_manifest_is_complete() -> None:
     assert_true(manifest["behavior_sha"].startswith("a14fb43"), "frozen equivalence baseline must identify Release A")
     assert_true(manifest["harness_certification_sha"].startswith("210380f"), "frozen baseline must identify its permanent planted-change certification")
     assert_true(manifest["fixture_count"] == 17, f"frozen fixture count drifted: {manifest['fixture_count']}")
-    assert_true(manifest["canonical_projection_version"] == 2, "frozen baseline must name queue-aware canonical projection v2")
+    assert_true(
+        manifest["canonical_projection_version"] == equivalence_harness.CANONICAL_PROJECTION_VERSION == 3,
+        "frozen baseline must name canonical projection v3",
+    )
     assert_true(
         manifest["determinism"] == {"runs": 2, "identical_fixtures": 17, "unexplained": 0},
         "frozen baseline must retain its two-run determinism proof",
@@ -19624,12 +19758,75 @@ def test_equivalence_frozen_manifest_is_complete() -> None:
         and any(item.get("kind") == "candidate_identity_category_error" for item in incidents),
         "frozen baseline must retain both recertification incidents",
     )
+    repair = next((item for item in incidents if item.get("kind") == "projection_v3_normalization_repair"), None)
+    assert_true(
+        repair is not None
+        and repair.get("comparison_run_id") == "bc70b23b4b3a490089846686d5cab125"
+        and repair.get("candidate_sha", "").startswith("6475add"),
+        "frozen baseline must retain the schema-v2 projection-v3 incident evidence",
+    )
+    assert_true(
+        repair["canonical_hash_migration"]["changed"]
+        == ["companion_bridge", "companion_fail", "companion_pass"]
+        and "already stores queue paths" in repair["canonical_hash_migration"]["unchanged_system_reason"],
+        "projection-v3 history must explain why the frozen system hash remains stable",
+    )
     limitation = manifest["known_product_limitations"][0]
     assert_true(
         limitation["observed_page_count"] == 119 and limitation["behavior_not_requirement"] is True,
         "119-page detailed-guide behavior must never become a minimum or quality target",
     )
     assert_true(manifest["poppler_versions"] == ["26.05.0"], "frozen Poppler version must remain exact")
+    projection_v2_hashes = {
+        "commercial_analytics_operations": "1c7406af9cf56fdfae9e08746a15af269c10b9c6a77d0e29dd874a0a3930c2e3",
+        "commercial_change_enablement": "272c5a4d9016bf0d953c0d0e6312e634a035963a96269f7ce33c24679a8b40c2",
+        "commercial_customer_success": "23c7a276348f3cce8befb95336cfc8b8d686f5a6141016f0551b2adca65a39ba",
+        "commercial_implementation_delivery": "9b70b9c2b5035b9d6269841325d01dc8d706b8b048e6784ef7c3621942353e83",
+        "commercial_presales_solution": "cf66fa5aaa6fd69a2544c1dc0a093078f4c99617cd8c954701a1799b5409fc72",
+        "commercial_process_improvement": "fd8880d422d07e89c7106e54fd10b6469cae6538557c2d713da17d6b8dd5a33a",
+        "commercial_product_ownership": "05c4e32167f453cc7cc0bebdb20a30745f481bd5d12166dffb028b876b243966",
+        "commercial_program_delivery": "05c8aa9ae45b1ddbb12ae852e934b88a934d5c41321a61ef7e03d6e856873be6",
+        "commercial_technical_support_admin": "ee7921c168e97c590159a5e3f5f2d83c3f63fb77be2d3e39d15dee4639ef3f65",
+        "companion_bridge": "debee9d6197b5f47f5d94c4d9b85b95ff090f31f8b551b5de5ef365443c971c0",
+        "companion_fail": "29208a2963c87b253010eaa6ddc2dfba524beba7d2b2a33c118c99c323f7a7f3",
+        "companion_pass": "c30066f2145339101aa3d6922eb00dd9f342d7b15c0f8ca53da443b04c1ae276",
+        "federal_multi_grade_standard": "13a326c828e0c9777cfc814a4c759a61464b0c3bf79beced04e9ec0d863392bf",
+        "federal_single_grade_ai_control": "70dac1855cb7116f6edb84708f816c66b2eda474c123f5f4fdfa6235fe53e4aa",
+        "federal_single_grade_standard": "abcfd6dd1cf16a58963d2f144d6559565577102b95aa6f7af5ad135c691de923",
+        "federal_transactional_behavior": "d5420bc1d94990477f2e1931ce6078a7c597bde5aa779da20079734e1c97276e",
+        "system_readiness_tracker_archive": "c555e1194e7e2a75af83e003bd987575ed919280a249259af04cb758369cfd23",
+    }
+    changed_from_v2 = {
+        fixture_id
+        for fixture_id, digest in manifest["record_sha256"].items()
+        if projection_v2_hashes.get(fixture_id) != digest
+    }
+    assert_true(
+        changed_from_v2 == {"companion_pass", "companion_bridge", "companion_fail"},
+        f"projection v3 must change exactly the three frozen records containing raw build dates: {changed_from_v2}",
+    )
+    assert_true(
+        manifest["record_sha256"]["system_readiness_tracker_archive"]
+        == projection_v2_hashes["system_readiness_tracker_archive"],
+        "the already-normalized frozen queue record must not receive an artificial hash change",
+    )
+    companion_path = baseline_dir / "records" / "companion_pass.json"
+    august_12_record = json.loads(companion_path.read_text(encoding="utf-8"))
+
+    def next_day(value: object) -> object:
+        if isinstance(value, dict):
+            return {key: next_day(item) for key, item in value.items()}
+        if isinstance(value, list):
+            return [next_day(item) for item in value]
+        if isinstance(value, str):
+            return value.replace("August 12, 2026", "August 13, 2026")
+        return value
+
+    assert_true(
+        equivalence_harness.canonical_fixture(august_12_record)
+        == equivalence_harness.canonical_fixture(next_day(august_12_record)),
+        "the untouched frozen August 12 companion must match an August 13 candidate",
+    )
     for relative in manifest["record_files"]:
         record_path = baseline_dir / relative
         assert_true(record_path.is_file(), f"frozen equivalence record is missing: {relative}")

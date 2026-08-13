@@ -10,6 +10,7 @@ import difflib
 import hashlib
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -34,6 +35,7 @@ from equivalence_normalize import (
 
 SCHEMA_VERSION = 1
 COMPARISON_REPORT_SCHEMA_VERSION = 2
+CANONICAL_PROJECTION_VERSION = 3
 LOCKED_BASELINE = "a14fb43d58a8cc8f3817fd3ac7665fc913bb22f4"
 BASELINE_ID = "a14fb43"
 BASELINE_POPPLER_VERSION = "26.05.0"
@@ -56,6 +58,26 @@ BASELINE_CERTIFICATION_INCIDENTS = [
         "changed_fields": ["queue.pipeline_fingerprint", "queue.completion_key"],
         "cause": "the queue fingerprint hashes the complete Python tree and is designed to change between code candidates",
         "disposition": "validate fingerprint and completion-key consistency, then project candidate identity out of cross-version behavior comparison",
+    },
+    {
+        "date": "2026-08-13",
+        "kind": "projection_v3_normalization_repair",
+        "candidate_sha": "6475add50a3024fa6c60ff6646f176171a46c7e2",
+        "comparison_run_id": "bc70b23b4b3a490089846686d5cab125",
+        "changed_fixtures": [
+            "companion_pass",
+            "companion_bridge",
+            "companion_fail",
+            "system_readiness_tracker_archive",
+        ],
+        "evidence": "schema-v2 retained complete before/after values showing raw cover-letter build dates and transient queue run paths with no behavioral change",
+        "disposition": "projection v3 normalizes the two volatile categories symmetrically without an allowlist entry or frozen-record rewrite",
+        "execution_note": "the comparison report persisted before the external 30-minute invocation ceiling; later recertification invocations receive 45 minutes externally without changing repository limits",
+        "canonical_hash_migration": {
+            "changed": ["companion_bridge", "companion_fail", "companion_pass"],
+            "unchanged_system_reason": "the frozen system record already stores queue paths as <WORKSPACE>/..., so projection v3 changes raw later captures but not that frozen canonical value",
+        },
+        "future_direction": "Format normalization is inherently reactive because it recognizes volatile forms after they surface. A frozen clock in Release B's RunContext is the preferred long-term design because it eliminates wall-clock variation at generation time. That future work is not authorized by this repair.",
     },
 ]
 BASELINE_PRODUCT_LIMITATIONS = [
@@ -996,6 +1018,32 @@ DIAGNOSTIC_KEYS = {
 }
 
 QUEUE_IDENTITY = "<CANDIDATE_IDENTITY>"
+QUEUE_RUN_ROOT_RE = re.compile(
+    r"^(?:[A-Za-z]:)?/.*?/scratch/equivalence/r/[0-9a-f]{8,32}(?P<suffix>/.*)$",
+    flags=re.I,
+)
+
+
+def _project_queue_path(value: str) -> str:
+    """Project only recognized isolated-run queue paths; preserve all other text."""
+    if value.startswith("<WORKSPACE>/") or "://" in value:
+        return value
+    path_value = re.sub(r"/+", "/", value.replace("\\", "/"))
+    match = QUEUE_RUN_ROOT_RE.match(path_value)
+    if not match:
+        return value
+    return f"<WORKSPACE>{match.group('suffix')}"
+
+
+def _project_queue_path_fields(entry: dict[str, Any]) -> None:
+    artifacts = entry.get("artifacts")
+    if isinstance(artifacts, list):
+        entry["artifacts"] = [
+            _project_queue_path(item) if isinstance(item, str) else item for item in artifacts
+        ]
+    log = entry.get("log")
+    if isinstance(log, str):
+        entry["log"] = _project_queue_path(log)
 
 
 def _queue_completion_key(entry: dict[str, Any], fingerprint: str, default_mode: str) -> str:
@@ -1036,6 +1084,7 @@ def _project_queue_identity(record: dict[str, Any]) -> dict[str, Any]:
         if not stem or expected in completion_tokens:
             raise HarnessError("queue jobs require unique nonempty stems and completion keys")
         completion_tokens[expected] = f"<DERIVED_COMPLETION_KEY:{stem}>"
+        _project_queue_path_fields(job)
         job["pipeline_fingerprint"] = QUEUE_IDENTITY
         job["completion_key"] = completion_tokens[expected]
     entries = state["entries"]
@@ -1049,6 +1098,7 @@ def _project_queue_identity(record: dict[str, Any]) -> dict[str, Any]:
         if key != expected or entry.get("completion_key") != expected:
             raise HarnessError("queue state completion key is not derived from its current fingerprint")
         token = completion_tokens[expected]
+        _project_queue_path_fields(entry)
         entry["pipeline_fingerprint"] = QUEUE_IDENTITY
         entry["completion_key"] = token
         projected_entries[token] = entry
@@ -1068,6 +1118,16 @@ def _normalize_value(value: Any) -> Any:
         if isinstance(manifest, dict) and "source_docx_sha256" in manifest:
             manifest["source_docx_sha256"] = "<CANONICAL_SOURCE>"
             normalized["manifest_sha256"] = sha256_text(canonical_json(manifest))
+        visible_text = normalized.get("visible_text")
+        if isinstance(visible_text, str) and "visible_text_sha256" in normalized:
+            normalized["visible_text_sha256"] = sha256_text(visible_text)
+        xml = normalized.get("xml")
+        if isinstance(xml, dict) and "xml_sha256" in normalized:
+            normalized["xml_sha256"] = {
+                name: sha256_text(part)
+                for name, part in xml.items()
+                if isinstance(name, str) and isinstance(part, str)
+            }
         return normalized
     if isinstance(value, list):
         return [_normalize_value(item) for item in value]
@@ -1293,7 +1353,7 @@ def freeze_deterministic_baseline(first_report: Path, second_report: Path) -> di
                 renderer_versions.add(str(version))
     manifest = {
         "schema_version": SCHEMA_VERSION,
-        "canonical_projection_version": 2,
+        "canonical_projection_version": CANONICAL_PROJECTION_VERSION,
         "baseline_id": BASELINE_ID,
         "behavior_sha": LOCKED_BASELINE,
         "capture_implementation_sha": first.get("implementation_sha"),

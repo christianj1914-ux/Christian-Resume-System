@@ -240,6 +240,12 @@ def canonical_volatile_text(text: str, roots: tuple[Path, ...] = ()) -> str:
         value,
     )
     value = re.sub(r"20\d{6}[_T]\d{6}(?:_\d{6})?", "<TIMESTAMP>", value)
+    value = re.sub(
+        r"\b(?:January|February|March|April|May|June|July|August|September|October|November|December) "
+        r"(?:[1-9]|[12]\d|3[01]), \d{4}\b",
+        "<BUILD_DATE>",
+        value,
+    )
     value = re.sub(r"\b\d+(?:\.\d+)?s\b", "<DURATION>", value)
     value = re.sub(r"(?<![0-9a-f])[0-9a-f]{32}(?![0-9a-f])", "<RUN_ID>", value, flags=re.I)
     value = re.sub(r"(?<=_)[0-9a-f]{8}(?=(?:\s|/|\.|$))", "<RUN_ID>", value, flags=re.I)
