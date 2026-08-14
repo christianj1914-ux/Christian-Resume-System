@@ -19473,6 +19473,106 @@ def test_detailed_guide_uses_canonical_path_overrides() -> None:
     )
 
 
+def test_detailed_guide_stage_assignment_authority() -> None:
+    import build_detailed_interview_guide
+    import interview_stage
+
+    authority = (PROJECT_ROOT / "Study" / "Codex_Specs" / "GUIDE_STAGE_ASSIGNMENTS.md").read_text(encoding="utf-8")
+
+    def rows_after(heading: str) -> list[list[str]]:
+        lines = authority.splitlines()
+        heading_index = next((index for index, line in enumerate(lines) if line.strip() == heading), None)
+        assert_true(heading_index is not None, f"stage authority should contain {heading}")
+        table_start = next(
+            (index for index in range(int(heading_index) + 1, len(lines)) if lines[index].lstrip().startswith("|")),
+            None,
+        )
+        assert_true(table_start is not None, f"stage authority should contain a table after {heading}")
+        parsed: list[list[str]] = []
+        for line in lines[int(table_start) + 2:]:
+            if not line.lstrip().startswith("|"):
+                break
+            parsed.append([cell.strip() for cell in line.strip().strip("|").split("|")])
+        return parsed
+
+    standard_always = tuple(row[2] for row in rows_after("## Standard guide sections included in every named stage"))
+    assert_true(standard_always == interview_stage.STANDARD_ALWAYS_SECTIONS, "standard always-section authority drifted")
+    standard_rows = rows_after("## Standard guide stage assignments")
+    for stage in interview_stage.STANDARD_STAGE_SECTIONS:
+        actual = tuple(row[2] for row in standard_rows if row[1] == stage)
+        assert_true(actual == interview_stage.STANDARD_STAGE_SECTIONS[stage], f"standard {stage} assignment authority drifted")
+
+    state_farm_always = tuple(row[2] for row in rows_after("## State Farm sections included in every named stage"))
+    assert_true(state_farm_always == interview_stage.STATE_FARM_ALWAYS_SECTIONS, "State Farm always-section authority drifted")
+    state_farm_rows = rows_after("## State Farm stage assignments")
+    for stage in interview_stage.STATE_FARM_STAGE_SECTIONS:
+        actual = tuple(row[2] for row in state_farm_rows if row[1] == stage)
+        assert_true(actual == interview_stage.STATE_FARM_STAGE_SECTIONS[stage], f"State Farm {stage} assignment authority drifted")
+
+    budget_rows = rows_after("## Advisory page budgets")
+    expected_budgets = {
+        row[0]: None if row[1] == "unbounded" else (int(row[1]), int(row[2]))
+        for row in budget_rows
+    }
+    assert_true(expected_budgets == interview_stage.STAGE_PAGE_BUDGETS, "advisory page-budget authority drifted")
+    inheritance = tuple((row[0], row[1]) for row in rows_after("## Dynamic-child inheritance"))
+    assert_true(inheritance == interview_stage.DYNAMIC_CHILD_INHERITANCE, "dynamic-child inheritance authority drifted")
+    assert_true(
+        tuple(row[0] for row in rows_after("### Companion-only sections")) == interview_stage.COMPANION_ONLY_EXCLUSIONS,
+        "companion exclusion authority drifted",
+    )
+    assert_true(
+        tuple(row[0] for row in rows_after("### Unreachable standard helpers")) == interview_stage.UNREACHABLE_STANDARD_EXCLUSIONS,
+        "standard unreachable-helper authority drifted",
+    )
+    assert_true(
+        tuple(row[0] for row in rows_after("### Unreachable legacy State Farm helpers")) == interview_stage.UNREACHABLE_STATE_FARM_EXCLUSIONS,
+        "State Farm unreachable-helper authority drifted",
+    )
+
+    for key, profile in interview_stage.STAGE_PROFILES.items():
+        expected = (
+            (*interview_stage.STANDARD_SECTION_REGISTRY, *interview_stage.STATE_FARM_SECTION_REGISTRY)
+            if key == "all"
+            else (
+                *interview_stage.STANDARD_ALWAYS_SECTIONS,
+                *interview_stage.STANDARD_STAGE_SECTIONS[key],
+                *interview_stage.STATE_FARM_ALWAYS_SECTIONS,
+                *interview_stage.STATE_FARM_STAGE_SECTIONS[key],
+            )
+        )
+        assert_true(profile.sections == expected, f"{key} executable section union drifted")
+    assert_true(
+        interview_stage.stage_includes(interview_stage.STAGE_PROFILES["panel"], "  primary   STORY bank WITH sample answers "),
+        "stage_includes should normalize case and repeated whitespace",
+    )
+    assert_true(
+        not interview_stage.standard_stage_includes(interview_stage.STAGE_PROFILES["hr_screen"], "Answer Operating System")
+        and interview_stage.state_farm_stage_includes(interview_stage.STAGE_PROFILES["hr_screen"], "Answer Operating System"),
+        "shared display titles must retain domain-specific stage assignments",
+    )
+    try:
+        interview_stage.stage_includes(interview_stage.STAGE_PROFILES["panel"], "Unknown Silent Section")
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("stage_includes should reject an unknown logical title")
+    try:
+        interview_stage._assert_unique_titles(("Known Section", " known   section "), "synthetic")
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("normalized duplicate section titles should fail")
+    build_detailed_interview_guide.validate_text("Avoid saying I am passionate about insurance in the interview.")
+    with contextlib.redirect_stderr(io.StringIO()):
+        try:
+            build_detailed_interview_guide.validate_text("I am passionate about analytics and would seek to drive success.")
+        except SystemExit as error:
+            assert_true(error.code == 1, "genuine AI-writing language should remain a hard failure")
+        else:
+            raise AssertionError("the State Farm negative-example exception must not weaken the general AI-writing guard")
+
+
 def test_equivalence_render_fallback_and_system_matrix_contract() -> None:
     import equivalence_harness
 
@@ -19974,6 +20074,7 @@ def main(argv: list[str] | None = None) -> None:
             ("equivalence commercial state and fixture coverage", test_equivalence_artifact_state_and_required_commercial_coverage),
             ("equivalence federal parse and transaction contract", test_equivalence_federal_parse_and_transaction_contract),
             ("detailed guide honors canonical path overrides", test_detailed_guide_uses_canonical_path_overrides),
+            ("detailed guide stage assignments match authority", test_detailed_guide_stage_assignment_authority),
             ("equivalence render fallback and system matrix", test_equivalence_render_fallback_and_system_matrix_contract),
             ("equivalence fixture comparison and exact allowlist", test_equivalence_compare_is_fixture_oriented_and_exactly_allowlisted),
             ("equivalence queue identity projection and validation", test_equivalence_queue_identity_projection_and_validation),

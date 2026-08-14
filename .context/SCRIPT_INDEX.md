@@ -213,6 +213,8 @@ Main orchestration:
 - `build_detailed_interview_guide()`: end-to-end detailed guide generation.
 - `build_document()`: writes the full guide.
 - `DetailedGuideResult`, `PrepInsights`: result and insight structures.
+- Named `--stage` builds select ordered working subsets from `interview_stage.py`; `--stage all` remains the complete compatibility library.
+- Stage page budgets are advisory visual-QA signals only. Warnings never truncate content or fail a build.
 
 Company research and notes:
 

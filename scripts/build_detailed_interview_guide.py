@@ -1,4 +1,4 @@
-"""Build an optional detailed interview guide with sample answers.
+﻿"""Build an optional detailed interview guide with sample answers.
 
 This is intentionally separate from the standard interview cheat sheet so the
 normal resume run stays lightweight. Use this only when an interview is booked
@@ -85,6 +85,53 @@ class DetailedGuideResult:
     role_title: str
     resume_docx: Path
     output_docx: Path
+
+
+def section_region_word_counts(docx_path: Path) -> tuple[tuple[str, int], ...]:
+    """Count visible words beneath each standard 2E74B5 section bar."""
+    document = Document(str(docx_path))
+    counts: list[list[str | int]] = []
+    current: list[str | int] | None = None
+    for child in document.element.body.iterchildren():
+        fills = [str(value).upper() for value in child.xpath(".//w:shd/@w:fill")]
+        text = " ".join(
+            re.sub(r"\s+", " ", node.text or "").strip()
+            for node in child.xpath(".//w:t")
+            if (node.text or "").strip()
+        ).strip()
+        if child.tag == qn("w:tbl") and SECTION_BAR_HEX in fills:
+            current = [text, 0]
+            counts.append(current)
+            continue
+        if current is not None and text:
+            current[1] = int(current[1]) + len(re.findall(r"\b[\w'-]+\b", text))
+    return tuple((str(title), int(words)) for title, words in counts)
+
+
+def report_stage_page_budget(
+    stage_profile: interview_stage.StageProfile,
+    output_docx: Path,
+    render_dir: Path | None,
+) -> None:
+    budget = interview_stage.STAGE_PAGE_BUDGETS[stage_profile.key]
+    if budget is None:
+        return
+    target = f"{budget[0]}-{budget[1]}"
+    if render_dir is None:
+        print(f"PAGE BUDGET UNVERIFIED: stage={stage_profile.key} target={target} reason=render unavailable")
+        return
+    verification = render_checks.verify_render_directory(render_dir, output_docx)
+    if not verification.verified:
+        print(f"PAGE BUDGET UNVERIFIED: stage={stage_profile.key} target={target} reason={verification.reason}")
+        return
+    if verification.page_count <= budget[1]:
+        return
+    largest = sorted(section_region_word_counts(output_docx), key=lambda item: (-item[1], item[0]))[:3]
+    largest_text = "; ".join(f"{title}:{words}" for title, words in largest) or "none"
+    print(
+        f"PAGE BUDGET WARNING: stage={stage_profile.key} pages={verification.page_count} "
+        f"target={target} largest={largest_text}"
+    )
 
 
 @dataclass(frozen=True)
@@ -642,7 +689,11 @@ def validate_text(
     for pattern in PLACEHOLDER_PATTERNS:
         if re.search(pattern, placeholder_scan_text, re.I):
             fail(f"placeholder text detected in detailed interview guide: {pattern}")
-    if build_resume.contains_ai_writing_word(validation_text):
+    # The State Farm workbook quotes this phrase only as a negative example.
+    # Keep the instructional text byte-identical while avoiding a false positive;
+    # every other AI-writing pattern and use of "passionate about" still fails.
+    ai_scan_text = re.sub(r"(?i)\bpassionate about insurance\b", "", validation_text)
+    if build_resume.contains_ai_writing_word(ai_scan_text):
         fail("detailed interview guide contains AI-writing disclosure language")
     forbidden_fragments = (
         "The reason I think my background fits",
@@ -3082,17 +3133,17 @@ def add_stage_specific_sections(
     stories: Sequence[cheat.StoryCard],
     context: interview_stage.InterviewerContext,
 ) -> None:
-    if stage_profile.key in {"all", "hr_screen"}:
+    if interview_stage.standard_stage_includes(stage_profile, "HR Screen Prep"):
         add_hr_screen_prep_section(document, profile, company_name, role_title, job_description, resume_text, supplied_context, interview_notes, stories)
-    if stage_profile.key in {"all", "hiring_manager"}:
+    if interview_stage.standard_stage_includes(stage_profile, "Hiring Manager Prep"):
         add_hiring_manager_prep_section(document, profile, company_name, role_title, job_description, stories)
-    if stage_profile.key in {"all", "panel"}:
+    if interview_stage.standard_stage_includes(stage_profile, "Panel Prep"):
         add_panel_prep_section(document, profile, stories, context)
-    if stage_profile.key in {"all", "presentation"}:
+    if interview_stage.standard_stage_includes(stage_profile, "Presentation Prep"):
         add_presentation_prep_section(document, profile, company_name, role_title)
-    if stage_profile.key in {"all", "technical"}:
+    if interview_stage.standard_stage_includes(stage_profile, "Technical Prep"):
         add_technical_prep_section(document, profile, company_name, role_title, job_description, stories)
-    if stage_profile.key in {"all", "final"}:
+    if interview_stage.standard_stage_includes(stage_profile, "Final-Round Conversion Strategy"):
         add_final_round_prep_section(document, company_name, role_title, job_description, profile, insights, supplied_context)
 
 
@@ -3187,88 +3238,109 @@ def build_document(
     add_title(document, company_name, role_title)
 
     firm_callout = cheat.company_profile_interview_callout(company_name, job_description, profile)
-    if firm_callout:
+    if firm_callout and interview_stage.standard_stage_includes(stage_profile, "Firm-Specific Interview Profile"):
         add_section(document, "Firm-Specific Interview Profile")
         for line in firm_callout:
             add_bullet(document, line)
-    add_recruiter_feedback_callout(document, interviewer_context_data)
-    add_interviewer_specific_prep_section(
-        document,
-        interviewer_context_data,
-        stage_profile,
-        hero_stories,
-        profile,
-        company_name,
-    )
+    if interview_stage.standard_stage_includes(stage_profile, "Recruiter Feedback To Carry Into This Round"):
+        add_recruiter_feedback_callout(document, interviewer_context_data)
+    if interview_stage.standard_stage_includes(stage_profile, "Interviewer-Specific Prep"):
+        add_interviewer_specific_prep_section(
+            document,
+            interviewer_context_data,
+            stage_profile,
+            hero_stories,
+            profile,
+            company_name,
+        )
 
-    add_section(document, "How To Use This Guide")
-    add_bullet(document, "This is the long-form interview prep document. Use it when an interview is scheduled, not for every resume generation run.")
-    add_bullet(document, "Keyword Answer Reference is at the back of the guide. Use it for targeted practice after reviewing the story bank.")
-    if stage_profile.key == "all":
-        add_bullet(document, "This default build keeps the shared rehearsal core once, then adds stage-specific prep sections before the deeper story-bank material.")
-    else:
-        add_bullet(document, f"This build is focused on the {stage_profile.label} stage, so it keeps the shared rehearsal core and the stage-specific prep without dragging in every later-stage section.")
-    add_section(document, "Competency Decoder")
-    add_banded_table(
-        document,
-        ("Competency", "Lane applicability", "Question shape", "Sentence Christian must say"),
-        cheat.competency_decoder_rows(profile, job_description),
-    )
-    add_section(document, "Answer Framework Hierarchy")
-    for line in cheat.answer_framework_section_lines(framework_selection):
-        add_bullet(document, line)
-    add_section(document, "Rehearsal Method")
-    for line in cheat.rehearsal_foundation_lines(role_title, context_bundle.round_records, global_round_records):
-        add_bullet(document, line)
-    add_section(document, "Delivery Watch-List")
-    for line in cheat.delivery_watch_list_lines():
-        add_bullet(document, line)
-    add_section(document, "Consultative Selling Reframe")
-    for line in cheat.consultative_selling_lines():
-        add_bullet(document, line)
-    add_section(document, "Company Hypothesis")
-    add_bullet(document, cheat.company_hypothesis_line(company_name, profile, job_description, supplied_context))
-    add_section(document, "Anti-Filler And Length Control")
-    for line in cheat.answer_mode_lines():
-        add_bullet(document, line)
-    for title, description, fix in cheat.communication_audit_reference(job_description, interview_notes)[:3]:
-        add_bullet(document, f"{title}: {description} {fix}")
-    add_bluf_answer_bank(document, "JD Scorecard BLUF Answer Bank", scorecard_bluf_answers)
-    add_bluf_answer_bank(document, "High-Stakes Prompt Bank", high_stakes_answers)
-    cheat.add_lane_lead_in_section(document, profile)
-    add_story_anchor_system_section(document, hero_stories, profile)
+    if interview_stage.standard_stage_includes(stage_profile, "How To Use This Guide"):
+        add_section(document, "How To Use This Guide")
+        add_bullet(document, "This is the long-form interview prep document. Use it when an interview is scheduled, not for every resume generation run.")
+        add_bullet(document, "Keyword Answer Reference is at the back of the guide. Use it for targeted practice after reviewing the story bank.")
+        if stage_profile.key == "all":
+            add_bullet(document, "This default build keeps the shared rehearsal core once, then adds stage-specific prep sections before the deeper story-bank material.")
+        else:
+            add_bullet(document, f"This build is focused on the {stage_profile.label} stage. It keeps the shared rehearsal foundation plus the working sections assigned to this round, including later reference material when that stage needs it.")
+    if interview_stage.standard_stage_includes(stage_profile, "Competency Decoder"):
+        add_section(document, "Competency Decoder")
+        add_banded_table(
+            document,
+            ("Competency", "Lane applicability", "Question shape", "Sentence Christian must say"),
+            cheat.competency_decoder_rows(profile, job_description),
+        )
+    if interview_stage.standard_stage_includes(stage_profile, "Answer Framework Hierarchy"):
+        add_section(document, "Answer Framework Hierarchy")
+        for line in cheat.answer_framework_section_lines(framework_selection):
+            add_bullet(document, line)
+    if interview_stage.standard_stage_includes(stage_profile, "Rehearsal Method"):
+        add_section(document, "Rehearsal Method")
+        for line in cheat.rehearsal_foundation_lines(role_title, context_bundle.round_records, global_round_records):
+            add_bullet(document, line)
+    if interview_stage.standard_stage_includes(stage_profile, "Delivery Watch-List"):
+        add_section(document, "Delivery Watch-List")
+        for line in cheat.delivery_watch_list_lines():
+            add_bullet(document, line)
+    if interview_stage.standard_stage_includes(stage_profile, "Consultative Selling Reframe"):
+        add_section(document, "Consultative Selling Reframe")
+        for line in cheat.consultative_selling_lines():
+            add_bullet(document, line)
+    if interview_stage.standard_stage_includes(stage_profile, "Company Hypothesis"):
+        add_section(document, "Company Hypothesis")
+        add_bullet(document, cheat.company_hypothesis_line(company_name, profile, job_description, supplied_context))
+    if interview_stage.standard_stage_includes(stage_profile, "Anti-Filler And Length Control"):
+        add_section(document, "Anti-Filler And Length Control")
+        for line in cheat.answer_mode_lines():
+            add_bullet(document, line)
+        for title, description, fix in cheat.communication_audit_reference(job_description, interview_notes)[:3]:
+            add_bullet(document, f"{title}: {description} {fix}")
+    if interview_stage.standard_stage_includes(stage_profile, "JD Scorecard BLUF Answer Bank"):
+        add_bluf_answer_bank(document, "JD Scorecard BLUF Answer Bank", scorecard_bluf_answers)
+    if interview_stage.standard_stage_includes(stage_profile, "High-Stakes Prompt Bank"):
+        add_bluf_answer_bank(document, "High-Stakes Prompt Bank", high_stakes_answers)
+    if interview_stage.standard_stage_includes(stage_profile, "Lane Lead-In And Story Priority"):
+        cheat.add_lane_lead_in_section(document, profile)
+    if interview_stage.standard_stage_includes(stage_profile, "Story Anchor System"):
+        add_story_anchor_system_section(document, hero_stories, profile)
     risk_label, risk_warning = cheat.candidate_archetype_assessment(profile, job_description, resume_text, supplied_context, interview_notes)
-    add_section(document, "Self-Assessment: Your Likely Interview Risk")
-    add_bullet(document, risk_label)
-    add_bullet(document, risk_warning)
-    add_section(document, "Top Recurring Answer Risks")
-    for line in cheat.top_answer_risk_lines(profile, company_name, role_title, context_bundle.round_records, global_round_records):
-        add_bullet(document, line)
+    if interview_stage.standard_stage_includes(stage_profile, "Self-Assessment: Your Likely Interview Risk"):
+        add_section(document, "Self-Assessment: Your Likely Interview Risk")
+        add_bullet(document, risk_label)
+        add_bullet(document, risk_warning)
+    if interview_stage.standard_stage_includes(stage_profile, "Top Recurring Answer Risks"):
+        add_section(document, "Top Recurring Answer Risks")
+        for line in cheat.top_answer_risk_lines(profile, company_name, role_title, context_bundle.round_records, global_round_records):
+            add_bullet(document, line)
     diagnosis_lines = cheat.latest_positioning_diagnosis_lines(context_bundle.round_records, global_round_records)
-    if diagnosis_lines:
+    if diagnosis_lines and interview_stage.standard_stage_includes(stage_profile, "Latest Positioning Diagnosis"):
         add_section(document, "Latest Positioning Diagnosis")
         for line in diagnosis_lines:
             add_bullet(document, line)
     rewrite_lines = cheat.ownership_language_rewrite_lines(context_bundle.round_records, global_round_records)
-    if rewrite_lines:
+    if rewrite_lines and interview_stage.standard_stage_includes(stage_profile, "Ownership And Consultative Rewrites"):
         add_section(document, "Ownership And Consultative Rewrites")
         for line in rewrite_lines:
             add_bullet(document, line)
-    add_section(document, "Best Example To Use First")
-    for line in cheat.best_example_to_use_first_lines(profile, context_bundle.round_records, global_round_records):
-        add_bullet(document, line)
-    add_section(document, "Six Offer Blockers To Avoid")
-    for line in six_offer_blocker_lines(profile, company_name, role_title, job_description):
-        add_bullet(document, line)
-    add_section(document, "Executive Evaluation: Four Trust Questions")
-    for line in four_trust_questions_audit(profile, company_name, role_title, job_description):
-        add_bullet(document, line)
-    add_section(document, "Executive Presence Signals")
-    for line in executive_presence_signals(profile, company_name, role_title, job_description):
-        add_bullet(document, line)
-    add_section(document, "Executive Presence Corrections")
-    for line in cheat.executive_presence_correction_lines(company_name, role_title, context_bundle.round_records, global_round_records):
-        add_bullet(document, line)
+    if interview_stage.standard_stage_includes(stage_profile, "Best Example To Use First"):
+        add_section(document, "Best Example To Use First")
+        for line in cheat.best_example_to_use_first_lines(profile, context_bundle.round_records, global_round_records):
+            add_bullet(document, line)
+    if interview_stage.standard_stage_includes(stage_profile, "Six Offer Blockers To Avoid"):
+        add_section(document, "Six Offer Blockers To Avoid")
+        for line in six_offer_blocker_lines(profile, company_name, role_title, job_description):
+            add_bullet(document, line)
+    if interview_stage.standard_stage_includes(stage_profile, "Executive Evaluation: Four Trust Questions"):
+        add_section(document, "Executive Evaluation: Four Trust Questions")
+        for line in four_trust_questions_audit(profile, company_name, role_title, job_description):
+            add_bullet(document, line)
+    if interview_stage.standard_stage_includes(stage_profile, "Executive Presence Signals"):
+        add_section(document, "Executive Presence Signals")
+        for line in executive_presence_signals(profile, company_name, role_title, job_description):
+            add_bullet(document, line)
+    if interview_stage.standard_stage_includes(stage_profile, "Executive Presence Corrections"):
+        add_section(document, "Executive Presence Corrections")
+        for line in cheat.executive_presence_correction_lines(company_name, role_title, context_bundle.round_records, global_round_records):
+            add_bullet(document, line)
     post_round_lines = list(cheat.post_round_intelligence_lines(supplied_context))
     if debrief_summary.most_common_question:
         post_round_lines.append(
@@ -3278,16 +3350,18 @@ def build_document(
         post_round_lines.append(
             f"Story that has drawn the strongest follow-up so far: {debrief_summary.top_story_title}. Keep it first-tier and easy to retell under pressure."
         )
-    if post_round_lines:
+    if post_round_lines and interview_stage.standard_stage_includes(stage_profile, "Post-Round Intelligence To Prepare"):
         add_section(document, "Post-Round Intelligence To Prepare")
         for line in post_round_lines:
             add_bullet(document, line)
-    add_debrief_overlay_section(document, context_bundle.round_records)
-    if debrief_summary.top_coaching_signals:
+    if interview_stage.standard_stage_includes(stage_profile, "Debrief-To-Prep Overlay"):
+        add_debrief_overlay_section(document, context_bundle.round_records)
+    if debrief_summary.top_coaching_signals and interview_stage.standard_stage_includes(stage_profile, "Recurring Delivery Habits"):
         add_section(document, "Recurring Delivery Habits")
         for item in debrief_summary.top_coaching_signals:
             add_bullet(document, item)
-    add_extended_tmay_section(document, profile, company_name, role_title, job_description, resume_text, interview_notes)
+    if interview_stage.standard_stage_includes(stage_profile, "Tell Me About Yourself: Time Ladder"):
+        add_extended_tmay_section(document, profile, company_name, role_title, job_description, resume_text, interview_notes)
     add_stage_specific_sections(
         document,
         stage_profile=stage_profile,
@@ -3303,7 +3377,7 @@ def build_document(
         context=interviewer_context_data,
     )
     if stage_profile.key != "all":
-        if stage_profile.key != "hr_screen":
+        if interview_stage.standard_stage_includes(stage_profile, "Focused Story Bank"):
             add_focused_story_bank(
                 document,
                 hero_stories,
@@ -3314,211 +3388,235 @@ def build_document(
                 interview_notes,
                 resume_text,
             )
+        if interview_stage.standard_stage_includes(stage_profile, "Answer Mechanics Reference"):
             add_page_break(document)
             add_section(document, "Answer Mechanics Reference")
+        if not state_farm_mode and interview_stage.standard_stage_includes(stage_profile, "Answer Operating System"):
             add_general_answer_operating_system(document, profile, framework_selection)
-            if stage_profile.key == "technical":
-                add_page_break(document)
-                add_keyword_question_bank(document, profile, job_description, resume_text, hero_stories, company_name, role_title, max_keywords=5)
-        body = document_text(document)
-        scrub_document_for_job_language(document, job_description)
-        body = document_text(document)
-        interview_intelligence.assert_safe_generated_text(body, interview_intelligence.load_self_inventory())
-        build_resume.assert_no_erp_language_for_non_erp_role(body, job_description, "detailed interview guide")
-        validate_text(body, company_name=company_name, role_title=role_title)
-        output_docx.parent.mkdir(exist_ok=True)
-        document.save(str(output_docx))
-        return
-    add_hidden_assessment_section(document, company_name, role_title, profile, job_description, stories)
+        if interview_stage.standard_stage_includes(stage_profile, "KEYWORD ANSWER REFERENCE"):
+            add_page_break(document)
+            add_keyword_question_bank(document, profile, job_description, resume_text, hero_stories, company_name, role_title)
+    if interview_stage.standard_stage_includes(stage_profile, "What They Are Really Asking"):
+        add_hidden_assessment_section(document, company_name, role_title, profile, job_description, stories)
     if state_farm_mode:
-        add_state_farm_full_workbook(document, profile, company_name, role_title, job_description, resume_text, hero_stories, add_keyword_question_bank)
-    else:
-        add_company_fit_answer_bank(
+        add_state_farm_full_workbook(
             document,
             profile,
             company_name,
             role_title,
             job_description,
-            stories,
-            supplied_context,
             resume_text,
-            interview_notes,
+            hero_stories,
+            add_keyword_question_bank,
+            stage_profile=stage_profile,
         )
-
-        add_reflection_prompt_bank(document, profile, hero_stories, company_name, role_title)
-
-        add_section(document, "Role Challenge Forecast")
-        for line in cheat.role_challenge_forecast(profile, company_name, role_title, job_description):
-            add_bullet(document, line)
-
-        add_subsection(document, "First 90-Day Approach")
-        for line in cheat.first_90_day_approach(profile):
-            add_bullet(document, line)
-        add_subsection(document, "Gaps To Manage Honestly")
-        for line in cheat.role_specific_gaps(profile, job_description):
-            add_bullet(document, line)
-
-        add_page_break(document)
-        add_section(document, "Extended Story-Type Reference")
-        for line in cheat.extended_story_type_lines(stories, profile):
-            add_bullet(document, line)
-        add_section(document, "Primary Story Bank With Sample Answers")
-        for index, card in enumerate(hero_stories[:5]):
-            if index:
-                add_page_break(document)
-            add_story_page(
+    else:
+        if interview_stage.standard_stage_includes(stage_profile, "Company Fit And Common Questions"):
+            add_company_fit_answer_bank(
                 document,
-                card,
                 profile,
                 company_name,
                 role_title,
                 job_description,
-                interview_notes,
+                stories,
+                supplied_context,
                 resume_text,
-                context_bundle.round_records,
-                global_round_records,
+                interview_notes,
             )
 
-        add_page_break(document)
-        add_section(document, "Additional Behavioral Answers")
-        for prompt, answer in behavioral_sample_answers(profile, stories, company_name, role_title, job_description, interview_notes, resume_text):
-            enforce_prose_quality(
-                answer.full,
-                "interview_story_answer",
-                label=f"Detailed guide behavioral answer ({prompt[:50]})",
-                mode="warn",
-                check_template_leakage=False,
-            )
-            add_subsection(document, prompt)
-            add_story_answer(document, answer)
+        if interview_stage.standard_stage_includes(stage_profile, "Pre-Interview Reflection Prompts"):
+            add_reflection_prompt_bank(document, profile, hero_stories, company_name, role_title)
 
-        add_page_break(document)
-        add_section(document, "Likely Interview Questions")
-        used_likely_story_titles: set[str] = set()
-        for item in cheat.likely_questions(profile, job_description):
-            add_subsection(document, item.question)
-            if item.question.lower().startswith("tell me about yourself"):
-                add_body(
+        if interview_stage.standard_stage_includes(stage_profile, "Role Challenge Forecast"):
+            add_section(document, "Role Challenge Forecast")
+            for line in cheat.role_challenge_forecast(profile, company_name, role_title, job_description):
+                add_bullet(document, line)
+
+            add_subsection(document, "First 90-Day Approach")
+            for line in cheat.first_90_day_approach(profile):
+                add_bullet(document, line)
+            add_subsection(document, "Gaps To Manage Honestly")
+            for line in cheat.role_specific_gaps(profile, job_description):
+                add_bullet(document, line)
+
+        if interview_stage.standard_stage_includes(stage_profile, "Extended Story-Type Reference"):
+            add_page_break(document)
+            add_section(document, "Extended Story-Type Reference")
+            for line in cheat.extended_story_type_lines(stories, profile):
+                add_bullet(document, line)
+        if interview_stage.standard_stage_includes(stage_profile, "Primary Story Bank With Sample Answers"):
+            add_section(document, "Primary Story Bank With Sample Answers")
+            for index, card in enumerate(hero_stories[:5]):
+                if index:
+                    add_page_break(document)
+                add_story_page(
                     document,
-                    cheat.ninety_second_pitch(
-                        profile,
-                        company_name,
-                        role_title,
-                        job_description,
-                        resume_text,
-                        interview_notes,
-                    ),
+                    card,
+                    profile,
+                    company_name,
+                    role_title,
+                    job_description,
+                    interview_notes,
+                    resume_text,
+                    context_bundle.round_records,
+                    global_round_records,
+                )
+
+        if interview_stage.standard_stage_includes(stage_profile, "Additional Behavioral Answers"):
+            add_page_break(document)
+            add_section(document, "Additional Behavioral Answers")
+            for prompt, answer in behavioral_sample_answers(profile, stories, company_name, role_title, job_description, interview_notes, resume_text):
+                enforce_prose_quality(
+                    answer.full,
+                    "interview_story_answer",
+                    label=f"Detailed guide behavioral answer ({prompt[:50]})",
+                    mode="warn",
+                    check_template_leakage=False,
+                )
+                add_subsection(document, prompt)
+                add_story_answer(document, answer)
+
+        if interview_stage.standard_stage_includes(stage_profile, "Likely Interview Questions"):
+            add_page_break(document)
+            add_section(document, "Likely Interview Questions")
+            used_likely_story_titles: set[str] = set()
+            for item in cheat.likely_questions(profile, job_description):
+                add_subsection(document, item.question)
+                if item.question.lower().startswith("tell me about yourself"):
+                    add_body(
+                        document,
+                        cheat.ninety_second_pitch(
+                            profile,
+                            company_name,
+                            role_title,
+                            job_description,
+                            resume_text,
+                            interview_notes,
+                        ),
+                    )
+                    add_body(document, f"Follow-up angle: {item.angle}", small=True)
+                    continue
+                matching_story = cheat.likely_question_story(item, stories, used_likely_story_titles)
+                used_likely_story_titles.add(matching_story.title)
+                add_story_answer(
+                    document,
+                    story_sample_answer(matching_story, profile, company_name, role_title, job_description, interview_notes, resume_text),
+                    prefix="Model answer: ",
                 )
                 add_body(document, f"Follow-up angle: {item.angle}", small=True)
-                continue
-            matching_story = cheat.likely_question_story(item, stories, used_likely_story_titles)
-            used_likely_story_titles.add(matching_story.title)
-            add_story_answer(
+        if interview_stage.standard_stage_includes(stage_profile, "Application / Supplemental Questions To Be Ready For"):
+            add_application_question_prep_section(document, job_description, resume_text)
+        if interview_stage.standard_stage_includes(stage_profile, "Question Bank Coverage"):
+            add_question_bank_coverage_section(document, job_description, resume_text)
+        if interview_stage.standard_stage_includes(stage_profile, "Recent Interview Questions To Be Ready For"):
+            add_recent_interview_question_prep_section(
                 document,
-                story_sample_answer(matching_story, profile, company_name, role_title, job_description, interview_notes, resume_text),
-                prefix="Model answer: ",
+                job_description,
+                company_name,
+                role_title,
+                jobs_dir=jobs_dir,
+                profile=profile,
+                stories=stories,
+                resume_text=resume_text,
+                interview_notes=interview_notes,
             )
-            add_body(document, f"Follow-up angle: {item.angle}", small=True)
-        add_application_question_prep_section(document, job_description, resume_text)
-        add_question_bank_coverage_section(document, job_description, resume_text)
-        add_recent_interview_question_prep_section(
-            document,
-            job_description,
-            company_name,
-            role_title,
-            jobs_dir=jobs_dir,
-            profile=profile,
-            stories=stories,
-            resume_text=resume_text,
-            interview_notes=interview_notes,
-        )
 
-        add_section(document, "Three Supported Proof Themes")
-        for line in cheat.three_supported_proof_theme_lines(profile, stories):
-            add_bullet(document, line)
-
-        add_page_break(document)
-        add_section(document, "Answer Mechanics Reference")
-        add_general_answer_operating_system(document, profile, framework_selection)
-
-        add_section(document, "Story Selection Decision Table")
-        add_body(document, "Use this as a quick index when an interviewer asks for a different example.")
-        for line in story_selection_decision_table(hero_stories, profile, job_description):
-            add_bullet(document, line)
-
-        add_pushback_section(document, insights)
-        add_anticipated_question_section(document, insights)
-        add_business_context_question_section(
-            document,
-            job_description,
-            supplied_context,
-            stories,
-            profile=profile,
-            company_name=company_name,
-            role_title=role_title,
-            resume_text=resume_text,
-            interview_notes=interview_notes,
-        )
-
-        add_section(document, "QUESTIONS TO ASK AND HOW TO CLOSE")
-        add_subsection(document, "Strategic Question Filter")
-        for line in cheat.strategic_question_filter_lines():
-            add_bullet(document, line)
-        add_subsection(document, "Stronger Consultative Questions To Ask")
-        for line in cheat.consultative_question_drill_lines(profile, company_name, role_title):
-            add_bullet(document, line)
-        add_subsection(document, "Structural Diagnostic Question To Lead With")
-        add_bullet(document, cheat.lane_structural_diagnostic_question(profile, company_name, role_title, job_description))
-        supplied_questions, supplied_changes = cheat.reframe_questions_to_positive(
-            cheat.supplied_smart_questions(supplied_context)
-        )
-        if supplied_changes:
-            cheat.log_reframed_questions("detailed supplied questions", supplied_changes)
-        if supplied_questions:
-            add_subsection(document, "Highest-Value Supplied Questions")
-            for question in supplied_questions[:12]:
-                add_bullet(document, question)
-        add_subsection(document, "Highest-Value Questions From The Notes")
-        reframed_smart_questions, smart_changes = cheat.reframe_questions_to_positive(list(insights.smart_questions[:10]))
-        if smart_changes:
-            cheat.log_reframed_questions("detailed smart questions", smart_changes)
-        for question in reframed_smart_questions:
-            if question in supplied_questions:
-                continue
-            add_bullet(document, question)
-        add_subsection(document, "General Backup Questions")
-        final_questions: list[str] = []
-        reframed_final_questions, final_changes = cheat.reframe_questions_to_positive(
-            cheat.questions_to_ask(company_name, profile, job_description, supplied_context)
-        )
-        if final_changes:
-            cheat.log_reframed_questions("detailed backup questions", final_changes)
-        for question in reframed_final_questions:
-            final_questions.append(question)
-            add_bullet(document, question)
-        warnings = cheat.interview_question_quality_warnings(list(supplied_questions) + reframed_smart_questions + final_questions)
-        if warnings:
-            add_subsection(document, "Question Quality Audit")
-            for warning in warnings:
-                add_bullet(document, warning)
-        add_subsection(document, "Closing Mechanics")
-        add_subsection(document, "Fit Summary Before The Close")
-        for line in cheat.closing_fit_summary(profile):
-            add_bullet(document, line)
-        add_subsection(document, "Closing The Interview Drill")
-        for line in cheat.closing_interview_drill_lines(company_name, role_title, profile, job_description, supplied_context):
-            add_bullet(document, line)
-        for title, lines in cheat.closing_mechanics(company_name, role_title, profile, job_description, supplied_context):
-            add_subsection(document, title)
-            for line in lines:
+        if interview_stage.standard_stage_includes(stage_profile, "Three Supported Proof Themes"):
+            add_section(document, "Three Supported Proof Themes")
+            for line in cheat.three_supported_proof_theme_lines(profile, stories):
                 add_bullet(document, line)
-        add_thank_you_strategy_section(document, company_name, role_title)
-        add_subsection(document, "Final Reminder")
-        for line in cheat.answer_do_dont(job_description):
-            add_bullet(document, line, small=True)
 
-        add_page_break(document)
-        add_keyword_question_bank(document, profile, job_description, resume_text, hero_stories, company_name, role_title)
+        if stage_profile.key == "all" and interview_stage.standard_stage_includes(stage_profile, "Answer Mechanics Reference"):
+            add_page_break(document)
+            add_section(document, "Answer Mechanics Reference")
+        if stage_profile.key == "all" and interview_stage.standard_stage_includes(stage_profile, "Answer Operating System"):
+            add_general_answer_operating_system(document, profile, framework_selection)
+
+        if interview_stage.standard_stage_includes(stage_profile, "Story Selection Decision Table"):
+            add_section(document, "Story Selection Decision Table")
+            add_body(document, "Use this as a quick index when an interviewer asks for a different example.")
+            for line in story_selection_decision_table(hero_stories, profile, job_description):
+                add_bullet(document, line)
+
+        if interview_stage.standard_stage_includes(stage_profile, "Likely Pushbacks And Short Answers"):
+            add_pushback_section(document, insights)
+        if interview_stage.standard_stage_includes(stage_profile, "Anticipated Questions From Notes"):
+            add_anticipated_question_section(document, insights)
+        if interview_stage.standard_stage_includes(stage_profile, "Business-Context Interview Questions"):
+            add_business_context_question_section(
+                document,
+                job_description,
+                supplied_context,
+                stories,
+                profile=profile,
+                company_name=company_name,
+                role_title=role_title,
+                resume_text=resume_text,
+                interview_notes=interview_notes,
+            )
+
+        if interview_stage.standard_stage_includes(stage_profile, "QUESTIONS TO ASK AND HOW TO CLOSE"):
+            add_section(document, "QUESTIONS TO ASK AND HOW TO CLOSE")
+            add_subsection(document, "Strategic Question Filter")
+            for line in cheat.strategic_question_filter_lines():
+                add_bullet(document, line)
+            add_subsection(document, "Stronger Consultative Questions To Ask")
+            for line in cheat.consultative_question_drill_lines(profile, company_name, role_title):
+                add_bullet(document, line)
+            add_subsection(document, "Structural Diagnostic Question To Lead With")
+            add_bullet(document, cheat.lane_structural_diagnostic_question(profile, company_name, role_title, job_description))
+            supplied_questions, supplied_changes = cheat.reframe_questions_to_positive(
+                cheat.supplied_smart_questions(supplied_context)
+            )
+            if supplied_changes:
+                cheat.log_reframed_questions("detailed supplied questions", supplied_changes)
+            if supplied_questions:
+                add_subsection(document, "Highest-Value Supplied Questions")
+                for question in supplied_questions[:12]:
+                    add_bullet(document, question)
+            add_subsection(document, "Highest-Value Questions From The Notes")
+            reframed_smart_questions, smart_changes = cheat.reframe_questions_to_positive(list(insights.smart_questions[:10]))
+            if smart_changes:
+                cheat.log_reframed_questions("detailed smart questions", smart_changes)
+            for question in reframed_smart_questions:
+                if question in supplied_questions:
+                    continue
+                add_bullet(document, question)
+            add_subsection(document, "General Backup Questions")
+            final_questions: list[str] = []
+            reframed_final_questions, final_changes = cheat.reframe_questions_to_positive(
+                cheat.questions_to_ask(company_name, profile, job_description, supplied_context)
+            )
+            if final_changes:
+                cheat.log_reframed_questions("detailed backup questions", final_changes)
+            for question in reframed_final_questions:
+                final_questions.append(question)
+                add_bullet(document, question)
+            warnings = cheat.interview_question_quality_warnings(list(supplied_questions) + reframed_smart_questions + final_questions)
+            if warnings:
+                add_subsection(document, "Question Quality Audit")
+                for warning in warnings:
+                    add_bullet(document, warning)
+            add_subsection(document, "Closing Mechanics")
+            add_subsection(document, "Fit Summary Before The Close")
+            for line in cheat.closing_fit_summary(profile):
+                add_bullet(document, line)
+            add_subsection(document, "Closing The Interview Drill")
+            for line in cheat.closing_interview_drill_lines(company_name, role_title, profile, job_description, supplied_context):
+                add_bullet(document, line)
+            for title, lines in cheat.closing_mechanics(company_name, role_title, profile, job_description, supplied_context):
+                add_subsection(document, title)
+                for line in lines:
+                    add_bullet(document, line)
+        if interview_stage.standard_stage_includes(stage_profile, "Thank-You Note Strategy"):
+            add_thank_you_strategy_section(document, company_name, role_title)
+            add_subsection(document, "Final Reminder")
+            for line in cheat.answer_do_dont(job_description):
+                add_bullet(document, line, small=True)
+
+        if stage_profile.key == "all" and interview_stage.standard_stage_includes(stage_profile, "KEYWORD ANSWER REFERENCE"):
+            add_page_break(document)
+            add_keyword_question_bank(document, profile, job_description, resume_text, hero_stories, company_name, role_title)
 
     body = document_text(document)
     scrub_document_for_job_language(document, job_description)
@@ -3621,7 +3719,8 @@ def build_detailed_interview_guide_for_inputs(
         actual_output = draft_output
     if review_issues:
         question_prep.mark_docx_as_draft(actual_output, review_issues)
-    render_checks.render_docx(actual_output)
+    render_dir = render_checks.render_docx(actual_output)
+    report_stage_page_budget(stage_profile, actual_output, render_dir)
     return DetailedGuideResult(company_name, role_title, resume_docx, actual_output)
 
 

@@ -11,6 +11,7 @@ from docx.shared import Pt, RGBColor
 
 import build_interview_cheat_sheet as cheat
 import build_resume
+import interview_stage
 from utils import fail
 
 
@@ -1711,27 +1712,49 @@ def add_state_farm_full_workbook(
     resume_text: str,
     hero_stories: list[cheat.StoryCard],
     add_keyword_question_bank_callback: Callable[..., None],
+    *,
+    stage_profile: interview_stage.StageProfile,
 ) -> None:
-    add_state_farm_workbook_cover_note(document)
-    add_state_farm_role_deconstruction_workbook(document, job_description)
-    add_state_farm_interview_process_map(document)
-    add_state_farm_answer_operating_system(document)
-    add_keyword_question_bank_callback(document, profile, job_description, resume_text, hero_stories, company_name, role_title)
-    add_natural_storytelling_system(document)
-    add_state_farm_core_positioning_lab(document)
-    story_data = add_state_farm_story_workbook(document, hero_stories, resume_text)
-    add_state_farm_master_qa_workbook(document, story_data)
-    add_state_farm_mock_dialogue_workbook(document)
-    add_state_farm_data_exercise_workbook(document)
-    add_state_farm_panel_workbook(document)
-    add_state_farm_leadership_and_pushback_workbook(document)
-    add_state_farm_video_workbook(document)
-    add_state_farm_questions_workbook(document)
-    add_state_farm_deep_questions_to_ask_bank(document)
-    add_state_farm_post_interview_strategy_deep(document)
-    add_state_farm_practice_plan_workbook(document)
-    add_page_break(document)
-    add_state_farm_master_checklist(document)
+    if interview_stage.state_farm_stage_includes(stage_profile, "Workbook Promise"):
+        add_state_farm_workbook_cover_note(document)
+    if interview_stage.state_farm_stage_includes(stage_profile, "State Farm Role Deconstruction"):
+        add_state_farm_role_deconstruction_workbook(document, job_description)
+    if interview_stage.state_farm_stage_includes(stage_profile, "Interview Process Map"):
+        add_state_farm_interview_process_map(document)
+    if interview_stage.state_farm_stage_includes(stage_profile, "Answer Operating System"):
+        add_state_farm_answer_operating_system(document)
+    if stage_profile.key == "all" and interview_stage.state_farm_stage_includes(stage_profile, "KEYWORD ANSWER REFERENCE"):
+        add_keyword_question_bank_callback(document, profile, job_description, resume_text, hero_stories, company_name, role_title)
+    if interview_stage.state_farm_stage_includes(stage_profile, "Natural Storytelling System"):
+        add_natural_storytelling_system(document)
+    if interview_stage.state_farm_stage_includes(stage_profile, "Core Positioning Answer Lab"):
+        add_state_farm_core_positioning_lab(document)
+    story_data: list[dict[str, object]] = []
+    if interview_stage.state_farm_stage_includes(stage_profile, "Primary Story Workbook"):
+        story_data = add_state_farm_story_workbook(document, hero_stories, resume_text)
+    if interview_stage.state_farm_stage_includes(stage_profile, "Master Q&A Workbook"):
+        add_state_farm_master_qa_workbook(document, story_data)
+    if interview_stage.state_farm_stage_includes(stage_profile, "Mock Interview Dialogue Workbook"):
+        add_state_farm_mock_dialogue_workbook(document)
+    if interview_stage.state_farm_stage_includes(stage_profile, "Data Exercise Workbook"):
+        add_state_farm_data_exercise_workbook(document)
+    if interview_stage.state_farm_stage_includes(stage_profile, "Live Panel And Case Presentation Workbook"):
+        add_state_farm_panel_workbook(document)
+    if interview_stage.state_farm_stage_includes(stage_profile, "Leadership, Prioritization, And Pushback Workbook"):
+        add_state_farm_leadership_and_pushback_workbook(document)
+    if interview_stage.state_farm_stage_includes(stage_profile, "On-Demand Video Workbook"):
+        add_state_farm_video_workbook(document)
+    if interview_stage.state_farm_stage_includes(stage_profile, "Questions, Rapport, And Closing Workbook"):
+        add_state_farm_questions_workbook(document)
+    if interview_stage.state_farm_stage_includes(stage_profile, "Deep Questions To Ask Bank"):
+        add_state_farm_deep_questions_to_ask_bank(document)
+    if interview_stage.state_farm_stage_includes(stage_profile, "Post-Interview Strategy"):
+        add_state_farm_post_interview_strategy_deep(document)
+    if interview_stage.state_farm_stage_includes(stage_profile, "Practice Plan"):
+        add_state_farm_practice_plan_workbook(document)
+    if interview_stage.state_farm_stage_includes(stage_profile, "Final Master Checklist"):
+        add_page_break(document)
+        add_state_farm_master_checklist(document)
 
 def validate_state_farm_workbook_text(text: str) -> None:
     # Coverage surface includes state_farm_prep_insights() plus the full workbook sections below.
