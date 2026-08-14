@@ -41,17 +41,34 @@ jobs:
         run: |
           choco install libreoffice-fresh --version=7.6.5 -y --allow-downgrade
           choco install poppler --version=26.5.0 -y --allow-downgrade
+          if ([string]::IsNullOrWhiteSpace($env:ChocolateyInstall)) {
+            Write-Host "::error title=Poppler discovery::ChocolateyInstall is empty after installing the pinned renderers"
+            throw "ChocolateyInstall is empty after installing the pinned renderers"
+          }
+          Write-Host "ChocolateyInstall: $env:ChocolateyInstall"
+          $popplerRoot = Join-Path $env:ChocolateyInstall "lib\poppler"
+          if (-not (Test-Path -LiteralPath $popplerRoot)) {
+            Write-Host "::error title=Poppler discovery::Poppler search root is missing: $popplerRoot"
+            throw "Poppler search root is missing: $popplerRoot"
+          }
+          $popplerCandidates = @(
+            Get-ChildItem -LiteralPath $popplerRoot -Filter "pdftoppm.exe" -File -Recurse |
+              Where-Object { Test-Path -LiteralPath (Join-Path $_.DirectoryName "pdfinfo.exe") } |
+              Sort-Object { $_.FullName.ToLowerInvariant() }
+          )
+          Write-Host "Poppler executable candidates ($($popplerCandidates.Count)):"
+          $popplerCandidates | ForEach-Object { Write-Host "  $($_.FullName)" }
+          if ($popplerCandidates.Count -ne 1) {
+            Write-Host "::error title=Poppler discovery::Expected exactly one pdftoppm.exe/pdfinfo.exe pair beneath $popplerRoot; found $($popplerCandidates.Count)"
+            throw "Expected exactly one pdftoppm.exe/pdfinfo.exe pair beneath $popplerRoot; found $($popplerCandidates.Count)"
+          }
+          $popplerDirectory = $popplerCandidates[0].DirectoryName
+          Add-Content -LiteralPath $env:GITHUB_PATH -Value $popplerDirectory
+          Add-Content -LiteralPath $env:GITHUB_ENV -Value "RESUME_CI_POPPLER_DIR=$popplerDirectory"
+          Write-Host "Exported Poppler directory for subsequent steps: $popplerDirectory"
 
       - name: Verify exact renderer versions
-        shell: powershell
-        run: |
-          $soffice = "C:\Program Files\LibreOffice\program\soffice.com"
-          if (-not (Test-Path -LiteralPath $soffice)) { throw "Pinned LibreOffice executable is missing" }
-          $loVersion = (& $soffice --version | Out-String).Trim()
-          if ($loVersion -notmatch "LibreOffice 7\.6\.5\.2\b") { throw "Unexpected LibreOffice version: $loVersion" }
-          $poppler = (Get-Command pdftoppm -ErrorAction Stop).Source
-          $popplerVersion = (& $poppler -v 2>&1 | Out-String).Trim()
-          if ($popplerVersion -notmatch "pdftoppm version 26\.05\.0\b") { throw "Unexpected Poppler version: $popplerVersion" }
+        run: python scripts/ci_renderer_probe.py
 
       - name: Prove planted changes are detected
         run: python tasks.py equivalence-compare --candidate HEAD --self-test

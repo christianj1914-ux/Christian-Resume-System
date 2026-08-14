@@ -373,6 +373,14 @@ Visual QA helper for DOCX output.
 - `latest_output_docx()`: selects recent output documents.
 - `find_render_docx_script()`: locates renderer.
 
+## `scripts/ci_renderer_probe.py`
+
+CI-only renderer toolchain verification. It calls the production LibreOffice and Poppler resolvers, retains every probe result before evaluating the exact pins, and emits complete local diagnostics plus GitHub annotations and a step summary when those CI surfaces are available.
+
+- `collect_diagnostics()`: probes Chocolatey metadata, resolver imports and paths, and raw binary versions without short-circuiting.
+- `evaluate_diagnostics()`: applies the exact package and binary-version contracts after collection.
+- `emit_diagnostics()`: writes JSON diagnostics locally and adds GitHub-specific output only when the relevant environment variables exist.
+
 ## `scripts/smoke_test.py`
 
 Validation-only script. It is safe to run without a live job description in `jobs/job_description.txt`.

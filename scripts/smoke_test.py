@@ -19987,9 +19987,232 @@ def test_equivalence_frozen_manifest_is_complete() -> None:
 
 def test_equivalence_ci_contract() -> None:
     workflow = (PROJECT_ROOT / ".github" / "workflows" / "equivalence.yml").read_text(encoding="utf-8")
-    assert_true("runs-on: windows-2025" in workflow and 'python-version: "3.12"' in workflow, "equivalence CI runtime drifted")
-    assert_true("LibreOffice 7\\.6\\.5\\.2" in workflow and "26\\.05\\.0" in workflow, "equivalence CI must verify exact renderer versions")
-    assert_true("--self-test" in workflow and "--baseline a14fb43 --candidate HEAD" in workflow, "equivalence CI must run both the planted proof and full comparison")
+    smoke_workflow = (PROJECT_ROOT / ".github" / "workflows" / "smoke_test.yml").read_text(encoding="utf-8")
+    assert_true(
+        "runs-on: windows-2025" in workflow
+        and 'python-version: "3.12"' in workflow
+        and "timeout-minutes: 45" in workflow,
+        "equivalence CI runtime drifted",
+    )
+    assert_true(
+        "--version=7.6.5" in workflow and "--version=26.5.0" in workflow,
+        "equivalence CI Chocolatey pins drifted",
+    )
+    assert_true(
+        "$env:ChocolateyInstall" in workflow
+        and "$popplerCandidates.Count -ne 1" in workflow
+        and "pdfinfo.exe" in workflow
+        and "GITHUB_PATH" in workflow
+        and "python scripts/ci_renderer_probe.py" in workflow,
+        "equivalence CI must export exactly one paired Poppler installation and call the renderer probe",
+    )
+    assert_true(
+        "--self-test" in workflow and "--baseline a14fb43 --candidate HEAD" in workflow,
+        "equivalence CI must run both the planted proof and full comparison",
+    )
+    assert_true(
+        "actions/checkout@v4" in workflow
+        and "actions/setup-python@v5" in workflow
+        and "actions/upload-artifact@v4" in workflow,
+        "equivalence CI action majors drifted before the Node 24 maintenance checkpoint",
+    )
+    assert_true(
+        "actions/checkout@v4" in smoke_workflow
+        and "actions/setup-python@v5" in smoke_workflow
+        and "actions/upload-artifact@" not in smoke_workflow,
+        "smoke CI must declare only its two expected action families",
+    )
+
+    import ci_renderer_probe
+
+    with TemporaryDirectory(prefix="renderer_probe_") as temp_name:
+        poppler_dir = Path(temp_name) / "poppler"
+        poppler_dir.mkdir()
+        soffice_path = Path(temp_name) / "soffice.com"
+        pdftoppm_path = poppler_dir / "pdftoppm.exe"
+
+        def good_package_query(package: str) -> dict[str, object]:
+            return {
+                "ok": True,
+                "exit_code": 0,
+                "stdout": f"{package}|{ci_renderer_probe.EXPECTED_PACKAGES[package]}",
+                "stderr": "",
+                "error": "",
+            }
+
+        def good_resolver_loader() -> dict[str, object]:
+            return {
+                "libreoffice": lambda: soffice_path,
+                "poppler": lambda: pdftoppm_path,
+            }
+
+        version_calls: list[tuple[str, ...]] = []
+
+        def good_command_runner(command: object) -> dict[str, object]:
+            command_tuple = tuple(str(part) for part in command)
+            version_calls.append(command_tuple)
+            observed = (
+                "LibreOffice 7.6.5.2 38d5f62f85355c192ef5f1dd47c5c0c0c6d6598b"
+                if command_tuple[-1] == "--version"
+                else "pdftoppm version 26.05.0"
+            )
+            return {"ok": True, "exit_code": 0, "stdout": observed, "stderr": "", "error": ""}
+
+        ci_environment = {
+            "GITHUB_ACTIONS": "true",
+            "PATH": "fixture-path",
+            "RESUME_CI_POPPLER_DIR": str(poppler_dir),
+        }
+        valid_report = ci_renderer_probe.collect_diagnostics(
+            good_package_query,
+            good_resolver_loader,
+            good_command_runner,
+            ci_environment,
+        )
+        assert_true(
+            ci_renderer_probe.evaluate_diagnostics(valid_report) == [],
+            "valid renderer diagnostics should pass exact package and binary contracts",
+        )
+        assert_true(
+            ci_renderer_probe.LIBREOFFICE_VERSION_PATTERN.search("LibreOffice 7.6.5.2 60(Build:2)") is not None
+            and ci_renderer_probe.POPPLER_VERSION_PATTERN.search("pdftoppm version 26.05.0") is not None,
+            "renderer probe must accept the exact pinned binary-version forms",
+        )
+
+        def import_failure() -> dict[str, object]:
+            raise ImportError("synthetic dependency failure")
+
+        import_report = ci_renderer_probe.collect_diagnostics(
+            good_package_query,
+            import_failure,
+            good_command_runner,
+            {"PATH": "fixture-path"},
+        )
+        assert_true(
+            import_report["resolver_import"]["category"] == "resolver_import_failure"
+            and ci_renderer_probe.evaluate_diagnostics(import_report),
+            "resolver import failures must retain their own category and fail after collection",
+        )
+
+        surviving_version_calls: list[tuple[str, ...]] = []
+
+        def partial_resolvers() -> dict[str, object]:
+            def fail_soffice() -> object:
+                raise FileNotFoundError("synthetic soffice miss")
+
+            return {"libreoffice": fail_soffice, "poppler": lambda: pdftoppm_path}
+
+        def surviving_command_runner(command: object) -> dict[str, object]:
+            command_tuple = tuple(str(part) for part in command)
+            surviving_version_calls.append(command_tuple)
+            return {
+                "ok": True,
+                "exit_code": 0,
+                "stdout": "pdftoppm version 26.05.0",
+                "stderr": "",
+                "error": "",
+            }
+
+        partial_report = ci_renderer_probe.collect_diagnostics(
+            good_package_query,
+            partial_resolvers,
+            surviving_command_runner,
+            {"PATH": "fixture-path"},
+        )
+        assert_true(
+            partial_report["resolvers"]["libreoffice"]["ok"] is False
+            and partial_report["versions"]["poppler"]["ok"] is True
+            and len(surviving_version_calls) == 1,
+            "one resolver failure must not suppress the independent renderer probe",
+        )
+
+        queried_packages: list[str] = []
+
+        def failing_package_query(package: str) -> dict[str, object]:
+            queried_packages.append(package)
+            if package == "libreoffice-fresh":
+                raise OSError("synthetic choco failure")
+            return good_package_query(package)
+
+        package_report = ci_renderer_probe.collect_diagnostics(
+            failing_package_query,
+            good_resolver_loader,
+            good_command_runner,
+            {"PATH": "fixture-path"},
+        )
+        package_failures = ci_renderer_probe.evaluate_diagnostics(package_report)
+        assert_true(
+            queried_packages == ["libreoffice-fresh", "poppler"]
+            and package_report["versions"]["libreoffice"]["ok"] is True
+            and package_report["versions"]["poppler"]["ok"] is True
+            and any("Chocolatey query failed" in failure for failure in package_failures),
+            "failed package metadata must be retained without short-circuiting renderer probes",
+        )
+
+        def wrong_version_runner(command: object) -> dict[str, object]:
+            command_tuple = tuple(str(part) for part in command)
+            observed = "LibreOffice 7.6.5.1" if command_tuple[-1] == "--version" else "pdftoppm version 26.04.0"
+            return {"ok": True, "exit_code": 0, "stdout": observed, "stderr": "", "error": ""}
+
+        wrong_report = ci_renderer_probe.collect_diagnostics(
+            good_package_query,
+            good_resolver_loader,
+            wrong_version_runner,
+            {"PATH": "fixture-path"},
+        )
+        wrong_failures = ci_renderer_probe.evaluate_diagnostics(wrong_report)
+        assert_true(
+            len([failure for failure in wrong_failures if "Unexpected" in failure]) == 2,
+            "wrong renderer strings must remain visible as two final failures",
+        )
+
+        local_output = io.StringIO()
+        ci_renderer_probe.emit_diagnostics(wrong_report, wrong_failures, {"PATH": "fixture-path"}, local_output)
+        local_text = local_output.getvalue()
+        assert_true(
+            '"result": "FAIL"' in local_text and "::error" not in local_text,
+            "local probe emission must provide full evidence without requiring GitHub variables",
+        )
+        ci_output = io.StringIO()
+        escaped_failure = ["synthetic % failure\r\nwith newline"]
+        ci_renderer_probe.emit_diagnostics(
+            wrong_report,
+            escaped_failure,
+            {"GITHUB_ACTIONS": "true", "PATH": "fixture-path"},
+            ci_output,
+        )
+        assert_true(
+            "::error title=Renderer pin verification::" in ci_output.getvalue()
+            and "%25" in ci_output.getvalue(),
+            "GitHub annotations must be emitted only in CI with percent characters escaped",
+        )
+        assert_true(
+            ci_renderer_probe._escape_annotation("synthetic % failure\r\nwith newline")
+            == "synthetic %25 failure%0D%0Awith newline",
+            "GitHub annotation control characters must be escaped before emission",
+        )
+        local_run_output = io.StringIO()
+        ci_run_output = io.StringIO()
+        local_exit = ci_renderer_probe.run_probe(
+            good_package_query,
+            good_resolver_loader,
+            good_command_runner,
+            {"PATH": "fixture-path"},
+            local_run_output,
+        )
+        ci_exit = ci_renderer_probe.run_probe(
+            good_package_query,
+            good_resolver_loader,
+            good_command_runner,
+            ci_environment,
+            ci_run_output,
+        )
+        assert_true(
+            local_exit == ci_exit == 0
+            and "::error" not in local_run_output.getvalue()
+            and "::error" not in ci_run_output.getvalue(),
+            "identical successful probe evidence must produce the same exit decision locally and in CI",
+        )
 
 
 def main(argv: list[str] | None = None) -> None:
