@@ -20022,16 +20022,22 @@ def test_equivalence_ci_contract() -> None:
         "equivalence CI runtime drifted",
     )
     assert_true(
-        "--version=7.6.5" in workflow and "--version=26.5.0" in workflow,
-        "equivalence CI Chocolatey pins drifted",
+        "--version=7.6.5" in workflow
+        and "poppler=26.05.0=h4b9d284_3" in workflow
+        and "--override-channels --channel conda-forge" in workflow,
+        "equivalence CI renderer package pins drifted",
     )
     assert_true(
-        "$env:ChocolateyInstall" in workflow
+        "$env:CONDA" in workflow
+        and "Scripts\\conda.exe" in workflow
         and "$popplerCandidates.Count -ne 1" in workflow
         and "pdfinfo.exe" in workflow
         and "GITHUB_PATH" in workflow
+        and "RESUME_CI_POPPLER_PREFIX" in workflow
+        and "RESUME_CI_POPPLER_INSTALL_SECONDS" in workflow
+        and "Stopwatch" in workflow
         and "python scripts/ci_renderer_probe.py" in workflow,
-        "equivalence CI must export exactly one paired Poppler installation and call the renderer probe",
+        "equivalence CI must time and export exactly one paired conda Poppler installation before probing",
     )
     assert_true(
         "--self-test" in workflow and "--baseline a14fb43 --candidate HEAD" in workflow,
@@ -20046,8 +20052,21 @@ def test_equivalence_ci_contract() -> None:
     assert_true(
         "actions/checkout@v4" in smoke_workflow
         and "actions/setup-python@v5" in smoke_workflow
+        and "fetch-depth: 0" in smoke_workflow
         and "actions/upload-artifact@" not in smoke_workflow,
-        "smoke CI must declare only its two expected action families",
+        "smoke CI must retain full history and declare only its two expected action families",
+    )
+
+    batch_eol = subprocess.run(
+        ["git", "-C", str(PROJECT_ROOT), "ls-files", "--eol", "--", "*.bat"],
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout.splitlines()
+    assert_true(
+        len(batch_eol) == 7
+        and all("i/lf" in line and "attr/text eol=crlf" in line for line in batch_eol),
+        f"tracked batch launchers must keep LF blobs and the CRLF checkout attribute: {batch_eol}",
     )
 
     import ci_renderer_probe
@@ -20055,14 +20074,49 @@ def test_equivalence_ci_contract() -> None:
     with TemporaryDirectory(prefix="renderer_probe_") as temp_name:
         poppler_dir = Path(temp_name) / "poppler"
         poppler_dir.mkdir()
+        poppler_prefix = Path(temp_name) / "prefix"
+        poppler_prefix.mkdir()
         soffice_path = Path(temp_name) / "soffice.com"
         pdftoppm_path = poppler_dir / "pdftoppm.exe"
 
-        def good_package_query(package: str) -> dict[str, object]:
+        baseline_values = {
+            "libreoffice": "LibreOffice 7.6.5.2 38d5f62f85355c192ef5f1dd47c5c0c0c6d6598b",
+            "poppler": "26.05.0",
+        }
+
+        def good_baseline_loader() -> dict[str, object]:
+            return {
+                "ok": True,
+                "category": "",
+                "path": "fixture-manifest.json",
+                "values": dict(baseline_values),
+                "error": "",
+            }
+
+        def good_chocolatey_query(package: str) -> dict[str, object]:
             return {
                 "ok": True,
                 "exit_code": 0,
-                "stdout": f"{package}|{ci_renderer_probe.EXPECTED_PACKAGES[package]}",
+                "stdout": f"{package}|{ci_renderer_probe.EXPECTED_CHOCOLATEY_PACKAGES[package]}\n",
+                "stderr": "",
+                "error": "",
+            }
+
+        def good_conda_query(_conda_root: str, _prefix: str) -> dict[str, object]:
+            return {
+                "ok": True,
+                "exit_code": 0,
+                "stdout": json.dumps(
+                    [
+                        {
+                            "name": "poppler",
+                            "version": baseline_values["poppler"],
+                            "build_string": ci_renderer_probe.EXPECTED_CONDA_BUILD,
+                            "channel": "conda-forge",
+                            "base_url": "https://conda.anaconda.org/conda-forge",
+                        }
+                    ]
+                ),
                 "stderr": "",
                 "error": "",
             }
@@ -20073,47 +20127,98 @@ def test_equivalence_ci_contract() -> None:
                 "poppler": lambda: pdftoppm_path,
             }
 
-        version_calls: list[tuple[str, ...]] = []
+        version_calls: list[tuple[tuple[str, ...], float]] = []
 
-        def good_command_runner(command: object) -> dict[str, object]:
+        def good_command_runner(command: object, timeout_seconds: float) -> dict[str, object]:
             command_tuple = tuple(str(part) for part in command)
-            version_calls.append(command_tuple)
-            observed = (
-                "LibreOffice 7.6.5.2 38d5f62f85355c192ef5f1dd47c5c0c0c6d6598b"
-                if command_tuple[-1] == "--version"
-                else "pdftoppm version 26.05.0"
-            )
-            return {"ok": True, "exit_code": 0, "stdout": observed, "stderr": "", "error": ""}
+            version_calls.append((command_tuple, timeout_seconds))
+            if command_tuple[-1] == "--version":
+                return {
+                    "ok": True,
+                    "exit_code": 0,
+                    "stdout": baseline_values["libreoffice"] + "\n",
+                    "stderr": "",
+                    "error": "",
+                }
+            return {
+                "ok": True,
+                "exit_code": 0,
+                "stdout": "",
+                "stderr": "pdftoppm version 26.05.0\nCopyright fixture\n",
+                "error": "",
+            }
 
         ci_environment = {
             "GITHUB_ACTIONS": "true",
             "PATH": "fixture-path",
+            "CONDA": str(Path(temp_name) / "conda"),
+            "RESUME_CI_POPPLER_PREFIX": str(poppler_prefix),
             "RESUME_CI_POPPLER_DIR": str(poppler_dir),
+            "RESUME_CI_POPPLER_INSTALL_SECONDS": "12.345",
         }
         valid_report = ci_renderer_probe.collect_diagnostics(
-            good_package_query,
-            good_resolver_loader,
-            good_command_runner,
-            ci_environment,
+            chocolatey_query=good_chocolatey_query,
+            conda_query=good_conda_query,
+            baseline_loader=good_baseline_loader,
+            resolver_loader=good_resolver_loader,
+            command_runner=good_command_runner,
+            environ=ci_environment,
         )
         assert_true(
             ci_renderer_probe.evaluate_diagnostics(valid_report) == [],
             "valid renderer diagnostics should pass exact package and binary contracts",
         )
         assert_true(
-            ci_renderer_probe.LIBREOFFICE_VERSION_PATTERN.search("LibreOffice 7.6.5.2 60(Build:2)") is not None
-            and ci_renderer_probe.POPPLER_VERSION_PATTERN.search("pdftoppm version 26.05.0") is not None,
-            "renderer probe must accept the exact pinned binary-version forms",
+            version_calls
+            == [
+                ((str(soffice_path), "--version"), 15.0),
+                ((str(pdftoppm_path), "-v"), 30.0),
+            ]
+            and valid_report["versions"]["libreoffice"]["production_renderer_version"]
+            == baseline_values["libreoffice"]
+            and valid_report["versions"]["poppler"]["selected_stream"] == "stderr"
+            and valid_report["versions"]["poppler"]["version_banner"]
+            == "pdftoppm version 26.05.0",
+            "renderer probe must match production's 15-second LibreOffice semantics and retain Poppler stderr evidence",
+        )
+
+        live_baseline = ci_renderer_probe._load_baseline_expectations()
+        assert_true(
+            live_baseline.get("ok")
+            and set(live_baseline.get("values", {})) == {"libreoffice", "poppler"},
+            "tracked baseline expectations must load as one value per renderer",
+        )
+
+        malformed_baseline_report = ci_renderer_probe.collect_diagnostics(
+            chocolatey_query=good_chocolatey_query,
+            conda_query=good_conda_query,
+            baseline_loader=lambda: {
+                "ok": False,
+                "category": "baseline_expectation_failure",
+                "error": "renderer_versions must contain exactly one nonempty string",
+            },
+            resolver_loader=good_resolver_loader,
+            command_runner=good_command_runner,
+            environ=ci_environment,
+        )
+        assert_true(
+            any(
+                "Baseline renderer expectations unavailable" in failure
+                for failure in ci_renderer_probe.evaluate_diagnostics(malformed_baseline_report)
+            ),
+            "malformed baseline expectations must fail in their own diagnostic category",
         )
 
         def import_failure() -> dict[str, object]:
             raise ImportError("synthetic dependency failure")
 
         import_report = ci_renderer_probe.collect_diagnostics(
-            good_package_query,
-            import_failure,
-            good_command_runner,
-            {"PATH": "fixture-path"},
+            chocolatey_query=good_chocolatey_query,
+            conda_query=good_conda_query,
+            baseline_loader=good_baseline_loader,
+            resolver_loader=import_failure,
+            command_runner=good_command_runner,
+            environ=ci_environment,
         )
         assert_true(
             import_report["resolver_import"]["category"] == "resolver_import_failure"
@@ -20121,7 +20226,7 @@ def test_equivalence_ci_contract() -> None:
             "resolver import failures must retain their own category and fail after collection",
         )
 
-        surviving_version_calls: list[tuple[str, ...]] = []
+        surviving_version_calls: list[tuple[tuple[str, ...], float]] = []
 
         def partial_resolvers() -> dict[str, object]:
             def fail_soffice() -> object:
@@ -20129,72 +20234,215 @@ def test_equivalence_ci_contract() -> None:
 
             return {"libreoffice": fail_soffice, "poppler": lambda: pdftoppm_path}
 
-        def surviving_command_runner(command: object) -> dict[str, object]:
+        def surviving_command_runner(command: object, timeout_seconds: float) -> dict[str, object]:
             command_tuple = tuple(str(part) for part in command)
-            surviving_version_calls.append(command_tuple)
+            surviving_version_calls.append((command_tuple, timeout_seconds))
             return {
                 "ok": True,
                 "exit_code": 0,
-                "stdout": "pdftoppm version 26.05.0",
-                "stderr": "",
+                "stdout": "",
+                "stderr": "pdftoppm version 26.05.0\n",
                 "error": "",
             }
 
         partial_report = ci_renderer_probe.collect_diagnostics(
-            good_package_query,
-            partial_resolvers,
-            surviving_command_runner,
-            {"PATH": "fixture-path"},
+            chocolatey_query=good_chocolatey_query,
+            conda_query=good_conda_query,
+            baseline_loader=good_baseline_loader,
+            resolver_loader=partial_resolvers,
+            command_runner=surviving_command_runner,
+            environ=ci_environment,
         )
         assert_true(
             partial_report["resolvers"]["libreoffice"]["ok"] is False
             and partial_report["versions"]["poppler"]["ok"] is True
-            and len(surviving_version_calls) == 1,
+            and surviving_version_calls == [((str(pdftoppm_path), "-v"), 30.0)],
             "one resolver failure must not suppress the independent renderer probe",
         )
 
         queried_packages: list[str] = []
 
-        def failing_package_query(package: str) -> dict[str, object]:
+        def failing_chocolatey_query(package: str) -> dict[str, object]:
             queried_packages.append(package)
-            if package == "libreoffice-fresh":
-                raise OSError("synthetic choco failure")
-            return good_package_query(package)
+            raise OSError("synthetic choco failure")
+
+        conda_queries: list[tuple[str, str]] = []
+
+        def failing_conda_query(conda_root: str, prefix: str) -> dict[str, object]:
+            conda_queries.append((conda_root, prefix))
+            raise OSError("synthetic conda failure")
 
         package_report = ci_renderer_probe.collect_diagnostics(
-            failing_package_query,
-            good_resolver_loader,
-            good_command_runner,
-            {"PATH": "fixture-path"},
+            chocolatey_query=failing_chocolatey_query,
+            conda_query=failing_conda_query,
+            baseline_loader=good_baseline_loader,
+            resolver_loader=good_resolver_loader,
+            command_runner=good_command_runner,
+            environ=ci_environment,
         )
         package_failures = ci_renderer_probe.evaluate_diagnostics(package_report)
         assert_true(
-            queried_packages == ["libreoffice-fresh", "poppler"]
+            queried_packages == ["libreoffice-fresh"]
+            and conda_queries == [(ci_environment["CONDA"], str(poppler_prefix))]
             and package_report["versions"]["libreoffice"]["ok"] is True
             and package_report["versions"]["poppler"]["ok"] is True
             and any("Chocolatey query failed" in failure for failure in package_failures),
-            "failed package metadata must be retained without short-circuiting renderer probes",
+            "failed package-manager metadata must be retained without short-circuiting renderer probes",
         )
 
-        def wrong_version_runner(command: object) -> dict[str, object]:
+        def wrong_version_runner(command: object, _timeout_seconds: float) -> dict[str, object]:
             command_tuple = tuple(str(part) for part in command)
-            observed = "LibreOffice 7.6.5.1" if command_tuple[-1] == "--version" else "pdftoppm version 26.04.0"
+            observed = (
+                "LibreOffice 7.6.5.1"
+                if command_tuple[-1] == "--version"
+                else "pdftoppm version 26.04.0"
+            )
             return {"ok": True, "exit_code": 0, "stdout": observed, "stderr": "", "error": ""}
 
         wrong_report = ci_renderer_probe.collect_diagnostics(
-            good_package_query,
-            good_resolver_loader,
-            wrong_version_runner,
-            {"PATH": "fixture-path"},
+            chocolatey_query=good_chocolatey_query,
+            conda_query=good_conda_query,
+            baseline_loader=good_baseline_loader,
+            resolver_loader=good_resolver_loader,
+            command_runner=wrong_version_runner,
+            environ=ci_environment,
         )
         wrong_failures = ci_renderer_probe.evaluate_diagnostics(wrong_report)
         assert_true(
-            len([failure for failure in wrong_failures if "Unexpected" in failure]) == 2,
+            any("Unexpected LibreOffice renderer identity" in failure for failure in wrong_failures)
+            and any("Unexpected Poppler version banner" in failure for failure in wrong_failures),
             "wrong renderer strings must remain visible as two final failures",
         )
 
+        def whitespace_stdout_runner(command: object, _timeout_seconds: float) -> dict[str, object]:
+            command_tuple = tuple(str(part) for part in command)
+            if command_tuple[-1] == "--version":
+                return {
+                    "ok": True,
+                    "exit_code": 0,
+                    "stdout": "\n",
+                    "stderr": baseline_values["libreoffice"],
+                    "error": "",
+                }
+            return good_command_runner(command, 30.0)
+
+        whitespace_report = ci_renderer_probe.collect_diagnostics(
+            chocolatey_query=good_chocolatey_query,
+            conda_query=good_conda_query,
+            baseline_loader=good_baseline_loader,
+            resolver_loader=good_resolver_loader,
+            command_runner=whitespace_stdout_runner,
+            environ=ci_environment,
+        )
+        assert_true(
+            whitespace_report["versions"]["libreoffice"]["selected_stream"] == "stdout"
+            and whitespace_report["versions"]["libreoffice"]["production_renderer_version"] is None
+            and any(
+                "production would record None" in failure
+                for failure in ci_renderer_probe.evaluate_diagnostics(whitespace_report)
+            ),
+            "whitespace-only stdout must preserve production truthiness and fail before comparison",
+        )
+
+        timeout_calls: list[float] = []
+
+        def timeout_runner(command: object, timeout_seconds: float) -> dict[str, object]:
+            command_tuple = tuple(str(part) for part in command)
+            timeout_calls.append(timeout_seconds)
+            if command_tuple[-1] == "--version":
+                return ci_renderer_probe._failure(
+                    subprocess.TimeoutExpired(command_tuple, timeout_seconds),
+                    category="probe_timeout",
+                )
+            return good_command_runner(command, timeout_seconds)
+
+        timeout_report = ci_renderer_probe.collect_diagnostics(
+            chocolatey_query=good_chocolatey_query,
+            conda_query=good_conda_query,
+            baseline_loader=good_baseline_loader,
+            resolver_loader=good_resolver_loader,
+            command_runner=timeout_runner,
+            environ=ci_environment,
+        )
+        assert_true(
+            timeout_calls[0] == 15.0
+            and timeout_report["versions"]["libreoffice"]["production_renderer_version"] is None
+            and any(
+                "production would record None" in failure
+                for failure in ci_renderer_probe.evaluate_diagnostics(timeout_report)
+            ),
+            "LibreOffice timeout must use the production 15-second bound and retain the None outcome",
+        )
+
+        def misleading_poppler_runner(command: object, timeout_seconds: float) -> dict[str, object]:
+            command_tuple = tuple(str(part) for part in command)
+            if command_tuple[-1] == "-v":
+                return {
+                    "ok": True,
+                    "exit_code": 0,
+                    "stdout": "unexpected wrapper output\n",
+                    "stderr": "pdftoppm version 26.05.0\n",
+                    "error": "",
+                }
+            return good_command_runner(command, timeout_seconds)
+
+        misleading_report = ci_renderer_probe.collect_diagnostics(
+            chocolatey_query=good_chocolatey_query,
+            conda_query=good_conda_query,
+            baseline_loader=good_baseline_loader,
+            resolver_loader=good_resolver_loader,
+            command_runner=misleading_poppler_runner,
+            environ=ci_environment,
+        )
+        assert_true(
+            misleading_report["versions"]["poppler"]["selected_stream"] == "stdout"
+            and any(
+                "Unexpected Poppler version banner" in failure
+                for failure in ci_renderer_probe.evaluate_diagnostics(misleading_report)
+            ),
+            "unexpected Poppler stdout must not be hidden by a valid stderr banner",
+        )
+
+        for changed_field, changed_value in (
+            ("version", "26.04.0"),
+            ("build_string", "different_build"),
+            ("channel", "defaults"),
+        ):
+            def bad_conda_query(
+                _conda_root: str,
+                _prefix: str,
+                field: str = changed_field,
+                value: str = changed_value,
+            ) -> dict[str, object]:
+                record = {
+                    "name": "poppler",
+                    "version": baseline_values["poppler"],
+                    "build_string": ci_renderer_probe.EXPECTED_CONDA_BUILD,
+                    "channel": "conda-forge",
+                }
+                record[field] = value
+                return {"ok": True, "exit_code": 0, "stdout": json.dumps([record]), "stderr": "", "error": ""}
+
+            bad_package_report = ci_renderer_probe.collect_diagnostics(
+                chocolatey_query=good_chocolatey_query,
+                conda_query=bad_conda_query,
+                baseline_loader=good_baseline_loader,
+                resolver_loader=good_resolver_loader,
+                command_runner=good_command_runner,
+                environ=ci_environment,
+            )
+            assert_true(
+                any(
+                    "Unexpected conda Poppler package identity" in failure
+                    for failure in ci_renderer_probe.evaluate_diagnostics(bad_package_report)
+                ),
+                f"conda Poppler identity drift must remain fatal: {changed_field}",
+            )
+
         local_output = io.StringIO()
-        ci_renderer_probe.emit_diagnostics(wrong_report, wrong_failures, {"PATH": "fixture-path"}, local_output)
+        ci_renderer_probe.emit_diagnostics(
+            wrong_report, wrong_failures, {"PATH": "fixture-path"}, local_output
+        )
         local_text = local_output.getvalue()
         assert_true(
             '"result": "FAIL"' in local_text and "::error" not in local_text,
@@ -20221,18 +20469,22 @@ def test_equivalence_ci_contract() -> None:
         local_run_output = io.StringIO()
         ci_run_output = io.StringIO()
         local_exit = ci_renderer_probe.run_probe(
-            good_package_query,
-            good_resolver_loader,
-            good_command_runner,
-            {"PATH": "fixture-path"},
-            local_run_output,
+            chocolatey_query=good_chocolatey_query,
+            conda_query=good_conda_query,
+            baseline_loader=good_baseline_loader,
+            resolver_loader=good_resolver_loader,
+            command_runner=good_command_runner,
+            environ={**ci_environment, "GITHUB_ACTIONS": "false"},
+            output=local_run_output,
         )
         ci_exit = ci_renderer_probe.run_probe(
-            good_package_query,
-            good_resolver_loader,
-            good_command_runner,
-            ci_environment,
-            ci_run_output,
+            chocolatey_query=good_chocolatey_query,
+            conda_query=good_conda_query,
+            baseline_loader=good_baseline_loader,
+            resolver_loader=good_resolver_loader,
+            command_runner=good_command_runner,
+            environ=ci_environment,
+            output=ci_run_output,
         )
         assert_true(
             local_exit == ci_exit == 0

@@ -40,31 +40,47 @@ jobs:
         shell: powershell
         run: |
           choco install libreoffice-fresh --version=7.6.5 -y --allow-downgrade
-          choco install poppler --version=26.5.0 -y --allow-downgrade
-          if ([string]::IsNullOrWhiteSpace($env:ChocolateyInstall)) {
-            Write-Host "::error title=Poppler discovery::ChocolateyInstall is empty after installing the pinned renderers"
-            throw "ChocolateyInstall is empty after installing the pinned renderers"
+          if ([string]::IsNullOrWhiteSpace($env:CONDA)) {
+            Write-Host "::error title=Poppler installation::CONDA is empty on the Windows runner"
+            throw "CONDA is empty on the Windows runner"
           }
-          Write-Host "ChocolateyInstall: $env:ChocolateyInstall"
-          $popplerRoot = Join-Path $env:ChocolateyInstall "lib\poppler"
-          if (-not (Test-Path -LiteralPath $popplerRoot)) {
-            Write-Host "::error title=Poppler discovery::Poppler search root is missing: $popplerRoot"
-            throw "Poppler search root is missing: $popplerRoot"
+          Write-Host "CONDA: $env:CONDA"
+          $condaExe = Join-Path $env:CONDA "Scripts\conda.exe"
+          if (-not (Test-Path -LiteralPath $condaExe)) {
+            Write-Host "::error title=Poppler installation::Conda executable is missing: $condaExe"
+            throw "Conda executable is missing: $condaExe"
+          }
+          $popplerPrefix = Join-Path $env:RUNNER_TEMP "resume-poppler-26.05.0-h4b9d284_3"
+          if (Test-Path -LiteralPath $popplerPrefix) {
+            Write-Host "::error title=Poppler installation::Dedicated Poppler prefix already exists: $popplerPrefix"
+            throw "Dedicated Poppler prefix already exists: $popplerPrefix"
+          }
+          $installTimer = [System.Diagnostics.Stopwatch]::StartNew()
+          & $condaExe create --yes --prefix $popplerPrefix --override-channels --channel conda-forge "poppler=26.05.0=h4b9d284_3"
+          $installExit = $LASTEXITCODE
+          $installTimer.Stop()
+          $installSeconds = [Math]::Round($installTimer.Elapsed.TotalSeconds, 3)
+          Write-Host "Poppler conda install exit=$installExit elapsed_seconds=$installSeconds"
+          if ($installExit -ne 0) {
+            Write-Host "::error title=Poppler installation::Conda install failed with exit $installExit after $installSeconds seconds"
+            exit $installExit
           }
           $popplerCandidates = @(
-            Get-ChildItem -LiteralPath $popplerRoot -Filter "pdftoppm.exe" -File -Recurse |
+            Get-ChildItem -LiteralPath $popplerPrefix -Filter "pdftoppm.exe" -File -Recurse |
               Where-Object { Test-Path -LiteralPath (Join-Path $_.DirectoryName "pdfinfo.exe") } |
               Sort-Object { $_.FullName.ToLowerInvariant() }
           )
           Write-Host "Poppler executable candidates ($($popplerCandidates.Count)):"
           $popplerCandidates | ForEach-Object { Write-Host "  $($_.FullName)" }
           if ($popplerCandidates.Count -ne 1) {
-            Write-Host "::error title=Poppler discovery::Expected exactly one pdftoppm.exe/pdfinfo.exe pair beneath $popplerRoot; found $($popplerCandidates.Count)"
-            throw "Expected exactly one pdftoppm.exe/pdfinfo.exe pair beneath $popplerRoot; found $($popplerCandidates.Count)"
+            Write-Host "::error title=Poppler discovery::Expected exactly one pdftoppm.exe/pdfinfo.exe pair beneath $popplerPrefix; found $($popplerCandidates.Count)"
+            throw "Expected exactly one pdftoppm.exe/pdfinfo.exe pair beneath $popplerPrefix; found $($popplerCandidates.Count)"
           }
           $popplerDirectory = $popplerCandidates[0].DirectoryName
           Add-Content -LiteralPath $env:GITHUB_PATH -Value $popplerDirectory
+          Add-Content -LiteralPath $env:GITHUB_ENV -Value "RESUME_CI_POPPLER_PREFIX=$popplerPrefix"
           Add-Content -LiteralPath $env:GITHUB_ENV -Value "RESUME_CI_POPPLER_DIR=$popplerDirectory"
+          Add-Content -LiteralPath $env:GITHUB_ENV -Value "RESUME_CI_POPPLER_INSTALL_SECONDS=$installSeconds"
           Write-Host "Exported Poppler directory for subsequent steps: $popplerDirectory"
 
       - name: Verify exact renderer versions
