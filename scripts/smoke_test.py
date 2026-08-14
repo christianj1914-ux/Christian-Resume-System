@@ -19870,7 +19870,23 @@ def test_equivalence_volatile_text_and_report_contract() -> None:
 def test_equivalence_planted_builder_change_is_detected() -> None:
     import equivalence_harness
 
-    result = equivalence_harness.run_planted_change_self_test("HEAD")
+    # The dedicated equivalence workflow runs this proof with the pinned live
+    # renderer.  General smoke runners intentionally treat rendering as an
+    # optional capability, so stub only the stable render record here while
+    # retaining the exact-commit export, builder mutation, two document builds,
+    # canonical comparison, readable diff, and nested evidence assertions.
+    original_render_record = equivalence_harness._render_record
+    try:
+        equivalence_harness._render_record = lambda *_args, **_kwargs: {
+            "page_count": 2,
+            "renderer": "registered-smoke-stub",
+            "renderer_version": None,
+            "manifest": {},
+            "manifest_sha256": "0" * 64,
+        }
+        result = equivalence_harness.run_planted_change_self_test("HEAD")
+    finally:
+        equivalence_harness._render_record = original_render_record
     assert_true(result["unexplained"] == 1, "planted builder change must affect exactly one fixture")
     item = result["results"][0]
     readable = "\n".join(item["visible_text_diffs"])
