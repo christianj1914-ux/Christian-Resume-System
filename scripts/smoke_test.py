@@ -20109,12 +20109,24 @@ def test_equivalence_ci_contract() -> None:
                 "stdout": json.dumps(
                     [
                         {
+                            "name": "poppler-data",
+                            "version": "0.4.12",
+                            "build_string": "hd8ed1ab_0",
+                            "channel": "conda-forge",
+                        },
+                        {
                             "name": "poppler",
                             "version": baseline_values["poppler"],
                             "build_string": ci_renderer_probe.EXPECTED_CONDA_BUILD,
                             "channel": "conda-forge",
                             "base_url": "https://conda.anaconda.org/conda-forge",
-                        }
+                        },
+                        {
+                            "name": "poppler-mutex",
+                            "version": "0.1",
+                            "build_string": "main",
+                            "channel": "conda-forge",
+                        },
                     ]
                 ),
                 "stderr": "",

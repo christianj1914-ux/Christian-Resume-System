@@ -348,9 +348,20 @@ def evaluate_diagnostics(report: Mapping[str, object]) -> list[str]:
     else:
         try:
             records = json.loads(_as_text(poppler_package.get("stdout")))
-            if not isinstance(records, list) or len(records) != 1 or not isinstance(records[0], dict):
-                raise ValueError("expected exactly one package record")
-            package_record = records[0]
+            if not isinstance(records, list):
+                raise ValueError("expected a package-record list")
+            exact_records = [
+                record
+                for record in records
+                if isinstance(record, dict)
+                and record.get("name") == EXPECTED_CONDA_PACKAGE
+            ]
+            if len(exact_records) != 1:
+                raise ValueError(
+                    "expected exactly one record named "
+                    f"{EXPECTED_CONDA_PACKAGE!r}; found {len(exact_records)}"
+                )
+            package_record = exact_records[0]
         except (ValueError, TypeError, json.JSONDecodeError) as error:
             failures.append(f"Conda Poppler metadata is invalid: {error}")
         else:
