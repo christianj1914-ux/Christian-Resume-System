@@ -43,6 +43,37 @@ GLOBAL_NOTES = SOURCE_DIR / "global_notes.txt"
 # Output directory for generated documents
 OUTPUT_DIR = _path_override("RESUME_OUTPUT_DIR", PROJECT_ROOT / "output")
 
+# Every PDF beneath output/ is created by Christian from a reviewed DOCX and is
+# therefore owner territory.  Operational code must not create, delete, move,
+# rename, read, hash, analyze, or inventory these files.  Explicit backup and
+# recovery are the sole exception.  Temporary visual-QA PDFs remain permitted
+# outside output/ in process-scoped scratch/render storage.
+OWNER_OWNED_OUTPUT_GLOB = "output/**/*.pdf"
+
+
+def is_owner_owned_output(path: Path, output_dir: Path = OUTPUT_DIR) -> bool:
+    """Return whether *path* is an owner-created PDF beneath *output_dir*."""
+    candidate = Path(path).resolve(strict=False)
+    root = Path(output_dir).resolve(strict=False)
+    try:
+        candidate.relative_to(root)
+    except ValueError:
+        return False
+    return candidate.suffix.casefold() == ".pdf"
+
+
+def reject_owner_owned_output(
+    path: Path,
+    operation: str,
+    output_dir: Path = OUTPUT_DIR,
+) -> None:
+    """Raise before an operational action can touch an owner-created PDF."""
+    if is_owner_owned_output(path, output_dir):
+        raise ValueError(
+            f"Refusing to {operation} owner-owned PDF in output/: "
+            f"{Path(path).resolve(strict=False)}"
+        )
+
 # Working directories.  The equivalence harness uses these overrides to keep
 # tracker and archive exercises completely outside the active workspace while
 # preserving the existing paths for every normal command.

@@ -17,7 +17,7 @@ from typing import Any
 import zipfile
 from xml.etree import ElementTree as ET
 
-from config.paths import PYTHON_EXECUTABLE
+from config.paths import PYTHON_EXECUTABLE, is_owner_owned_output
 from render_manifest import verify_render_directory
 
 
@@ -40,11 +40,17 @@ def file_digest(path: Path) -> str:
     return digest.hexdigest()
 
 
-def directory_inventory_digest(path: Path) -> str:
+def directory_inventory_digest(path: Path, *, owner_output_dir: Path | None = None) -> str:
     digest = hashlib.sha256()
     if not path.exists():
         return digest.hexdigest()
     for candidate in sorted((item for item in path.rglob("*") if item.is_file()), key=lambda item: str(item).lower()):
+        # This digest detects system-caused output mutations.  Owner-created
+        # PDFs can legitimately change during a rebuild; including one both
+        # aborts a valid run and hides the responsible path inside one rolled-up
+        # hash.  The containment-aware predicate does not exempt PDFs elsewhere.
+        if owner_output_dir is not None and is_owner_owned_output(candidate, owner_output_dir):
+            continue
         digest.update(candidate.relative_to(path).as_posix().encode("utf-8"))
         digest.update(b"\0")
         digest.update(file_digest(candidate).encode("ascii"))
@@ -348,7 +354,10 @@ def main() -> int:
     fingerprint = pipeline_fingerprint()
     before = {
         "job_files": {str(path): file_digest(path) for path in ACTIVE_JOB_FILES},
-        "output_inventory": directory_inventory_digest(ACTIVE_OUTPUT_DIR),
+        "output_inventory": directory_inventory_digest(
+            ACTIVE_OUTPUT_DIR,
+            owner_output_dir=ACTIVE_OUTPUT_DIR,
+        ),
     }
     items = fixture_names(corpora)
     if args.fixture:
@@ -424,7 +433,10 @@ def main() -> int:
 
     after = {
         "job_files": {str(path): file_digest(path) for path in ACTIVE_JOB_FILES},
-        "output_inventory": directory_inventory_digest(ACTIVE_OUTPUT_DIR),
+        "output_inventory": directory_inventory_digest(
+            ACTIVE_OUTPUT_DIR,
+            owner_output_dir=ACTIVE_OUTPUT_DIR,
+        ),
     }
     isolation_passed = before == after
     manifest = json.loads(manifest_path.read_text(encoding="utf-8-sig"))

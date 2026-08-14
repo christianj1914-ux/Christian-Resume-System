@@ -17,6 +17,7 @@ Use `python tasks.py` as the canonical command surface. For the live command inv
 
 - Create polished Word documents only. Do not create PDFs as final system outputs.
 - Internal DOCX-to-PDF-to-PNG conversion is temporary visual QA, not publication output. Christian reviews the editable DOCX and publishes the submission PDF with LibreOffice, so LibreOffice pagination is authoritative because it is the actual publication path. Replacing that renderer requires an explicit compatibility review.
+- Every PDF beneath `output/` is owner-created publication work. Operational code must never write, move, rename, delete, read, analyze, hash, or inventory it; only explicit backup and recovery may copy it.
 - Use only one active commercial posting in `jobs/job_description.txt` at a time.
 - Use only one active federal posting or questionnaire set in `jobs/federal_job_description.txt` at a time.
 - Use `jobs/application_questions.txt` only for late-discovered, job-specific extras beyond the canonical bank; promote reusable questions to `jobs/application_questions_bank.txt` and clear the active file when changing postings.

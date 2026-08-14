@@ -5523,6 +5523,31 @@ def test_fresh_rebuild_duplicate_targets_get_independent_directories() -> None:
             "Worker JSON configs must be BOM-free UTF-8.",
         )
 
+        active_output = batch_dir / "active_output"
+        active_output.mkdir()
+        owner_pdf = active_output / "Reviewed Resume.pdf"
+        system_docx = active_output / "Generated Resume.docx"
+        owner_pdf.write_bytes(b"owner version one")
+        system_docx.write_bytes(b"system version one")
+        inventory_before = fresh_corpus_rebuild.directory_inventory_digest(
+            active_output,
+            owner_output_dir=active_output,
+        )
+        owner_pdf.write_bytes(b"owner version two")
+        inventory_after_pdf = fresh_corpus_rebuild.directory_inventory_digest(
+            active_output,
+            owner_output_dir=active_output,
+        )
+        system_docx.write_bytes(b"system version two")
+        inventory_after_docx = fresh_corpus_rebuild.directory_inventory_digest(
+            active_output,
+            owner_output_dir=active_output,
+        )
+        assert_true(
+            inventory_before == inventory_after_pdf and inventory_after_pdf != inventory_after_docx,
+            "Fresh-corpus isolation must ignore owner PDFs while retaining system-owned output coverage.",
+        )
+
 
 def test_survivor_classification_and_requirement_relations(build_resume: object) -> None:
     from requirement_engine import parse_commercial_requirements
@@ -16816,9 +16841,10 @@ def test_renderer_phase_timeouts_terminate_process_trees() -> None:
         render_docx_windows.time.monotonic = original_monotonic
 
     render_checks_source = Path(render_checks.__file__).read_text(encoding="utf-8")
+    windows_renderer_source = Path(render_docx_windows.__file__).read_text(encoding="utf-8")
     assert_true(
-        '"--emit_pdf"' not in render_checks_source,
-        "The persistent visual-QA command must not retain its temporary PDF.",
+        "--emit_pdf" not in render_checks_source and "--emit_pdf" not in windows_renderer_source,
+        "The renderer command surface must not expose persistent PDF output.",
     )
     with TemporaryDirectory(prefix="render_profile_") as temp_name:
         environment = render_docx_windows.build_lo_env(Path(temp_name))
@@ -18834,6 +18860,7 @@ def test_bootstrap_reset_destination_removes_nested_tree() -> None:
 
 def test_cleanup_output_finders_and_selective_flag() -> None:
     import cleanup_output
+    from config.paths import is_owner_owned_output
     import os
 
     original_project_root = cleanup_output.PROJECT_ROOT
@@ -18870,6 +18897,18 @@ def test_cleanup_output_finders_and_selective_flag() -> None:
             for path in (protected_file, rejected_file, stale_file, fresh_file):
                 path.write_text("docx", encoding="utf-8")
 
+            owner_pdf = output_dir / "Christian Estrada - Honeywell - Senior Program Specialist Resume.pdf"
+            nested_pdf = output_dir / "published" / "Reviewed Resume.PDF"
+            debug_pdf = output_dir / "_stage_smoke_owner.pdf"
+            deceptive_docx = output_dir / "notes.pdf.docx"
+            nested_pdf.parent.mkdir()
+            owner_pdf.write_bytes(b"owner publication")
+            nested_pdf.write_bytes(b"nested owner publication")
+            debug_pdf.write_bytes(b"owner debug-name collision")
+            deceptive_docx.write_bytes(b"system docx")
+            owner_pdfs = (owner_pdf, nested_pdf, debug_pdf)
+            owner_pdf_hashes = {path: hashlib.sha256(path.read_bytes()).hexdigest() for path in owner_pdfs}
+
             stale_timestamp = (datetime.now() - timedelta(days=cleanup_output.OUTPUT_MAX_DAYS + 5)).timestamp()
             fresh_timestamp = (datetime.now() - timedelta(days=5)).timestamp()
             os.utime(protected_file, (stale_timestamp, stale_timestamp))
@@ -18895,6 +18934,41 @@ def test_cleanup_output_finders_and_selective_flag() -> None:
             stale_outputs = cleanup_output.find_stale_output_files()
             stale_renders = cleanup_output.find_stale_render_folders()
             parsed_args = cleanup_output.parse_args(["--selective", "--prune-bundles", "--prune-bundles-execute"])
+            unknown_pdf_flag_rejected = False
+            with contextlib.redirect_stderr(io.StringIO()):
+                try:
+                    cleanup_output.parse_args(["--remove-pdfs"])
+                except SystemExit as error:
+                    unknown_pdf_flag_rejected = error.code == 2
+
+            direct_pdf_rejections: list[str] = []
+            for operation in (
+                lambda: cleanup_output.remove_output_set([owner_pdf], "unsafe fixture", "unsafe"),
+                lambda: cleanup_output.delete_output_file(owner_pdf),
+                lambda: cleanup_output.archive_deletion_set(
+                    [owner_pdf],
+                    {owner_pdf.resolve(): "unsafe fixture"},
+                    "unsafe",
+                ),
+            ):
+                try:
+                    operation()
+                except ValueError as error:
+                    direct_pdf_rejections.append(str(error))
+
+            debug_docx = output_dir / "_stage_smoke_system.docx"
+            debug_docx.write_bytes(b"debug docx")
+            debug_candidates = cleanup_output.debug_output_artifacts()
+            cleanup_output.remove_debug_artifacts()
+            debug_docx_removed = not debug_docx.exists()
+
+            original_ask = cleanup_output.ask
+            try:
+                cleanup_output.ask = lambda _prompt: False
+                cleanup_output.run_cleanup(selective=False)
+                cleanup_output.run_cleanup(selective=True)
+            finally:
+                cleanup_output.ask = original_ask
 
             for index in range(60):
                 for document_type in ("Resume", "Cover Letter", "Interview Cheat Sheet"):
@@ -18908,12 +18982,23 @@ def test_cleanup_output_finders_and_selective_flag() -> None:
             for path in (rippling_resume, rippling_guide, dematic_hr, dematic_hiring):
                 path.write_text("docx", encoding="utf-8")
                 os.utime(path, (stale_timestamp, stale_timestamp))
-            families, preserved, removals = cleanup_output.bundle_cleanup_plan(output_dir.glob("*.docx"))
+            families, preserved, removals = cleanup_output.bundle_cleanup_plan(output_dir.iterdir())
             preview = cleanup_output.save_bundle_preview(families, preserved, removals)
             archive_path, manifest_path = cleanup_output.archive_deletion_set(
                 [stale_file], {stale_file.resolve(): "smoke cleanup archive"}, "smoke",
             )
             archive_artifacts_created = preview.exists() and archive_path.exists() and manifest_path.exists()
+            owner_pdfs_unchanged = all(
+                path.is_file() and hashlib.sha256(path.read_bytes()).hexdigest() == owner_pdf_hashes[path]
+                for path in owner_pdfs
+            )
+            owner_policy_cases = (
+                is_owner_owned_output(owner_pdf, output_dir)
+                and is_owner_owned_output(nested_pdf, output_dir)
+                and is_owner_owned_output(output_dir / "future.PDF", output_dir)
+                and not is_owner_owned_output(deceptive_docx, output_dir)
+                and not is_owner_owned_output(root / "elsewhere.pdf", output_dir)
+            )
     finally:
         cleanup_output.PROJECT_ROOT = original_project_root
         cleanup_output.OUTPUT_DIR = original_output_dir
@@ -18931,6 +19016,18 @@ def test_cleanup_output_finders_and_selective_flag() -> None:
         parsed_args.selective and parsed_args.prune_bundles and parsed_args.prune_bundles_execute,
         "cleanup_output.parse_args() should accept cleanup selection and pruning flags",
     )
+    assert_true(unknown_pdf_flag_rejected, "cleanup must reject the retired --remove-pdfs flag")
+    assert_true(
+        len(direct_pdf_rejections) == 3
+        and all("owner-owned PDF" in message for message in direct_pdf_rejections),
+        f"Every deletion choke point must reject owner PDFs before mutation: {direct_pdf_rejections}",
+    )
+    assert_true(
+        debug_docx in debug_candidates and debug_pdf not in debug_candidates and debug_docx_removed,
+        "Debug cleanup must remove system artifacts without selecting an owner PDF with a colliding prefix.",
+    )
+    assert_true(owner_pdfs_unchanged, "Cleanup planning and execution changed an owner-created PDF")
+    assert_true(owner_policy_cases, "Owner-output PDF classification failed a containment or suffix boundary")
     assert_true(
         60 <= len(families) <= 150 and archive_artifacts_created,
         "bundle cleanup should create a bounded preview and a verified archive manifest",
@@ -19382,6 +19479,41 @@ def test_equivalence_foundation_isolation_and_lane_contract() -> None:
             path.write_text(relative.as_posix(), encoding="utf-8")
         for relative in equivalence_harness.PROTECTED_TREES:
             (root / relative).mkdir(parents=True, exist_ok=True)
+        owner_pdf = root / "output" / "Reviewed Resume.pdf"
+        system_docx = root / "output" / "Generated Resume.docx"
+        archive_pdf = root / "scratch" / "jd_library" / "supporting-evidence.pdf"
+        owner_pdf.write_bytes(b"owner version one")
+        system_docx.write_bytes(b"system version one")
+        archive_pdf.write_bytes(b"archive version one")
+
+        before_owner_change = equivalence_harness.protected_snapshot(root)
+        owner_pdf.write_bytes(b"owner version two")
+        after_owner_change = equivalence_harness.protected_snapshot(root)
+        assert_true(
+            before_owner_change == after_owner_change,
+            "Owner PDFs under output/ must not participate in equivalence mutation snapshots.",
+        )
+
+        before_docx_change = equivalence_harness.protected_snapshot(root)
+        system_docx.write_bytes(b"system version two")
+        after_docx_change = equivalence_harness.protected_snapshot(root)
+        assert_true(
+            before_docx_change["trees"]["output"] != after_docx_change["trees"]["output"],
+            "System-owned output documents must remain protected by equivalence snapshots.",
+        )
+
+        with equivalence_harness.isolation_guard(root):
+            owner_pdf.write_bytes(b"owner version three")
+        try:
+            with equivalence_harness.isolation_guard(root):
+                archive_pdf.write_bytes(b"archive version two")
+        except equivalence_harness.HarnessError as error:
+            assert_true(
+                "scratch/jd_library" in str(error),
+                "Archive PDF mutation should remain attributed to the protected archive tree.",
+            )
+        else:
+            raise SmokeFailure("equivalence isolation guard stopped hashing a PDF under scratch/jd_library")
         with equivalence_harness.isolation_guard(root):
             pass
         try:

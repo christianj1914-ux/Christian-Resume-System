@@ -32,6 +32,7 @@ from equivalence_normalize import (
     normalized_json_value,
     sha256_text,
 )
+from config.paths import is_owner_owned_output
 
 
 SCHEMA_VERSION = 1
@@ -221,11 +222,18 @@ def apply_release_a_capture_adapters(commit: CommitExport) -> None:
     guide.write_text(text, encoding="utf-8")
 
 
-def _tree_payload(root: Path) -> list[dict[str, Any]]:
+def _tree_payload(root: Path, *, owner_output_dir: Path) -> list[dict[str, Any]]:
     if not root.exists():
         return []
     payload = []
     for path in sorted((item for item in root.rglob("*") if item.is_file()), key=lambda item: item.as_posix().lower()):
+        # Owner-created PDFs can legitimately change while a 15-17 minute
+        # capture runs.  Hashing one here makes isolation_guard() abort with
+        # "capture mutated protected workspace state: output", misattributing
+        # an owner publication action to system corruption.  Use the shared
+        # containment-aware policy: PDFs in scratch/jd_library remain covered.
+        if is_owner_owned_output(path, owner_output_dir):
+            continue
         payload.append(
             {
                 "path": path.relative_to(root).as_posix(),
@@ -242,7 +250,14 @@ def protected_snapshot(project_root: Path = PROJECT_ROOT) -> dict[str, Any]:
         path = project_root / relative
         files[relative.as_posix()] = file_sha256(path) if path.is_file() else None
     trees = {
-        relative.as_posix(): sha256_text(canonical_json(_tree_payload(project_root / relative)))
+        relative.as_posix(): sha256_text(
+            canonical_json(
+                _tree_payload(
+                    project_root / relative,
+                    owner_output_dir=project_root / "output",
+                )
+            )
+        )
         for relative in PROTECTED_TREES
     }
     return {"files": files, "trees": trees}

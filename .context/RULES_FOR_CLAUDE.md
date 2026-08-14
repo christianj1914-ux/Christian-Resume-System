@@ -6,6 +6,7 @@ This file condenses the highest-risk system rules. `AGENTS.md` remains canonical
 
 - Create polished Word documents only. Do not create PDFs as final system outputs.
 - Internal DOCX-to-PDF-to-PNG conversion is temporary visual QA, not publication output. Christian reviews the editable DOCX and publishes the submission PDF with LibreOffice, so LibreOffice pagination is authoritative because it is the actual publication path. Replacing that renderer requires an explicit compatibility review.
+- Every PDF beneath `output/` is owner-created publication work. Operational code must never write, move, rename, delete, read, analyze, hash, or inventory it; only explicit backup and recovery may copy it.
 - Never use old outputs as source material.
 - Never use LinkedIn page content as source material.
 - Never invent content, claims, metrics, tools, platforms, responsibilities, company values, culture fit, or outcomes.

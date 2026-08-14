@@ -15,6 +15,7 @@ from typing import Iterable
 import zipfile
 
 import cleanup_render_checks
+from config.paths import is_owner_owned_output, reject_owner_owned_output
 
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -57,7 +58,6 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--selective", action="store_true")
     parser.add_argument("--remove-debug-artifacts", action="store_true")
-    parser.add_argument("--remove-pdfs", action="store_true")
     parser.add_argument("--prune-bundles", action="store_true")
     parser.add_argument("--prune-bundles-execute", action="store_true")
     return parser.parse_args(argv)
@@ -139,6 +139,7 @@ def delete_render_folder(folder: Path) -> None:
 
 
 def delete_output_file(path: Path) -> None:
+    reject_owner_owned_output(path, "delete", OUTPUT_DIR)
     path.unlink()
     print(f"Deleted: {path.name}")
 
@@ -158,6 +159,8 @@ def _sha256(path: Path) -> str:
 def archive_deletion_set(paths: Iterable[Path], reasons: dict[Path, str], label: str) -> tuple[Path, Path]:
     """Archive a planned output deletion and verify it before the caller unlinks anything."""
     candidates = sorted({path.resolve() for path in paths})
+    for path in candidates:
+        reject_owner_owned_output(path, f"archive for {label} cleanup", OUTPUT_DIR)
     if not candidates:
         raise ValueError("Cannot archive an empty deletion set.")
     archive_root = cleanup_archive_dir()
@@ -242,7 +245,12 @@ def output_document_type(path: Path) -> str | None:
 
 
 def bundle_cleanup_plan(paths: Iterable[Path] | None = None) -> tuple[dict[str, list[Path]], list[Path], list[Path]]:
-    docx_paths = sorted(paths if paths is not None else OUTPUT_DIR.glob("*.docx"))
+    candidates = paths if paths is not None else OUTPUT_DIR.glob("*.docx")
+    docx_paths = sorted(
+        path
+        for path in candidates
+        if path.suffix.casefold() == ".docx" and not is_owner_owned_output(path, OUTPUT_DIR)
+    )
     families: dict[str, list[Path]] = {}
     preserved: list[Path] = []
     for path in docx_paths:
@@ -297,6 +305,8 @@ def save_bundle_preview(families: dict[str, list[Path]], preserved: list[Path], 
 
 
 def remove_output_set(paths: list[Path], reason: str, label: str) -> tuple[Path, Path] | None:
+    for path in paths:
+        reject_owner_owned_output(path, f"include in {label} cleanup", OUTPUT_DIR)
     if not paths:
         print(f"No {label} files found.")
         return None
@@ -311,15 +321,14 @@ def remove_output_set(paths: list[Path], reason: str, label: str) -> tuple[Path,
 def debug_output_artifacts() -> list[Path]:
     candidates = {path for pattern in DEBUG_OUTPUT_PATTERNS for path in OUTPUT_DIR.glob(pattern)}
     candidates.update(OUTPUT_DIR / name for name in DEBUG_OUTPUT_NAMES if (OUTPUT_DIR / name).is_file())
-    return sorted(path for path in candidates if path.is_file())
+    return sorted(
+        path for path in candidates
+        if path.is_file() and not is_owner_owned_output(path, OUTPUT_DIR)
+    )
 
 
 def remove_debug_artifacts() -> tuple[Path, Path] | None:
     return remove_output_set(debug_output_artifacts(), "non-application debug artifact", "debug_artifacts")
-
-
-def remove_pdfs() -> tuple[Path, Path] | None:
-    return remove_output_set(sorted(OUTPUT_DIR.glob("*.pdf")), "pre-policy PDF output", "pdf_outputs")
 
 
 def run_cleanup(*, selective: bool = False) -> None:
@@ -377,8 +386,6 @@ if __name__ == "__main__":
         raise SystemExit("--prune-bundles-execute requires --prune-bundles.")
     if arguments.remove_debug_artifacts:
         remove_debug_artifacts()
-    if arguments.remove_pdfs:
-        remove_pdfs()
     if arguments.prune_bundles:
         families, preserved, removals = bundle_cleanup_plan()
         preview = save_bundle_preview(families, preserved, removals)
@@ -386,5 +393,5 @@ if __name__ == "__main__":
         print(f"Families: {len(families)}; retained: {len(preserved)}; proposed removals: {len(removals)}")
         if arguments.prune_bundles_execute:
             remove_output_set(removals, "superseded application output bundle", "bundle_prune")
-    if not any((arguments.remove_debug_artifacts, arguments.remove_pdfs, arguments.prune_bundles)):
+    if not any((arguments.remove_debug_artifacts, arguments.prune_bundles)):
         run_cleanup(selective=arguments.selective)

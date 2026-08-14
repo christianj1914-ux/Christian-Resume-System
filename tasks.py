@@ -341,7 +341,7 @@ TASKS: dict[str, Task] = {
     "reset-jobs": Task("Archive job context and optionally clear active job files.", ("scripts/reset_jobs.py",), InputRequirement.NONE),
     "list-archives": Task("List archived job context snapshots.", ("scripts/reset_jobs.py", "--list-archives"), InputRequirement.NONE),
     "clean-renders": Task("Delete render check folders older than 24 hours.", ("scripts/cleanup_render_checks.py", "--delete", "--hours", "24"), InputRequirement.NONE),
-    "cleanup": Task("Safely clean stale outputs; supports archived debug/PDF cleanup and preview-first bundle pruning.", ("scripts/cleanup_output.py",), InputRequirement.NONE),
+    "cleanup": Task("Safely clean stale DOCX outputs; supports archived debug cleanup and preview-first bundle pruning.", ("scripts/cleanup_output.py",), InputRequirement.NONE),
     "advice": Task("Build the Career Operating Manual.", ("scripts/build_general_advice.py",), InputRequirement.NONE),
     "claude-packet": Task("Rebuild the ready-to-upload Claude review packet from live files.", ("scripts/build_claude_review_packet.py",), InputRequirement.NONE),
     "claude-prompt": Task("Print the Claude review or plan prompt for a packet mode.", ("scripts/build_claude_prompt.py",), InputRequirement.NONE),

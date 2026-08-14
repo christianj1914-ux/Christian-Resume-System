@@ -278,7 +278,6 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Render a DOCX to page PNGs on Windows.")
     parser.add_argument("input_docx")
     parser.add_argument("--output_dir", required=True)
-    parser.add_argument("--emit_pdf", action="store_true")
     parser.add_argument("--verbose", action="store_true")
     return parser.parse_args()
 
@@ -292,8 +291,6 @@ def main() -> None:
         with tempfile.TemporaryDirectory(prefix="codex_render_") as tmp_dir:
             work_dir = Path(tmp_dir)
             pdf_path = convert_docx_to_pdf(input_docx, work_dir, verbose=args.verbose)
-            if args.emit_pdf:
-                shutil.copy2(pdf_path, output_dir / f"{input_docx.stem}.pdf")
             rasterize_pdf(pdf_path, output_dir, verbose=args.verbose)
     except (ProcessTreeTimeout, RenderPhaseTimeout) as exc:
         raise SystemExit(f"ERROR: {exc}") from exc
