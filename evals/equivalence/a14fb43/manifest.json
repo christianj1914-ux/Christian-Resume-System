@@ -71,6 +71,38 @@
       "fixture_id": "system_readiness_tracker_archive",
       "kind": "drive_path_json_escape_repair",
       "result": "16 identical, 0 allowed, 1 unexplained"
+    },
+    {
+      "cause": "Chocolatey's pinned poppler 26.5.0 package contained source material but no pdftoppm.exe/pdfinfo.exe pair and installed no command shim",
+      "date": "2026-08-14",
+      "disposition": "install the exact conda-forge poppler=26.05.0=h4b9d284_3 build in a dedicated runner prefix and export its single verified binary pair",
+      "failed_job_id": 94667127807,
+      "failed_run_id": 31767790801,
+      "kind": "ci_poppler_package_contents_failure",
+      "package_sha256": "378623132f942a83051cedcddd1b1e2ebf01b983d633f1da701cf86bb805009a",
+      "resolver_policy": "CI uses the production find_soffice() and find_pdftoppm() resolvers so verification and capture cannot disagree about executable discovery"
+    },
+    {
+      "candidate_sha": "afe7296e99877cebc1bb7cf86272ce69d1a9b1f5",
+      "comparison": "17 identical, 0 allowed, 0 unexplained",
+      "comparison_seconds": 713,
+      "conda_install_seconds": 42.484,
+      "date": "2026-08-14",
+      "failed_metadata_job_id": 94811294284,
+      "failed_metadata_run_id": 31814038514,
+      "failed_metadata_cause": "conda list poppler returned the exact poppler record plus poppler-data; validation incorrectly required the complete response to contain one row instead of requiring one exact-name row",
+      "green_job_id": 94815896964,
+      "green_pr_run_id": 31815449321,
+      "kind": "ci_renderer_toolchain_certification",
+      "libreoffice_path": "C:\\Program Files\\LibreOffice\\program\\soffice.com",
+      "libreoffice_stream": "stdout",
+      "libreoffice_version": "LibreOffice 7.6.5.2 38d5f62f85355c192ef5f1dd47c5c0c0c6d6598b",
+      "poppler_banner": "pdftoppm version 26.05.0",
+      "poppler_path": "D:\\a\\_temp\\resume-poppler-26.05.0-h4b9d284_3\\Library\\bin\\pdftoppm.exe",
+      "poppler_stream": "stderr",
+      "production_parity": "LibreOffice uses production's exact raw-stream truthiness and 15-second timeout because renderer_version is a compared field; Poppler identity is a reproducibility drift guard",
+      "runner_version": "2.336.0",
+      "total_job_seconds": 938
     }
   ],
   "coverage": {

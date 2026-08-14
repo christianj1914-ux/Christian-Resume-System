@@ -20044,14 +20044,14 @@ def test_equivalence_ci_contract() -> None:
         "equivalence CI must run both the planted proof and full comparison",
     )
     assert_true(
-        "actions/checkout@v4" in workflow
-        and "actions/setup-python@v5" in workflow
-        and "actions/upload-artifact@v4" in workflow,
-        "equivalence CI action majors drifted before the Node 24 maintenance checkpoint",
+        "actions/checkout@v6" in workflow
+        and "actions/setup-python@v6" in workflow
+        and "actions/upload-artifact@v7" in workflow,
+        "equivalence CI must use the approved Node 24 action majors",
     )
     assert_true(
-        "actions/checkout@v4" in smoke_workflow
-        and "actions/setup-python@v5" in smoke_workflow
+        "actions/checkout@v6" in smoke_workflow
+        and "actions/setup-python@v6" in smoke_workflow
         and "fetch-depth: 0" in smoke_workflow
         and "actions/upload-artifact@" not in smoke_workflow,
         "smoke CI must retain full history and declare only its two expected action families",
