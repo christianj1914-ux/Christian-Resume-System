@@ -18841,7 +18841,10 @@ def test_cleanup_output_finders_and_selective_flag() -> None:
     original_tracker_csv = cleanup_output.TRACKER_CSV
     try:
         with TemporaryDirectory(prefix="cleanup_output_") as temp_name:
-            root = Path(temp_name)
+            # Hosted Windows runners may expose TEMP through an 8.3 alias while
+            # Path.resolve() expands created files to the long path.  Keep the
+            # synthetic project root in the same canonical form as its files.
+            root = Path(temp_name).resolve()
             output_dir = root / "output"
             tracker_csv = root / "scratch" / "applications.csv"
             render_root = root / "render_check"
@@ -19061,7 +19064,9 @@ def test_python_resolution_order_and_windows_store_rejection() -> None:
     original_executable = resolve_python.sys.executable
     try:
         with TemporaryDirectory(prefix="python_resolution_smoke_") as temp_name:
-            root = Path(temp_name)
+            # Avoid comparing the runner's short TEMP alias with resolved
+            # candidate paths that name the same files through the long path.
+            root = Path(temp_name).resolve()
             windows_venv = root / "venv" / "Scripts" / "python.exe"
             posix_venv = root / "venv" / "bin" / "python"
             override = root / "override" / "python.exe"
@@ -19795,8 +19800,14 @@ def test_equivalence_volatile_text_and_report_contract() -> None:
             }
         ]
     }
+    windows_serialized_payload = json.dumps(
+        {"path": r"C:\dev\Christian-Resume-System\scratch\equivalence\r\abcd1234\artifact.docx"}
+    )
+    assert_true(
+        "\\\\" in windows_serialized_payload,
+        "explicit Windows JSON fixture must contain escaped backslashes",
+    )
     serialized_payload = json.dumps(decoded_payload)
-    assert_true("\\\\" in serialized_payload, "Windows JSON fixture must contain escaped backslashes")
     normalized_payload = normalized_json_value(json.loads(serialized_payload), (run_root,))
     normalized_job = normalized_payload["jobs"][0]
     assert_true(
